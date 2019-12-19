@@ -7,6 +7,25 @@ Consider / fixme
  It seems that absolute tolerance would be more meaningful in this case. Relative tolerance has the issue
  that it means a different thing: taking 10% of a very small charge is a very small value, and a very
  small tolerance. Look up the units and figure out how much the actual absolute tolerance should be taken into account.
+
+TODO
+ - before doing any work, check if the topology of ligand/molecule is a strongly connected component. Use networkx with __hash__
+ - consider the case where the superimposer finds two components, in which case there is a question about the linking area
+ more specifically, whether the area is of the same dimensions. If there is a linking atom that was mutated, then
+ it is the atoms that needs to be replaced. However, if there is an insertion of more atoms in the linking area,
+ then one has to decide whether the smaller components should appear from scratch. This Shunzhou said could depend
+ on whether the component is the crucial anchor for the docking. Another thought about this is that having MD
+ should mean that that the simulation should be extended long enough so that the molecule is properly docked. Moreover,
+ it is possible that one should reconsider and reapply docking with the new ligand to understand and see if there are other
+ types of interactions that can affect the entire process.
+ - update naming everywhere to call it a superimposer rather than "overlay"
+ - dimension analysis should be carried out. When there is more components, there might be a component that has only
+ a single atom. In that case, if the atom is spatially in the same position, that's fine, but if the atom is farther away,
+ then it should be marked as a different atom
+ - GUI should be used and allow for a manual intervention.
+ - LATER: extension to the dimension analysis - one should be able to see if the "same" atom topologically is actually different
+ due to its completely different forcefield. Imagine that someone made this atom to be restrained at a different angle,
+ this would not be currently noticed. However, how important are these differences?
 """
 
 import networkx as nx
@@ -15,69 +34,108 @@ from os import path
 import matplotlib.pyplot as plt
 from overlay import *
 # from rdkit import Chem
+import glob
 
-
-prefix = "/home/dresio/ucl/dataset/agastya_extracted/tyk2/l11-l14"
-l11 = mda.Universe(path.join(prefix, 'init_l11.pdb'))
-l14 = mda.Universe(path.join(prefix, 'final_l14.pdb'))
-
-# read the corresponding charge values for the l14
-l14_atoms, l14_bonds = get_charges(path.join(prefix, 'final_l14.ac'))
-l11_atoms, l11_bonds = get_charges(path.join(prefix, 'init_l11.ac'))
-
-# create graphs
-# create the nodes and add edges for one ligand
-l14_nodes = {}
-for atomNode in l14_atoms:
-    l14_nodes[atomNode.atomId] = atomNode
-for nfrom, nto in l14_bonds:
-    l14_nodes[nfrom].bindTo(l14_nodes[nto])
-
-# create the nodes and add edges for the other ligand
-l11_nodes = {}
-for atomNode in l11_atoms:
-    l11_nodes[atomNode.atomId] = atomNode
-for nfrom, nto in l11_bonds:
-    l11_nodes[nfrom].bindTo(l11_nodes[nto])
-
-# overlay
-print("About to overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
-# 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al
-overlays = compute_overlays(l11_nodes.values(), l14_nodes.values(), rtol=0, atol=0.1)
-# extract all the unique nodes from the pairs
-all_matched_nodes = set()
-for matched_pairs in overlays:
-    print("Overlay found of len %d:" % len(matched_pairs))
-    # print(matched_pairs)
-    unique_nodes = []
-    for pair in matched_pairs:
-        unique_nodes.extend(list(pair))
-    all_matched_nodes = all_matched_nodes.union(unique_nodes)
-
-# extract the atoms that are appearing and disappearing
-# the atom that appears has to be in G2 and not in any of the overlaps
-appearing = [node for node in l14_nodes.values() if not node in all_matched_nodes]
-print("appearing", appearing)
-disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
-print("disappearing", disappearing)
-
-# CL2 has to be in disappearing
-
-# check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
-agastya_disapp_atoms = open(path.join(prefix, "disappearing_atoms.txt")).read().split()
-agastya_app_atoms = open(path.join(prefix, "appearing_atoms.txt")).read().split()
-#
-for app_atom in appearing:
-    isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
-    if not isin:
-        print("An appearing atom not found in Agastya's list. Atom: ", app_atom.atomName)
-for disapp_atom in disappearing:
-    isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
-    if not isin:
-        print("A disappearing atom not found in Agastya list. Atom: ", disapp_atom.atomName)
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 """
-In theory you have all the overlays. 
-If some atom is not in any of the overlays, that means that it is a new atom that appears in one structure, 
-but not in another. 
+Good to check:
+TYK2, trka, 
+
+Not good: 
+ - thrombin - a different dir structure
+ - TIES_PTP1B - a different dir structure
 """
+
+proteins_paths = [
+                    # "/home/dresio/ucl/dataset/agastya_extracted/tyk2/",
+                    # "/home/dresio/ucl/dataset/agastya_extracted/trka/",
+                    "/home/dresio/ucl/dataset/agastya_extracted/mcl1/"   # why the errors?
+                  ]
+for protein_path in proteins_paths:
+    print("working now on: ", protein_path)
+    for liglig_path in glob.glob(protein_path + 'l*-l*'):
+        ligand_from, ligand_to = path.basename(liglig_path).split('-')
+        hybrid_pair_path = path.join(liglig_path, "hybrid_par")
+        l11 = mda.Universe(path.join(hybrid_pair_path, 'init_%s.pdb' % ligand_from))
+        l14 = mda.Universe(path.join(hybrid_pair_path, 'final_%s.pdb' % ligand_to))
+
+        # read the corresponding charge values for the l14
+        l11_atoms, l11_bonds = get_charges(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
+        l14_atoms, l14_bonds = get_charges(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
+
+        # create graphs
+        # create the nodes and add edges for one ligand
+        l14_nodes = {}
+        for atomNode in l14_atoms:
+            l14_nodes[atomNode.atomId] = atomNode
+        for nfrom, nto in l14_bonds:
+            l14_nodes[nfrom].bindTo(l14_nodes[nto])
+
+        # create the nodes and add edges for the other ligand
+        l11_nodes = {}
+        for atomNode in l11_atoms:
+            l11_nodes[atomNode.atomId] = atomNode
+        for nfrom, nto in l11_bonds:
+            l11_nodes[nfrom].bindTo(l11_nodes[nto])
+
+        # overlay
+        print("About to overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
+        # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al
+        overlays = compute_overlays(l11_nodes.values(), l14_nodes.values(), rtol=0, atol=0.1)
+        # extract all the unique nodes from the pairs
+        all_matched_nodes = set()
+        for matched_pairs in overlays:
+            print("Overlay found of len %d:" % len(matched_pairs))
+            # print(matched_pairs)
+            unique_nodes = []
+            for pair in matched_pairs:
+                unique_nodes.extend(list(pair))
+            all_matched_nodes = all_matched_nodes.union(unique_nodes)
+
+        # extract the atoms that are appearing and disappearing
+        # the atom that appears has to be in G2 and not in any of the overlaps
+        appearing = [node for node in l14_nodes.values() if not node in all_matched_nodes]
+        print("appearing", appearing)
+        disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
+        print("disappearing", disappearing)
+
+        # fixme - you should check if this is not empty, if you have not found anything, but the molecules
+        # has a different number of atoms, etc, then it is wrong, if the molecule is the same, then this also needs
+        # a proper message
+
+        # check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
+        agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")
+        if not path.isfile(agastya_disapp_atom_list_path):
+            print(bcolors.WARNING + "Test file does not exist %s" %agastya_disapp_atom_list_path + bcolors.ENDC)
+        else:
+            agastya_disapp_atoms = open(agastya_disapp_atom_list_path).read().split()
+            for disapp_atom in disappearing:
+                isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
+                if not isin:
+                    print(bcolors.FAIL + "A disappearing atom not found in Agastya list. Atom: " + bcolors.ENDC,
+                          disapp_atom.atomName)
+
+        agastya_app_atom_list_path = path.join(hybrid_pair_path, "appearing_atoms.txt")
+        if not path.isfile(agastya_app_atom_list_path):
+            print(bcolors.WARNING + "Test file does not exist %s" % agastya_app_atom_list_path + bcolors.ENDC)
+        else:
+            agastya_app_atoms = open(agastya_app_atom_list_path).read().split()
+            for app_atom in appearing:
+                isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
+                if not isin:
+                    print(bcolors.FAIL + "An appearing atom not found in Agastya's list. Atom: " + bcolors.ENDC, app_atom.atomName)
+
+        """
+        In theory you have all the overlays. 
+        If some atom is not in any of the overlays, that means that it is a new atom that appears in one structure, 
+        but not in another. 
+        """
