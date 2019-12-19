@@ -41,19 +41,25 @@ for nfrom, nto in l11_bonds:
     l11_nodes[nfrom].bindTo(l11_nodes[nto])
 
 # overlay
-print("Overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
+print("About to overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
 # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al
-overlays = overlay(l11_nodes.values(), l14_nodes.values(), rtol=0, atol=0.1)
-merged_overlays = set()
-for overlay in overlays:
-    print("Overlay found of len %d:" % len(overlay))
-    print(overlay)
-    merged_overlays = merged_overlays.union(overlay)
+overlays = compute_overlays(l11_nodes.values(), l14_nodes.values(), rtol=0, atol=0.1)
+# extract all the unique nodes from the pairs
+all_matched_nodes = set()
+for matched_pairs in overlays:
+    print("Overlay found of len %d:" % len(matched_pairs))
+    # print(matched_pairs)
+    unique_nodes = []
+    for pair in matched_pairs:
+        unique_nodes.extend(list(pair))
+    all_matched_nodes = all_matched_nodes.union(unique_nodes)
 
 # extract the atoms that are appearing and disappearing
 # the atom that appears has to be in G2 and not in any of the overlaps
-appearing = [node for node in l14_nodes.values() if not node in merged_overlays]
-print("appearing",appearing)
+appearing = [node for node in l14_nodes.values() if not node in all_matched_nodes]
+print("appearing", appearing)
+disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
+print("disappearing", disappearing)
 
 """
 In theory you have all the overlays. 

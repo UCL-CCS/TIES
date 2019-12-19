@@ -40,7 +40,7 @@ class AtomNode:
         return self.atom_colloq
 
     def __repr__(self):
-        return self.atom_colloq
+        return "%s_%s" % (self.atom_colloq, self.atomName)
 
     def bindTo(self, other):
         self.bonds.add(other)
@@ -64,7 +64,7 @@ def rankCommonAtomsRarity(g1, g2):
     pass
 
 
-def _overlay(n1, n2, common=[], rtol=0.05, atol=0):
+def _overlay(n1, n2, common_pairs=[], rtol=0.05, atol=0):
     """
     n1 should be from one grpah, and n2 should be from another.
 
@@ -75,22 +75,24 @@ def _overlay(n1, n2, common=[], rtol=0.05, atol=0):
     """
 
     # if either of the nodes has already been visited, ignore this match
-    if n1 in common or n2 in common:
-        return common
+    for pair in common_pairs:
+        if n1 in pair or n2 in pair:
+            return common_pairs
 
     # if the two nodes are "the same", append them to the common area
     if n1.eq(n2, rtol=rtol, atol=atol):
-        #
-        common.append(n1)
+        # append both nodes as a pair to ensure that we keep track of the mapping
+        # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
+        common_pairs.append(frozenset([n1, n2]))
         # continue traversing
         for other_n1 in n1.bonds:
             for other_n2 in n2.bonds:
-                _overlay(other_n1, other_n2, common, rtol=rtol, atol=atol)
+                _overlay(other_n1, other_n2, common_pairs, rtol=rtol, atol=atol)
 
-    return common
+    return common_pairs
 
 
-def overlay(g1, g2, rtol, atol):
+def compute_overlays(g1, g2, rtol, atol):
     """
     tolr 1 means the charge of the atom can be up to 100% different, so even if it is still hydrogen
     """
@@ -98,19 +100,26 @@ def overlay(g1, g2, rtol, atol):
     # fixme - create a theoretical maximum that could actually match if you ignored the topology completely
     for n1 in g1:
         for n2 in g2:
-            match = _overlay(n1, n2, rtol=rtol, atol=atol)
+            matched_pairs = _overlay(n1, n2, rtol=rtol, atol=atol)
             # there could be a single atom that is a match
-            if len(match) == 0:
+            if len(matched_pairs) == 0:
                 continue
 
             # check if the best match has been found
-            if len(match) == len(g1) or len(match) == len(g2):
+            if len(matched_pairs) == len(g1) or len(matched_pairs) == len(g2):
                 print("One graph is a subgraph of another")
-                return match
+                return matched_pairs
+
+            # TEST: since we keep a list of a common pairs, we should be able to recreate a set of the entire list which has
+            # the length of 2*len(common_pairs)
+            all_matched_nodes = []
+            for pair in matched_pairs:
+                all_matched_nodes.extend(list(pair))
+            assert len(matched_pairs) * 2 == len(all_matched_nodes)
 
             # fixme - reduce the number by removing "subgraphs"
-            smatch = set(match)
-            # before adding, check if it already exists
+            smatch = set(matched_pairs)
+            # before adding, check if this combination already exists
             relevant_overlay = True
             for smatch2 in found_overlaps:
                 # this match was already found before, or it is a subset of another match, so ignore
