@@ -61,6 +61,21 @@ print("appearing", appearing)
 disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
 print("disappearing", disappearing)
 
+# CL2 has to be in disappearing
+
+# check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
+agastya_disapp_atoms = open(path.join(prefix, "disappearing_atoms.txt")).read().split()
+agastya_app_atoms = open(path.join(prefix, "appearing_atoms.txt")).read().split()
+#
+for app_atom in appearing:
+    isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
+    if not isin:
+        print("An appearing atom not found in Agastya's list. Atom: ", app_atom.atomName)
+for disapp_atom in disappearing:
+    isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
+    if not isin:
+        print("A disappearing atom not found in Agastya list. Atom: ", disapp_atom.atomName)
+
 """
 In theory you have all the overlays. 
 If some atom is not in any of the overlays, that means that it is a new atom that appears in one structure, 
