@@ -9,6 +9,7 @@ Consider / fixme
  small tolerance. Look up the units and figure out how much the actual absolute tolerance should be taken into account.
 
 TODO
+ - list all cases in a understanble fashion (
  - before doing any work, check if the topology of ligand/molecule is a strongly connected component. Use networkx with __hash__
  - consider the case where the superimposer finds two components, in which case there is a question about the linking area
  more specifically, whether the area is of the same dimensions. If there is a linking atom that was mutated, then
@@ -26,6 +27,8 @@ TODO
  - LATER: extension to the dimension analysis - one should be able to see if the "same" atom topologically is actually different
  due to its completely different forcefield. Imagine that someone made this atom to be restrained at a different angle,
  this would not be currently noticed. However, how important are these differences?
+ - ?? should you consider, if there is a dilemma with how to pick topologies, to use more topologies and compare them?
+ - ?? should you consider affinity of atoms
 """
 
 import networkx as nx
@@ -61,10 +64,12 @@ proteins_paths = [
                     "/home/dresio/ucl/dataset/agastya_extracted/mcl1/"   # why the errors?
                   ]
 for protein_path in proteins_paths:
-    print("working now on: ", protein_path)
     for liglig_path in glob.glob(protein_path + 'l*-l*'):
         ligand_from, ligand_to = path.basename(liglig_path).split('-')
+        if not (ligand_from == 'l12' and ligand_to == 'l35'):
+            continue
         hybrid_pair_path = path.join(liglig_path, "hybrid_par")
+        print("working now on: ", hybrid_pair_path)
         l11 = mda.Universe(path.join(hybrid_pair_path, 'init_%s.pdb' % ligand_from))
         l14 = mda.Universe(path.join(hybrid_pair_path, 'final_%s.pdb' % ligand_to))
 
@@ -89,12 +94,19 @@ for protein_path in proteins_paths:
 
         # overlay
         print("About to overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
-        # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al
-        overlays = compute_overlays(l11_nodes.values(), l14_nodes.values(), rtol=0, atol=0.1)
+        # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al (doi: 10.1021/acs.jctc.6b00979)
+        si_topologies = superimpose_topologies(l11_nodes.values(), l14_nodes.values(), atol=0.1)
+
+        # print the match
+        # for strongly_connected_component in overlays:
+        #     print("Strongly Connected Component, length:", len(strongly_connected_component))
+            # for atom_from, atom_to in strongly_connected_component:
+            #     print('Bound', atom_from.atomName, atom_to.atomName)
+
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
-        for matched_pairs in overlays:
-            print("Overlay found of len %d:" % len(matched_pairs))
+        for matched_pairs in si_topologies:
+            print("Superimposed topology: len %d" % len(matched_pairs))
             # print(matched_pairs)
             unique_nodes = []
             for pair in matched_pairs:
@@ -104,9 +116,9 @@ for protein_path in proteins_paths:
         # extract the atoms that are appearing and disappearing
         # the atom that appears has to be in G2 and not in any of the overlaps
         appearing = [node for node in l14_nodes.values() if not node in all_matched_nodes]
-        print("appearing", appearing)
         disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
         print("disappearing", disappearing)
+        print("appearing", appearing)
 
         # fixme - you should check if this is not empty, if you have not found anything, but the molecules
         # has a different number of atoms, etc, then it is wrong, if the molecule is the same, then this also needs
@@ -123,6 +135,9 @@ for protein_path in proteins_paths:
                 if not isin:
                     print(bcolors.FAIL + "A disappearing atom not found in Agastya list. Atom: " + bcolors.ENDC,
                           disapp_atom.atomName)
+                    print(bcolors.FAIL + "Agastya's disapp list:" + bcolors.ENDC,
+                          agastya_disapp_atoms)
+                    #raise Exception("Fail")
 
         agastya_app_atom_list_path = path.join(hybrid_pair_path, "appearing_atoms.txt")
         if not path.isfile(agastya_app_atom_list_path):
@@ -133,6 +148,7 @@ for protein_path in proteins_paths:
                 isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
                 if not isin:
                     print(bcolors.FAIL + "An appearing atom not found in Agastya's list. Atom: " + bcolors.ENDC, app_atom.atomName)
+                    #raise Exception("Fail")
 
         """
         In theory you have all the overlays. 

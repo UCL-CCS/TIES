@@ -18,6 +18,18 @@ To do:
  - TEST: with multiple graphs at the end, and uncertainty, we should ensure that
  we finish with disjoints graphs: if two graphs are present and they overlap,
  the smaller one should be removed, because it is a subgraph of the larger
+ - Low Priority: currently, if the ligands l1 and l2 are symmetric, then the "matching" 
+ or superimposition of the topologies
+ can be done in multiple ways and there is no difference between them, 
+ however, the charges on the molecules can be used to help with the symmetry: ie even
+ though they are similar enough (within the absolute tolerance atol), they 
+ might on one side be more similar than on the other side. However, here it is ignored
+ for now because it does not lead to any wrong results
+ 
+ 
+ fixme
+ - ERROR: imagine that you have a olecule with 3 overlaid Strongly Connected Components that are all the same to
+ each other. Currently, their matching will be arbitrary, which could potentially lead to problems
 """
 
 class AtomNode:
@@ -46,13 +58,13 @@ class AtomNode:
         self.bonds.add(other)
         other.bonds.add(self)
 
-    def eq(self, other, rtol=0.05, atol=0):
+    def eq(self, other, atol=0):
         """
         What does it mean that two atoms are the same? They are the same type and charge.
         5 % tolerance by default
         """
         if self.atom_colloq == other.atom_colloq and \
-                np.isclose(self.charge, other.charge, rtol=rtol, atol=atol):
+                np.isclose(self.charge, other.charge, atol=atol):
             return True
 
         return False
@@ -64,9 +76,9 @@ def rankCommonAtomsRarity(g1, g2):
     pass
 
 
-def _overlay(n1, n2, common_pairs=[], rtol=0.05, atol=0):
+def _overlay(n1, n2, matched_nodes=None, atol=0):
     """
-    n1 should be from one grpah, and n2 should be from another.
+    n1 should be from one graph, and n2 should be from another.
 
     If n1 and n2 are the same, we will be traversing through both graphs, marking the jointly travelled areas.
     RETURN: the maximum common overlap with the n1 and n2 as the starting conditions.
@@ -74,44 +86,53 @@ def _overlay(n1, n2, common_pairs=[], rtol=0.05, atol=0):
     Here, recursively the graphs of n1 and of n2 will be explored as they are the same.
     """
 
-    # if either of the nodes has already been visited, ignore this match
-    for pair in common_pairs:
-        if n1 in pair or n2 in pair:
-            return common_pairs
+    if matched_nodes == None:
+        matched_nodes = []
 
-    # if the two nodes are "the same", append them to the common area
-    if n1.eq(n2, rtol=rtol, atol=atol):
+    # if either of the nodes has already been matched, ignore this potential match
+    for pair in matched_nodes:
+        if n1 in pair or n2 in pair:
+            return matched_nodes
+
+    # if the two nodes are "the same", append them to the list of matched nodes
+    if n1.eq(n2, atol=atol):
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
-        common_pairs.append(frozenset([n1, n2]))
+        matched_nodes.append(frozenset([n1, n2]))
         # continue traversing
-        for other_n1 in n1.bonds:
-            for other_n2 in n2.bonds:
-                _overlay(other_n1, other_n2, common_pairs, rtol=rtol, atol=atol)
+        for n1bonded_node in n1.bonds:
+            for n2bonded_node in n2.bonds:
+                _overlay(n1bonded_node, n2bonded_node, matched_nodes, atol=atol)
 
-    return common_pairs
+    return matched_nodes
 
 
-def compute_overlays(g1, g2, rtol, atol):
+def superimpose_topologies(top1, top2, atol):
     """
-    tolr 1 means the charge of the atom can be up to 100% different, so even if it is still hydrogen
+    atol 1 means the charge of the atom can be up to 1 electron different,
+    as long as the atom has the same type
     """
-    found_overlaps = []
-    # fixme - create a theoretical maximum that could actually match if you ignored the topology completely
-    for n1 in g1:
-        for n2 in g2:
-            matched_pairs = _overlay(n1, n2, rtol=rtol, atol=atol)
-            # there could be a single atom that is a match
+    sccs = []
+    # fixme - TEST: create a theoretical maximum that could actually match if you ignored the topology completely
+    # grow the topologies using every combination node1-node2 as the starting point
+    for node1 in top1:
+        for node2 in top2:
+            # if not (node1.atomName == 'H9' and node2.atomName == 'H27'):
+            #     continue
+
+            # grow the topologies to see if they overlap
+            matched_pairs = _overlay(node1, node2, atol=atol)
+            # check if no atoms were superimposed
             if len(matched_pairs) == 0:
                 continue
 
-            # check if the best match has been found
-            if len(matched_pairs) == len(g1) or len(matched_pairs) == len(g2):
+            # check if one topology is a subgraph of another topology
+            if len(matched_pairs) == len(top1) or len(matched_pairs) == len(top2):
                 print("One graph is a subgraph of another")
-                return matched_pairs
+                return [matched_pairs, ]
 
-            # TEST: since we keep a list of a common pairs, we should be able to recreate a set of the entire list which has
-            # the length of 2*len(common_pairs)
+            # TEST: with the list of matching nodes, check if each node was used only once,
+            # the number of unique nodes should be equivalent to 2*len(common_pairs)
             all_matched_nodes = []
             for pair in matched_pairs:
                 all_matched_nodes.extend(list(pair))
@@ -120,30 +141,32 @@ def compute_overlays(g1, g2, rtol, atol):
             # fixme - reduce the number by removing "subgraphs"
             smatch = set(matched_pairs)
             # before adding, check if this combination already exists
-            relevant_overlay = True
-            for smatch2 in found_overlaps:
+            relevant_scc = True
+            for smatch2 in sccs:
                 # this match was already found before, or it is a subset of another match, so ignore
                 if not smatch.difference(smatch2):
-                    relevant_overlay = False
+                    relevant_scc = False
                     break
 
-            if relevant_overlay:
-                found_overlaps.append(smatch)
+            if relevant_scc:
+                # print('len of the next sccs', len(smatch), "starting", node1.atomName, node2.atomName)
+                sccs.append(smatch)
 
     # remove sub_overlays which were missed because of the order of generating overlays
-    for overlap1 in found_overlaps[::-1]:
-        for overlap2 in found_overlaps[::-1]:
-            if overlap1 is overlap2:
+    for scc1 in sccs[::-1]:
+        for scc2 in sccs[::-1]:
+            if scc1 is scc2:
                 continue
-            # check if overlap is a subset of overlap2
-            if not overlap1.difference(overlap2):
-                found_overlaps.remove(overlap1)
+
+            # check if overlap1 is a subset of overlap2
+            if not scc1.difference(scc2):
+                sccs.remove(scc1)
 
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
-    print("Found altogether overlays", len(found_overlaps))
-    return found_overlaps
+    print("Found altogether overlays", len(sccs))
+    return sccs
 
 
 def get_charges(ac_file):
