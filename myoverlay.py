@@ -105,11 +105,11 @@ for protein_path in proteins_paths:
 
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
-        for matched_pairs in si_topologies:
-            print("Superimposed topology: len %d" % len(matched_pairs))
+        for si_top in si_topologies:
+            print("Superimposed topology: len %d :" % len(si_top.matched_pairs), si_top.matched_pairs)
             # print(matched_pairs)
             unique_nodes = []
-            for pair in matched_pairs:
+            for pair in si_top.matched_pairs:
                 unique_nodes.extend(list(pair))
             all_matched_nodes = all_matched_nodes.union(unique_nodes)
 
