@@ -31,6 +31,12 @@ To do:
  fixme
  - ERROR: imagine that you have a olecule with 3 overlaid Strongly Connected Components that are all the same to
  each other. Currently, their matching will be arbitrary, which could potentially lead to problems
+ 
+ - there is a lot of matches which are substandard - possibly. 
+ For example, imagine some hydrogen wrongly matched with another hydrogen, 
+ These have been used in larger strongly connected components, meaning
+ that this pair should be removed, which is the approach I take,  but 
+ what if there is no much for one of the hydrogens nowhere? I guess it is new 
 """
 
 class AtomNode:
@@ -96,6 +102,7 @@ class SuperimposedTopology:
         self.top1 = topology1
         self.top2 = topology2
         self.mirrors = []
+        self.nodes = set(all_matched_nodes)
 
 
     def is_subgraph_of_global_top(self):
@@ -106,6 +113,21 @@ class SuperimposedTopology:
         # check if one topology is a subgraph of another topology
         if len(self.matched_pairs) == len(self.top1) or len(self.matched_pairs) == len(self.top2):
             print("This graph is a equivalent to the topology")
+            return True
+
+        return False
+
+
+    def contains_node(self, node):
+        # checks if this node was used in this overlay
+        if len(self.nodes.intersection(node)) == 1:
+            return True
+
+        return False
+
+
+    def contains_any_node_from(self, other_sup_top):
+        if len(self.nodes.intersection(other_sup_top.nodes)) > 0:
             return True
 
         return False
@@ -319,8 +341,28 @@ def superimpose_topologies(top1, top2, atol):
                     print('removing previous smaller tops')
                     sup_tops.remove(sup_top)
 
+            # check if this candidate sup top uses a node that is used by a larger sup top
+            ignore_cand_sup_top = False
+            for sup_top in sup_tops[::-1]:  # reverse traversal in case deleting is necessary
+                # if there is a sup top with more elements
+                if len(sup_top.matched_pairs) > len(candidate_superimposed_top.matched_pairs):
+                    # and that sup top contains some nodes from the candidate sup top
+                    # ignore this sup top
+                    if sup_top.contains_any_node_from(candidate_superimposed_top):
+                        ignore_cand_sup_top = True
+                        break
+                elif len(sup_top.matched_pairs) < len(candidate_superimposed_top.matched_pairs):
+                    # this sup_top has fewer elements than candidate sup top
+                    if sup_top.contains_any_node_from(candidate_superimposed_top):
+                        # and there is an overlap, delete the smaller sup top
+                        sup_tops.remove(sup_top)
+            if ignore_cand_sup_top:
+                continue
+
+
             # check if the newly found subgraph is a subgraph of any other sup top
             # fixme - is this even possible?
+            # fixme can any subgraph be a subgraph of another?
             cand_is_subgraph = False
             for sup_top in sup_tops:
                 if candidate_superimposed_top.is_subgraph_of(sup_top):
@@ -341,8 +383,19 @@ def superimpose_topologies(top1, top2, atol):
                 # print('mirror found, skipping')
                 continue
 
+            # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
+            # follow a rule: if this node was used before in a larger superimposed topology, than it should
+            # not be in the final list (we guarantee that each node is used only once)
+
             sup_tops.append(candidate_superimposed_top)
 
+    # TEST: check that each node was used only once
+    all_nodes = []
+    pair_count = 0
+    for sup_top in sup_tops:
+        [all_nodes.extend([node1, node2]) for node1, node2 in sup_top.matched_pairs]
+        pair_count += len(sup_top.matched_pairs)
+    # assert len(set(all_nodes)) == 2 * pair_count
 
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,

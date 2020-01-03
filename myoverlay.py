@@ -35,7 +35,7 @@ import networkx as nx
 import MDAnalysis as mda
 from os import path
 import matplotlib.pyplot as plt
-from overlay import *
+from topology_superimposer import *
 # from rdkit import Chem
 import glob
 
