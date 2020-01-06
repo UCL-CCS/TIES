@@ -79,23 +79,23 @@ for protein_path in proteins_paths:
 
         # create graphs
         # create the nodes and add edges for one ligand
-        l14_nodes = {}
+        ligand2_nodes = {}
         for atomNode in l14_atoms:
-            l14_nodes[atomNode.atomId] = atomNode
+            ligand2_nodes[atomNode.atomId] = atomNode
         for nfrom, nto in l14_bonds:
-            l14_nodes[nfrom].bindTo(l14_nodes[nto])
+            ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
 
         # create the nodes and add edges for the other ligand
-        l11_nodes = {}
+        ligand1_nodes = {}
         for atomNode in l11_atoms:
-            l11_nodes[atomNode.atomId] = atomNode
+            ligand1_nodes[atomNode.atomId] = atomNode
         for nfrom, nto in l11_bonds:
-            l11_nodes[nfrom].bindTo(l11_nodes[nto])
+            ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto])
 
         # overlay
-        print("About to overlay %d atoms with %d atoms" % (len(l14_nodes), len(l11_nodes)))
+        print("About to overlay %d atoms with %d atoms" % (len(ligand2_nodes), len(ligand1_nodes)))
         # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al (doi: 10.1021/acs.jctc.6b00979)
-        si_topologies = superimpose_topologies(l11_nodes.values(), l14_nodes.values(), atol=0.1)
+        si_topologies = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(), atol=0.1)
 
         # print the match
         # for strongly_connected_component in overlays:
@@ -106,7 +106,10 @@ for protein_path in proteins_paths:
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
         for si_top in si_topologies:
-            print("Superimposed topology: len %d :" % len(si_top.matched_pairs), si_top.matched_pairs)
+            print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
+                  'name ' + ' '.join([node1.atomName for node1, _ in si_top.matched_pairs]),
+                  'to',
+                  'name ' + ' '.join([node2.atomName for _, node2 in si_top.matched_pairs]))
             # print(matched_pairs)
             unique_nodes = []
             for pair in si_top.matched_pairs:
@@ -115,10 +118,11 @@ for protein_path in proteins_paths:
 
         # extract the atoms that are appearing and disappearing
         # the atom that appears has to be in G2 and not in any of the overlaps
-        appearing = [node for node in l14_nodes.values() if not node in all_matched_nodes]
-        disappearing = [node for node in l11_nodes.values() if not node in all_matched_nodes]
-        print("disappearing", disappearing)
-        print("appearing", appearing)
+        appearing = [node for node in ligand2_nodes.values() if not node in all_matched_nodes]
+        disappearing = [node for node in ligand1_nodes.values() if not node in all_matched_nodes]
+        print("disappearing", 'name ' + ' '.join([n.atomName for n in disappearing]))
+        print("appearing", 'name ' + ' '.join([n.atomName for n in appearing]))
+        # fixme - make it clear which convert to which?
 
         # fixme - you should check if this is not empty, if you have not found anything, but the molecules
         # has a different number of atoms, etc, then it is wrong, if the molecule is the same, then this also needs
