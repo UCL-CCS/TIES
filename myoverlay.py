@@ -107,10 +107,10 @@ for protein_path in proteins_paths:
         all_matched_nodes = set()
         for si_top in si_topologies:
             print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
-                  'name ' + ' '.join([node1.atomName for node1, _ in si_top.matched_pairs]),
+                  'name ' + ' '.join([node1.atomName.upper() for node1, _ in si_top.matched_pairs]),
                   'to',
-                  'name ' + ' '.join([node2.atomName for _, node2 in si_top.matched_pairs]))
-            # print(matched_pairs)
+                  'name ' + ' '.join([node2.atomName.upper() for _, node2 in si_top.matched_pairs]))
+            print(si_top.matched_pairs)
             unique_nodes = []
             for pair in si_top.matched_pairs:
                 unique_nodes.extend(list(pair))
@@ -130,17 +130,18 @@ for protein_path in proteins_paths:
 
         # check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
         agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")
+
         if not path.isfile(agastya_disapp_atom_list_path):
             print(bcolors.WARNING + "Test file does not exist %s" %agastya_disapp_atom_list_path + bcolors.ENDC)
         else:
             agastya_disapp_atoms = open(agastya_disapp_atom_list_path).read().split()
+            print(bcolors.OKGREEN + "Agastya's disapp list:" + bcolors.ENDC,
+                  agastya_disapp_atoms)
             for disapp_atom in disappearing:
                 isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
                 if not isin:
                     print(bcolors.FAIL + "A disappearing atom not found in Agastya list. Atom: " + bcolors.ENDC,
                           disapp_atom.atomName)
-                    print(bcolors.FAIL + "Agastya's disapp list:" + bcolors.ENDC,
-                          agastya_disapp_atoms)
                     #raise Exception("Fail")
 
         agastya_app_atom_list_path = path.join(hybrid_pair_path, "appearing_atoms.txt")
@@ -148,6 +149,7 @@ for protein_path in proteins_paths:
             print(bcolors.WARNING + "Test file does not exist %s" % agastya_app_atom_list_path + bcolors.ENDC)
         else:
             agastya_app_atoms = open(agastya_app_atom_list_path).read().split()
+            print(bcolors.OKGREEN+ "Agastya's app list:" + bcolors.ENDC, agastya_app_atoms)
             for app_atom in appearing:
                 isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
                 if not isin:

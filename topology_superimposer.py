@@ -1,6 +1,6 @@
 import hashlib
 import numpy as np
-import networkx
+import networkx as nx
 
 """
 To do:
@@ -26,6 +26,12 @@ To do:
  though they are similar enough (within the absolute tolerance atol), they 
  might on one side be more similar than on the other side. However, here it is ignored
  for now because it does not lead to any wrong results
+ 
+ 
+ Case:
+ - in the case of a ring, if the ring stops existing, ie one of the bonds is removed, then it is a chain,
+ but that crates a big issue, because they entire ring now is completely broken, so it should not be anything similar 
+ anymore? that would be detected because the charges change
  
  
  fixme
@@ -62,10 +68,14 @@ To do:
  - create test cases to see if everything behaves well
  - check if you should understand the number of bonds which is crucial for understanding the species, 
  it might be a better way to distinguish between the atoms than using any atom types etc
+ - ensure the molecule is "connected" before doing any work
  
  
  Optimisation:
  - consider sorting your topologies to make it easier to compare them
+ - you don't have check every n1 and n2 in the two topologies: 
+ e.g. if you find a component which extended to NX-NY match,
+ then NX-NY is not a necessary starting condition  
  
  
  Complex Testing - Generation Topologies: 
@@ -74,10 +84,20 @@ To do:
  be matched, and therefore 
  
  
+ 
  - extension: apply the same superimposition but ignore the charges to understand what is happening: we will know
  how many of the atoms are changed due to charge, and what happens to the overlap. Furthermore, we can use it 
  as our template. For example, by having the fully superimposed structure, we would be able to assign to each
- node its "universal position" and use that to make some of the later decisions. 
+ node its "universal position" and use that to make some of the later decisions. Furthermore, this
+ global match can be extended, and once having multiple components, we can see if we can "bridge" them over the
+ areas that are not matched. For example, in the case of a mutated atom, we can jump over that one atom
+ and in both cases we know how we are connected to the other component. In other words, connecting the components
+ together. 
+ 
+ 
+fixme 
+ - optimising too much - finding matches which should not be found? how come our topology superimposition
+ ignores the chirality in the case of mcl1? 
 """
 
 class AtomNode:
@@ -92,8 +112,12 @@ class AtomNode:
 
     def __hash__(self):
         m = hashlib.md5()
+        # fixme - ensure that each node is characterised by its chemical info,
+        # fixme - the atomId might not be unique, so check before the input data
         m.update(str(self.atomId).encode('utf-8'))
         m.update(str(self.charge).encode('utf-8'))
+        # so include the number of bonds which is basically an atom type
+        m.update(str(len(self.bonds)).encode('utf-8'))
         return int(m.hexdigest(), 16)
 
     def __str__(self):
@@ -143,7 +167,11 @@ class SuperimposedTopology:
         self.top1 = topology1
         self.top2 = topology2
         self.mirrors = []
+        # this is a set of all nodes rather than their pairs
         self.nodes = set(all_matched_nodes)
+        # the uncharged sup top is a sup top that was generated when the charges were ignored
+        # if the found sup_top was larger and contains the current sup top, then the two can be linked
+        self.uncharged_sup_top = None
 
 
     def get_toppology_similarity_score(self):
@@ -250,6 +278,28 @@ class SuperimposedTopology:
         for pair in other_sup_top.matched_pairs:
             if not self.contains(pair):
                 return False
+
+        return True
+
+
+    def set_superset_sup_top_uncharged(self, sup_top_uncharged):
+        """
+        Link the given sup_top to the given uncharged sup_top that is larger.
+        Therefore, the larger sup_top can be used this way to understand the molecule and help solve problems
+        that are related to 1) multiple matches, 2) chirality/symmetry
+        """
+
+        if not self.uncharged_sup_top is None:
+            raise Exception("An uncharged sup_top was already assigned to this charged sup_top")
+
+        # fixme - note that we carry out the check twice
+        if sup_top_uncharged.contains_all(self):
+            self.uncharged_sup_top = sup_top_uncharged
+
+
+    def has_uncharged_superset_sup_top(self):
+        if self.uncharged_sup_top == None:
+            return False
 
         return True
 
@@ -413,7 +463,7 @@ class SuperimposedTopology:
         return True
 
 
-def _overlay(n1, n2, matched_nodes=None, atol=0):
+def _overlay(n1, n2, n1_parent=None, n2_parent=None, matched_nodes=None, nxgl=None, nxgr=None, atol=0):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -425,26 +475,96 @@ def _overlay(n1, n2, matched_nodes=None, atol=0):
 
     if matched_nodes == None:
         matched_nodes = []
+        nxgl = nx.Graph()
+        nxgr = nx.Graph()
 
     # if either of the nodes has already been matched, ignore this potential match
     for pair in matched_nodes:
         if n1 in pair or n2 in pair:
             return matched_nodes
 
-    # if the two nodes are "the same", append them to the list of matched nodes
+    # if the two nodes are "the same"
     if n1.eq(n2, atol=atol):
+        # update the graphs (which allows us to access finding circles)
+        nxgl.add_node(n1)
+        nxgr.add_node(n2)
+
+        # if the parents are also present, connect them
+        nxgl.add_edge(n1_parent, n1)
+        nxgl.add_edge(n2_parent, n2)
+        # connect the other nodes that are present in the bonds that could close circles
+        # ie if n1 closes a circle with some nX in the the graph, but n2 does not have that bond
+        # then they represent a different thing,
+        # Summary: connect n1 and n2 to any nodes in the graph that they are bound to
+        for bonded_to_n1 in n1.bonds:
+            if bonded_to_n1 in nxgl:
+                nxgl.add_edge(n1, bonded_to_n1)
+        for bonded_to_n2 in n2.bonds:
+            if bonded_to_n2 in nxgr:
+                nxgr.add_edge(n2, bonded_to_n2)
+
+        # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
+        # is actually the wrong match, add one more criteria:
+        # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
+        # fixme - add tests which check of features like rings/double rings etc and see if they are found
+        # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
+        if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
+            # clearly the newly added edge changes the circles, and so it is not equivalent
+            # even though it might appear like it (mcl1 case)
+            nxgl.remove_node(n1)
+            nxgr.remove_node(n2)
+            return matched_nodes
+
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
         matched_nodes.append([n1, n2])
+
         # continue traversing
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
-                _overlay(n1bonded_node, n2bonded_node, matched_nodes, atol=atol)
+                _overlay(n1bonded_node, n2bonded_node,
+                         n1_parent=n1, n2_parent=n2,
+                         nxgl=nxgl, nxgr=nxgr,
+                         matched_nodes=matched_nodes, atol=atol)
 
     return matched_nodes
 
 
 def superimpose_topologies(top1, top2, atol):
+    # fixme replace with theoretical max
+    large_value = 99999
+    """
+    This is a helper function that managed the entire process.
+
+    TODO:
+    - check if each molecule topology is connected
+    - run the superimpose while ignoring the charges
+    - run the superimpose with charges
+    - check if any charges components are subcomponent of a larger charge-ignoring component,
+    this would be useful with solving some dillemas, assign them to each other
+
+    Other to think about:
+    - what would happen if you have mutation that separates the molecule? what happens when you multiple of them?
+    how do you match them together?
+    """
+
+    sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
+
+    # sup_tops_charges = _superimpose_topologies(top1, top2, atol=atol)
+
+    # link_components_to_supercomponents(sup_tops_charges, sup_tops_no_charges)
+
+    # fixme - currently you hold on to "mirror superimpositions" but there is no need,
+    # if they can be solved with the global uncharged sup top
+
+    # resolve_sup_top_multiple_match(sup_tops_charges)
+    # find_symmetric_components(sup_tops_charges, sup_tops_no_charges)
+    # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
+
+    return sup_tops_no_charges
+
+
+def _superimpose_topologies(top1, top2, atol):
     """
     atol 1 means the charge of the atom can be up to 1 electron different,
     as long as the atom has the same type
@@ -539,119 +659,6 @@ def superimpose_topologies(top1, top2, atol):
             print("Removing sup top because only hydrogens found", sup_top.matched_pairs)
             sup_tops.remove(sup_top)
 
-    # TODO - check if some components can be mapped to multiple other components
-    # find first the repeating component that can be matched to other components,
-    same_left_sup_tops = []
-    same_right_sup_tops = []
-    for i, sup_top1 in enumerate(sup_tops):
-        # fixme - add special messages when 3-1 or some other combination is found!
-        # fixme - is 2-2 possible?
-        for sup_top2 in sup_tops[i+1:]:
-            if sup_top1 is sup_top2:
-                continue
-
-            if sup_top1.has_left_nodes_same_as(sup_top2):
-                # if [A,B] and [B,C] then combine to [A,B,C]
-                # check if either A or B was was found before
-                added_to_previous = False
-                for same_left_sup_top in same_left_sup_tops:
-                    if same_left_sup_top == sup_top1:
-                        same_left_sup_top.append(sup_top2)
-                        added_to_previous = True
-                        break
-                    elif same_left_sup_top == sup_top2:
-                        same_left_sup_top.append(sup_top1)
-                        added_to_previous = True
-                        break
-                if not added_to_previous:
-                    same_left_sup_tops.append([sup_top1, sup_top2])
-                print('found same left', sup_top1.matched_pairs, 'with',  sup_top1.matched_pairs)
-
-            if sup_top1.has_right_nodes_same_as(sup_top2):
-                added_to_previous = False
-                for same_right_sup_top in same_right_sup_tops:
-                    if same_right_sup_top == sup_top1:
-                        same_right_sup_top.append(sup_top2)
-                        added_to_previous = True
-                        break
-                    elif same_right_sup_top == sup_top2:
-                        same_right_sup_top.append(sup_top1)
-                        added_to_previous = True
-                        break
-                if not added_to_previous:
-                    same_right_sup_tops.append([sup_top1, sup_top2])
-                print('found same right', sup_top1.matched_pairs)
-    # if [A,B] and [B,C] then combine to [A,B,C]
-    # now that you extracted sup tops that are the same, check what is the mapping,
-    # easiest example is 2-to-1, so 2 on the left map to the same one to the right,
-    # to do this, we kind of need to construct a graph
-    # fixme - think of other mappings 2-to-2 etc - create an error for now
-    # check if we are working with n-to-1
-    for same_left_sup_top_list in same_left_sup_tops:
-        # so we know that the left top is the same, so we need to figure out which of the right top is the right match
-        # this means basically ranking them on this list
-        # if, we example, 0-A-B-C is with 0-A'-B'-C where A==A' and A==B', then A==A' because they both connect to 0,
-        # in other words, check for the highest number of common connections between A and A' and B'
-
-        similarity_to_left = []
-        for same_left_sup_top in same_left_sup_top_list:
-            # for each of the bonded atoms in Left, check if the Right matched atom has also the same bonded atoms
-            # for each such atom add one point
-            # FIXME - this could be moved from here, and since this score requires left and right,
-            # it should be computed inside of the SuperimposedTopology class
-            score = same_left_sup_top.get_toppology_similarity_score()
-            # keep track of the score for this match
-            similarity_to_left.append(score)
-
-        # make sure that they all are not equal to 0
-        assert all([0 != score for score in similarity_to_left])
-        # make sure that the top scoring find is not duplicated, ie that we have a clear winner
-        assert similarity_to_left.count(max(similarity_to_left)) == 1
-
-        # choose the best scoring match based on the previous work
-        winner_index = similarity_to_left.index(max(similarity_to_left))
-        print("multiple match winner is", same_left_sup_top_list[winner_index].matched_pairs)
-
-        # remove the losers
-        for index, worse_match in enumerate(same_left_sup_top_list):
-            if index == winner_index:
-                pass
-            else:
-                print("Removing a worse match", worse_match.matched_pairs)
-                sup_tops.remove(worse_match)
-
-        # remove the deleted not chosen topologies but keep track of them and return them as well,
-    # fixme - what about the right side?
-
-
-    # fixme chirality
-    # some can elements can be chiral, e.g. imagine that you have three components A-B-C and A-B'-C
-    # where B' is reversed B in the other direction, this means that all components together with B will
-    # be found as separate components, meaning that nothing will mutate,
-    # but actually if you look globally at it, it is clear that B' and B have different ends, and they should
-    # be mutated. For that reason, it is important to check the connection from B and B' and see what that means
-    # so first we want to test if the component has neighbour components, meaning if you can take a step
-    # from B that would directly take you to C (but that would not fully solve it)
-
-    # there is a more minimal case for chirality/assymetry, A-B and A-B'. This is not equivalent to a mutation of a node
-    # separates A and B. However, there might be cases where it is very close. The mutation would separate A and B
-    # such that even if you reversed B, it would not match (in most cases). However, in the case of chirality,
-    # the reversal can match better. Say we have to sequences X=a-b-c-d-e and Y=a-b-e-d-c, such that A=a-b and
-    # B=c-d-e (and therefore =e-d-c). You might notcie that d is always in the same place, and therefore should
-    # be considered to be the same atom, whereas e and c swapped their places, and therefore should be
-    # appearing/disappearing.
-
-    # first, we need to detect chirality/assymetry. The condition in the last example is that
-    # that B is connected via b in both cases - by EXACTLY the same atom, even though
-    # there is a superimposed component, which is supposed to maximise its space.
-    # For that reason, B should be flagged as a "symmetric component" which should not be.
-
-    # For each component, check if the matching topologies are reversed. If B=B' but they have a node x,
-    # which is connected to y that is not in B, and x connects to y in B but not in B', then we know we have
-    # the reverse relationship
-    for sup_top in sup_tops:
-
-        pass
 
     # TEST: check that each node was used only once
     all_nodes = []
@@ -672,7 +679,217 @@ def superimpose_topologies(top1, top2, atol):
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
     print("Found altogether overlays", len(sup_tops))
-    return sup_tops, same_left_sup_tops
+    # fixme - return other info
+    return sup_tops
+
+
+def link_components_to_supercomponents(sup_tops_charges, sup_tops_no_charges):
+    """
+    # for each of the sup_tops check if there is a corresponding larger sup_top
+    # such that the larger sup_top is a superset of the smaller sup_top.
+    # this would mean the the subset sup_top cannot expand
+    # due to the charges that changes across the molecule
+    """
+
+    for sup_top_charge in sup_tops_charges:
+        for sup_top_no_charge in sup_tops_no_charges:
+            # check if there is a suptop
+            if sup_top_no_charge.contains_all(sup_top_charge):
+                print("Matched sup top to larger uncharged sup top")
+                sup_top_charge.set_superset_sup_top_uncharged(sup_top_no_charge)
+
+def resolve_sup_top_multiple_match(sup_tops):
+    # initially, see if you can resolve the problem of multiple match by using the larger superimposed element
+    # TODO - check if some components can be mapped to multiple other components
+    # find first the repeating component that can be matched to other components,
+    same_left_sup_tops = []
+    same_right_sup_tops = []
+    for i, sup_top1 in enumerate(sup_tops):
+        # fixme - add special messages when 3-1 or some other combination is found!
+        # fixme - is 2-2 possible?
+        for sup_top2 in sup_tops[i + 1:]:
+            if sup_top1 is sup_top2:
+                continue
+
+            if sup_top1.has_left_nodes_same_as(sup_top2):
+                # if [A,B] and [B,C] then combine to [A,B,C]
+                # check if either A or B was was found before
+                added_to_previous = False
+                for same_left_sup_top in same_left_sup_tops:
+                    if same_left_sup_top == sup_top1:
+                        same_left_sup_top.append(sup_top2)
+                        added_to_previous = True
+                        break
+                    elif same_left_sup_top == sup_top2:
+                        same_left_sup_top.append(sup_top1)
+                        added_to_previous = True
+                        break
+                if not added_to_previous:
+                    same_left_sup_tops.append([sup_top1, sup_top2])
+                print('found same left', sup_top1.matched_pairs, 'with', sup_top1.matched_pairs)
+
+            if sup_top1.has_right_nodes_same_as(sup_top2):
+                added_to_previous = False
+                for same_right_sup_top in same_right_sup_tops:
+                    if same_right_sup_top == sup_top1:
+                        same_right_sup_top.append(sup_top2)
+                        added_to_previous = True
+                        break
+                    elif same_right_sup_top == sup_top2:
+                        same_right_sup_top.append(sup_top1)
+                        added_to_previous = True
+                        break
+                if not added_to_previous:
+                    same_right_sup_tops.append([sup_top1, sup_top2])
+                print('found same right', sup_top1.matched_pairs)
+
+    # first, attempt to see if you can resolve the conflict by going back to the sup_top without charges,
+    for same_left_sup_top_list in same_left_sup_tops:
+        multiple_match_that_have_superset = []
+        multiple_match_no_superset = []
+        for same_left_sup_top in same_left_sup_top_list:
+            # check if this sup_top is correct according to the global sup_top without charges
+            if same_left_sup_top.has_uncharged_superset_sup_top():
+                multiple_match_that_have_superset.append(same_left_sup_top)
+            else:
+                multiple_match_no_superset.append(same_left_sup_top)
+
+        # remove the sup tops that have no super set # fixme - is this correct?
+        for sup_top in multiple_match_no_superset:
+            sup_tops.remove(sup_top)
+
+        assert len(multiple_match_that_have_superset) == 1
+
+        # mark this list as resolved by emptying it
+        [same_left_sup_top_list.remove(l) for l in same_left_sup_top_list[::-1]]
+
+    # every one should be solved
+    assert all([len(l) == 0 for l in same_left_sup_tops])
+
+    assert len(same_right_sup_tops) == 0, 'not implemented yet'
+
+    return
+
+    # if [A,B] and [B,C] then combine to [A,B,C]
+    # now that you extracted sup tops that are the same, check what is the mapping,
+    # easiest example is 2-to-1, so 2 on the left map to the same one to the right,
+    # to do this, we kind of need to construct a graph
+    # fixme - think of other mappings 2-to-2 etc - create an error for now
+    # check if we are working with n-to-1
+    for same_left_sup_top_list in same_left_sup_tops:
+        # so we know that the left top is the same, so we need to figure out which of the right top is the right match
+        # this means basically ranking them on this list
+        # if, we example, 0-A-B-C is with 0-A'-B'-C where A==A' and A==B', then A==A' because they both connect to 0,
+        # in other words, check for the highest number of common connections between A and A' and B'
+
+        multiple_match_that_have_superset = []
+        for same_left_sup_top in same_left_sup_top_list:
+            # for each of the bonded atoms in Left, check if the Right matched atom has also the same bonded atoms
+            # for each such atom add one point
+            # FIXME - this could be moved from here, and since this score requires left and right,
+            # it should be computed inside of the SuperimposedTopology class
+            score = same_left_sup_top.get_toppology_similarity_score()
+            # keep track of the score for this match
+            multiple_match_that_have_superset.append(score)
+
+        # make sure that they all are not equal to 0
+        assert all([0 != score for score in multiple_match_that_have_superset])
+        # make sure that the top scoring find is not duplicated, ie that we have a clear winner
+        assert multiple_match_that_have_superset.count(max(multiple_match_that_have_superset)) == 1
+
+        # choose the best scoring match based on the previous work
+        winner_index = multiple_match_that_have_superset.index(max(multiple_match_that_have_superset))
+        print("multiple match winner is", same_left_sup_top_list[winner_index].matched_pairs)
+
+        # remove the losers
+        for index, worse_match in enumerate(same_left_sup_top_list):
+            if index == winner_index:
+                pass
+            else:
+                print("Removing a worse match", worse_match.matched_pairs)
+                sup_tops.remove(worse_match)
+
+        # remove the deleted not chosen topologies but keep track of them and return them as well,
+    # fixme - what about the right side?
+
+
+def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
+    # fixme chirality
+    # some can elements can be chiral, e.g. imagine that you have three components A-B-C and A-B'-C
+    # where B' is reversed B in the other direction, this means that all components together with B will
+    # be found as separate components, meaning that nothing will mutate,
+    # but actually if you look globally at it, it is clear that B' and B have different ends, and they should
+    # be mutated. For that reason, it is important to check the connection from B and B' and see what that means
+    # so first we want to test if the component has neighbour components, meaning if you can take a step
+    # from B that would directly take you to C (but that would not fully solve it)
+
+    # there is a more minimal case for chirality/assymetry, A-B and A-B'. This is not equivalent to a mutation of a node
+    # separates A and B. However, there might be cases where it is very close. The mutation would separate A and B
+    # such that even if you reversed B, it would not match (in most cases). However, in the case of chirality,
+    # the reversal can match better. Say we have to sequences X=a-b-c-d-e and Y=a-b-e-d-c, such that A=a-b and
+    # B=c-d-e (and therefore =e-d-c). You might notcie that d is always in the same place, and therefore should
+    # be considered to be the same atom, whereas e and c swapped their places, and therefore should be
+    # appearing/disappearing.
+
+    # first, we need to detect chirality/assymetry. The condition in the last example is that
+    # that B is connected via b in both cases - by the same atom (.eq which considers charges), even though
+    # there is a superimposed component, which is supposed to maximise its space.
+    # For that reason, B should be flagged as a "symmetric component" which should not be.
+
+
+    # in the case of MCL1 you would think that we can check against the super set sup_top without charges.
+    # however, this could be more tricky, because the superset sup_top without charges happens not to be a superset
+    # but it provides some information: basically, there is no structure like that,
+    # sup top without charges is our template now, because we know we only check the atom types, and therefore get
+    # the match in a better way (based on the atop type)
+    # fixme? finish this paragraph
+    for sup_top in sup_tops:
+        # check if any of the nodes are present in any of the discharged
+        for sup_top_no_charge in sup_tops_no_charge:
+            # check if the sup_top has misassigned nl-nr according to the sup top without charges
+            # ie identify the sup top without charges that overlaps with this one
+
+            pass
+
+    # For each component, check if the matching topologies are reversed. If B=B' but they have a node x,
+    # which is connected to y that is not in B, and x connects to y in B but not in B', then we know we have
+    # the reverse relationship
+    for sup_top in sup_tops:
+        for node1, _ in sup_top.matched_pairs:
+            for _, node2 in sup_top.matched_pairs:
+                # fixme - i think you want the matched ones
+
+                # check if they are topologically linked to the same molecule,
+                # because it is impossible for two different nodes to be linked to exactly the same atom (same .eq)
+                # because in that case that atom would belong to this component (ie it is the same,
+                # and it is reachable).
+                for bond1 in list(node1.bonds):
+                    # ignore the bonds that are part of the component,
+                    # could build "external bonds" method in sup top
+                    if sup_top.contains_node(set([bond1, ])):
+                        continue
+                    for bond2 in list(node2.bonds):
+                        if sup_top.contains_node(set([bond2, ])):
+                            continue
+
+                        if bond1.eq(bond2, atol=atol):
+                            # there might be at any time any two nodes that are similar enough (eq), which means
+                            # this is not a universal approach in itself, however, do we gain anything more
+                            # knowing that one of the nodes is a part of another component? fixme
+                            print("found assymetry", node1.atomName, node2.atomName,
+                                  "due to", bond1.atomName, bond2.atomName)
+            pass
+        pass
+
+    # add a test against the overall match (global match that ignores the charges)
+    # FIXME - if two superimposed components come from two different places in the global map, then something's off
+    # particularly, it could help with chirality - if with respect to the global match,
+    # a local sup top travels in the wrong direction, then we have a clear issue
+
+
+def find_symmetric_components(sup_top_charges, sup_top_no_charges):
+    # in the case of mcl1
+    pass
 
 
 def get_charges(ac_file):
