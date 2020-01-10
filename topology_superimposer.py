@@ -295,28 +295,6 @@ class SuperimposedTopology:
         return True
 
 
-    def set_superset_sup_top_uncharged(self, sup_top_uncharged):
-        """
-        Link the given sup_top to the given uncharged sup_top that is larger.
-        Therefore, the larger sup_top can be used this way to understand the molecule and help solve problems
-        that are related to 1) multiple matches, 2) chirality/symmetry
-        """
-
-        if not self.uncharged_sup_top is None:
-            raise Exception("An uncharged sup_top was already assigned to this charged sup_top")
-
-        # fixme - note that we carry out the check twice
-        if sup_top_uncharged.contains_all(self):
-            self.uncharged_sup_top = sup_top_uncharged
-
-
-    def has_uncharged_superset_sup_top(self):
-        if self.uncharged_sup_top == None:
-            return False
-
-        return True
-
-
     def has_left_nodes_same_as(self, other):
         if len(self.matched_pairs) != len(other.matched_pairs):
             return False
@@ -704,24 +682,6 @@ def apply_charges(sup_tops_no_charges, atol=0):
     for sup_top in sup_tops_no_charges:
         sup_top.refineAgainstCharges(atol=atol)
 
-
-def link_components_to_supercomponents(sup_tops_charges, sup_tops_no_charges):
-    """
-    # for each of the sup_tops check if there is a corresponding larger sup_top
-    # such that the larger sup_top is a superset of the smaller sup_top.
-    # this would mean the the subset sup_top cannot expand
-    # due to the charges that changes across the molecule
-
-    fixme - remove this function because you moved away from the idea of having separately charged
-    and uncharged superimpositions
-    """
-
-    for sup_top_charge in sup_tops_charges:
-        for sup_top_no_charge in sup_tops_no_charges:
-            # check if there is a suptop
-            if sup_top_no_charge.contains_all(sup_top_charge):
-                print("Matched sup top to larger uncharged sup top")
-                sup_top_charge.set_superset_sup_top_uncharged(sup_top_no_charge)
 
 def resolve_sup_top_multiple_match(sup_tops):
     # initially, see if you can resolve the problem of multiple match by using the larger superimposed element
