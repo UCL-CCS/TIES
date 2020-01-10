@@ -53,20 +53,48 @@ class bcolors:
 Good to check:
 TYK2, trka, 
 
-Not good: 
+Not suitable for testing: 
  - thrombin - a different dir structure
  - TIES_PTP1B - a different dir structure
 """
 
+"""
+fixme cases
+--mcl1/l18-l39/hybrid_par: bizzare mismatch between different parts, complete misunderstanding, PRIORITY
+
+** Investigate the "symmetry cases" which might require structural superimposition
+Complex case l17-l9 in mcl1 which shows a good problem with symmetry:
+-  this requires a way of fixing symmetry, particularly when it is possible in both ways, 
+is there a simple way to resolve it? no. The two cases actually are pretty much the same case. 
+This is because even though they appear like one case: the problem is that they are free to rotate. 
+So whatever path you take
+- case mcl1/l18-l39/hybrid_par which is similar to the above l17-l9, but acutally this one
+has only one solution that is correct, and therefore the symmetry can be corrected,
+- case mcl1/l32-l38/hybrid_par another good symmetry case 
+- l2-l32/hybrid_par : appears correct but an interesting test for symmetry
+
+
+Another symmetrical case: 
+- imagine that you have A-B-A and you are matching it to A-B, there are two ways in which you can match it. 
+now this is actually important because the protein to which the ligand A-B-A -> A-B docks is not symmetrical. 
+And therefore removing one face over other means that we might be creating a new problem. 
+
+
+Tasks:
+-TISE - mark the "deleted" items as "not matching due to charge"
+-TIES - remove the hydrogens by themselves
+"""
+
 proteins_paths = [
-                    # "/home/dresio/ucl/dataset/agastya_extracted/tyk2/",
-                    # "/home/dresio/ucl/dataset/agastya_extracted/trka/",
+                    #"/home/dresio/ucl/dataset/agastya_extracted/tyk2/",
+                    #"/home/dresio/ucl/dataset/agastya_extracted/trka/",
                     "/home/dresio/ucl/dataset/agastya_extracted/mcl1/"   # why the errors?
                   ]
 for protein_path in proteins_paths:
     for liglig_path in glob.glob(protein_path + 'l*-l*'):
         ligand_from, ligand_to = path.basename(liglig_path).split('-')
-        if not (ligand_from == 'l12' and ligand_to == 'l35'):
+        #l18-l39
+        if not (ligand_from == 'l18' and ligand_to == 'l39'):
             continue
         hybrid_pair_path = path.join(liglig_path, "hybrid_par")
         print("working now on: ", hybrid_pair_path)
@@ -155,6 +183,8 @@ for protein_path in proteins_paths:
                 if not isin:
                     print(bcolors.FAIL + "An appearing atom not found in Agastya's list. Atom: " + bcolors.ENDC, app_atom.atomName)
                     #raise Exception("Fail")
+
+        # make the message more positive if they're exactly the same
 
         """
         In theory you have all the overlays. 

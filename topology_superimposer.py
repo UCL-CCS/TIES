@@ -26,6 +26,8 @@ To do:
  though they are similar enough (within the absolute tolerance atol), they 
  might on one side be more similar than on the other side. However, here it is ignored
  for now because it does not lead to any wrong results
+ -consider an overall try-catch that attaches a message for the user to contact you in the case something
+ does not work as expected
  
  
  Case:
@@ -82,6 +84,7 @@ To do:
  - one way to automate testing and make it more robust is to generate molecules yourself knowing 
  which parts are mutating and therefore knowing what parts is the same and how the topology should
  be matched, and therefore 
+ - check the number of cycles/benzene rings in both, we should ensure that in both cases this is okay
  
  
  
@@ -236,6 +239,16 @@ class SuperimposedTopology:
 
                 # if node_b leads to the same node X
         return overall_score
+
+
+    def refineAgainstCharges(self, atol):
+        # walk through the superimposed topologies
+        # and move the atom-atom pairs that suffer from being the same
+        for node1, node2 in self.matched_pairs[::-1]:
+            if not node1.eq(node2, atol=atol):
+                # remove this pair
+                self.matched_pairs.remove([node1, node2])
+                print('removed a pair due to the not-matching charges', node1, node2)
 
 
     def is_subgraph_of_global_top(self):
@@ -437,7 +450,7 @@ class SuperimposedTopology:
 
     def add_mirror_sup_top(self, mirror_sup_top):
         assert len(self.matched_pairs) == len(mirror_sup_top.matched_pairs)
-        # print("mirror added")
+        print("a mirror sup top added")
         self.mirrors.append(mirror_sup_top)
 
 
@@ -549,6 +562,10 @@ def superimpose_topologies(top1, top2, atol):
     """
 
     sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
+
+    apply_charges(sup_tops_no_charges, atol=atol)
+
+    # fixme - remove the hydrogens without attached heavy atoms
 
     # sup_tops_charges = _superimpose_topologies(top1, top2, atol=atol)
 
@@ -683,12 +700,20 @@ def _superimpose_topologies(top1, top2, atol):
     return sup_tops
 
 
+def apply_charges(sup_tops_no_charges, atol=0):
+    for sup_top in sup_tops_no_charges:
+        sup_top.refineAgainstCharges(atol=atol)
+
+
 def link_components_to_supercomponents(sup_tops_charges, sup_tops_no_charges):
     """
     # for each of the sup_tops check if there is a corresponding larger sup_top
     # such that the larger sup_top is a superset of the smaller sup_top.
     # this would mean the the subset sup_top cannot expand
     # due to the charges that changes across the molecule
+
+    fixme - remove this function because you moved away from the idea of having separately charged
+    and uncharged superimpositions
     """
 
     for sup_top_charge in sup_tops_charges:
