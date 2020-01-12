@@ -642,7 +642,8 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
                 if sup_top.is_consistent_with(s):
                     sup_top.merge(s)
                 else:
-                    print('found an inconsistent largest result')
+                    # print('found an inconsistent largest result')
+                    pass
 
         if len(solutions) == 0:
             raise Exception('no solution? ')
@@ -698,10 +699,6 @@ def _superimpose_topologies(top1, top2, atol):
     # grow the topologies using every combination node1-node2 as the starting point
     for node1 in top1:
         for node2 in top2:
-            # stick to a case that should work
-            if not (node1.atomName == 'C3' and node2.atomName == 'C25'):
-                continue
-
             # fixme - optimisation
             # you don't have to start from matches that have already been found,
             # ie if something discovers that match, it should have explored all other ways in which
@@ -716,19 +713,6 @@ def _superimpose_topologies(top1, top2, atol):
 
             candidate_superimposed_top.set_tops(top1, top2)
             candidate_superimposed_top.is_subgraph_of_global_top()
-
-            # check if there is a pair C5==C27 and check where it is heading
-            for n1, n2 in candidate_superimposed_top.matched_pairs:
-                if n1.atomName == 'C7' and n2.atomName == 'C29' and \
-                        len(candidate_superimposed_top.matched_pairs) > 30:
-                    print(candidate_superimposed_top.matched_pairs)
-                    print("FOUND CORRECT MATCH: len %d :" % len(candidate_superimposed_top.matched_pairs),
-                          "Started with", node1.atomName, 'and', node2.atomName,'\n',
-                          'name ' + ' '.join([node1.atomName.upper() for node1, _ in candidate_superimposed_top.matched_pairs]),
-                          '\nto\n',
-                          'name ' + ' '.join([node2.atomName.upper() for _, node2 in candidate_superimposed_top.matched_pairs]),
-                          '\n\n')
-                    break
 
                     # check if there is a pair C5==C27 and check where it is heading
             # for n1, n2 in candidate_superimposed_top.matched_pairs:
@@ -748,7 +732,7 @@ def _superimpose_topologies(top1, top2, atol):
             for other_sup_top in sup_tops:
                 if other_sup_top.eq(candidate_superimposed_top):
                     sup_top_seen = True
-                    print("The next candidate superimposed topology was seen before, len:", len(candidate_superimposed_top.matched_pairs))
+                    # print("The next candidate superimposed topology was seen before, len:", len(candidate_superimposed_top.matched_pairs))
                     break
             if sup_top_seen:
                 continue
@@ -768,10 +752,6 @@ def _superimpose_topologies(top1, top2, atol):
                     # and that sup top contains some nodes from the candidate sup top
                     # ignore this sup top
                     if sup_top.contains_any_node_from(candidate_superimposed_top):
-                        #fixme
-                        if len(candidate_superimposed_top.matched_pairs) > 37:
-                            print("A larger sup top was found that already uses some of these nodes,"
-                                  " ignoring this sup top, len", len(candidate_superimposed_top.matched_pairs))
                         ignore_cand_sup_top = True
                         break
                 elif len(sup_top.matched_pairs) < len(candidate_superimposed_top.matched_pairs):

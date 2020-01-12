@@ -29,6 +29,8 @@ TODO
  this would not be currently noticed. However, how important are these differences?
  - ?? should you consider, if there is a dilemma with how to pick topologies, to use more topologies and compare them?
  - ?? should you consider affinity of atoms
+
+# fixme
 """
 
 import networkx as nx
@@ -136,6 +138,7 @@ for protein_path in proteins_paths:
 
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
+        maintop = si_topologies[0]
         for si_top in si_topologies:
             print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
                   'name ' + ' '.join([node1.atomName.upper() for node1, _ in si_top.matched_pairs]),
@@ -146,6 +149,14 @@ for protein_path in proteins_paths:
             for pair in si_top.matched_pairs:
                 unique_nodes.extend(list(pair))
             all_matched_nodes = all_matched_nodes.union(unique_nodes)
+
+        for i, si_top in enumerate(si_top.mirrors, start=1):
+            print('Mirror:', i)
+            # print only the mismatching pairs
+            different = set(si_top.matched_pairs).difference(set(maintop.matched_pairs))
+            print(different)
+
+
 
         # extract the atoms that are appearing and disappearing
         # the atom that appears has to be in G2 and not in any of the overlaps
@@ -158,9 +169,6 @@ for protein_path in proteins_paths:
         # fixme - you should check if this is not empty, if you have not found anything, but the molecules
         # has a different number of atoms, etc, then it is wrong, if the molecule is the same, then this also needs
         # a proper message
-
-        import sys
-        sys.exit(0)
 
         # check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
         agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")
