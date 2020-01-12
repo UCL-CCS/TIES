@@ -93,7 +93,6 @@ proteins_paths = [
 for protein_path in proteins_paths:
     for liglig_path in glob.glob(protein_path + 'l*-l*'):
         ligand_from, ligand_to = path.basename(liglig_path).split('-')
-        #l18-l39
         if not (ligand_from == 'l18' and ligand_to == 'l39'):
             continue
         hybrid_pair_path = path.join(liglig_path, "hybrid_par")
@@ -125,6 +124,10 @@ for protein_path in proteins_paths:
         # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al (doi: 10.1021/acs.jctc.6b00979)
         si_topologies = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(), atol=0.1)
 
+        print("Found Superimposed Topologies ", len(si_topologies))
+        for si_top in si_topologies:
+            print("Topology Pairs ", len(si_top.matched_pairs), "Mirror Number", len(si_top.mirrors))
+
         # print the match
         # for strongly_connected_component in overlays:
         #     print("Strongly Connected Component, length:", len(strongly_connected_component))
@@ -136,7 +139,7 @@ for protein_path in proteins_paths:
         for si_top in si_topologies:
             print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
                   'name ' + ' '.join([node1.atomName.upper() for node1, _ in si_top.matched_pairs]),
-                  'to',
+                  '\nto\n',
                   'name ' + ' '.join([node2.atomName.upper() for _, node2 in si_top.matched_pairs]))
             print(si_top.matched_pairs)
             unique_nodes = []
@@ -155,6 +158,9 @@ for protein_path in proteins_paths:
         # fixme - you should check if this is not empty, if you have not found anything, but the molecules
         # has a different number of atoms, etc, then it is wrong, if the molecule is the same, then this also needs
         # a proper message
+
+        import sys
+        sys.exit(0)
 
         # check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
         agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")

@@ -1,6 +1,7 @@
 import hashlib
 import numpy as np
 import networkx as nx
+import copy
 
 """
 To do:
@@ -153,10 +154,13 @@ class SuperimposedTopology:
     However, it can also represent the symmetrical versions that were superimposed.
     """
 
-    def __init__(self, matched_pairs, topology1, topology2):
+    def __init__(self, matched_pairs=None, topology1=None, topology2=None):
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
         """
+
+        if matched_pairs is None:
+            matched_pairs = []
 
         # TEST: with the list of matching nodes, check if each node was used only once,
         # the number of unique nodes should be equivalent to 2*len(common_pairs)
@@ -175,6 +179,39 @@ class SuperimposedTopology:
         # the uncharged sup top is a sup top that was generated when the charges were ignored
         # if the found sup_top was larger and contains the current sup top, then the two can be linked
         self.uncharged_sup_top = None
+
+
+    def __len__(self):
+        return len(self.matched_pairs)
+
+
+    def set_tops(self, top1, top2):
+        self.top1 = top1
+        self.top2 = top2
+
+
+    def add_node_pair(self, node_pair):
+        # fixme - use this function in the __init__ to initialise
+        assert not node_pair in self.matched_pairs, 'already added'
+        # check if a1 or a2 was used before
+        for a1, a2 in self.matched_pairs:
+            if node_pair[0] is a1 and node_pair[1] is a2:
+                raise Exception('already exists')
+        self.matched_pairs.append(node_pair)
+        self.matched_pairs.sort(key=lambda pair: pair[0].atomName)
+        # update the list of unique nodes
+        n1, n2 = node_pair
+        assert not n1 in self.nodes and not n2 in self.nodes
+        self.nodes.add(n1)
+        self.nodes.add(n2)
+        assert len(self.matched_pairs) * 2 == len(self.nodes)
+
+
+    # fixme - switch to this
+    # def __copy__(self):
+    #     newone = type(self)()
+    #     newone.__dict__.update(self.__dict__)
+    #     return newone
 
 
     def get_toppology_similarity_score(self):
@@ -264,9 +301,49 @@ class SuperimposedTopology:
         return False
 
 
+    def is_consistent_with(self, other_suptop):
+        """
+        There should be a minimal overlap of at least 1 node.
+
+        There is no noe pair (A=B) in this sup top such that (A=C) or (B=C) exists in other.
+        """
+
+        # fixme - check for minimal partial overlap - this is more or a test than anything
+
+        for node1, node2 in self.matched_pairs:
+            for nodeA, nodeB in other_suptop.matched_pairs:
+                if (node1 is nodeA) and not (node2 is nodeB):
+                    return False
+                elif (node2 is nodeB) and not (node1 is nodeA):
+                    return False
+
+        return True
+
+
+    def merge(self, other_suptop):
+        """
+        Absorb the other suptop by adding all the node pairs that are not present
+        in the current sup top.
+
+        WARNING: ensure that the other suptop is consistent with this sup top.
+        """
+        assert self.is_consistent_with(other_suptop)
+
+        for pair in other_suptop.matched_pairs:
+            # check if this pair is present
+            if not self.contains(pair):
+                n1, n2 = pair
+                if self.contains_node(n1) or self.contains_node(n2):
+                    raise Exception('already uses that node')
+                self.add_node_pair(pair)
+
+        # check if duplication occured, fixme - temporary
+
+
+
     def contains_node(self, node):
         # checks if this node was used in this overlay
-        if len(self.nodes.intersection(node)) == 1:
+        if len(self.nodes.intersection(set([node,]))) == 1:
             return True
 
         return False
@@ -454,7 +531,7 @@ class SuperimposedTopology:
         return True
 
 
-def _overlay(n1, n2, n1_parent=None, n2_parent=None, matched_nodes=None, nxgl=None, nxgr=None, atol=0):
+def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nxgr=None, atol=0):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -464,61 +541,113 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, matched_nodes=None, nxgl=No
     Here, recursively the graphs of n1 and of n2 will be explored as they are the same.
     """
 
-    if matched_nodes == None:
-        matched_nodes = []
+    if sup_top == None:
+        sup_top = SuperimposedTopology()
         nxgl = nx.Graph()
         nxgr = nx.Graph()
 
     # if either of the nodes has already been matched, ignore this potential match
-    for pair in matched_nodes:
+    for pair in sup_top.matched_pairs:
         if n1 in pair or n2 in pair:
-            return matched_nodes
+            return sup_top
+
+    # if n1.atomName == 'C13' and n2.atomName == 'C35':
+    #     print('found')
 
     # if the two nodes are "the same"
     if n1.eq(n2, atol=atol):
         # update the graphs (which allows us to access finding circles)
-        nxgl.add_node(n1)
-        nxgr.add_node(n2)
+        # nxgl.add_node(n1)
+        # nxgr.add_node(n2)
 
         # if the parents are also present, connect them
-        nxgl.add_edge(n1_parent, n1)
-        nxgl.add_edge(n2_parent, n2)
+        # nxgl.add_edge(n1_parent, n1)
+        # nxgl.add_edge(n2_parent, n2)
         # connect the other nodes that are present in the bonds that could close circles
         # ie if n1 closes a circle with some nX in the the graph, but n2 does not have that bond
         # then they represent a different thing,
         # Summary: connect n1 and n2 to any nodes in the graph that they are bound to
-        for bonded_to_n1 in n1.bonds:
-            if bonded_to_n1 in nxgl:
-                nxgl.add_edge(n1, bonded_to_n1)
-        for bonded_to_n2 in n2.bonds:
-            if bonded_to_n2 in nxgr:
-                nxgr.add_edge(n2, bonded_to_n2)
+        # for bonded_to_n1 in n1.bonds:
+        #     if bonded_to_n1 in nxgl:
+        #         nxgl.add_edge(n1, bonded_to_n1)
+        # for bonded_to_n2 in n2.bonds:
+        #     if bonded_to_n2 in nxgr:
+        #         nxgr.add_edge(n2, bonded_to_n2)
 
         # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
         # is actually the wrong match, add one more criteria:
         # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
         # fixme - add tests which check of features like rings/double rings etc and see if they are found
         # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
-        if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
-            # clearly the newly added edge changes the circles, and so it is not equivalent
-            # even though it might appear like it (mcl1 case)
-            nxgl.remove_node(n1)
-            nxgr.remove_node(n2)
-            return matched_nodes
+        # if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
+        #     # clearly the newly added edge changes the circles, and so it is not equivalent
+        #     # even though it might appear like it (mcl1 case)
+        #     nxgl.remove_node(n1)
+        #     nxgr.remove_node(n2)
+        #     return sup_top
 
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
-        matched_nodes.append([n1, n2])
+        sup_top.add_node_pair((n1, n2))
 
         # continue traversing
+        # try every possible pathway for creating an overlap,
+        # and as the winner, pick the one that is the largest
+        # fixme - this should find mirrors which can be tackled right here
+        solutions = []
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
-                _overlay(n1bonded_node, n2bonded_node,
-                         n1_parent=n1, n2_parent=n2,
-                         nxgl=nxgl, nxgr=nxgr,
-                         matched_nodes=matched_nodes, atol=atol)
+                # copy the sup_top and update the list
+                # fixme - overload the __copy__ method for this
+                copy_sup_top = copy.copy(sup_top)
+                copy_sup_top.matched_pairs = copy.copy(sup_top.matched_pairs)
+                copy_sup_top.nodes = copy.copy(sup_top.nodes)
 
-    return matched_nodes
+                solution = _overlay(n1bonded_node, n2bonded_node,
+                         n1_parent=n1, n2_parent=n2,
+                         nxgl=copy.copy(nxgl), nxgr=copy.copy(nxgr),  # fixme - do I need a deep copy for the graph? test
+                         sup_top=copy_sup_top, # a shallow copy here should be just fine
+                            atol=atol)
+                solutions.append(solution)
+
+        # fixme - you should merge all solutions that are consistent? you should not take the largest solution
+        # you should take the different pathways that you discovered that are consistent,
+        # ie how to combine the multiple pathways?
+        # as long as the two superimpositions are consistent, then we should be fine with the solution,
+        # so now I have to combine the different walks, and then see the emerging consistent combinations,
+        # return largest_solution
+
+        # merge all the paths that are consistent with each other
+        # fixme - optimise,
+        for sol1 in solutions:
+            for sol2 in solutions[::-1]:
+                if sol1 is sol2:
+                    continue
+
+                if sol1.is_consistent_with(sol2):
+                    # print("merging")
+                    # join sol2 and sol1 because they're consistent
+                    sol1.merge(sol2)
+                    # remove sol2 from the solutions:
+                    solutions.remove(sol2)
+
+        # take the bigger out of the two,
+        # print('solutions lengths', [len(s) for s in solutions])
+        # fixme - check if there is more than two - ie the mirror case
+        # so you hve the right solution, so merge it with the current browsed solution
+        for s in solutions:
+            if len(s) == max([len(s2) for s2 in solutions]):
+                # sup top should always be compatible with the largest solution sup_top
+                # fixme - how is it possible that the next solution is not consistent with the starting sup top?
+                if sup_top.is_consistent_with(s):
+                    sup_top.merge(s)
+                else:
+                    print('found an inconsistent largest result')
+
+        if len(solutions) == 0:
+            raise Exception('no solution? ')
+
+    return sup_top
 
 
 def superimpose_topologies(top1, top2, atol):
@@ -541,7 +670,7 @@ def superimpose_topologies(top1, top2, atol):
 
     sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
 
-    apply_charges(sup_tops_no_charges, atol=atol)
+    # apply_charges(sup_tops_no_charges, atol=atol)
 
     # fixme - remove the hydrogens without attached heavy atoms
 
@@ -569,21 +698,57 @@ def _superimpose_topologies(top1, top2, atol):
     # grow the topologies using every combination node1-node2 as the starting point
     for node1 in top1:
         for node2 in top2:
-            # grow the topologies to see if they overlap
-            matched_pairs = _overlay(node1, node2, atol=atol)
-            # ignore if no atoms were superimposed
-            if len(matched_pairs) == 0:
+            # stick to a case that should work
+            if not (node1.atomName == 'C3' and node2.atomName == 'C25'):
                 continue
 
-            # construct topology class
-            candidate_superimposed_top = SuperimposedTopology(matched_pairs, top1, top2)
+            # fixme - optimisation
+            # you don't have to start from matches that have already been found,
+            # ie if something discovers that match, it should have explored all other ways in which
+            # the two topologies can be reassembled,
+
+            # grow the topologies to see if they overlap
+            # fixme - do you still need to set up top1 and top2?
+            candidate_superimposed_top = _overlay(node1, node2, atol=atol)
+            # ignore if no atoms were superimposed
+            if len(candidate_superimposed_top) == 0:
+                continue
+
+            candidate_superimposed_top.set_tops(top1, top2)
             candidate_superimposed_top.is_subgraph_of_global_top()
+
+            # check if there is a pair C5==C27 and check where it is heading
+            for n1, n2 in candidate_superimposed_top.matched_pairs:
+                if n1.atomName == 'C7' and n2.atomName == 'C29' and \
+                        len(candidate_superimposed_top.matched_pairs) > 30:
+                    print(candidate_superimposed_top.matched_pairs)
+                    print("FOUND CORRECT MATCH: len %d :" % len(candidate_superimposed_top.matched_pairs),
+                          "Started with", node1.atomName, 'and', node2.atomName,'\n',
+                          'name ' + ' '.join([node1.atomName.upper() for node1, _ in candidate_superimposed_top.matched_pairs]),
+                          '\nto\n',
+                          'name ' + ' '.join([node2.atomName.upper() for _, node2 in candidate_superimposed_top.matched_pairs]),
+                          '\n\n')
+                    break
+
+                    # check if there is a pair C5==C27 and check where it is heading
+            # for n1, n2 in candidate_superimposed_top.matched_pairs:
+            #     if n1.atomName == 'C5' and n2.atomName == 'C27' and \
+            #             len(candidate_superimposed_top.matched_pairs) == 42:
+            #         print("found a 42 with the right atoms? ")
+            #         print("Superimposed topology: len %d :" % len(candidate_superimposed_top.matched_pairs),
+            #               'name ' + ' '.join([node1.atomName.upper() for node1, _ in
+            #                                   candidate_superimposed_top.matched_pairs]),
+            #               '\nto\n',
+            #               'name ' + ' '.join([node2.atomName.upper() for _, node2 in
+            #                                   candidate_superimposed_top.matched_pairs]))
+            #         break
 
             # check if this superimposed topology was found before, if so, ignore
             sup_top_seen = False
             for other_sup_top in sup_tops:
                 if other_sup_top.eq(candidate_superimposed_top):
                     sup_top_seen = True
+                    print("The next candidate superimposed topology was seen before, len:", len(candidate_superimposed_top.matched_pairs))
                     break
             if sup_top_seen:
                 continue
@@ -603,12 +768,20 @@ def _superimpose_topologies(top1, top2, atol):
                     # and that sup top contains some nodes from the candidate sup top
                     # ignore this sup top
                     if sup_top.contains_any_node_from(candidate_superimposed_top):
+                        #fixme
+                        if len(candidate_superimposed_top.matched_pairs) > 37:
+                            print("A larger sup top was found that already uses some of these nodes,"
+                                  " ignoring this sup top, len", len(candidate_superimposed_top.matched_pairs))
                         ignore_cand_sup_top = True
                         break
                 elif len(sup_top.matched_pairs) < len(candidate_superimposed_top.matched_pairs):
                     # this sup_top has fewer elements than candidate sup top
                     if sup_top.contains_any_node_from(candidate_superimposed_top):
                         # and there is an overlap, delete the smaller sup top
+                        if len(candidate_superimposed_top.matched_pairs) > 37:
+                            print('This new candidate sup top removes the previous sup top'
+                                  'that is smaller, len',
+                                  len(candidate_superimposed_top.matched_pairs))
                         sup_tops.remove(sup_top)
             if ignore_cand_sup_top:
                 continue
@@ -634,7 +807,7 @@ def _superimpose_topologies(top1, top2, atol):
                     other_sup_top.add_mirror_sup_top(candidate_superimposed_top)
                     is_mirror = True
             if is_mirror:
-                # print('mirror found, skipping')
+                print('mirror found, skipping, sup top len', len(candidate_superimposed_top.matched_pairs))
                 continue
 
             # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
