@@ -1,7 +1,3 @@
-import hashlib
-import numpy as np
-import networkx as nx
-import copy
 
 """
 To do:
@@ -79,6 +75,9 @@ To do:
  - you don't have check every n1 and n2 in the two topologies: 
  e.g. if you find a component which extended to NX-NY match,
  then NX-NY is not a necessary starting condition  
+ - one major question that will have to be asked is to understand how after one traversal, we can take away
+ certain node pairs and based on that say that these pairs do not need to be used/searched as the starting point
+ - we should understand the limits of the search: how many max pairs can we actually find? 
  
  
  Complex Testing - Generation Topologies: 
@@ -98,14 +97,21 @@ To do:
  and in both cases we know how we are connected to the other component. In other words, connecting the components
  together. 
  
+
  
 fixme 
  - optimising too much - finding matches which should not be found? how come our topology superimposition
  ignores the chirality in the case of mcl1? 
 """
+from MDAnalysis.analysis.distances import distance_array
+import hashlib
+import numpy as np
+import networkx as nx
+import copy
+
 
 class AtomNode:
-    def __init__(self, atomId, atomName, resName, resId, charge, atom_colloq):
+    def __init__(self, atomId, atomName, resName, resId, charge, atom_colloq, coordinates):
         self.atomId = atomId
         self.atomName = atomName
         self.resName = resName
@@ -113,6 +119,8 @@ class AtomNode:
         self.charge = charge
         self.atom_colloq = atom_colloq
         self.bonds = set()
+        assert len(coordinates) == 3
+        self.coords = np.array([float(coord) for coord in coordinates],  dtype='float32')
 
     def __hash__(self):
         m = hashlib.md5()
@@ -190,6 +198,14 @@ class SuperimposedTopology:
         self.top2 = top2
 
 
+    def remove_node_pair(self, node_pair):
+        assert len(node_pair) == 2
+        self.matched_pairs.remove(node_pair)
+        # remove from the current set
+        self.nodes.remove(node_pair[0])
+        self.nodes.remove(node_pair[1])
+
+
     def add_node_pair(self, node_pair):
         # fixme - use this function in the __init__ to initialise
         assert not node_pair in self.matched_pairs, 'already added'
@@ -207,11 +223,90 @@ class SuperimposedTopology:
         assert len(self.matched_pairs) * 2 == len(self.nodes)
 
 
-    # fixme - switch to this
-    # def __copy__(self):
-    #     newone = type(self)()
-    #     newone.__dict__.update(self.__dict__)
-    #     return newone
+    def __copy__(self):
+        # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
+        newone = type(self)()
+        newone.__dict__.update(self.__dict__)
+        # make a shallow copy of the arrays
+        newone.matched_pairs = copy.copy(self.matched_pairs)
+        newone.nodes = copy.copy(self.nodes)
+        return newone
+
+
+    def findMirrorChoices(self):
+        """
+        For each pair (A1, B1) find all the other options in the mirrors where (A1, B2)
+        # ie Ignore (X, B1) search, if we repair from A to B, then B to A should be repaired too
+        """
+        choices = {}
+        for A1, B1 in self.matched_pairs:
+            options_for_A1 = []
+            for mirror in self.mirrors:
+                for A2, B2 in mirror.matched_pairs:
+                    if A1 is A2 and not B1 is B2:
+                        options_for_A1.append(B2)
+
+            if options_for_A1:
+                options_for_A1.insert(0, B1)
+                choices[A1] = options_for_A1
+
+        return choices
+
+
+    def correct_for_coordinates(self):
+        """
+        Use the coordinates of the atoms, to figure out which symmetries are the correct ones.
+        Rearrange so that the overall topology represents the one that has appropriate coordinates,
+        whereas all the mirrors represent the other poor matches.
+
+        # fixme - ensure that each node is used only once at the end
+        """
+
+        # check if you have coordinates
+        # fixme - rn we have it, check
+
+        # superimpose the coordinates, ensure a good match
+        # fixme - this was done before, so let's leave this way for now
+
+        # fixme - consider putting this conf as a mirror, and then modifying this
+
+        # check which are preferable for each of the mirrors
+        # we have to match mirrors to each other, ie say we have (O1=O3) and (O2=O4)
+        # we should find the mirror matching (O1=O4) and (O2=O3)
+        # so note that we have a closure here: All 4 atoms are used in both cases, and each time are paired differently.
+        # So this is how we defined the mirror - and therefore we can reduce this issue to the minimal mirrors.
+        # fixme - is this a cycle? O1-O3-O2-O4-O1
+        # Let's try to define a chain: O1 =O3, and O1 =O4, and O2 is =O3 or =O4
+        # So we have to define how to find O1 matching to different parts, and then decide
+        choices_mapping = self.findMirrorChoices()
+
+        for A1, choices in choices_mapping.items():
+            # remove the old tuple
+            self.remove_node_pair((A1, choices[0]))
+
+        # better matches
+        closer_matches = []
+        for A1, choices in choices_mapping.items():
+            # so we have several choices for A1, and now naively we are taking the one that is closest, and
+            # assuming the superimposition is easy, this would work
+
+            closest_dst = 9999999
+            closest_bx = None
+            for BX in choices:
+                # use the distance_array because of PBC correction and speed
+                A1_BX_dst = distance_array(np.array([A1.coords, ]), np.array([BX.coords, ]))[0]
+                # np.sqrt(A1.coords[0]**2 + BX.coords[0]**2)
+                if A1_BX_dst < closest_dst:
+                    closest_dst = A1_BX_dst
+                    closest_bx = BX
+
+            closer_matches.append(closest_bx)
+            print(A1.atomName, 'is matching best with', closest_bx.atomName)
+
+            # remove the old tuple and insert the new one
+            self.add_node_pair((A1, closest_bx))
+
+        return closer_matches
 
 
     def get_toppology_similarity_score(self):
@@ -364,6 +459,14 @@ class SuperimposedTopology:
         return False
 
 
+    def contains_atomNamePair(self, atomName1, atomName2):
+        for m1, m2 in self.matched_pairs:
+            if m1.atomName == atomName1 and m2.atomName == atomName2:
+                return True
+
+        return False
+
+
     def contains_all(self, other_sup_top):
         for pair in other_sup_top.matched_pairs:
             if not self.contains(pair):
@@ -505,7 +608,7 @@ class SuperimposedTopology:
 
     def add_mirror_sup_top(self, mirror_sup_top):
         assert len(self.matched_pairs) == len(mirror_sup_top.matched_pairs)
-        print("a mirror sup top added")
+        # print("a mirror sup top added")
         self.mirrors.append(mirror_sup_top)
 
 
@@ -539,6 +642,15 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
     RETURN: the maximum common overlap with the n1 and n2 as the starting conditions.
 
     Here, recursively the graphs of n1 and of n2 will be explored as they are the same.
+
+    fixme: return should keep track of symmetries
+    - while returning the current system has to make sense of the different returning journies, this means
+    that symmetry might show up here. For example, the same ring can be traversed in two different ways,
+    therefore, we should be possible to continue returning and forming the different "variants".
+    Currently, only one way is chosen, despite several different candidates.
+    One way to store them it to make the entire different topologies, in a way that makes sense,
+    right now we return with only one of the "symmetries", while others are being discovered
+    when searching through the other node pairs.
     """
 
     if sup_top == None:
@@ -597,17 +709,14 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
         solutions = []
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
-                # copy the sup_top and update the list
-                # fixme - overload the __copy__ method for this
+                # make a copy of the topology
                 copy_sup_top = copy.copy(sup_top)
-                copy_sup_top.matched_pairs = copy.copy(sup_top.matched_pairs)
-                copy_sup_top.nodes = copy.copy(sup_top.nodes)
 
                 solution = _overlay(n1bonded_node, n2bonded_node,
                          n1_parent=n1, n2_parent=n2,
                          nxgl=copy.copy(nxgl), nxgr=copy.copy(nxgr),  # fixme - do I need a deep copy for the graph? test
-                         sup_top=copy_sup_top, # a shallow copy here should be just fine
-                            atol=atol)
+                         sup_top=copy_sup_top,
+                         atol=atol)
                 solutions.append(solution)
 
         # fixme - you should merge all solutions that are consistent? you should not take the largest solution
@@ -618,6 +727,7 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
         # return largest_solution
 
         # merge all the paths that are consistent with each other
+        # this way we can minimise the number of solutions in this problem
         # fixme - optimise,
         for sol1 in solutions:
             for sol2 in solutions[::-1]:
@@ -631,11 +741,16 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
                     # remove sol2 from the solutions:
                     solutions.remove(sol2)
 
+        # ideally there would be one good solution
+        # assert [len(s2) for s2 in solutions].count(max([len(s2) for s2 in solutions])) == 1
+
         # take the bigger out of the two,
         # print('solutions lengths', [len(s) for s in solutions])
         # fixme - check if there is more than two - ie the mirror case
         # so you hve the right solution, so merge it with the current browsed solution
         for s in solutions:
+            # fixme - should you not merge all the solutions as long as they are compatible?
+            # each solution is a different pathway taken, and therefore the different paths should be ideally separated
             if len(s) == max([len(s2) for s2 in solutions]):
                 # sup top should always be compatible with the largest solution sup_top
                 # fixme - how is it possible that the next solution is not consistent with the starting sup top?
@@ -644,6 +759,7 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
                 else:
                     # print('found an inconsistent largest result')
                     pass
+
 
         if len(solutions) == 0:
             raise Exception('no solution? ')
@@ -703,6 +819,10 @@ def _superimpose_topologies(top1, top2, atol):
             # you don't have to start from matches that have already been found,
             # ie if something discovers that match, it should have explored all other ways in which
             # the two topologies can be reassembled,
+
+            # for testing speed C11=C33
+            # if not (node1.atomName == 'C11' and node2.atomName == 'C33'):
+            #     continue
 
             # grow the topologies to see if they overlap
             # fixme - do you still need to set up top1 and top2?
@@ -787,7 +907,7 @@ def _superimpose_topologies(top1, top2, atol):
                     other_sup_top.add_mirror_sup_top(candidate_superimposed_top)
                     is_mirror = True
             if is_mirror:
-                print('mirror found, skipping, sup top len', len(candidate_superimposed_top.matched_pairs))
+                # print('mirror found, skipping, sup top len', len(candidate_superimposed_top.matched_pairs))
                 continue
 
             # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
@@ -1043,7 +1163,7 @@ def get_charges(ac_file):
     # extract the atoms
     # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
     atom_lines = filter(lambda l:l.startswith('ATOM'), ac_lines)
-    atoms = [AtomNode(atomID, atomName, resName, resID, float(charge), atom_colloq) for
+    atoms = [AtomNode(atomID, atomName, resName, resID, float(charge), atom_colloq, (x,y,z)) for
              _, atomID, atomName, resName, resID, x, y, z, charge, atom_colloq in
              [l.split() for l in atom_lines]]
     # fixme - add a check that all the charges come to 0 as declared in the header
