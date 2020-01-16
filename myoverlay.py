@@ -136,12 +136,11 @@ for protein_path in proteins_paths:
         # print the match
         # for strongly_connected_component in overlays:
         #     print("Strongly Connected Component, length:", len(strongly_connected_component))
-            # for atom_from, atom_to in strongly_connected_component:
-            #     print('Bound', atom_from.atomName, atom_to.atomName)
+        # for atom_from, atom_to in strongly_connected_component:
+        #     print('Bound', atom_from.atomName, atom_to.atomName)
 
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
-        maintop = si_topologies[0]
         for si_top in si_topologies:
             print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
                   'name ' + ' '.join([node1.atomName.upper() for node1, _ in si_top.matched_pairs]),
@@ -153,6 +152,7 @@ for protein_path in proteins_paths:
                 unique_nodes.extend(list(pair))
             all_matched_nodes = all_matched_nodes.union(unique_nodes)
 
+        maintop = si_topologies[0]
         for i, si_top in enumerate(si_top.mirrors, start=1):
             # print only the mismatching pairs
             different = set(si_top.matched_pairs).difference(set(maintop.matched_pairs))
@@ -162,6 +162,7 @@ for protein_path in proteins_paths:
         # the atom that appears has to be in G2 and not in any of the overlaps
         appearing = [node for node in ligand2_nodes.values() if not node in all_matched_nodes]
         disappearing = [node for node in ligand1_nodes.values() if not node in all_matched_nodes]
+
         print("disappearing", 'name ' + ' '.join([n.atomName for n in disappearing]))
         print("appearing", 'name ' + ' '.join([n.atomName for n in appearing]))
         # fixme - make it clear which convert to which?

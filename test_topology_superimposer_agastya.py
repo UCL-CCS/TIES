@@ -71,7 +71,13 @@ def test_mcl1_l18l39_nocharges():
     for atomName1, atomname2 in corrected_symmetries:
         assert suptop.contains_atomNamePair(atomName1, atomname2)
 
-    # fixme - add charges
+    # refine against charges
+    # ie remove the matches that change due to charge rather than spieces
+    all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    print(all_removed_pairs)
+    removed_pairs = [('C5', 'C27'), ('C4', 'C26')]
+    for atomName1, atomname2 in removed_pairs:
+        assert not suptop.contains_atomNamePair(atomName1, atomname2)
 
 
 def test_mcl1_l17l9_nocharges():
@@ -104,3 +110,11 @@ def test_mcl1_l17l9_nocharges():
                              ('H7', 'H25'), ('H6', 'H24'), ('H5', 'H23')]
     for atomName1, atomname2 in multchoice_test_pairs:
         assert suptop.contains_atomNamePair(atomName1, atomname2)
+
+    # refine against charges
+    # ie remove the matches that change due to charge rather than spieces
+    all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    print(all_removed_pairs)
+    removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
+    for atomName1, atomname2 in removed_pairs:
+        assert not suptop.contains_atomNamePair(atomName1, atomname2)

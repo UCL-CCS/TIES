@@ -481,11 +481,14 @@ class SuperimposedTopology:
     def refineAgainstCharges(self, atol):
         # walk through the superimposed topologies
         # and move the atom-atom pairs that suffer from being the same
+        removed_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
             if not node1.eq(node2, atol=atol):
                 # remove this pair
-                self.matched_pairs.remove([node1, node2])
-                print('removed a pair due to the not-matching charges', node1, node2)
+                self.matched_pairs.remove((node1, node2))
+                removed_pairs.append((node1, node2))
+                print('removed a pair due to the not-matching charges', node1.atomName, node2.atomName)
+        return removed_pairs
 
 
     def is_consistent_with(self, other_suptop):
@@ -906,7 +909,7 @@ def superimpose_topologies(top1, top2, atol):
 
     sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
 
-    # apply_charges(sup_tops_no_charges, atol=atol)
+    apply_charges(sup_tops_no_charges, atol=atol)
 
     # fixme - remove the hydrogens without attached heavy atoms
 
@@ -1122,6 +1125,7 @@ def _superimpose_topologies(top1, top2, atol):
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
     print("Found altogether overlays", len(sup_tops))
+
     # fixme - return other info
     return sup_tops
 
