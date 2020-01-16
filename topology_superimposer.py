@@ -120,6 +120,9 @@ fixme
 
 Suggestions:
  - should you keep track of which bonds are rotatable? just like FEP+ does?
+ - growing RMSD: another way to grow the molecules and check local RMSD is to superimpose a smaller part of it,
+ ie are these two atoms matching? Maybe the whole superimpositon should not decided about that,
+ but rather, the local environment
 """
 from MDAnalysis.analysis.distances import distance_array
 import hashlib
@@ -211,6 +214,30 @@ class SuperimposedTopology:
         # the uncharged sup top is a sup top that was generated when the charges were ignored
         # if the found sup_top was larger and contains the current sup top, then the two can be linked
         self.uncharged_sup_top = None
+
+
+    def remove_lonely_hydrogens(self):
+        """
+        You could also remove the hydrogens when you correct charges.
+        """
+        raise Exception('Not Implemented')
+        # in order to see any hydrogens that are by themselves, we check for any connection
+        removed_pairs = []
+        for A1, B1 in self.matched_pairs:
+            # fixme - assumes hydrogens start their names with H*
+            if not A1.atomName.upper().startswith('H'):
+                continue
+
+            # check if any of the bonded atoms can be found in this sup top
+            if not self.contains_any_node(A1.bonds) or not self.contains_node(B1.bonds):
+                # we appear disconnected, remove us
+                pass
+            for bonded_atom in A1.bonds:
+                assert not bonded_atom.atomName.upper().startswith('H')
+                if self.contains_node(bonded_atom):
+                    continue
+
+        return removed_pairs
 
 
     def __len__(self):
@@ -479,6 +506,12 @@ class SuperimposedTopology:
 
 
     def refineAgainstCharges(self, atol):
+        """
+        Removes the matched pairs which turn out to have charges more different
+        than the given absolute tolerance (atol) [Electron units]
+
+        After removing a pair, removes any hydrogens attached to the heavy atoms.
+        """
         # walk through the superimposed topologies
         # and move the atom-atom pairs that suffer from being the same
         removed_pairs = []
@@ -486,6 +519,22 @@ class SuperimposedTopology:
             if not node1.eq(node2, atol=atol):
                 # remove this pair
                 self.matched_pairs.remove((node1, node2))
+                # get hydrogens attached to the heavy atoms
+                node1_hydrogens = filter(lambda a: a.atomName.upper().startswith('H'), node1.bonds)
+                node2_hydrogens = filter(lambda a: a.atomName.upper().startswith('H'), node2.bonds)
+                # fixme - ideally the hydrogens would match each other before being removed
+                for n1_hyd in node1_hydrogens:
+                    # find the matching n2 hydrogen and remove them
+                    n1_pair_removed = False
+                    for n2_hyd in node2_hydrogens:
+                        try:
+                            self.matched_pairs.remove((n1_hyd, n2_hyd))
+                            print('Removed lonely hydrogen pair', (n1_hyd.atomName, n2_hyd.atomName))
+                            n1_pair_removed = True
+                            removed_pairs.append((n1_hyd, n2_hyd))
+                            break
+                        except:
+                            pass
                 removed_pairs.append((node1, node2))
                 print('removed a pair due to the not-matching charges', node1.atomName, node2.atomName)
         return removed_pairs
@@ -534,6 +583,13 @@ class SuperimposedTopology:
     def contains_node(self, node):
         # checks if this node was used in this overlay
         if len(self.nodes.intersection(set([node,]))) == 1:
+            return True
+
+        return False
+
+
+    def contains_any_node(self, node_list):
+        if len(self.nodes.intersection(set(node_list))) > 0:
             return True
 
         return False
@@ -909,19 +965,11 @@ def superimpose_topologies(top1, top2, atol):
 
     sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
 
-    apply_charges(sup_tops_no_charges, atol=atol)
+    ensure_charges_match(sup_tops_no_charges, atol=atol)
 
     # fixme - remove the hydrogens without attached heavy atoms
 
-    # sup_tops_charges = _superimpose_topologies(top1, top2, atol=atol)
-
-    # link_components_to_supercomponents(sup_tops_charges, sup_tops_no_charges)
-
-    # fixme - currently you hold on to "mirror superimpositions" but there is no need,
-    # if they can be solved with the global uncharged sup top
-
     # resolve_sup_top_multiple_match(sup_tops_charges)
-    # find_symmetric_components(sup_tops_charges, sup_tops_no_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
     return sup_tops_no_charges
@@ -1130,7 +1178,7 @@ def _superimpose_topologies(top1, top2, atol):
     return sup_tops
 
 
-def apply_charges(sup_tops_no_charges, atol=0):
+def ensure_charges_match(sup_tops_no_charges, atol=0):
     for sup_top in sup_tops_no_charges:
         sup_top.refineAgainstCharges(atol=atol)
 
@@ -1322,11 +1370,6 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
     # FIXME - if two superimposed components come from two different places in the global map, then something's off
     # particularly, it could help with chirality - if with respect to the global match,
     # a local sup top travels in the wrong direction, then we have a clear issue
-
-
-def find_symmetric_components(sup_top_charges, sup_top_no_charges):
-    # in the case of mcl1
-    pass
 
 
 def get_charges(ac_file):

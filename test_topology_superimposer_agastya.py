@@ -118,3 +118,8 @@ def test_mcl1_l17l9_nocharges():
     removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
     for atomName1, atomname2 in removed_pairs:
         assert not suptop.contains_atomNamePair(atomName1, atomname2)
+
+    # check if the lonely hydrogens were removed together with charges
+    removed_lonely_hydrogens = [('H14', 'H32'), ('H11', 'H29')]
+    for atomName1, atomname2 in removed_lonely_hydrogens:
+        assert not suptop.contains_atomNamePair(atomName1, atomname2)
