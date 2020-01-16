@@ -394,6 +394,10 @@ class SuperimposedTopology:
         # So we have to define how to find O1 matching to different parts, and then decide
         choices_mapping = self.findMirrorChoices()
 
+        # fixme - rewrite this method to elminiate one by one the hydrognes that fit in perfectly,
+        # some of them will have a plural significant match, while others might be hazy,
+        # so we have to eliminate them one by one, searching the best matches and then eliminating them
+
         removed_nodes = set()
         for A1, choices in choices_mapping.items():
             # remove the old tuple
@@ -406,31 +410,42 @@ class SuperimposedTopology:
         added_nodes = set()
 
         # better matches
-        closer_matches = []
-        for A1, choices in choices_mapping.items():
-            # so we have several choices for A1, and now naively we are taking the one that is closest, and
-            # assuming the superimposition is easy, this would work
-
+        # for each atom that mismatches, scan all molecules and find the best match and eliminate it
+        blacklisted_bxs = []
+        for _ in range(len(choices_mapping)):
+            # fixme - optimisation of this could be such that if they two atoms are within 0.2A or something
+            # then they are straight away fixed
             closest_dst = 9999999
+            closest_a1 = None
             closest_bx = None
-            # FIXME - you cannot use simply distances, if for A1 and A2 the best is BX, then BX there should be
-            # rules for that
-            for BX in choices:
-                # use the distance_array because of PBC correction and speed
-                A1_BX_dst = distance_array(np.array([A1.coords, ]), np.array([BX.coords, ]))[0]
-                # np.sqrt(A1.coords[0]**2 + BX.coords[0]**2)
-                if A1_BX_dst < closest_dst:
-                    closest_dst = A1_BX_dst
-                    closest_bx = BX
+            for A1, choices in choices_mapping.items():
+                # so we have several choices for A1, and now naively we are taking the one that is closest, and
+                # assuming the superimposition is easy, this would work
 
-            closer_matches.append(closest_bx)
+                # FIXME - you cannot use simply distances, if for A1 and A2 the best is BX, then BX there should be
+                # rules for that
+                for BX in choices:
+                    if BX in blacklisted_bxs:
+                        continue
+                    # use the distance_array because of PBC correction and speed
+                    A1_BX_dst = distance_array(np.array([A1.coords, ]), np.array([BX.coords, ]))[0]
+                    if A1_BX_dst < closest_dst:
+                        closest_dst = A1_BX_dst
+                        closest_bx = BX
+                        closest_a1 = A1
+
+            # across all the possible choices, found the best match now:
+            blacklisted_bxs.append(closest_bx)
             shortest_dsts.append(closest_dst)
-            print(A1.atomName, 'is matching best with', closest_bx.atomName)
+            print(closest_a1.atomName, 'is matching best with', closest_bx.atomName)
 
             # remove the old tuple and insert the new one
-            self.add_node_pair((A1, closest_bx))
-            added_nodes.add(A1)
+            self.add_node_pair((closest_a1, closest_bx))
+            added_nodes.add(closest_a1)
             added_nodes.add(closest_bx)
+            # remove from consideration
+            del choices_mapping[closest_a1]
+            # blacklist
 
         # fixme - check that the added and the removed nodes are the same set
         assert removed_nodes == added_nodes
@@ -945,7 +960,7 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
     return [sup_top, ]
 
 
-def superimpose_topologies(top1, top2, atol):
+def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
     # fixme replace with theoretical max
     large_value = 99999
     """
@@ -964,8 +979,12 @@ def superimpose_topologies(top1, top2, atol):
     """
 
     sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
+    if useCharges:
+        ensure_charges_match(sup_tops_no_charges, atol=atol)
 
-    ensure_charges_match(sup_tops_no_charges, atol=atol)
+    if useCoords:
+        for sup_top in sup_tops_no_charges:
+            sup_top.correct_for_coordinates()
 
     # fixme - remove the hydrogens without attached heavy atoms
 

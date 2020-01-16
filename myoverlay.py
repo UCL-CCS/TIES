@@ -95,10 +95,11 @@ proteins_paths = [
 for protein_path in proteins_paths:
     for liglig_path in glob.glob(protein_path + 'l*-l*'):
         ligand_from, ligand_to = path.basename(liglig_path).split('-')
-        if not (ligand_from == 'l17' and ligand_to == 'l9'):
+        if not (ligand_from == 'l12' and ligand_to == 'l35'):
             continue
         hybrid_pair_path = path.join(liglig_path, "hybrid_par")
         print("working now on: ", hybrid_pair_path)
+        # continue
         l11 = mda.Universe(path.join(hybrid_pair_path, 'init_%s.pdb' % ligand_from))
         l14 = mda.Universe(path.join(hybrid_pair_path, 'final_%s.pdb' % ligand_to))
 
@@ -127,7 +128,7 @@ for protein_path in proteins_paths:
         # overlay
         print("About to overlay %d atoms with %d atoms" % (len(ligand2_nodes), len(ligand1_nodes)))
         # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al (doi: 10.1021/acs.jctc.6b00979)
-        si_topologies = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(), atol=0.1)
+        si_topologies = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(), atol=0.1, useCharges=False)
 
         print("Found Superimposed Topologies ", len(si_topologies))
         for si_top in si_topologies:
