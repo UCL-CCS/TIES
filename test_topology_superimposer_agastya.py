@@ -1,28 +1,11 @@
 # we start the testing with the defined cases by Agastya,
 
-from topology_superimposer import SuperimposedTopology, get_charges, superimpose_topologies, _superimpose_topologies
+from topology_superimposer import SuperimposedTopology, get_charges, \
+    superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb
 import networkx as nx
 import MDAnalysis as mda
 from os import path
 
-
-def assign_coords_from_pdb(atoms, pdb_atoms):
-    """
-    Match the atoms from the MDAnalysis object based on a .pdb file
-    and copy the coordinates from the MDAnalysis atoms to the
-    corresponding atoms.
-    """
-    for atom in atoms:
-        # find the corresponding atom
-        found_match = False
-        for pdb_atom in pdb_atoms.atoms:
-            if pdb_atom.name == atom.atomName:
-                # assign the charges
-                atom.set_coords(pdb_atom.position)
-                found_match = True
-                break
-        if not found_match:
-            raise Exception("wait a minute")
 
 def get_problem(liglig_path):
     ligand_from, ligand_to = path.basename(liglig_path).split('-')
@@ -88,6 +71,8 @@ def test_mcl1_l18l39_nocharges():
     for atomName1, atomname2 in corrected_symmetries:
         assert suptop.contains_atomNamePair(atomName1, atomname2)
 
+    # fixme - add charges
+
 
 def test_mcl1_l17l9_nocharges():
     # Agastya's cases
@@ -98,8 +83,8 @@ def test_mcl1_l17l9_nocharges():
     # score the suptops,
     # fixme - note that the suptops are wirdMirrors which should have been classified as such,
 
+    assert len(suptops) == 1
     suptop = suptops[0]
-    # assert len(suptop) == 43
 
     # the core chain should always be the same
     core_test_pairs = [('O3', 'O6'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25')]
@@ -114,7 +99,8 @@ def test_mcl1_l17l9_nocharges():
     # check the core atoms of the superimposition for correctness
     # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
     # are superimposed that way
-    core_test_pairs = [('O3', 'O6'), ('C18', 'C37'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25'),
-                       ('O2', 'O4'), ('O1', 'O5')]
-    for atomName1, atomname2 in core_test_pairs:
+    multchoice_test_pairs = [('O3', 'O6'), ('C18', 'C37'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25'),
+                       ('O2', 'O4'), ('O1', 'O5'), ('H10', 'H28'), ('H9', 'H27'), ('H8', 'H26'),
+                             ('H7', 'H25'), ('H6', 'H24'), ('H5', 'H23')]
+    for atomName1, atomname2 in multchoice_test_pairs:
         assert suptop.contains_atomNamePair(atomName1, atomname2)

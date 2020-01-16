@@ -95,7 +95,7 @@ proteins_paths = [
 for protein_path in proteins_paths:
     for liglig_path in glob.glob(protein_path + 'l*-l*'):
         ligand_from, ligand_to = path.basename(liglig_path).split('-')
-        if not (ligand_from == 'l18' and ligand_to == 'l39'):
+        if not (ligand_from == 'l17' and ligand_to == 'l9'):
             continue
         hybrid_pair_path = path.join(liglig_path, "hybrid_par")
         print("working now on: ", hybrid_pair_path)
@@ -105,6 +105,9 @@ for protein_path in proteins_paths:
         # read the corresponding charge values for the l14
         l11_atoms, l11_bonds = get_charges(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
         l14_atoms, l14_bonds = get_charges(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
+
+        assign_coords_from_pdb(l11_atoms, l11)
+        assign_coords_from_pdb(l14_atoms, l14)
 
         # create graphs
         # create the nodes and add edges for one ligand
@@ -151,12 +154,9 @@ for protein_path in proteins_paths:
             all_matched_nodes = all_matched_nodes.union(unique_nodes)
 
         for i, si_top in enumerate(si_top.mirrors, start=1):
-            print('Mirror:', i)
             # print only the mismatching pairs
             different = set(si_top.matched_pairs).difference(set(maintop.matched_pairs))
-            print(different)
-
-
+            print('Multiple Choice:', different)
 
         # extract the atoms that are appearing and disappearing
         # the atom that appears has to be in G2 and not in any of the overlaps
