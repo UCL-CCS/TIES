@@ -133,6 +133,8 @@ for protein_path in proteins_paths:
         print("Found Superimposed Topologies ", len(si_topologies))
         for si_top in si_topologies:
             print("Topology Pairs ", len(si_top.matched_pairs), "Mirror Number", len(si_top.mirrors))
+            rmsd, winner, isMirror = si_top.findLowestRmsdMirror()
+            print('rmsd', rmsd, 'isMirror', isMirror)
 
         # print the match
         # for strongly_connected_component in overlays:
@@ -143,10 +145,7 @@ for protein_path in proteins_paths:
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
         for si_top in si_topologies:
-            print("Superimposed topology: len %d :" % len(si_top.matched_pairs),
-                  'name ' + ' '.join([node1.atomName.upper() for node1, _ in si_top.matched_pairs]),
-                  '\nto\n',
-                  'name ' + ' '.join([node2.atomName.upper() for _, node2 in si_top.matched_pairs]))
+            si_top.print_summary()
             print(si_top.matched_pairs)
             unique_nodes = []
             for pair in si_top.matched_pairs:

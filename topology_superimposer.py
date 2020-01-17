@@ -264,7 +264,7 @@ class SuperimposedTopology:
               'name ' + ' '.join([node1.atomName.upper() for node1, _ in self.matched_pairs]),
               '\nto\n',
               'name ' + ' '.join([node2.atomName.upper() for _, node2 in self.matched_pairs]))
-        print(self.matched_pairs)
+        print(', '.join([a.atomName + '-' + b.atomName for a,b in self.matched_pairs]))
         unique_nodes = []
         for pair in self.matched_pairs:
             unique_nodes.extend(list(pair))
@@ -283,6 +283,29 @@ class SuperimposedTopology:
         # remove from the current set
         self.nodes.remove(node_pair[0])
         self.nodes.remove(node_pair[1])
+
+
+    def findLowestRmsdMirror(self):
+        """
+        Walk through the different mirrors and out of all options select the one
+        that has the lowest RMSD. This way we increase the chance of getting a better match.
+        However, long term it will be necessary to use the dihedrals to ensure that we match
+        the atoms better.
+        """
+        # fixme - you have to also take into account the "weird / other symmetires" besdies mirrors
+        winner = self
+        lowest_rmsd = self.rmsd()
+        for mirror in self.mirrors:
+            mirror_rmsd = mirror.rmsd()
+            if mirror_rmsd < lowest_rmsd:
+                lowest_rmsd = mirror_rmsd
+                winner = mirror
+
+        if self is winner:
+            # False here means that it is not a mirror
+            return lowest_rmsd, self, False
+        else:
+            return lowest_rmsd, winner, True
 
 
     def is_subgraph_of_global_top(self):
@@ -610,6 +633,11 @@ class SuperimposedTopology:
         return False
 
 
+    def count_common_nodes(self, node_list):
+        number_of_common_nodes = len(self.nodes.intersection(set(node_list)))
+        return number_of_common_nodes
+
+
     def contains_any_node_from(self, other_sup_top):
         if len(self.nodes.intersection(other_sup_top.nodes)) > 0:
             return True
@@ -834,35 +862,45 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
 
     # if the two nodes are "the same"
     if n1.eq(n2, atol=atol):
+        # Alternative to checking for cycles:
+        # check if both n1 and n2 contain a bonded atom that already is in the topology
+        # this way we know both create some connection back to the molecule
+        # fixme - did not seem to work?
+        # n1_common_nodes_tot = sup_top.count_common_nodes(n1.bonds)
+        # n2_common_nodes_tot = sup_top.count_common_nodes(n2.bonds)
+        # if n1_common_nodes_tot != n2_common_nodes_tot:
+        #     return [sup_top, ]
+
+
         # update the graphs (which allows us to access finding circles)
-        # nxgl.add_node(n1)
-        # nxgr.add_node(n2)
+        nxgl.add_node(n1)
+        nxgr.add_node(n2)
 
         # if the parents are also present, connect them
-        # nxgl.add_edge(n1_parent, n1)
-        # nxgl.add_edge(n2_parent, n2)
+        nxgl.add_edge(n1_parent, n1)
+        nxgr.add_edge(n2_parent, n2)
         # connect the other nodes that are present in the bonds that could close circles
         # ie if n1 closes a circle with some nX in the the graph, but n2 does not have that bond
         # then they represent a different thing,
         # Summary: connect n1 and n2 to any nodes in the graph that they are bound to
-        # for bonded_to_n1 in n1.bonds:
-        #     if bonded_to_n1 in nxgl:
-        #         nxgl.add_edge(n1, bonded_to_n1)
-        # for bonded_to_n2 in n2.bonds:
-        #     if bonded_to_n2 in nxgr:
-        #         nxgr.add_edge(n2, bonded_to_n2)
+        for bonded_to_n1 in n1.bonds:
+            if bonded_to_n1 in nxgl:
+                nxgl.add_edge(n1, bonded_to_n1)
+        for bonded_to_n2 in n2.bonds:
+            if bonded_to_n2 in nxgr:
+                nxgr.add_edge(n2, bonded_to_n2)
 
         # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
         # is actually the wrong match, add one more criteria:
         # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
         # fixme - add tests which check of features like rings/double rings etc and see if they are found
         # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
-        # if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
-        #     # clearly the newly added edge changes the circles, and so it is not equivalent
-        #     # even though it might appear like it (mcl1 case)
-        #     nxgl.remove_node(n1)
-        #     nxgr.remove_node(n2)
-        #     return sup_top
+        if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
+            # clearly the newly added edge changes the circles, and so it is not equivalent
+            # even though it might appear like it (mcl1 case)
+            nxgl.remove_node(n1)
+            nxgr.remove_node(n2)
+            return [sup_top, ]
 
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
@@ -1068,6 +1106,7 @@ def _superimpose_topologies(top1, top2, atol):
 
             # check if this superimposed topology is a mirror of one that already exists
             # fixme the order matters in this place
+            # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
             is_mirror = False
             for other_sup_top in sup_tops:
                 if other_sup_top.is_mirror_of(candidate_superimposed_top):
@@ -1173,20 +1212,6 @@ def _superimpose_topologies(top1, top2, atol):
         for node1, node2 in sup_top.matched_pairs:
             assert node1 in list(top1)
             assert node2 in list(top2)
-
-    # sup tops can represent different components, but some of them overlap with each other,
-    # for now, group the ones that overlap together,
-    # to decide whether A.extra = B or B.extra = A we will use
-    # both, the coordinates and the number of overlaps found
-    # group the sup tops by their overlap
-    for suptop1 in sup_tops:
-        for suptop2 in sup_tops:
-            if suptop1 is suptop2:
-                continue
-
-            # if there is an overlap, by definition they should be the same length,
-            # because otherwise the smaller would be removed
-            # fixme -
 
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
