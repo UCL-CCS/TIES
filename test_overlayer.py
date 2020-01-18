@@ -10,7 +10,7 @@ from os import path
 import numpy as np
 
 
-def test_2diff_atoms_wrongStart():
+def test_2diffAtoms_CN_wrongStart():
     """
     create a simple molecule chain with an ester
      LIGAND 1        LIGAND 2
@@ -38,13 +38,13 @@ def test_2diff_atoms_wrongStart():
     c11.bindTo(n11)
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, n11, atol=9999)
+    suptops = _overlay(c1, n11)
     # it should return an empty suptop
     assert len(suptops) == 1
     assert len(suptops[0]) == 0
 
 
-def test_2diff_atoms_rightStart():
+def test_2diffAtoms_CN_rightStart():
     """
     Two different Atoms. Only one solution exists.
 
@@ -72,7 +72,7 @@ def test_2diff_atoms_rightStart():
     c11.bindTo(n11)
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11, atol=9999)
+    suptops = _overlay(c1, c11)
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -86,7 +86,7 @@ def test_2diff_atoms_rightStart():
     assert len(suptop.mirrors) == 0
 
 
-def test_3diff_atoms_rightStart():
+def test_3diffAtoms_CNO_rightStart():
     """
     Only one solution exists.
 
@@ -119,7 +119,7 @@ def test_3diff_atoms_rightStart():
     o11.bindTo(n11)
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11, atol=9999)
+    suptops = _overlay(c1, c11)
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -133,7 +133,7 @@ def test_3diff_atoms_rightStart():
     assert len(suptop.mirrors) == 0
 
 
-def test_esterSymmetry_rightStart():
+def test_SimpleMultipleSolutions_rightStart():
     """
     A simple molecule chain with an ester.
     The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
@@ -176,7 +176,7 @@ def test_esterSymmetry_rightStart():
     o12.bindTo(n11)
 
     # should be two topologies
-    suptops = _overlay(c1, c11, atol=9999)
+    suptops = _overlay(c1, c11)
     assert len(suptops) == 2
 
     # check if both representations were found
@@ -193,7 +193,7 @@ def test_esterSymmetry_rightStart():
     # this is to resolve multiple solutions such as the one here
 
 
-def test_2atoms_2symmetries():
+def test_2sameAtoms_2Cs_symmetry():
     """
     Two solutions with different starting points.
 
@@ -217,15 +217,107 @@ def test_2atoms_2symmetries():
     c11.bindTo(c12)
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, atol=9999)
+    suptops = _overlay(c1, c11)
     assert len(suptops) == 1
     assert suptops[0].contains_atomNamePair('C1', 'C11')
     assert suptops[0].contains_atomNamePair('C2', 'C12')
 
-    suptops = _overlay(c1, c12, atol=9999)
+    suptops = _overlay(c1, c12)
     assert len(suptops) == 1
     assert suptops[0].contains_atomNamePair('C1', 'C12')
     assert suptops[0].contains_atomNamePair('C2', 'C11')
+
+
+def test_3C_circle():
+    """
+    A circle should be detected.
+    Many solutions (3 starting conditions, etc)
+
+      LIGAND 1        LIGAND 2
+         C1              C11
+        /  \            /   \
+      C2 - C3         C12 - C13
+    """
+    # construct the LIGAND 1
+    c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
+    c1.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c2 = AtomNode(2, 'C2', 'TEST', 1, 0, 'C')
+    c2.set_coords(np.array([1, 2, 0], dtype='float32'))
+    c1.bindTo(c2)
+    c3 = AtomNode(2, 'C3', 'TEST', 1, 0, 'C')
+    c3.set_coords(np.array([2, 2, 0], dtype='float32'))
+    c3.bindTo(c1)
+    c3.bindTo(c2)
+
+    # construct the LIGAND 2
+    c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
+    c11.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c12 = AtomNode(11, 'C12', 'TEST', 1, 0, 'C')
+    c12.set_coords(np.array([1, 2, 0], dtype='float32'))
+    c11.bindTo(c12)
+    c13 = AtomNode(11, 'C13', 'TEST', 1, 0, 'C')
+    c13.set_coords(np.array([2, 2, 0], dtype='float32'))
+    c13.bindTo(c11)
+    c13.bindTo(c12)
+
+    suptops = _overlay(c1, c11)
+    # there are two solutions
+    assert len(suptops) == 2
+    assert any(st.contains_atomNamePair('C2', 'C12') or st.contains_atomNamePair('C2', 'C13') for st in suptops)
+    assert any(st.contains_atomNamePair('C3', 'C13') or st.contains_atomNamePair('C3', 'O12') for st in suptops)
+    # both solutions should have the same starting situation
+    assert all(st.contains_atomNamePair('C1', 'C11') for st in suptops)
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c1, c12)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c1, c13)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c2, c11)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c2, c12)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c2, c13)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c3, c11)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c3, c12)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+
+    suptops = _overlay(c3, c13)
+    assert len(suptops) == 2
+    # there should be one circle in each
+    assert all(st.sameCircleNumber() for st in suptops)
+    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
 
 
 def old_mcl1_l18l39_nocharges():
@@ -247,7 +339,7 @@ def old_mcl1_l18l39_nocharges():
 
     liglig_path = "asdf"
     # we are ignoring the charges by directly calling the superimposer
-    suptops = _superimpose_topologies("asdf", "asdf", atol=9999)
+    suptops = _superimpose_topologies("asdf", "asdf")
     # in this case, there should be only one solution
     assert len(suptops) == 1
 

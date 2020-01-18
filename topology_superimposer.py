@@ -183,6 +183,13 @@ class AtomNode:
         return False
 
 
+    def sameType(self, atom):
+        if self.type == atom.type:
+            return True
+
+        return False
+
+
     def __deepcopy__(self, memodict={}):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
         # it is a shallow copy, as this object is "immutable"
@@ -668,6 +675,7 @@ class SuperimposedTopology:
 
 
     def getNxGraphs(self):
+        "maybe at some point this should be created and used internally more? "
         gl = nx.Graph()
         gr = nx.Graph()
         # add each node
@@ -685,6 +693,21 @@ class SuperimposedTopology:
                     gr.add_edge(nB, bonded_to_nB)
 
         return gl, gr
+
+
+    def getCircleNumber(self):
+        gl, gr = self.getNxGraphs()
+        gl_circles = nx.cycle_basis(gl)
+        gr_circles = nx.cycle_basis(gr)
+        return len(gl_circles), len(gr_circles)
+
+
+    def sameCircleNumber(self):
+        gl_num, gr_num = self.getCircleNumber()
+        if gl_num == gr_num:
+            return True
+
+        return False
 
 
     def merge(self, other_suptop):
@@ -932,7 +955,7 @@ class SuperimposedTopology:
         return True
 
 
-def _overlay(n1, n2, sup_top=None, atol=0):
+def _overlay(n1, n2, sup_top=None):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -961,7 +984,7 @@ def _overlay(n1, n2, sup_top=None, atol=0):
 
     # if the two nodes are "the same"
     # fixme - remove the charges from here, you're not using them anyway for now
-    if n1.eq(n2, atol=atol):
+    if n1.sameType(n2):
         # Alternative to checking for cycles:
         # check if both n1 and n2 contain a bonded atom that already is in the topology
         # this way we know both create some connection back to the molecule
@@ -1017,8 +1040,7 @@ def _overlay(n1, n2, sup_top=None, atol=0):
                 # can take place using different pathways
                 # the search is more exhaustive this way
                 solution = _overlay(n1bonded_node, n2bonded_node,
-                         sup_top=copy.copy(sup_top),
-                         atol=atol)
+                                    sup_top=copy.copy(sup_top))
                 if solution is None:
                     continue
                 solutions_lists.append(solution)
