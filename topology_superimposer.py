@@ -655,13 +655,13 @@ class SuperimposedTopology:
         if other_cycles1 != other_cycles2:
             raise Exception('left G has a different number of cycles than right G')
 
-        if self_cycles1 != other_cycles1:
-            # rings should be created during the traversal
-            # ie new cycles are important for the right topology superimposition
-            # so merging different graphs should not lead to new rings
-            print('merging graphs should not take place')
-            # clean up
-            return False
+        # if self_cycles1 != other_cycles1:
+        #     # rings should be created during the traversal
+        #     # ie new cycles are important for the right topology superimposition
+        #     # so merging different graphs should not lead to new rings
+        #     print('merging graphs should not take place')
+        #     # clean up
+        #     return False
 
         # check if they have a bigger number of cycles after merging
         # todo
@@ -672,8 +672,8 @@ class SuperimposedTopology:
         if mergedG1_cycle_num != mergedG2_cycle_num:
             return False
 
-        if mergedG1_cycle_num != self_cycles1:
-            return False
+        # if mergedG1_cycle_num != self_cycles1:
+        #     return False
 
         return True
 
@@ -1054,30 +1054,29 @@ def _overlay(n1, n2, sup_top=None):
         all_solutions.sort(key=lambda st:len(st), reverse=True)
 
         # combine the different walks, the walks that are smaller can be thrown away?
-        for _ in range(len(all_solutions)):
-            # we try as many mergings as possible?
-            for sol1 in all_solutions:
-                for sol2 in all_solutions[::-1]:
-                    if sol1 is sol2:
-                        continue
+        # we try as many mergings as possible?
+        for sol1 in all_solutions:
+            for sol2 in all_solutions[::-1]:
+                if sol1 is sol2:
+                    continue
 
-                    if sol1.eq(sol2):
-                        log("Found the same solution and removing, solution", sol1.matched_pairs)
-                        all_solutions.remove(sol2)
-                        continue
+                if sol1.eq(sol2):
+                    log("Found the same solution and removing, solution", sol1.matched_pairs)
+                    all_solutions.remove(sol2)
+                    continue
 
-                    if sol1.is_consistent_with(sol2):
-                        # print("merging, current pair", (n1, n2))
-                        # join sol2 and sol1 because they're consistent
-                        g1, g2 = sol1.getNxGraphs()
-                        assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
-                        g3, g4 = sol2.getNxGraphs()
-                        assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
+                if sol1.is_consistent_with(sol2):
+                    # print("merging, current pair", (n1, n2))
+                    # join sol2 and sol1 because they're consistent
+                    g1, g2 = sol1.getNxGraphs()
+                    assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
+                    g3, g4 = sol2.getNxGraphs()
+                    assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
 
-                        print("Will merge", sol1, 'and', sol2)
-                        sol1.merge(sol2)
-                        # remove sol2 from the solutions:
-                        all_solutions.remove(sol2)
+                    print("Will merge", sol1, 'and', sol2)
+                    sol1.merge(sol2)
+                    # remove sol2 from the solutions:
+                    all_solutions.remove(sol2)
 
         # after all the merges, return the best matches only,
         # the other mergers are wrong (and there are smaller)

@@ -435,8 +435,8 @@ def test_mcl1_l18l39():
     c19.set_coords(np.array([7, 1, 0], dtype='float32'))
     c19.bindTo(c18)
 
-    #suptops = _overlay(c5, c14)
+    suptops = _overlay(c5, c14)
 
-    suptops = _overlay(c9, c19)
+    #suptops = _overlay(c9, c19)
     # two largest solutions are found?
     print('hi')
