@@ -165,7 +165,7 @@ class AtomNode:
         return self.atomName
 
     def __repr__(self):
-        return "%s_%s" % (self.type, self.atomName)
+        return self.atomName
 
     def bindTo(self, other):
         self.bonds.add(other)
@@ -955,6 +955,12 @@ class SuperimposedTopology:
         return True
 
 
+verbose_log = True
+def log(*args):
+    if verbose_log:
+        print(*args)
+
+
 def _overlay(n1, n2, sup_top=None):
     """
     n1 should be from one graph, and n2 should be from another.
@@ -998,6 +1004,8 @@ def _overlay(n1, n2, sup_top=None):
         nxgl_cycles_num, nxgr_cycles_num = len(nx.cycle_basis(nxgl)), len(nx.cycle_basis(nxgr))
         assert nxgl_cycles_num == nxgr_cycles_num
 
+        log("Adding ", (n1, n2), "in", sup_top.matched_pairs)
+
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
         sup_top.add_node_pair((n1, n2))
@@ -1013,13 +1021,11 @@ def _overlay(n1, n2, sup_top=None):
             # clearly the newly added edge changes the circles, and so it is not equivalent
             # even though it might appear like it (mcl1 case)
             sup_top.remove_node_pair((n1, n2))
-            print("Removing pair because one creates a cycle and the other does not", (n1, n2))
+            log("Removing pair because one creates a cycle and the other does not", (n1, n2))
             return None
 
         if nxgl_cycles_num_after > nxgl_cycles_num:
-            print("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
-
-        print("Adding ", (n1, n2), "to", sup_top.matched_pairs)
+            log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
 
         # continue traversing
         # try every possible pathway for creating an overlap,
@@ -1070,6 +1076,11 @@ def _overlay(n1, n2, sup_top=None):
         for sol1 in solutions:
             for sol2 in solutions[::-1]:
                 if sol1 is sol2:
+                    continue
+
+                if sol1.eq(sol2):
+                    log("Found the same solution and removing, solution", sol1.matched_pairs)
+                    solutions.remove(sol2)
                     continue
 
                 # fixme?
