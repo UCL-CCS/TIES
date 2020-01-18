@@ -182,7 +182,9 @@ def test_SimpleMultipleSolutions_rightStart():
     # check if both representations were found
     # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
     assert any(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
+    assert not all(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
     assert any(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
+    assert not all(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
 
     correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
     for st in suptops:
