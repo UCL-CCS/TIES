@@ -322,53 +322,121 @@ def test_3C_circle():
     assert all(st.getCircleNumber() == (1, 1) for st in suptops)
 
 
-def old_mcl1_l18l39_nocharges():
+def test_mcl1_l18l39():
     """
-    create a simple molecule chain with an ester
-        C1              C11
-        \                \
-        C2              C12
-        /                /
-        C3               C13
-        \                 \
-        C4                C14
-        /\                 /\
-       O1  O2            O11 O12
 
+    Molecule inspired by Agastya's dataset (mcl1_l18l39).
+
+    Ligand 1
+
+         C1 - C2
+         /      \
+    Cl1-C3      C4
+          \     /
+          C5 - C6
+          /     \
+     C10-C7       N1
+           \   /
+             C8
+             |
+             C9
+
+
+    Ligand 2
+                 Cl11
+                /
+         C11 - C12
+         /      \
+        C13      C14
+          \     /
+          C15 - C16
+          /     \
+     C20-C17       N11
+           \   /
+             C18
+             |
+             C19
     """
-    #
+    # construct LIGAND 1
+    c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
+    c1.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c2 = AtomNode(2, 'C2', 'TEST', 1, 0, 'C')
+    c2.set_coords(np.array([1, 2, 0], dtype='float32'))
+    c1.bindTo(c2)
+    c3 = AtomNode(2, 'C3', 'TEST', 1, 0, 'C')
+    c3.set_coords(np.array([2, 2, 0], dtype='float32'))
+    c3.bindTo(c1)
+    cl1 = AtomNode(2, 'CL1', 'TEST', 1, 0, 'Cl')
+    cl1.set_coords(np.array([2, 1, 0], dtype='float32'))
+    cl1.bindTo(c3)
+    c4 = AtomNode(2, 'C4', 'TEST', 1, 0, 'C')
+    c4.set_coords(np.array([2, 3, 0], dtype='float32'))
+    c4.bindTo(c2)
+    c5 = AtomNode(2, 'C5', 'TEST', 1, 0, 'C')
+    c5.set_coords(np.array([3, 1, 0], dtype='float32'))
+    c5.bindTo(c3)
+    c6 = AtomNode(2, 'C6', 'TEST', 1, 0, 'C')
+    c6.set_coords(np.array([3, 2, 0], dtype='float32'))
+    c6.bindTo(c5)
+    c6.bindTo(c4)
+    c7 = AtomNode(2, 'C7', 'TEST', 1, 0, 'C')
+    c7.set_coords(np.array([4, 2, 0], dtype='float32'))
+    c7.bindTo(c5)
+    c10 = AtomNode(2, 'C10', 'TEST', 1, 0, 'C')
+    c10.set_coords(np.array([4, 1, 0], dtype='float32'))
+    c10.bindTo(c7)
+    n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
+    n1.set_coords(np.array([4, 3, 0], dtype='float32'))
+    n1.bindTo(c6)
+    c8 = AtomNode(2, 'C8', 'TEST', 1, 0, 'C')
+    c8.set_coords(np.array([5, 1, 0], dtype='float32'))
+    c8.bindTo(c7)
+    c8.bindTo(n1)
+    c9 = AtomNode(2, 'C9', 'TEST', 1, 0, 'C')
+    c9.set_coords(np.array([6, 1, 0], dtype='float32'))
+    c9.bindTo(c8)
 
+    # construct Ligand 2
+    cl11 = AtomNode(2, 'Cl11', 'TEST', 1, 0, 'Cl')
+    cl11.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c11 = AtomNode(1, 'C11', 'TEST', 1, 0, 'C')
+    c11.set_coords(np.array([2, 1, 0], dtype='float32'))
+    c12 = AtomNode(2, 'C12', 'TEST', 1, 0, 'C')
+    c12.set_coords(np.array([2, 2, 0], dtype='float32'))
+    c12.bindTo(c11)
+    c12.bindTo(cl11)
+    c13 = AtomNode(2, 'C13', 'TEST', 1, 0, 'C')
+    c13.set_coords(np.array([3, 1, 0], dtype='float32'))
+    c13.bindTo(c11)
+    c14 = AtomNode(2, 'C14', 'TEST', 1, 0, 'C')
+    c14.set_coords(np.array([3, 2, 0], dtype='float32'))
+    c14.bindTo(c12)
+    c15 = AtomNode(2, 'C15', 'TEST', 1, 0, 'C')
+    c15.set_coords(np.array([4, 1, 0], dtype='float32'))
+    c15.bindTo(c13)
+    c16 = AtomNode(2, 'C16', 'TEST', 1, 0, 'C')
+    c16.set_coords(np.array([4, 2, 0], dtype='float32'))
+    c16.bindTo(c15)
+    c16.bindTo(c14)
+    c17 = AtomNode(2, 'C17', 'TEST', 1, 0, 'C')
+    c17.set_coords(np.array([5, 2, 0], dtype='float32'))
+    c17.bindTo(c15)
+    c20 = AtomNode(2, 'C20', 'TEST', 1, 0, 'C')
+    c20.set_coords(np.array([5, 1, 0], dtype='float32'))
+    c20.bindTo(c17)
+    n11 = AtomNode(2, 'N11', 'TEST', 1, 0, 'N')
+    n11.set_coords(np.array([5, 3, 0], dtype='float32'))
+    n11.bindTo(c16)
+    c18 = AtomNode(2, 'C18', 'TEST', 1, 0, 'C')
+    c18.set_coords(np.array([6, 1, 0], dtype='float32'))
+    c18.bindTo(c17)
+    c18.bindTo(n11)
+    c19 = AtomNode(2, 'C19', 'TEST', 1, 0, 'C')
+    c19.set_coords(np.array([7, 1, 0], dtype='float32'))
+    c19.bindTo(c18)
 
-    liglig_path = "asdf"
-    # we are ignoring the charges by directly calling the superimposer
-    suptops = _superimpose_topologies("asdf", "asdf")
-    # in this case, there should be only one solution
-    assert len(suptops) == 1
+    #suptops = _overlay(c5, c14)
 
-    suptop = suptops[0]
-    assert len(suptop) == 43
-
-    # check the core atoms of the superimposition for correctness
-    # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
-    # are superimposed that way
-    core_test_pairs = [('C21', 'C43'), ('C15', 'C37'), ('O3', 'O6'), ('C9', 'C31'),
-                  ('C1', 'C23'), ('N1', 'N2'), ('C6', 'C28'), ('C4', 'C26')]
-    for atomName1, atomname2 in core_test_pairs:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
-
-    # resolve the multiple possbile matches
-    avg_dst = suptop.correct_for_coordinates()
-
-    # check if the mirrors were corrected
-    corrected_symmetries = [('O2', 'O5'), ('O1', 'O4'), ('H7', 'H25'), ('H6', 'H24'),
-                            ('H4', 'H22'), ('H5', 'H23'), ('H8', 'H26'), ('H9', 'H27')]
-    for atomName1, atomname2 in corrected_symmetries:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
-
-    # refine against charges
-    # ie remove the matches that change due to charge rather than spieces
-    all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
-    print(all_removed_pairs)
-    removed_pairs = [('C5', 'C27'), ('C4', 'C26')]
-    for atomName1, atomname2 in removed_pairs:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+    suptops = _overlay(c9, c19)
+    # two largest solutions are found?
+    print('hi')

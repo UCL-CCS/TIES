@@ -264,6 +264,10 @@ class SuperimposedTopology:
         return len(self.matched_pairs)
 
 
+    def __repr__(self):
+        return str(len(self.matched_pairs)) + ":" + ', '.join([a.atomName + '-' + b.atomName for a,b in self.matched_pairs])
+
+
     def set_tops(self, top1, top2):
         self.top1 = top1
         self.top2 = top2
@@ -695,10 +699,15 @@ class SuperimposedTopology:
         return gl, gr
 
 
-    def getCircleNumber(self):
+    def getCircles(self):
         gl, gr = self.getNxGraphs()
         gl_circles = nx.cycle_basis(gl)
         gr_circles = nx.cycle_basis(gr)
+        return gl_circles, gr_circles
+
+
+    def getCircleNumber(self):
+        gl_circles, gr_circles = self.getCircles()
         return len(gl_circles), len(gr_circles)
 
 
@@ -933,23 +942,18 @@ class SuperimposedTopology:
         self.mirrors.append(mirror_sup_top)
 
 
-    def eq(self, other_sup_top):
+    def eq(self, sup_top):
         """
         Check if the superimposed topology is "the same". This means that every pair has a corresponding pair in the
         other topology (but possibly in a different order)
         """
         # fixme - should replace this with networkx
-        if len(self.matched_pairs) != len(other_sup_top.matched_pairs):
+        if len(self) != len(sup_top):
             return False
 
-        for pair1 in self.matched_pairs:
+        for pair in self.matched_pairs:
             # find for every pair the matching pair
-            exists_in_other = False
-            for pair2 in other_sup_top.matched_pairs:
-                if set(pair1) == set(pair2):
-                    exists_in_other = True
-
-            if not exists_in_other:
+            if not sup_top.contains(pair):
                 return False
 
         return True
@@ -966,11 +970,9 @@ def _overlay(n1, n2, sup_top=None):
     n1 should be from one graph, and n2 should be from another.
 
     If n1 and n2 are the same, we will be traversing through both graphs, marking the jointly travelled areas.
-    RETURN:
-        OLD: the maximum common overlap with the n1 and n2 as the starting conditions.
-        Returns a list of topologies (ie solutions)
+    RETURN: Returns a list of topologies (ie solutions)
 
-    Here, recursively the graphs of n1 and of n2 will be explored as they are the same.
+    Recursively traverse the graphs of n1 and of n2 at the same time.
 
     fixme: return should keep track of symmetries
     - while returning the current system has to make sense of the different returning journies, this means
@@ -1027,87 +1029,60 @@ def _overlay(n1, n2, sup_top=None):
         if nxgl_cycles_num_after > nxgl_cycles_num:
             log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
 
-        # continue traversing
-        # try every possible pathway for creating an overlap,
-        # and as the winner, pick the one that is the largest
-        # fixme - this should find mirrors which can be tackled right here
-        solutions_lists = []
+        # try every possible pathway
+        all_solutions = []
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
                 # if either of the nodes has already been matched, ignore
-                # fixme - this is a bit of a duplication
                 if sup_top.contains_any_node([n1bonded_node, n2bonded_node]):
-                    # the advantage of this approach is that we do not have to evaluate
-                    # extra returned sup_tops
+                    # the advantage of this approach is that we do not have to evaluate extra returned sup_tops
                     continue
 
-
-                # a copy of the sup_top is needed because the traversal
-                # can take place using different pathways
-                # the search is more exhaustive this way
-                solution = _overlay(n1bonded_node, n2bonded_node,
-                                    sup_top=copy.copy(sup_top))
-                if solution is None:
+                # a copy of the sup_top is needed because the traversal can take place
+                # using different pathways
+                bond_solutions = _overlay(n1bonded_node, n2bonded_node, sup_top=copy.copy(sup_top))
+                if bond_solutions is None:
                     continue
-                solutions_lists.append(solution)
+                all_solutions.extend(bond_solutions)
                 # fixme - when you have a mirror like ester O1-O2 matches, then you could store them differently here
 
         # if this was the last atom traversed together, return the current sup top
-        if len(solutions_lists) == 0:
+        if len(all_solutions) == 0:
             return [sup_top, ]
 
-        # fixme - you should merge all solutions that are consistent? you should not take the largest solution
-        # you should take the different pathways that you discovered that are consistent,
-        # ie how to combine the multiple pathways?
-        # as long as the two superimpositions are consistent, then we should be fine with the solution,
-        # so now I have to combine the different walks, and then see the emerging consistent combinations,
-        # return largest_solution
+        # sort in the descending order
+        all_solutions.sort(key=lambda st:len(st), reverse=True)
 
-        # flatten the solutions (ie each _overlay returns a list of paths)
-        solutions = []
-        for l in solutions_lists:
-            solutions.extend(l)
+        # combine the different walks, the walks that are smaller can be thrown away?
+        for _ in range(len(all_solutions)):
+            # we try as many mergings as possible?
+            for sol1 in all_solutions:
+                for sol2 in all_solutions[::-1]:
+                    if sol1 is sol2:
+                        continue
 
-        # merge all the paths that are consistent with each other
-        # this way we can minimise the number of solutions in this problem
-        # fixme - optimise,
-        # fixme - before merging, we have to ensure that the rules with the circles is conserved (mcl1/l12-l35)
-        # fixme - is there not more ways of merging them? this is a too simple way? ie order of merging matters
-        for sol1 in solutions:
-            for sol2 in solutions[::-1]:
-                if sol1 is sol2:
-                    continue
+                    if sol1.eq(sol2):
+                        log("Found the same solution and removing, solution", sol1.matched_pairs)
+                        all_solutions.remove(sol2)
+                        continue
 
-                if sol1.eq(sol2):
-                    log("Found the same solution and removing, solution", sol1.matched_pairs)
-                    solutions.remove(sol2)
-                    continue
+                    if sol1.is_consistent_with(sol2):
+                        # print("merging, current pair", (n1, n2))
+                        # join sol2 and sol1 because they're consistent
+                        g1, g2 = sol1.getNxGraphs()
+                        assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
+                        g3, g4 = sol2.getNxGraphs()
+                        assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
 
-                # fixme?
-                # should you check if sol1 is eq to sol2?
+                        print("Will merge", sol1, 'and', sol2)
+                        sol1.merge(sol2)
+                        # remove sol2 from the solutions:
+                        all_solutions.remove(sol2)
 
-                if sol1.is_consistent_with(sol2):
-                    # print("merging, current pair", (n1, n2))
-                    # join sol2 and sol1 because they're consistent
-                    g1, g2 = sol1.getNxGraphs()
-                    assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
-                    g3, g4 = sol2.getNxGraphs()
-                    assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
-
-                    print("Will merge", sol1.matched_pairs, 'and', sol2.matched_pairs)
-                    sol1.merge(sol2)
-                    # remove sol2 from the solutions:
-                    solutions.remove(sol2)
-
-        # ideally there would be one good solution,
-        # assert [len(s2) for s2 in solutions].count(max([len(s2) for s2 in solutions])) == 1
-
-        # fixme - check if there is more than two - ie the mirror case
-        if len(solutions) > 1:
-            print('Found multiple solutions, so there are different ways to travel? ')
-            # should we rank them with rmsd and use the one that's better always?
-            # and classify the others as "poor" matches?
-        return solutions
+        # after all the merges, return the best matches only,
+        # the other mergers are wrong (and there are smaller)
+        largest_sol_size = max([len(s2) for s2 in all_solutions])
+        return list(filter(lambda st:len(st) == largest_sol_size, all_solutions))
 
     return [sup_top, ]
 
