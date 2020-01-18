@@ -82,6 +82,9 @@ def test_2diff_atoms_rightStart():
     for atomName1, atomName2 in correct_overlaps:
         assert suptop.contains_atomNamePair(atomName1, atomName2)
 
+    # there is no other ways to traverse the molecule
+    assert len(suptop.mirrors) == 0
+
 
 def test_3diff_atoms_rightStart():
     """
@@ -96,21 +99,24 @@ def test_3diff_atoms_rightStart():
     """
     # construct the LIGAND 1
     # ignore the third dimension
-    # c1
     c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
     c1.set_coords(np.array([1, 1, 0], dtype='float32'))
     n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
     n1.set_coords(np.array([1, 2, 0], dtype='float32'))
     c1.bindTo(n1)
+    o1 = AtomNode(3, 'O1', 'TEST', 1, 0, 'O')
+    o1.set_coords(np.array([1, 3, 0], dtype='float32'))
+    o1.bindTo(n1)
 
     # construct the LIGAND 2
-    # ignore the third dimension
-    # c1
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
     c11.set_coords(np.array([1, 1, 0], dtype='float32'))
-    n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
+    n11 = AtomNode(12, 'N11', 'TEST', 1, 0, 'N')
     n11.set_coords(np.array([1, 2, 0], dtype='float32'))
     c11.bindTo(n11)
+    o11 = AtomNode(13, 'O11', 'TEST', 1, 0, 'O')
+    o11.set_coords(np.array([1, 3, 0], dtype='float32'))
+    o11.bindTo(n11)
 
     # should overlap 2 atoms
     suptops = _overlay(c1, c11, atol=9999)
@@ -118,10 +124,13 @@ def test_3diff_atoms_rightStart():
     suptop = suptops[0]
 
     # the number of overlapped atoms is two
-    assert len(suptop) == 2
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
+    assert len(suptop) == 3
+    correct_overlaps = [('C1', 'C11'), ('N1', 'N11'), ('O1', 'O11')]
     for atomName1, atomName2 in correct_overlaps:
         assert suptop.contains_atomNamePair(atomName1, atomName2)
+
+    # no mirrors
+    assert len(suptop.mirrors) == 0
 
 
 def test_esterSymmetry_rightStart():

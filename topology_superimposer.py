@@ -935,7 +935,9 @@ def _overlay(n1, n2, sup_top=None, atol=0):
     n1 should be from one graph, and n2 should be from another.
 
     If n1 and n2 are the same, we will be traversing through both graphs, marking the jointly travelled areas.
-    RETURN: the maximum common overlap with the n1 and n2 as the starting conditions.
+    RETURN:
+        OLD: the maximum common overlap with the n1 and n2 as the starting conditions.
+        Returns a list of topologies (ie solutions)
 
     Here, recursively the graphs of n1 and of n2 will be explored as they are the same.
 
@@ -951,17 +953,12 @@ def _overlay(n1, n2, sup_top=None, atol=0):
     if sup_top == None:
         sup_top = SuperimposedTopology()
 
-    # if either of the nodes has already been matched, ignore this potential match
-    for pair in sup_top.matched_pairs:
-        if n1 in pair or n2 in pair:
-            return [sup_top, ]
-
-    # if n1.atomName == 'C11' and n2.atomName == 'C31':
-    #     return [sup_top, ]
-    if n1.atomName == 'C9' and n2.atomName == 'C29':
-        pass
+    # if either of the nodes has already been matched, ignore
+    if sup_top.contains_any_node([n1, n2]):
+        return [sup_top, ]
 
     # if the two nodes are "the same"
+    # fixme - remove the charges from here, you're not using them anyway for now
     if n1.eq(n2, atol=atol):
         # Alternative to checking for cycles:
         # check if both n1 and n2 contain a bonded atom that already is in the topology
@@ -1006,6 +1003,14 @@ def _overlay(n1, n2, sup_top=None, atol=0):
         solutions_lists = []
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
+                # if either of the nodes has already been matched, ignore
+                # fixme - this is a bit of a duplication
+                if sup_top.contains_any_node([n1bonded_node, n2bonded_node]):
+                    # the advantage of this approach is that we do not have to evaluate
+                    # extra returned sup_tops
+                    continue
+
+
                 # a copy of the sup_top is needed because the traversal
                 # can take place using different pathways
                 # the search is more exhaustive this way
@@ -1019,7 +1024,7 @@ def _overlay(n1, n2, sup_top=None, atol=0):
 
         # if this was the last atom traversed together, return the current sup top
         if len(solutions_lists) == 0:
-            [sup_top, ]
+            return [sup_top, ]
 
         # fixme - you should merge all solutions that are consistent? you should not take the largest solution
         # you should take the different pathways that you discovered that are consistent,
@@ -1042,6 +1047,9 @@ def _overlay(n1, n2, sup_top=None, atol=0):
             for sol2 in solutions[::-1]:
                 if sol1 is sol2:
                     continue
+
+                # fixme?
+                # should you check if sol1 is eq to sol2?
 
                 if sol1.is_consistent_with(sol2):
                     # print("merging, current pair", (n1, n2))
