@@ -137,6 +137,8 @@ def test_esterSymmetry_rightStart():
     """
     A simple molecule chain with an ester.
     The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    # fixme what if you start from the wrong O-O matching? should that be a case? how does
+    comparies topologies would behave in that case?
 
      LIGAND 1        LIGAND 2
         C1              C11
@@ -146,71 +148,84 @@ def test_esterSymmetry_rightStart():
      O1    O2        O11   O12
 
     """
+    # ignore the third coordinate dimension
     # construct the LIGAND 1
-    # ignore the third dimension
-    # c1
     c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
     c1.set_coords(np.array([1, 1, 0], dtype='float32'))
     n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
     n1.set_coords(np.array([1, 2, 0], dtype='float32'))
     c1.bindTo(n1)
+    o1 = AtomNode(3, 'O1', 'TEST', 1, 0, 'O')
+    o1.set_coords(np.array([1, 3, 0], dtype='float32'))
+    o1.bindTo(n1)
+    o2 = AtomNode(4, 'O2', 'TEST', 1, 0, 'O')
+    o2.set_coords(np.array([2, 3, 0], dtype='float32'))
+    o2.bindTo(n1)
 
     # construct the LIGAND 2
-    # ignore the third dimension
-    # c1
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
     c11.set_coords(np.array([1, 1, 0], dtype='float32'))
     n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
     n11.set_coords(np.array([1, 2, 0], dtype='float32'))
     c11.bindTo(n11)
+    o11 = AtomNode(11, 'O11', 'TEST', 1, 0, 'O')
+    o11.set_coords(np.array([1, 3, 0], dtype='float32'))
+    o11.bindTo(n11)
+    o12 = AtomNode(11, 'O12', 'TEST', 1, 0, 'O')
+    o12.set_coords(np.array([2, 3, 0], dtype='float32'))
+    o12.bindTo(n11)
 
-    # should overlap 2 atoms
+    # should be two topologies
     suptops = _overlay(c1, c11, atol=9999)
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    assert len(suptops) == 2
 
-    # the number of overlapped atoms is two
-    assert len(suptop) == 2
+    # check if both representations were found
+    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    assert any(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
+    assert any(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
+
     correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
-    for atomName1, atomName2 in correct_overlaps:
-        assert suptop.contains_atomNamePair(atomName1, atomName2)
+    for st in suptops:
+        for atomName1, atomName2 in correct_overlaps:
+            assert st.contains_atomNamePair(atomName1, atomName2)
+
+    # fixme - add a test case for the superimposer function that makes use of _overlay,
+    # this is to resolve multiple solutions such as the one here
 
 
 def test_2atoms_2symmetries():
     """
-    create a simple molecule chain with an ester
+    Two solutions with different starting points.
+
      LIGAND 1        LIGAND 2
         C1              C11
         \                \
-        N1              N11
-    In this there is only one solution.
+        C2              C12
     """
     # construct the LIGAND 1
-    # ignore the third dimension
-    # c1
     c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
     c1.set_coords(np.array([1, 1, 0], dtype='float32'))
-    n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
-    n1.set_coords(np.array([1, 2, 0], dtype='float32'))
-    c1.bindTo(n1)
+    c2 = AtomNode(2, 'C2', 'TEST', 1, 0, 'C')
+    c2.set_coords(np.array([1, 2, 0], dtype='float32'))
+    c1.bindTo(c2)
 
     # construct the LIGAND 2
-    # ignore the third dimension
-    # c1
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
     c11.set_coords(np.array([1, 1, 0], dtype='float32'))
-    n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
-    n11.set_coords(np.array([1, 2, 0], dtype='float32'))
-    c11.bindTo(n11)
+    c12 = AtomNode(11, 'C12', 'TEST', 1, 0, 'C')
+    c12.set_coords(np.array([1, 2, 0], dtype='float32'))
+    c11.bindTo(c12)
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, n11, atol=9999)
-    assert suptops == []
-
-    # should ovlap 2 atoms
     suptops = _overlay(c1, c11, atol=9999)
     assert len(suptops) == 1
-    assert len(suptops[0]) == 2
+    assert suptops[0].contains_atomNamePair('C1', 'C11')
+    assert suptops[0].contains_atomNamePair('C2', 'C12')
+
+    suptops = _overlay(c1, c12, atol=9999)
+    assert len(suptops) == 1
+    assert suptops[0].contains_atomNamePair('C1', 'C12')
+    assert suptops[0].contains_atomNamePair('C2', 'C11')
 
 
 def old_mcl1_l18l39_nocharges():

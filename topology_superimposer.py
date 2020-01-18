@@ -85,6 +85,8 @@ To do:
  So what I could do is to feed in the topology from both molecules, and find the atoms that are not on loops, and
  use them to traverse the molecule with the hope of finding the right one. However, this is still tricky because there
  will be a lot of atoms that we unnecessarily check.
+ - instead of trying every starting AX-BX combination, employ a good gessuing algorithm based on the structural
+ overlap, and ensure to terminate searching if you find the right answer
  
  
  Complex Testing - Generation Topologies: 
@@ -133,13 +135,13 @@ import copy
 
 
 class AtomNode:
-    def __init__(self, atomId, atomName, resName, resId, charge, atom_colloq):
+    def __init__(self, atomId, atomName, resName, resId, charge, atom_type):
         self.atomId = atomId
         self.atomName = atomName
         self.resName = resName
         self.resId = resId
         self.charge = charge
-        self.atom_colloq = atom_colloq
+        self.type = atom_type.upper()
         self.bonds = set()
 
 
@@ -163,19 +165,19 @@ class AtomNode:
         return self.atomName
 
     def __repr__(self):
-        return "%s_%s" % (self.atom_colloq, self.atomName)
+        return "%s_%s" % (self.type, self.atomName)
 
     def bindTo(self, other):
         self.bonds.add(other)
         other.bonds.add(self)
 
-    def eq(self, other, atol=0):
+    def eq(self, atom, atol=0):
         """
         What does it mean that two atoms are the same? They are the same type and charge.
         5 % tolerance by default
         """
-        if self.atom_colloq == other.atom_colloq and \
-                np.isclose(self.charge, other.charge, atol=atol):
+        if self.type == atom.type and \
+                np.isclose(self.charge, atom.charge, atol=atol):
             return True
 
         return False
