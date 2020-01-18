@@ -26,18 +26,18 @@ def get_problem(liglig_path):
 
     # create graphs
     # create the nodes and add edges for one ligand
-    ligand2_nodes = {}
-    for atomNode in rightlig_atoms:
-        ligand2_nodes[atomNode.atomId] = atomNode
-    for nfrom, nto in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
-
     # create the nodes and add edges for the other ligand
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.atomId] = atomNode
     for nfrom, nto in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto])
+
+    ligand2_nodes = {}
+    for atomNode in rightlig_atoms:
+        ligand2_nodes[atomNode.atomId] = atomNode
+    for nfrom, nto in rightlig_bonds:
+        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
 
     return ligand1_nodes, ligand2_nodes
 

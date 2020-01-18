@@ -172,32 +172,32 @@ for protein_path in proteins_paths:
         # a proper message
 
         # check if you found the correct atoms. They should be a subset of the atoms picked by Agastya in his research
-        agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")
-
-        if not path.isfile(agastya_disapp_atom_list_path):
-            print(bcolors.WARNING + "Test file does not exist %s" %agastya_disapp_atom_list_path + bcolors.ENDC)
-        else:
-            agastya_disapp_atoms = open(agastya_disapp_atom_list_path).read().split()
-            print(bcolors.OKGREEN + "Agastya's disapp list:" + bcolors.ENDC,
-                  agastya_disapp_atoms)
-            for disapp_atom in disappearing:
-                isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
-                if not isin:
-                    print(bcolors.FAIL + "A disappearing atom not found in Agastya list. Atom: " + bcolors.ENDC,
-                          disapp_atom.atomName)
-                    #raise Exception("Fail")
-
-        agastya_app_atom_list_path = path.join(hybrid_pair_path, "appearing_atoms.txt")
-        if not path.isfile(agastya_app_atom_list_path):
-            print(bcolors.WARNING + "Test file does not exist %s" % agastya_app_atom_list_path + bcolors.ENDC)
-        else:
-            agastya_app_atoms = open(agastya_app_atom_list_path).read().split()
-            print(bcolors.OKGREEN+ "Agastya's app list:" + bcolors.ENDC, agastya_app_atoms)
-            for app_atom in appearing:
-                isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
-                if not isin:
-                    print(bcolors.FAIL + "An appearing atom not found in Agastya's list. Atom: " + bcolors.ENDC, app_atom.atomName)
-                    #raise Exception("Fail")
+        # agastya_disapp_atom_list_path = path.join(hybrid_pair_path, "disappearing_atoms.txt")
+        #
+        # if not path.isfile(agastya_disapp_atom_list_path):
+        #     print(bcolors.WARNING + "Test file does not exist %s" %agastya_disapp_atom_list_path + bcolors.ENDC)
+        # else:
+        #     agastya_disapp_atoms = open(agastya_disapp_atom_list_path).read().split()
+        #     print(bcolors.OKGREEN + "Agastya's disapp list:" + bcolors.ENDC,
+        #           agastya_disapp_atoms)
+        #     for disapp_atom in disappearing:
+        #         isin = disapp_atom.atomName.lower() in [dis_atom.lower() for dis_atom in agastya_disapp_atoms]
+        #         if not isin:
+        #             print(bcolors.FAIL + "A disappearing atom not found in Agastya list. Atom: " + bcolors.ENDC,
+        #                   disapp_atom.atomName)
+        #             #raise Exception("Fail")
+        #
+        # agastya_app_atom_list_path = path.join(hybrid_pair_path, "appearing_atoms.txt")
+        # if not path.isfile(agastya_app_atom_list_path):
+        #     print(bcolors.WARNING + "Test file does not exist %s" % agastya_app_atom_list_path + bcolors.ENDC)
+        # else:
+        #     agastya_app_atoms = open(agastya_app_atom_list_path).read().split()
+        #     print(bcolors.OKGREEN+ "Agastya's app list:" + bcolors.ENDC, agastya_app_atoms)
+        #     for app_atom in appearing:
+        #         isin = app_atom.atomName.lower() in [atom.lower() for atom in agastya_app_atoms]
+        #         if not isin:
+        #             print(bcolors.FAIL + "An appearing atom not found in Agastya's list. Atom: " + bcolors.ENDC, app_atom.atomName)
+        #             #raise Exception("Fail")
 
         # make the message more positive if they're exactly the same
 

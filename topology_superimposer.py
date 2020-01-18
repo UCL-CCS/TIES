@@ -25,6 +25,7 @@ To do:
  for now because it does not lead to any wrong results
  -consider an overall try-catch that attaches a message for the user to contact you in the case something
  does not work as expected
+ - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
  
  
  Case:
@@ -152,14 +153,14 @@ class AtomNode:
         m = hashlib.md5()
         # fixme - ensure that each node is characterised by its chemical info,
         # fixme - the atomId might not be unique, so check before the input data
-        m.update(str(self.atomId).encode('utf-8'))
+        m.update(self.atomName.encode('utf-8'))
         m.update(str(self.charge).encode('utf-8'))
         # so include the number of bonds which is basically an atom type
         m.update(str(len(self.bonds)).encode('utf-8'))
         return int(m.hexdigest(), 16)
 
     def __str__(self):
-        return self.atom_colloq
+        return self.atomName
 
     def __repr__(self):
         return "%s_%s" % (self.atom_colloq, self.atomName)
@@ -180,6 +181,12 @@ class AtomNode:
         return False
 
 
+    def __deepcopy__(self, memodict={}):
+        # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
+        # it is a shallow copy, as this object is "immutable"
+        return self
+
+
 class SuperimposedTopology:
     """
     SuperimposedTopology contains in the minimal case two sets of nodes S1 and S2, which
@@ -188,13 +195,11 @@ class SuperimposedTopology:
     However, it can also represent the symmetrical versions that were superimposed.
     """
 
-    def __init__(self, matched_pairs=None, topology1=None, topology2=None):
+    def __init__(self, topology1=None, topology2=None):
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
         """
-
-        if matched_pairs is None:
-            matched_pairs = []
+        matched_pairs = []
 
         # TEST: with the list of matching nodes, check if each node was used only once,
         # the number of unique nodes should be equivalent to 2*len(common_pairs)
@@ -202,11 +207,16 @@ class SuperimposedTopology:
         [all_matched_nodes.extend(list(pair)) for pair in matched_pairs]
         assert len(matched_pairs) * 2 == len(all_matched_nodes)
 
+        # fixme don't allow for initiating with matche pairs, it's not used anyway
+
         # todo convert to nx? some other graph theory package?
         matched_pairs.sort(key=lambda pair: pair[0].atomName)
         self.matched_pairs = matched_pairs
         self.top1 = topology1
         self.top2 = topology2
+        # create graph representation for both in networkx library, initially to track the number of cycles
+        #fixme
+
         self.mirrors = []
         self.weird_symmetries = []
         # this is a set of all nodes rather than their pairs
@@ -214,6 +224,7 @@ class SuperimposedTopology:
         # the uncharged sup top is a sup top that was generated when the charges were ignored
         # if the found sup_top was larger and contains the current sup top, then the two can be linked
         self.uncharged_sup_top = None
+        self.nodes_added_log = []
 
 
     def remove_lonely_hydrogens(self):
@@ -265,6 +276,7 @@ class SuperimposedTopology:
               '\nto\n',
               'name ' + ' '.join([node2.atomName.upper() for _, node2 in self.matched_pairs]))
         print(', '.join([a.atomName + '-' + b.atomName for a,b in self.matched_pairs]))
+        print("Creation Order: ", self.nodes_added_log)
         unique_nodes = []
         for pair in self.matched_pairs:
             unique_nodes.extend(list(pair))
@@ -283,6 +295,9 @@ class SuperimposedTopology:
         # remove from the current set
         self.nodes.remove(node_pair[0])
         self.nodes.remove(node_pair[1])
+
+        # update the log to understand the order in which it was created
+        self.nodes_added_log.append(("Removed", node_pair))
 
 
     def findLowestRmsdMirror(self):
@@ -351,6 +366,15 @@ class SuperimposedTopology:
         self.nodes.add(n2)
         assert len(self.matched_pairs) * 2 == len(self.nodes)
 
+        # update the log to understand the order in which this sup top was created
+        self.nodes_added_log.append(("Added", node_pair))
+
+        # fixme - ideally sup top would internally manage/use the networkx Graph
+        # update the networkx graphs
+        #self.nxlg.add_node(n1)
+        # self.nxrg.add_node(n2)
+        #
+
 
     def __copy__(self):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
@@ -359,6 +383,7 @@ class SuperimposedTopology:
         # make a shallow copy of the arrays
         newone.matched_pairs = copy.copy(self.matched_pairs)
         newone.nodes = copy.copy(self.nodes)
+        newone.nodes_added_log = copy.copy(self.nodes_added_log)
         return newone
 
 
@@ -474,7 +499,11 @@ class SuperimposedTopology:
         assert removed_nodes == added_nodes
 
         # this is the corrected region score (there might not be any)
-        avg_dst = np.mean(shortest_dsts)
+        if len(shortest_dsts) != 0:
+            avg_dst = np.mean(shortest_dsts)
+        else:
+            # fixme
+            avg_dst = 0
 
         return avg_dst
 
@@ -580,13 +609,16 @@ class SuperimposedTopology:
 
     def is_consistent_with(self, other_suptop):
         """
-        There should be a minimal overlap of at least 1 node.
-
-        There is no noe pair (A=B) in this sup top such that (A=C) or (B=C) exists in other.
+        Conditions:
+            - There should be a minimal overlap of at least 1 node.
+            - There is no no pair (A=B) in this sup top such that (A=C) or (B=C) exists in other.
+            - The number of cycles in this suptop and the other suptop must be the same
+            - merging cannot lead to new cycles?? (fixme). What is the reasoning behind this?
+                I mean, I guess the assumption is that, if the cycles were comptabile,
+                they would be created during the search, rather than now while merging. ??
         """
 
-        # fixme - check for minimal partial overlap - this is more or a test than anything
-
+        # confirm that there is no mismatches, ie (A=B) in suptop1 and (A=C) in suptop2 where (C!=B)
         for node1, node2 in self.matched_pairs:
             for nodeA, nodeB in other_suptop.matched_pairs:
                 if (node1 is nodeA) and not (node2 is nodeB):
@@ -594,7 +626,63 @@ class SuperimposedTopology:
                 elif (node2 is nodeB) and not (node1 is nodeA):
                     return False
 
+        # ensure there is at least one common pair
+        if self.count_common_node_pairs(other_suptop) == 0:
+            return False
+
+        # check if each sup top has the same number of cycles
+        # fixme - not sure?
+        selfG1, selfG2 = self.getNxGraphs()
+        self_cycles1, self_cycles2 = len(nx.cycle_basis(selfG1)), len(nx.cycle_basis(selfG2))
+        if self_cycles1 != self_cycles2:
+            raise Exception('left G has a different number of cycles than right G')
+
+        otherG1, otherG2 = other_suptop.getNxGraphs()
+        other_cycles1, other_cycles2 = len(nx.cycle_basis(otherG1)), len(nx.cycle_basis(otherG2))
+        if other_cycles1 != other_cycles2:
+            raise Exception('left G has a different number of cycles than right G')
+
+        if self_cycles1 != other_cycles1:
+            # rings should be created during the traversal
+            # ie new cycles are important for the right topology superimposition
+            # so merging different graphs should not lead to new rings
+            print('merging graphs should not take place')
+            # clean up
+            return False
+
+        # check if they have a bigger number of cycles after merging
+        # todo
+        mergedG1 = nx.compose(selfG1, otherG1)
+        mergedG2 = nx.compose(selfG2, otherG2)
+        mergedG1_cycle_num = len(nx.cycle_basis(mergedG1))
+        mergedG2_cycle_num = len(nx.cycle_basis(mergedG2))
+        if mergedG1_cycle_num != mergedG2_cycle_num:
+            return False
+
+        if mergedG1_cycle_num != self_cycles1:
+            return False
+
         return True
+
+
+    def getNxGraphs(self):
+        gl = nx.Graph()
+        gr = nx.Graph()
+        # add each node
+        for nA, nB in self.matched_pairs:
+            gl.add_node(nA)
+            gr.add_node(nB)
+        # add all the edges
+        for nA, nB in self.matched_pairs:
+            # add the edges from nA
+            for bonded_to_nA in nA.bonds:
+                if bonded_to_nA in gl:
+                    gl.add_edge(nA, bonded_to_nA)
+            for bonded_to_nB in nB.bonds:
+                if bonded_to_nB in gr:
+                    gr.add_edge(nB, bonded_to_nB)
+
+        return gl, gr
 
 
     def merge(self, other_suptop):
@@ -606,6 +694,10 @@ class SuperimposedTopology:
         """
         assert self.is_consistent_with(other_suptop)
 
+        # print("About the merge two sup tops")
+        # self.print_summary()
+        # other_suptop.print_summary()
+
         for pair in other_suptop.matched_pairs:
             # check if this pair is present
             if not self.contains(pair):
@@ -613,6 +705,8 @@ class SuperimposedTopology:
                 if self.contains_node(n1) or self.contains_node(n2):
                     raise Exception('already uses that node')
                 self.add_node_pair(pair)
+
+        self.nodes_added_log.append(("merged with", copy.deepcopy(other_suptop.nodes_added_log)))
 
         # check if duplication occured, fixme - temporary
 
@@ -636,6 +730,10 @@ class SuperimposedTopology:
     def count_common_nodes(self, node_list):
         number_of_common_nodes = len(self.nodes.intersection(set(node_list)))
         return number_of_common_nodes
+
+
+    def count_common_node_pairs(self, other_suptop):
+        return len(set(self.matched_pairs).intersection(set(other_suptop.matched_pairs)))
 
 
     def contains_any_node_from(self, other_sup_top):
@@ -667,6 +765,10 @@ class SuperimposedTopology:
                 return False
 
         return True
+
+
+    def difference(self, sup_top):
+        return set(self.matched_pairs).difference(set(sup_top.matched_pairs))
 
 
     def has_left_nodes_same_as(self, other):
@@ -828,7 +930,7 @@ class SuperimposedTopology:
         return True
 
 
-def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nxgr=None, atol=0):
+def _overlay(n1, n2, sup_top=None, atol=0):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -846,19 +948,18 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
     right now we return with only one of the "symmetries", while others are being discovered
     when searching through the other node pairs.
     """
-
     if sup_top == None:
         sup_top = SuperimposedTopology()
-        nxgl = nx.Graph()
-        nxgr = nx.Graph()
 
     # if either of the nodes has already been matched, ignore this potential match
     for pair in sup_top.matched_pairs:
         if n1 in pair or n2 in pair:
-            return None
+            return [sup_top, ]
 
-    # if n1.atomName == 'C13' and n2.atomName == 'C35':
-    #     print('found')
+    # if n1.atomName == 'C11' and n2.atomName == 'C31':
+    #     return [sup_top, ]
+    if n1.atomName == 'C9' and n2.atomName == 'C29':
+        pass
 
     # if the two nodes are "the same"
     if n1.eq(n2, atol=atol):
@@ -871,40 +972,32 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
         # if n1_common_nodes_tot != n2_common_nodes_tot:
         #     return [sup_top, ]
 
+        nxgl, nxgr = sup_top.getNxGraphs()
+        nxgl_cycles_num, nxgr_cycles_num = len(nx.cycle_basis(nxgl)), len(nx.cycle_basis(nxgr))
+        assert nxgl_cycles_num == nxgr_cycles_num
 
-        # update the graphs (which allows us to access finding circles)
-        nxgl.add_node(n1)
-        nxgr.add_node(n2)
-
-        # if the parents are also present, connect them
-        nxgl.add_edge(n1_parent, n1)
-        nxgr.add_edge(n2_parent, n2)
-        # connect the other nodes that are present in the bonds that could close circles
-        # ie if n1 closes a circle with some nX in the the graph, but n2 does not have that bond
-        # then they represent a different thing,
-        # Summary: connect n1 and n2 to any nodes in the graph that they are bound to
-        for bonded_to_n1 in n1.bonds:
-            if bonded_to_n1 in nxgl:
-                nxgl.add_edge(n1, bonded_to_n1)
-        for bonded_to_n2 in n2.bonds:
-            if bonded_to_n2 in nxgr:
-                nxgr.add_edge(n2, bonded_to_n2)
+        # append both nodes as a pair to ensure that we keep track of the mapping
+        # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
+        sup_top.add_node_pair((n1, n2))
 
         # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
         # is actually the wrong match, add one more criteria:
         # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
         # fixme - add tests which check of features like rings/double rings etc and see if they are found
         # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
-        if len(nx.cycle_basis(nxgl)) != len(nx.cycle_basis(nxgr)):
+        nxgl_after, nxgr_after = sup_top.getNxGraphs()
+        nxgl_cycles_num_after, nxgr_cycles_num_after = len(nx.cycle_basis(nxgl_after)), len(nx.cycle_basis(nxgr_after))
+        if nxgl_cycles_num_after != nxgr_cycles_num_after:
             # clearly the newly added edge changes the circles, and so it is not equivalent
             # even though it might appear like it (mcl1 case)
-            nxgl.remove_node(n1)
-            nxgr.remove_node(n2)
-            return [sup_top, ]
+            sup_top.remove_node_pair((n1, n2))
+            print("Removing pair because one creates a cycle and the other does not", (n1, n2))
+            return None
 
-        # append both nodes as a pair to ensure that we keep track of the mapping
-        # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
-        sup_top.add_node_pair((n1, n2))
+        if nxgl_cycles_num_after > nxgl_cycles_num:
+            print("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
+
+        print("Adding ", (n1, n2), "to", sup_top.matched_pairs)
 
         # continue traversing
         # try every possible pathway for creating an overlap,
@@ -913,21 +1006,20 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
         solutions_lists = []
         for n1bonded_node in n1.bonds:
             for n2bonded_node in n2.bonds:
-                # make a copy of the topology
-                copy_sup_top = copy.copy(sup_top)
-
+                # a copy of the sup_top is needed because the traversal
+                # can take place using different pathways
+                # the search is more exhaustive this way
                 solution = _overlay(n1bonded_node, n2bonded_node,
-                         n1_parent=n1, n2_parent=n2,
-                         nxgl=copy.copy(nxgl), nxgr=copy.copy(nxgr),  # fixme - do I need a deep copy for the graph? test
-                         sup_top=copy_sup_top,
+                         sup_top=copy.copy(sup_top),
                          atol=atol)
                 if solution is None:
                     continue
                 solutions_lists.append(solution)
+                # fixme - when you have a mirror like ester O1-O2 matches, then you could store them differently here
 
         # if this was the last atom traversed together, return the current sup top
         if len(solutions_lists) == 0:
-            return [sup_top, ]
+            [sup_top, ]
 
         # fixme - you should merge all solutions that are consistent? you should not take the largest solution
         # you should take the different pathways that you discovered that are consistent,
@@ -944,56 +1036,35 @@ def _overlay(n1, n2, n1_parent=None, n2_parent=None, sup_top=None, nxgl=None, nx
         # merge all the paths that are consistent with each other
         # this way we can minimise the number of solutions in this problem
         # fixme - optimise,
+        # fixme - before merging, we have to ensure that the rules with the circles is conserved (mcl1/l12-l35)
+        # fixme - is there not more ways of merging them? this is a too simple way? ie order of merging matters
         for sol1 in solutions:
             for sol2 in solutions[::-1]:
                 if sol1 is sol2:
                     continue
 
                 if sol1.is_consistent_with(sol2):
-                    # print("merging")
+                    # print("merging, current pair", (n1, n2))
                     # join sol2 and sol1 because they're consistent
+                    g1, g2 = sol1.getNxGraphs()
+                    assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
+                    g3, g4 = sol2.getNxGraphs()
+                    assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
+
+                    print("Will merge", sol1.matched_pairs, 'and', sol2.matched_pairs)
                     sol1.merge(sol2)
                     # remove sol2 from the solutions:
                     solutions.remove(sol2)
 
-        # ideally there would be one good solution
+        # ideally there would be one good solution,
         # assert [len(s2) for s2 in solutions].count(max([len(s2) for s2 in solutions])) == 1
 
-        # take the bigger out of the two,
-        # print('solutions lengths', [len(s) for s in solutions])
         # fixme - check if there is more than two - ie the mirror case
-        # so you hve the right solution, so merge it with the current browsed solution
-        # note that multiple solutins can be possible, in which case we should merge each
-        # that we can merge it with and return all of them
-        if len(solutions) == 1:
-            if not sup_top.is_consistent_with(solutions[0]):
-                raise Exception('Only one solution found but it is not consistent? This cannot happen')
-            # combine the root sup top with the found consistent solution
-            sup_top.merge(solutions[0])
-            return [sup_top, ]
-        elif len(solutions) > 1:
-            # there are multiple solutions that are incompatible with each other
-            # for each solution create a copy of the current root suptop and then merge it
-            # with the possible solution
-            final_sup_tops = []
-            for sol in solutions:
-                # make a copy of the current root sup top
-                next_sup_top = copy.copy(sup_top)
-                # fixme - should you not merge all the solutions as long as they are compatible?
-                # each solution is a different pathway taken, and therefore the different paths should be ideally separated
-                # fixme - I am not sure if we need this condition, possibly we want all good solutions
-                if len(sol) == max([len(s2) for s2 in solutions]):
-                    # sup top should always be compatible with the largest solution sup_top
-                    # fixme - how is it possible that the next solution is not consistent with the starting sup top?
-                    if next_sup_top.is_consistent_with(sol):
-                        next_sup_top.merge(sol)
-                        final_sup_tops.append(next_sup_top)
-                    else:
-                        raise Exception('There should not be a solution that is incompatible with the root?')
-            return final_sup_tops
-
-        if len(solutions) == 0:
-            raise Exception('no solution? ')
+        if len(solutions) > 1:
+            print('Found multiple solutions, so there are different ways to travel? ')
+            # should we rank them with rmsd and use the one that's better always?
+            # and classify the others as "poor" matches?
+        return solutions
 
     return [sup_top, ]
 
@@ -1048,12 +1119,19 @@ def _superimpose_topologies(top1, top2, atol):
             # the two topologies can be reassembled,
 
             # for testing speed C11=C33
-            # if not (node1.atomName == 'C11' and node2.atomName == 'C33'):
+            # (ca_C4, ca_C28) (ca_C8, ca_C24)
+            # if (node1.atomName == 'C4' and node2.atomName == 'C28') or \
+            #     (node1.atomName == 'C8' and node2.atomName == 'C24'):
+            #     continue
+
+            # if not (node1.atomName == 'C4' and node2.atomName == 'C28'):
             #     continue
 
             # grow the topologies to see if they overlap
             # fixme - do you still need to set up top1 and top2?
             candidate_superimposed_tops = _overlay(node1, node2, atol=atol)
+            if candidate_superimposed_top is None:
+                continue
 
             # _overlay returns a list of solutions, which can be traversed with that specific initial
             # starting two nodes on the two topologies.
@@ -1139,8 +1217,9 @@ def _superimpose_topologies(top1, top2, atol):
                         # and there is an overlap, delete the smaller sup top
                         if len(candidate_superimposed_top.matched_pairs) > 37:
                             print('This new candidate sup top removes the previous sup top'
-                                  'that is smaller, len',
-                                  len(candidate_superimposed_top.matched_pairs))
+                                  'that is smaller, new len: ',
+                                  len(candidate_superimposed_top.matched_pairs),
+                                  'old len:', len(sup_top))
                         sup_tops.remove(sup_top)
                 else:
                     # the two sup tops could be of the same length and yet traverse different atoms
