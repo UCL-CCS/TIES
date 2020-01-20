@@ -93,7 +93,7 @@ def test_3diffAtoms_CNO_rightStart():
     assert len(suptop.mirrors) == 0
 
 
-def test_SimpleMultipleSolutions_rightStart():
+def test_SimpleMultipleSolutions():
     """
     A simple molecule chain with an ester.
     The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
@@ -139,16 +139,16 @@ def test_SimpleMultipleSolutions_rightStart():
 
     # should be two topologies
     suptops = _superimpose_topologies(top1_list, top2_list)
-    assert len(suptops) == 2
+    assert len(suptops) == 1
 
-    # check if both representations were found
-    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert any(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
-    assert not all(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
-    assert any(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
-    assert not all(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
+    # # check if both representations were found
+    # # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    # assert any(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
+    # assert not all(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
+    # assert any(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
+    # assert not all(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
 
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
+    correct_overlaps = [('C1', 'C11'), ('N1', 'N11'), ('O1', 'O11'), ('O2', 'O12')]
     for st in suptops:
         for atomName1, atomName2 in correct_overlaps:
             assert st.contains_atomNamePair(atomName1, atomName2)
@@ -397,7 +397,7 @@ def test_mcl1_l18l39():
     c19.set_coords(np.array([7, 1, 0], dtype='float32'))
     c19.bindTo(c18)
 
-    suptops = _overlay(c5, c14)
+    # suptops = _overlay(c5, c14)
 
     suptops = _overlay(c9, c19)
     # two largest solutions are found?

@@ -222,7 +222,7 @@ def test_2sameAtoms_2Cs_symmetry():
     assert suptops[0].contains_atomNamePair('C2', 'C11')
 
 
-def test_mutation():
+def test_mutation_separate_unique_match():
     """
     Two commponents separated by the mutation.
 
@@ -250,6 +250,55 @@ def test_mutation():
     o11.set_coords(np.array([2, 1, 0], dtype='float32'))
     c11.bindTo(o11)
     n11 = AtomNode(2, 'N11', 'TEST', 1, 0, 'N')
+    n11.set_coords(np.array([3, 1, 0], dtype='float32'))
+    n11.bindTo(o11)
+
+    # should return a list with an empty sup_top
+    suptops = _overlay(c1, c11)
+    assert len(suptops) == 1
+    assert suptops[0].contains_atomNamePair('C1', 'C11')
+
+    suptops = _overlay(n1, n11)
+    assert len(suptops) == 1
+    assert suptops[0].contains_atomNamePair('N1', 'N11')
+
+
+def test_mutation_separate_unique_match():
+    """
+    Two commponents separated by the mutation.
+
+     LIGAND 1        LIGAND 2
+        C1              C11
+        |                |
+        C2              C12
+        |                |
+        C3              O11
+        |                |
+        N1              N11
+    """
+    # construct the LIGAND 1
+    c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
+    c1.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c2 = AtomNode(1, 'C2', 'TEST', 1, 0, 'C')
+    c2.set_coords(np.array([2, 1, 0], dtype='float32'))
+    c2.bindTo(c1)
+    c3 = AtomNode(1, 'C3', 'TEST', 1, 0, 'C')
+    c3.set_coords(np.array([2, 1, 0], dtype='float32'))
+    c3.bindTo(c2)
+    n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
+    n1.set_coords(np.array([3, 1, 0], dtype='float32'))
+    n1.bindTo(c3)
+
+    # construct the LIGAND 2
+    c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
+    c11.set_coords(np.array([1, 1, 0], dtype='float32'))
+    c12 = AtomNode(11, 'C12', 'TEST', 1, 0, 'C')
+    c12.set_coords(np.array([2, 1, 0], dtype='float32'))
+    c12.bindTo(c11)
+    o11 = AtomNode(11, 'O11', 'TEST', 1, 0, 'O')
+    o11.set_coords(np.array([3, 1, 0], dtype='float32'))
+    o11.bindTo(c12)
+    n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
     n11.set_coords(np.array([3, 1, 0], dtype='float32'))
     n11.bindTo(o11)
 
@@ -357,7 +406,6 @@ def test_3C_circle():
 
 def test_mcl1_l12l35():
     """
-
     Molecule inspired by Agastya's dataset (mcl1_l12l35).
 
     Ligand 1
@@ -468,7 +516,7 @@ def test_mcl1_l12l35():
     c19.set_coords(np.array([7, 1, 0], dtype='float32'))
     c19.bindTo(c18)
 
-    suptops = _overlay(c5, c14)
+    #suptops = _overlay(c5, c14)
 
     suptops = _overlay(c9, c19)
     # two largest solutions are found?

@@ -1104,7 +1104,7 @@ def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
     how do you match them together?
     """
 
-    sup_tops_no_charges = _superimpose_topologies(top1, top2, atol=large_value)
+    sup_tops_no_charges = _superimpose_topologies(top1, top2)
     if useCharges:
         ensure_charges_match(sup_tops_no_charges, atol=atol)
 
@@ -1120,115 +1120,131 @@ def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
     return sup_tops_no_charges
 
 
-def _superimpose_topologies(top1, top2):
-    """
-    atol 1 means the charge of the atom can be up to 1 electron different,
-    as long as the atom has the same type
-    """
-    sup_tops = []
-    # fixme - TEST: create a theoretical maximum that could actually match if you ignored the topology completely
-    # grow the topologies using every combination node1-node2 as the starting point
-    for node1 in top1:
-        for node2 in top2:
-            # fixme - optimisation
-            # you don't have to start from matches that have already been found,
-            # ie if something discovers that match, it should have explored all other ways in which
-            # the two topologies can be reassembled,
+def getBestRmsdMatch(suptops):
+    # multiple different paths to traverse the topologies were found
+    # this means some kind of symmetry in the topologies
+    # For example, in the below drawn case (starting from C1-C11) there are two
+    # solutions: (O1-O11, O2-O12) and (O1-O12, O2-O11).
+    #     LIGAND 1        LIGAND 2
+    #        C1              C11
+    #        \                \
+    #        N1              N11
+    #        /\              / \
+    #     O1    O2        O11   O12
+    # Here we decide which of the mappings is better.
+    # fixme - uses coordinates to decide which mapping is better.
+    #  - Improve: use dihedral angles to decide which mapping is better too
+    if len(suptops) == 0:
+        raise Exception('Cannot generate the best mapping without any suptops')
 
-            # grow the topologies to see if they overlap
-            # fixme - do you still need to set up top1 and top2?
-            candidate_superimposed_tops = _overlay(node1, node2)
-            if candidate_superimposed_tops is None or len(candidate_superimposed_tops[0]) == 0:
+    if len(suptops) == 1:
+        # there is only one solution
+        return suptops[0]
+
+    best_suptop = None
+    best_rmsd = np.finfo('float32').max
+    rmsd = None
+    for suptop in suptops:
+        # use the avg dst after the correction to understand which one is better,
+        # and assign the worse
+        # fixme - avg dst would ideally not be np.NaN
+        avg_dst = suptop.correct_for_coordinates()
+        rmsd = suptop.rmsd()
+        # get a global match (RMSD)
+        if rmsd < best_rmsd:
+            best_suptop = suptop
+            best_rmsd = rmsd
+
+    candidate_superimposed_top = best_suptop
+
+    for suptop in suptops:
+        if suptop is candidate_superimposed_top:
+            continue
+
+        candidate_superimposed_top.addWeirdSymmetry(suptop)
+
+    return candidate_superimposed_top
+
+
+def alreadySeen(suptop, suptops):
+    for next_suptop in suptops:
+        if next_suptop.eq(suptop):
+            return True
+
+    return False
+
+
+def isMirrorOfOne(suptop, suptops):
+    for next_suptop in suptops:
+        if next_suptop.is_mirror_of(suptop):
+            next_suptop.add_mirror_sup_top(suptop)
+            return True
+
+    return False
+
+def _superimpose_topologies(top1_node_list, top2_node_list):
+    """
+    Superimpose two molecules.
+    """
+    suptops = []
+    # fixme - Test/Optimisation: create a theoretical maximum of a match between two molecules
+    # grow the topologies using every combination node1-node2 as the starting point
+    for node1 in top1_node_list:
+        for node2 in top2_node_list:
+            # fixme - optimisation - reduce the number of starting nX and nY pairs
+
+            # with the given starting two nodes, generate the maximum common component
+            candidate_suptops = _overlay(node1, node2)
+            if candidate_suptops is None or len(candidate_suptops[0]) == 0:
+                # there is no overlap, ignore this case
                 continue
 
-            # _overlay returns a list of solutions, which can be traversed with that specific initial
-            # starting two nodes on the two topologies.
-            # multiple paths could have been taken
-            if len(candidate_superimposed_tops) == 1:
-                candidate_superimposed_top = candidate_superimposed_tops[0]
-                # ignore if no atoms were superimposed
-                if len(candidate_superimposed_top) == 0:
-                    continue
-            elif len(candidate_superimposed_tops) > 1:
-                # so multiple different representation of the same molecule was found
-                # this means that some kind of symmetry was found in the topology,
-                # for example, cyclehexane connected via one atom can be traversed both ways
-                # here now we have to decide which of them is better
-                # fixme - simple approach - uses coordinates to decide, which part is better
-                best_suptop = None
-                min_rmsd = 9999999
-                rmsd = None
-                for suptop in candidate_superimposed_tops:
-                    # use the avg dst after the correction to understand which one is better,
-                    # and assign the worse
-                    # fixme - avg dst would ideally not be np.NaN
-                    avg_dst = suptop.correct_for_coordinates()
-                    rmsd = suptop.rmsd()
-                    # get a global match (RMSD)
-                    if rmsd < min_rmsd:
-                        best_suptop = suptop
-                        min_rmsd = rmsd
+            # pick one best way to traverse the molecule
+            candidate_suptop = getBestRmsdMatch(candidate_suptops)
+            # link the suptop to their respective ligands
+            candidate_suptop.set_tops(top1_node_list, top2_node_list)
 
-                candidate_superimposed_top = best_suptop
+            # check if the maximal possible solution was found
+            # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
+            candidate_suptop.is_subgraph_of_global_top()
 
-                for suptop in candidate_superimposed_tops:
-                    if suptop is candidate_superimposed_top:
-                        continue
-
-                    candidate_superimposed_top.addWeirdSymmetry(suptop)
-
-            candidate_superimposed_top.set_tops(top1, top2)
-            candidate_superimposed_top.is_subgraph_of_global_top()
-
-            # check if this superimposed topology was found before, if so, ignore
-            sup_top_seen = False
-            for other_sup_top in sup_tops:
-                if other_sup_top.eq(candidate_superimposed_top):
-                    sup_top_seen = True
-                    # print("The next candidate superimposed topology was seen before, len:", len(candidate_superimposed_top.matched_pairs))
-                    break
-            if sup_top_seen:
+            # ignore if this topology was found before
+            if alreadySeen(candidate_suptop, suptops):
                 continue
 
             # check if this superimposed topology is a mirror of one that already exists
             # fixme the order matters in this place
             # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
-            is_mirror = False
-            for other_sup_top in sup_tops:
-                if other_sup_top.is_mirror_of(candidate_superimposed_top):
-                    other_sup_top.add_mirror_sup_top(candidate_superimposed_top)
-                    is_mirror = True
-            if is_mirror:
-                # print('mirror found, skipping, sup top len', len(candidate_superimposed_top.matched_pairs))
+            if isMirrorOfOne(candidate_suptop, suptops):
                 continue
 
             # check if this new sup top should replace other sup_tops, because they are its subgraphs
             # fixme - I am not sure if this can happen twice
-            for sup_top in sup_tops[::-1]:
-                if sup_top.is_subgraph_of(candidate_superimposed_top):
-                    print('removing previous smaller tops')
-                    sup_tops.remove(sup_top)
+            for sup_top in suptops[::-1]:
+                if sup_top.is_subgraph_of(candidate_suptop):
+                    log('Removing previous smaller tops')
+                    suptops.remove(sup_top)
 
             # check if this candidate sup top uses a node that is used by a larger sup top
             ignore_cand_sup_top = False
-            for sup_top in sup_tops[::-1]:  # reverse traversal in case deleting is necessary
+            for sup_top in suptops[::-1]:  # reverse traversal in case deleting is necessary
                 # if there is a sup top with more elements
-                if len(sup_top.matched_pairs) > len(candidate_superimposed_top.matched_pairs):
+                if len(sup_top.matched_pairs) > len(candidate_suptop.matched_pairs):
                     # and that sup top contains some nodes from the candidate sup top
                     # ignore this sup top
-                    if sup_top.contains_any_node_from(candidate_superimposed_top):
+                    if sup_top.contains_any_node_from(candidate_suptop):
                         ignore_cand_sup_top = True
                         break
-                elif len(sup_top.matched_pairs) < len(candidate_superimposed_top.matched_pairs):
+                elif len(sup_top.matched_pairs) < len(candidate_suptop.matched_pairs):
                     # this sup_top has fewer elements than candidate sup top
-                    if sup_top.contains_any_node_from(candidate_superimposed_top):
+                    if sup_top.contains_any_node_from(candidate_suptop):
                         # and there is an overlap, delete the smaller sup top
-                        if len(candidate_superimposed_top.matched_pairs) > 37:
+                        if len(candidate_suptop.matched_pairs) > 37:
                             print('This new candidate sup top removes the previous sup top'
                                   'that is smaller, new len: ',
-                                  len(candidate_superimposed_top.matched_pairs),
+                                  len(candidate_suptop.matched_pairs),
                                   'old len:', len(sup_top))
-                        sup_tops.remove(sup_top)
+                        suptops.remove(sup_top)
                 else:
                     # the two sup tops could be of the same length and yet traverse different atoms
                     # e.g. case: mcl1_l17l9, where due to the symmetry, two different traversals
@@ -1239,18 +1255,18 @@ def _superimpose_topologies(top1, top2):
                     # to avoid any future bugs
 
                     # check if there is an overlap
-                    if sup_top.contains_any_node_from(candidate_superimposed_top):
+                    if sup_top.contains_any_node_from(candidate_suptop):
                         # there is a partial overlap, so two different ways to score these
                         # you could call them "symmetries". Here we have to pick
                         # which is the "worse symmetry",
                         # let us use atom coordinates to score them
-                        if sup_top.rmsd() < candidate_superimposed_top.rmsd():
+                        if sup_top.rmsd() < candidate_suptop.rmsd():
                             # the
-                            sup_top.addWeirdSymmetry(candidate_superimposed_top)
+                            sup_top.addWeirdSymmetry(candidate_suptop)
                             ignore_cand_sup_top = True
                         else:
-                            candidate_superimposed_top.addWeirdSymmetry(sup_top)
-                            sup_tops.remove(sup_top)
+                            candidate_suptop.addWeirdSymmetry(sup_top)
+                            suptops.remove(sup_top)
             if ignore_cand_sup_top:
                 continue
 
@@ -1259,8 +1275,8 @@ def _superimpose_topologies(top1, top2):
             # fixme - is this even possible?
             # fixme can any subgraph be a subgraph of another?
             cand_is_subgraph = False
-            for sup_top in sup_tops:
-                if candidate_superimposed_top.is_subgraph_of(sup_top):
+            for sup_top in suptops:
+                if candidate_suptop.is_subgraph_of(sup_top):
                     cand_is_subgraph = True
                     break
             if cand_is_subgraph:
@@ -1271,10 +1287,10 @@ def _superimpose_topologies(top1, top2):
             # follow a rule: if this node was used before in a larger superimposed topology, than it should
             # not be in the final list (we guarantee that each node is used only once)
 
-            sup_tops.append(candidate_superimposed_top)
+            suptops.append(candidate_suptop)
 
     # if there are only hydrogens superimposed without a connection to any heavy atoms, ignore these too
-    for sup_top in sup_tops[::-1]:
+    for sup_top in suptops[::-1]:
         all_hydrogens = True
         for node1, _ in sup_top.matched_pairs:
             if not node1.type == 'H':
@@ -1282,30 +1298,30 @@ def _superimpose_topologies(top1, top2):
                 break
         if all_hydrogens:
             print("Removing sup top because only hydrogens found", sup_top.matched_pairs)
-            sup_tops.remove(sup_top)
+            suptops.remove(sup_top)
 
     # TEST: check that each node was used only once
     all_nodes = []
     pair_count = 0
-    for sup_top in sup_tops:
+    for sup_top in suptops:
         [all_nodes.extend([node1, node2]) for node1, node2 in sup_top.matched_pairs]
         pair_count += len(sup_top.matched_pairs)
     # fixme
     # assert len(set(all_nodes)) == 2 * pair_count
 
     # TEST: check that the nodes on the left are always from topology 1 and the nodes on the right are always from top2
-    for sup_top in sup_tops:
+    for sup_top in suptops:
         for node1, node2 in sup_top.matched_pairs:
-            assert node1 in list(top1)
-            assert node2 in list(top2)
+            assert node1 in list(top1_node_list)
+            assert node2 in list(top2_node_list)
 
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
-    print("Found altogether overlays", len(sup_tops))
+    print("Found altogether overlays", len(suptops))
 
     # fixme - return other info
-    return sup_tops
+    return suptops
 
 
 def ensure_charges_match(sup_tops_no_charges, atol=0):
