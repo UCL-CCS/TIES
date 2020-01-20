@@ -1146,7 +1146,7 @@ def _superimpose_topologies(top1, top2, atol):
 
             # grow the topologies to see if they overlap
             # fixme - do you still need to set up top1 and top2?
-            candidate_superimposed_tops = _overlay(node1, node2, atol=atol)
+            candidate_superimposed_tops = _overlay(node1, node2)
             if candidate_superimposed_top is None:
                 continue
 

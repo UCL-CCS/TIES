@@ -20,8 +20,6 @@ def test_2diffAtoms_CN_wrongStart():
     In this there is only one solution.
     """
     # construct the LIGAND 1
-    # ignore the third dimension
-    # c1
     c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
     c1.set_coords(np.array([1, 1, 0], dtype='float32'))
     n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
@@ -29,8 +27,6 @@ def test_2diffAtoms_CN_wrongStart():
     c1.bindTo(n1)
 
     # construct the LIGAND 2
-    # ignore the third dimension
-    # c1
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
     c11.set_coords(np.array([1, 1, 0], dtype='float32'))
     n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
@@ -54,8 +50,6 @@ def test_2diffAtoms_CN_rightStart():
         N1              N11
     """
     # construct the LIGAND 1
-    # ignore the third dimension
-    # c1
     c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
     c1.set_coords(np.array([1, 1, 0], dtype='float32'))
     n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
@@ -63,8 +57,6 @@ def test_2diffAtoms_CN_rightStart():
     c1.bindTo(n1)
 
     # construct the LIGAND 2
-    # ignore the third dimension
-    # c1
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
     c11.set_coords(np.array([1, 1, 0], dtype='float32'))
     n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
@@ -265,8 +257,8 @@ def test_3C_circle():
     suptops = _overlay(c1, c11)
     # there are two solutions
     assert len(suptops) == 2
-    assert any(st.contains_atomNamePair('C2', 'C12') or st.contains_atomNamePair('C2', 'C13') for st in suptops)
-    assert any(st.contains_atomNamePair('C3', 'C13') or st.contains_atomNamePair('C3', 'O12') for st in suptops)
+    assert any(st.contains_atomNamePair('C2', 'C12') and st.contains_atomNamePair('C3', 'C13') for st in suptops)
+    assert any(st.contains_atomNamePair('C2', 'C13') and st.contains_atomNamePair('C3', 'C12') for st in suptops)
     # both solutions should have the same starting situation
     assert all(st.contains_atomNamePair('C1', 'C11') for st in suptops)
     # there should be one circle in each
@@ -437,6 +429,6 @@ def test_mcl1_l18l39():
 
     suptops = _overlay(c5, c14)
 
-    #suptops = _overlay(c9, c19)
+    suptops = _overlay(c9, c19)
     # two largest solutions are found?
     print('hi')
