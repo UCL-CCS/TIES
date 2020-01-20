@@ -184,7 +184,7 @@ class AtomNode:
 
 
     def sameType(self, atom):
-        if self.type == atom.type:
+        if self.type == atom.type.upper():
             return True
 
         return False
@@ -1120,7 +1120,7 @@ def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
     return sup_tops_no_charges
 
 
-def _superimpose_topologies(top1, top2, atol):
+def _superimpose_topologies(top1, top2):
     """
     atol 1 means the charge of the atom can be up to 1 electron different,
     as long as the atom has the same type
@@ -1135,19 +1135,10 @@ def _superimpose_topologies(top1, top2, atol):
             # ie if something discovers that match, it should have explored all other ways in which
             # the two topologies can be reassembled,
 
-            # for testing speed C11=C33
-            # (ca_C4, ca_C28) (ca_C8, ca_C24)
-            # if (node1.atomName == 'C4' and node2.atomName == 'C28') or \
-            #     (node1.atomName == 'C8' and node2.atomName == 'C24'):
-            #     continue
-
-            # if not (node1.atomName == 'C4' and node2.atomName == 'C28'):
-            #     continue
-
             # grow the topologies to see if they overlap
             # fixme - do you still need to set up top1 and top2?
             candidate_superimposed_tops = _overlay(node1, node2)
-            if candidate_superimposed_top is None:
+            if candidate_superimposed_tops is None or len(candidate_superimposed_tops[0]) == 0:
                 continue
 
             # _overlay returns a list of solutions, which can be traversed with that specific initial
@@ -1286,13 +1277,12 @@ def _superimpose_topologies(top1, top2, atol):
     for sup_top in sup_tops[::-1]:
         all_hydrogens = True
         for node1, _ in sup_top.matched_pairs:
-            if not node1.atom_colloq.upper().startswith('H'):
+            if not node1.type == 'H':
                 all_hydrogens = False
                 break
         if all_hydrogens:
             print("Removing sup top because only hydrogens found", sup_top.matched_pairs)
             sup_tops.remove(sup_top)
-
 
     # TEST: check that each node was used only once
     all_nodes = []

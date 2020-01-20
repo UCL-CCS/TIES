@@ -1,5 +1,7 @@
 """
-Focuses on the _overlay function that actually traverses the molecule using the given starting points.
+Focuses on the _superimpose_topology function that
+superimposes the molecule in many different and
+then processes the outputs to ensure the best match is found.
 """
 
 from topology_superimposer import SuperimposedTopology, get_charges, \
@@ -10,7 +12,7 @@ from os import path
 import numpy as np
 
 
-def test_2diffAtoms_CN_wrongStart():
+def test_2diffAtoms_CN():
     """
     create a simple molecule chain with an ester
      LIGAND 1        LIGAND 2
@@ -25,6 +27,7 @@ def test_2diffAtoms_CN_wrongStart():
     n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
     n1.set_coords(np.array([1, 2, 0], dtype='float32'))
     c1.bindTo(n1)
+    top1_list = [c1, n1]
 
     # construct the LIGAND 2
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
@@ -32,50 +35,13 @@ def test_2diffAtoms_CN_wrongStart():
     n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
     n11.set_coords(np.array([1, 2, 0], dtype='float32'))
     c11.bindTo(n11)
+    top2_list = [c11, n11]
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, n11)
+    suptops = _superimpose_topologies(top1_list, top2_list)
     # it should return an empty suptop
     assert len(suptops) == 1
-    assert len(suptops[0]) == 0
-
-
-def test_2diffAtoms_CN_rightStart():
-    """
-    Two different Atoms. Only one solution exists.
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-        \                \
-        N1              N11
-    """
-    # construct the LIGAND 1
-    c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
-    c1.set_coords(np.array([1, 1, 0], dtype='float32'))
-    n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
-    n1.set_coords(np.array([1, 2, 0], dtype='float32'))
-    c1.bindTo(n1)
-
-    # construct the LIGAND 2
-    c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
-    c11.set_coords(np.array([1, 1, 0], dtype='float32'))
-    n11 = AtomNode(11, 'N11', 'TEST', 1, 0, 'N')
-    n11.set_coords(np.array([1, 2, 0], dtype='float32'))
-    c11.bindTo(n11)
-
-    # should overlap 2 atoms
-    suptops = _overlay(c1, c11)
-    assert len(suptops) == 1
-    suptop = suptops[0]
-
-    # the number of overlapped atoms is two
-    assert len(suptop) == 2
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
-    for atomName1, atomName2 in correct_overlaps:
-        assert suptop.contains_atomNamePair(atomName1, atomName2)
-
-    # there is no other ways to traverse the molecule
-    assert len(suptop.mirrors) == 0
+    assert len(suptops[0]) == 2
 
 
 def test_3diffAtoms_CNO_rightStart():
@@ -99,6 +65,7 @@ def test_3diffAtoms_CNO_rightStart():
     o1 = AtomNode(3, 'O1', 'TEST', 1, 0, 'O')
     o1.set_coords(np.array([1, 3, 0], dtype='float32'))
     o1.bindTo(n1)
+    top1_list = [c1, n1, o1]
 
     # construct the LIGAND 2
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
@@ -109,9 +76,10 @@ def test_3diffAtoms_CNO_rightStart():
     o11 = AtomNode(13, 'O11', 'TEST', 1, 0, 'O')
     o11.set_coords(np.array([1, 3, 0], dtype='float32'))
     o11.bindTo(n11)
+    top2_list = [c11, n11, o11]
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11)
+    suptops = _superimpose_topologies(top1_list, top2_list)
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -153,6 +121,7 @@ def test_SimpleMultipleSolutions_rightStart():
     o2 = AtomNode(4, 'O2', 'TEST', 1, 0, 'O')
     o2.set_coords(np.array([2, 3, 0], dtype='float32'))
     o2.bindTo(n1)
+    top1_list = [c1, n1, o1, o2]
 
     # construct the LIGAND 2
     c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
@@ -166,9 +135,10 @@ def test_SimpleMultipleSolutions_rightStart():
     o12 = AtomNode(11, 'O12', 'TEST', 1, 0, 'O')
     o12.set_coords(np.array([2, 3, 0], dtype='float32'))
     o12.bindTo(n11)
+    top2_list = [c11, n11, o11, o12]
 
     # should be two topologies
-    suptops = _overlay(c1, c11)
+    suptops = _superimpose_topologies(top1_list, top2_list)
     assert len(suptops) == 2
 
     # check if both representations were found
@@ -220,47 +190,6 @@ def test_2sameAtoms_2Cs_symmetry():
     assert len(suptops) == 1
     assert suptops[0].contains_atomNamePair('C1', 'C12')
     assert suptops[0].contains_atomNamePair('C2', 'C11')
-
-
-def test_mutation():
-    """
-    Two commponents separated by the mutation.
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-        |                |
-        S1              O11
-        |                |
-        N1               N11
-    """
-    # construct the LIGAND 1
-    c1 = AtomNode(1, 'C1', 'TEST', 1, 0, 'C')
-    c1.set_coords(np.array([1, 1, 0], dtype='float32'))
-    s1 = AtomNode(2, 'S2', 'TEST', 1, 0, 'S')
-    s1.set_coords(np.array([2, 1, 0], dtype='float32'))
-    c1.bindTo(s1)
-    n1 = AtomNode(2, 'N1', 'TEST', 1, 0, 'N')
-    n1.set_coords(np.array([3, 1, 0], dtype='float32'))
-    n1.bindTo(s1)
-
-    # construct the LIGAND 2
-    c11 = AtomNode(11, 'C11', 'TEST', 1, 0, 'C')
-    c11.set_coords(np.array([1, 1, 0], dtype='float32'))
-    o11 = AtomNode(11, 'O11', 'TEST', 1, 0, 'O')
-    o11.set_coords(np.array([2, 1, 0], dtype='float32'))
-    c11.bindTo(o11)
-    n11 = AtomNode(2, 'N11', 'TEST', 1, 0, 'N')
-    n11.set_coords(np.array([3, 1, 0], dtype='float32'))
-    n11.bindTo(o11)
-
-    # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11)
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C11')
-
-    suptops = _overlay(n1, n11)
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('N1', 'N11')
 
 
 def test_3C_circle():
@@ -355,10 +284,10 @@ def test_3C_circle():
     assert all(st.getCircleNumber() == (1, 1) for st in suptops)
 
 
-def test_mcl1_l12l35():
+def test_mcl1_l18l39():
     """
 
-    Molecule inspired by Agastya's dataset (mcl1_l12l35).
+    Molecule inspired by Agastya's dataset (mcl1_l18l39).
 
     Ligand 1
 

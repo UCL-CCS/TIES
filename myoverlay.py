@@ -38,6 +38,7 @@ import MDAnalysis as mda
 from os import path
 import matplotlib.pyplot as plt
 from topology_superimposer import *
+import topology_superimposer
 # from rdkit import Chem
 import glob
 
@@ -129,6 +130,8 @@ for protein_path in proteins_paths:
         print("About to overlay %d atoms with %d atoms" % (len(ligand2_nodes), len(ligand1_nodes)))
         # 0.1 e charge has been used by default: Paper "Rapid, accurate" by Agastya et al (doi: 10.1021/acs.jctc.6b00979)
         si_topologies = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(), atol=0.1, useCharges=False)
+
+        topology_superimposer.verbose_log = False
 
         print("Found Superimposed Topologies ", len(si_topologies))
         for si_top in si_topologies:
