@@ -151,6 +151,13 @@ class AtomNode:
         self.coords = coords
 
 
+    def isHydrogen(self):
+        if self.type == 'H':
+            return True
+
+        return False
+
+
     def __hash__(self):
         m = hashlib.md5()
         # fixme - ensure that each node is characterised by its chemical info,
@@ -620,7 +627,39 @@ class SuperimposedTopology:
         return removed_pairs
 
 
-    def is_consistent_with(self, other_suptop):
+    def is_consistent_cycles(self, suptop):
+        # check if each sup top has the same number of cycles
+        # fixme - not sure?
+        selfG1, selfG2 = self.getNxGraphs()
+        self_cycles1, self_cycles2 = len(nx.cycle_basis(selfG1)), len(nx.cycle_basis(selfG2))
+        if self_cycles1 != self_cycles2:
+            raise Exception('left G has a different number of cycles than right G')
+
+        otherG1, otherG2 = suptop.getNxGraphs()
+        other_cycles1, other_cycles2 = len(nx.cycle_basis(otherG1)), len(nx.cycle_basis(otherG2))
+        if other_cycles1 != other_cycles2:
+            raise Exception('left G has a different number of cycles than right G')
+
+        if self_cycles1 != other_cycles1:
+            # rings should be created during the traversal
+            # ie new cycles are important for the right topology superimposition
+            # so merging different graphs should not lead to new rings
+            print('merging graphs should not take place because they have different cycles')
+            # clean up
+            return False
+
+        # check if merging the two is going to create issues
+        # with the circle inequality
+        # fixme - Optimise: reuse the above nx graphs rather than making an entire copy
+        self_copy = copy.copy(self)
+        self_copy.merge(suptop)
+        if not self_copy.sameCircleNumber():
+            return False
+
+        return True
+
+
+    def is_consistent_with(self, suptop):
         """
         Conditions:
             - There should be a minimal overlap of at least 1 node.
@@ -633,47 +672,18 @@ class SuperimposedTopology:
 
         # confirm that there is no mismatches, ie (A=B) in suptop1 and (A=C) in suptop2 where (C!=B)
         for node1, node2 in self.matched_pairs:
-            for nodeA, nodeB in other_suptop.matched_pairs:
+            for nodeA, nodeB in suptop.matched_pairs:
                 if (node1 is nodeA) and not (node2 is nodeB):
                     return False
                 elif (node2 is nodeB) and not (node1 is nodeA):
                     return False
 
         # ensure there is at least one common pair
-        if self.count_common_node_pairs(other_suptop) == 0:
+        if self.count_common_node_pairs(suptop) == 0:
             return False
 
-        # check if each sup top has the same number of cycles
-        # fixme - not sure?
-        selfG1, selfG2 = self.getNxGraphs()
-        self_cycles1, self_cycles2 = len(nx.cycle_basis(selfG1)), len(nx.cycle_basis(selfG2))
-        if self_cycles1 != self_cycles2:
-            raise Exception('left G has a different number of cycles than right G')
-
-        otherG1, otherG2 = other_suptop.getNxGraphs()
-        other_cycles1, other_cycles2 = len(nx.cycle_basis(otherG1)), len(nx.cycle_basis(otherG2))
-        if other_cycles1 != other_cycles2:
-            raise Exception('left G has a different number of cycles than right G')
-
-        # if self_cycles1 != other_cycles1:
-        #     # rings should be created during the traversal
-        #     # ie new cycles are important for the right topology superimposition
-        #     # so merging different graphs should not lead to new rings
-        #     print('merging graphs should not take place')
-        #     # clean up
-        #     return False
-
-        # check if they have a bigger number of cycles after merging
-        # todo
-        mergedG1 = nx.compose(selfG1, otherG1)
-        mergedG2 = nx.compose(selfG2, otherG2)
-        mergedG1_cycle_num = len(nx.cycle_basis(mergedG1))
-        mergedG2_cycle_num = len(nx.cycle_basis(mergedG2))
-        if mergedG1_cycle_num != mergedG2_cycle_num:
+        if not self.is_consistent_cycles(suptop):
             return False
-
-        # if mergedG1_cycle_num != self_cycles1:
-        #     return False
 
         return True
 
@@ -719,30 +729,35 @@ class SuperimposedTopology:
         return False
 
 
-    def merge(self, other_suptop):
+    def merge(self, suptop):
         """
         Absorb the other suptop by adding all the node pairs that are not present
         in the current sup top.
 
         WARNING: ensure that the other suptop is consistent with this sup top.
         """
-        assert self.is_consistent_with(other_suptop)
+        # assert self.is_consistent_with(suptop)
 
         # print("About the merge two sup tops")
         # self.print_summary()
         # other_suptop.print_summary()
 
-        for pair in other_suptop.matched_pairs:
+        merged_pairs = []
+        for pair in suptop.matched_pairs:
             # check if this pair is present
             if not self.contains(pair):
                 n1, n2 = pair
                 if self.contains_node(n1) or self.contains_node(n2):
                     raise Exception('already uses that node')
                 self.add_node_pair(pair)
+                merged_pairs.append(pair)
 
-        self.nodes_added_log.append(("merged with", copy.deepcopy(other_suptop.nodes_added_log)))
+        # removed from the "merged" the ones that agree, so it contains only the new stuff
+        # to make it easier to read
+        self.nodes_added_log.append(("merged with", merged_pairs))
 
         # check if duplication occured, fixme - temporary
+        return merged_pairs
 
 
 
@@ -801,8 +816,15 @@ class SuperimposedTopology:
         return True
 
 
-    def difference(self, sup_top):
+    def has_in_contrast_to(self, sup_top):
         return set(self.matched_pairs).difference(set(sup_top.matched_pairs))
+
+
+    def report_differences(self, suptop):
+        selfHasNotSuptop = self.has_in_contrast_to(suptop)
+        print("self has not suptop:", selfHasNotSuptop)
+        suptopHasNotSelf = suptop.has_in_contrast_to(self)
+        print('Suptop has not self', suptopHasNotSelf)
 
 
     def has_left_nodes_same_as(self, other):
@@ -1071,6 +1093,9 @@ def _overlay(n1, n2, sup_top=None):
                     all_solutions.remove(sol2)
                     continue
 
+                if sol2.is_subgraph_of(sol1):
+                    continue
+
                 if sol1.is_consistent_with(sol2):
                     # print("merging, current pair", (n1, n2))
                     # join sol2 and sol1 because they're consistent
@@ -1080,7 +1105,12 @@ def _overlay(n1, n2, sup_top=None):
                     assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
 
                     print("Will merge", sol1, 'and', sol2)
-                    sol1.merge(sol2)
+                    assert sol1.sameCircleNumber()
+                    beforeMerge = copy.copy(sol1)
+                    newly_added_pairs = sol1.merge(sol2)
+
+                    if not sol1.sameCircleNumber():
+                        raise Exception('something off')
                     # remove sol2 from the solutions:
                     all_solutions.remove(sol2)
 
@@ -1188,13 +1218,74 @@ def isMirrorOfOne(suptop, suptops):
 
     return False
 
+
+def solve_partial_overlaps(candidate_suptop, suptops):
+    # check if this candidate suptop uses a node that is used by a larger sup top
+    # fixme: optimisation: this whole processing should happen probably at the end?
+    for suptop in suptops[::-1]:  # reverse traversal in case deleting is necessary
+        # there is an overlap, some of the ndoes are reused
+        if suptop.contains_any_node_from(candidate_suptop):
+            if len(suptop.matched_pairs) > len(candidate_suptop.matched_pairs):
+                # the overlapping existing suptop is larger
+                # ignore this sup top
+                return True
+            elif len(suptop.matched_pairs) < len(candidate_suptop.matched_pairs):
+                # candidate sup top is larger, so that is the one we want to keep
+                # delete the smaller sup top
+                suptops.remove(suptop)
+            else:
+                # the two sup tops could be of the same length and yet traverse different atoms
+                # e.g. case: mcl1_l17l9, where due to the symmetry, two different traversals
+                # of the same length are found, which use different set of atoms
+
+                # note that we already checked if it is a mirror - this is not a mirror
+                # fixme: these two would ideally be chained together closer
+                # to avoid any future bugs
+
+                # there is a partial overlap, so two different ways to score these
+                # you could call them "symmetries". Here we have to pick
+                # which is the "worse symmetry",
+                # let us use atom coordinates to score them
+                if suptop.rmsd() < candidate_suptop.rmsd():
+                    suptop.addWeirdSymmetry(candidate_suptop)
+                    ignore_cand_sup_top = True
+                else:
+                    candidate_suptop.addWeirdSymmetry(suptop)
+                    suptops.remove(suptop)
+
+
+def isSubGraphOf(candidate_suptop, suptops):
+    # check if the newly found subgraph is a subgraph of any other sup top
+    # fixme - is this even possible?
+    # fixme can any subgraph be a subgraph of another?
+    for suptop in suptops:
+        if candidate_suptop.is_subgraph_of(suptop):
+            return True
+
+    return False
+
+
+def removeCandidatesSubgraphs(candidate_suptop, suptops):
+    # check if this new sup top should replace other sup_tops, because they are its subgraphs
+    # fixme - I am not sure if this can happen twice
+    removed_subgraphs = False
+    for suptop in suptops[::-1]:
+        if suptop.is_subgraph_of(candidate_suptop):
+            log('Removing candidate\'s subgraphs')
+            suptops.remove(suptop)
+            removed_subgraphs = True
+    return removed_subgraphs
+
 def _superimpose_topologies(top1_node_list, top2_node_list):
     """
     Superimpose two molecules.
     """
     suptops = []
-    # fixme - Test/Optimisation: create a theoretical maximum of a match between two molecules
     # grow the topologies using every combination node1-node2 as the starting point
+    # fixme - Test/Optimisation: create a theoretical maximum of a match between two molecules
+    # - Proposal 1: find junctions and use them to start the search
+    # - Analyse components of the graph (ie rotatable due to a single bond connection) and
+    #   pick a starting point from each component
     for node1 in top1_node_list:
         for node2 in top2_node_list:
             # fixme - optimisation - reduce the number of starting nX and nY pairs
@@ -1224,100 +1315,47 @@ def _superimpose_topologies(top1_node_list, top2_node_list):
             if isMirrorOfOne(candidate_suptop, suptops):
                 continue
 
-            # check if this new sup top should replace other sup_tops, because they are its subgraphs
-            # fixme - I am not sure if this can happen twice
-            for sup_top in suptops[::-1]:
-                if sup_top.is_subgraph_of(candidate_suptop):
-                    log('Removing previous smaller tops')
-                    suptops.remove(sup_top)
-
-            # check if this candidate sup top uses a node that is used by a larger sup top
-            ignore_cand_sup_top = False
-            for sup_top in suptops[::-1]:  # reverse traversal in case deleting is necessary
-                # if there is a sup top with more elements
-                if len(sup_top.matched_pairs) > len(candidate_suptop.matched_pairs):
-                    # and that sup top contains some nodes from the candidate sup top
-                    # ignore this sup top
-                    if sup_top.contains_any_node_from(candidate_suptop):
-                        ignore_cand_sup_top = True
-                        break
-                elif len(sup_top.matched_pairs) < len(candidate_suptop.matched_pairs):
-                    # this sup_top has fewer elements than candidate sup top
-                    if sup_top.contains_any_node_from(candidate_suptop):
-                        # and there is an overlap, delete the smaller sup top
-                        if len(candidate_suptop.matched_pairs) > 37:
-                            print('This new candidate sup top removes the previous sup top'
-                                  'that is smaller, new len: ',
-                                  len(candidate_suptop.matched_pairs),
-                                  'old len:', len(sup_top))
-                        suptops.remove(sup_top)
-                else:
-                    # the two sup tops could be of the same length and yet traverse different atoms
-                    # e.g. case: mcl1_l17l9, where due to the symmetry, two different traversals
-                    # of the same length are found
-
-                    # fixme - note that we already checked if it is a mirror,
-                    # however, these two would ideally be chained together closer
-                    # to avoid any future bugs
-
-                    # check if there is an overlap
-                    if sup_top.contains_any_node_from(candidate_suptop):
-                        # there is a partial overlap, so two different ways to score these
-                        # you could call them "symmetries". Here we have to pick
-                        # which is the "worse symmetry",
-                        # let us use atom coordinates to score them
-                        if sup_top.rmsd() < candidate_suptop.rmsd():
-                            # the
-                            sup_top.addWeirdSymmetry(candidate_suptop)
-                            ignore_cand_sup_top = True
-                        else:
-                            candidate_suptop.addWeirdSymmetry(sup_top)
-                            suptops.remove(sup_top)
-            if ignore_cand_sup_top:
+            if isSubGraphOf(candidate_suptop, suptops):
                 continue
 
+            removed_subgraphs = removeCandidatesSubgraphs(candidate_suptop, suptops)
+            if removed_subgraphs:
+                suptops.append(candidate_suptop)
+                continue
 
-            # check if the newly found subgraph is a subgraph of any other sup top
-            # fixme - is this even possible?
-            # fixme can any subgraph be a subgraph of another?
-            cand_is_subgraph = False
-            for sup_top in suptops:
-                if candidate_suptop.is_subgraph_of(sup_top):
-                    cand_is_subgraph = True
-                    break
-            if cand_is_subgraph:
-                raise Exception('can this hapen?')
+            # while comparing partial overlaps, suptops can be modified
+            andIgnore = solve_partial_overlaps(candidate_suptop, suptops)
+            if andIgnore:
                 continue
 
             # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
             # follow a rule: if this node was used before in a larger superimposed topology, than it should
             # not be in the final list (we guarantee that each node is used only once)
-
             suptops.append(candidate_suptop)
 
     # if there are only hydrogens superimposed without a connection to any heavy atoms, ignore these too
-    for sup_top in suptops[::-1]:
+    for suptop in suptops[::-1]:
         all_hydrogens = True
-        for node1, _ in sup_top.matched_pairs:
+        for node1, _ in suptop.matched_pairs:
             if not node1.type == 'H':
                 all_hydrogens = False
                 break
         if all_hydrogens:
-            print("Removing sup top because only hydrogens found", sup_top.matched_pairs)
-            suptops.remove(sup_top)
+            print("Removing sup top because only hydrogens found", suptop.matched_pairs)
+            suptops.remove(suptop)
 
     # TEST: check that each node was used only once
     all_nodes = []
     pair_count = 0
-    for sup_top in suptops:
-        [all_nodes.extend([node1, node2]) for node1, node2 in sup_top.matched_pairs]
-        pair_count += len(sup_top.matched_pairs)
+    for suptop in suptops:
+        [all_nodes.extend([node1, node2]) for node1, node2 in suptop.matched_pairs]
+        pair_count += len(suptop.matched_pairs)
     # fixme
     # assert len(set(all_nodes)) == 2 * pair_count
 
     # TEST: check that the nodes on the left are always from topology 1 and the nodes on the right are always from top2
-    for sup_top in suptops:
-        for node1, node2 in sup_top.matched_pairs:
+    for suptop in suptops:
+        for node1, node2 in suptop.matched_pairs:
             assert node1 in list(top1_node_list)
             assert node2 in list(top2_node_list)
 

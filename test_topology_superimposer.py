@@ -139,7 +139,10 @@ def test_SimpleMultipleSolutions():
 
     # should be two topologies
     suptops = _superimpose_topologies(top1_list, top2_list)
+    # there is one solution
     assert len(suptops) == 1
+    #
+    assert len(suptops[0].mirrors) == 1
 
     # # check if both representations were found
     # # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
@@ -284,10 +287,10 @@ def test_3C_circle():
     assert all(st.getCircleNumber() == (1, 1) for st in suptops)
 
 
-def test_mcl1_l18l39():
+def test_mcl1_l12l35():
     """
 
-    Molecule inspired by Agastya's dataset (mcl1_l18l39).
+    Molecule inspired by Agastya's dataset (mcl1_l12l35).
 
     Ligand 1
 
@@ -357,6 +360,7 @@ def test_mcl1_l18l39():
     c9 = AtomNode(2, 'C9', 'TEST', 1, 0, 'C')
     c9.set_coords(np.array([6, 1, 0], dtype='float32'))
     c9.bindTo(c8)
+    top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
 
     # construct Ligand 2
     cl11 = AtomNode(2, 'Cl11', 'TEST', 1, 0, 'Cl')
@@ -396,9 +400,10 @@ def test_mcl1_l18l39():
     c19 = AtomNode(2, 'C19', 'TEST', 1, 0, 'C')
     c19.set_coords(np.array([7, 1, 0], dtype='float32'))
     c19.bindTo(c18)
+    top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
     # suptops = _overlay(c5, c14)
 
-    suptops = _overlay(c9, c19)
+    suptops = _superimpose_topologies(top1_list, top2_list)
     # two largest solutions are found?
     print('hi')
