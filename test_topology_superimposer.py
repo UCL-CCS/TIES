@@ -144,13 +144,6 @@ def test_SimpleMultipleSolutions():
     #
     assert len(suptops[0].mirrors) == 1
 
-    # # check if both representations were found
-    # # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    # assert any(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
-    # assert not all(st.contains_atomNamePair('O1', 'O11') and st.contains_atomNamePair('O2', 'O12') for st in suptops)
-    # assert any(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
-    # assert not all(st.contains_atomNamePair('O1', 'O12') and st.contains_atomNamePair('O2', 'O11') for st in suptops)
-
     correct_overlaps = [('C1', 'C11'), ('N1', 'N11'), ('O1', 'O11'), ('O2', 'O12')]
     for st in suptops:
         for atomName1, atomName2 in correct_overlaps:
@@ -175,6 +168,7 @@ def test_2sameAtoms_2Cs_symmetry():
     c2 = AtomNode(name='C2', type='C')
     c2.set_coords(x=1, y=2, z=0)
     c1.bindTo(c2)
+    top1_list = [c1, c2]
 
     # construct the LIGAND 2
     c11 = AtomNode(name='C11', type='C')
@@ -182,17 +176,14 @@ def test_2sameAtoms_2Cs_symmetry():
     c12 = AtomNode(name='C12', type='C')
     c12.set_coords(x=1, y=2, z=0)
     c11.bindTo(c12)
+    top2_list = [c11, c12]
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11)
+    suptops = _superimpose_topologies(top1_list, top2_list)
     assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C11')
-    assert suptops[0].contains_atomNamePair('C2', 'C12')
-
-    suptops = _overlay(c1, c12)
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C12')
-    assert suptops[0].contains_atomNamePair('C2', 'C11')
+    assert len(suptops[0]) == 2
+    assert len(suptops[0].mirrors) == 1
+    assert len(suptops[0].mirrors[0]) == 2
 
 
 def test_3C_circle():
@@ -215,6 +206,7 @@ def test_3C_circle():
     c3.set_coords(x=2, y=2, z=0)
     c3.bindTo(c1)
     c3.bindTo(c2)
+    top1_list = [c1, c2, c3]
 
     # construct the LIGAND 2
     c11 = AtomNode(name='C11', type='C')
@@ -226,65 +218,12 @@ def test_3C_circle():
     c13.set_coords(x=2, y=2, z=0)
     c13.bindTo(c11)
     c13.bindTo(c12)
+    top2_list = [c11, c12, c13]
 
-    suptops = _overlay(c1, c11)
-    # there are two solutions
-    assert len(suptops) == 2
-    assert any(st.contains_atomNamePair('C2', 'C12') and st.contains_atomNamePair('C3', 'C13') for st in suptops)
-    assert any(st.contains_atomNamePair('C2', 'C13') and st.contains_atomNamePair('C3', 'C12') for st in suptops)
-    # both solutions should have the same starting situation
-    assert all(st.contains_atomNamePair('C1', 'C11') for st in suptops)
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c1, c12)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c1, c13)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c2, c11)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c2, c12)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c2, c13)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c3, c11)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c3, c12)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
-
-    suptops = _overlay(c3, c13)
-    assert len(suptops) == 2
-    # there should be one circle in each
-    assert all(st.sameCircleNumber() for st in suptops)
-    assert all(st.getCircleNumber() == (1, 1) for st in suptops)
+    suptops = _superimpose_topologies(top1_list, top2_list)
+    assert len(suptops) == 1
+    assert len(suptops[0]) == 3
+    assert len(suptops[0].mirrors) > 2
 
 
 def test_mcl1_l12l35():
