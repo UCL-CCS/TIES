@@ -936,10 +936,16 @@ class SuperimposedTopology:
         return True
 
 
-    def add_mirror_sup_top(self, mirror_sup_top):
-        assert len(self.matched_pairs) == len(mirror_sup_top.matched_pairs)
-        # print("a mirror sup top added")
-        self.mirrors.append(mirror_sup_top)
+    def add_mirror_sup_top(self, suptop):
+        assert len(self.matched_pairs) == len(suptop.matched_pairs)
+        # check if this this mirror was already added
+        for mirror in self.mirrors:
+            if suptop.eq(mirror):
+                # a mirror like that already exists
+                return
+
+        # add the mirror
+        self.mirrors.append(suptop)
 
 
     def eq(self, sup_top):
