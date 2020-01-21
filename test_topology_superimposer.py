@@ -402,8 +402,6 @@ def test_mcl1_l12l35():
     c19.bindTo(c18)
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    # suptops = _overlay(c5, c14)
-
     suptops = _superimpose_topologies(top1_list, top2_list)
     # two largest solutions are found?
     print('hi')

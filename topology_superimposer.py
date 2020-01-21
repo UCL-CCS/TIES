@@ -640,14 +640,6 @@ class SuperimposedTopology:
         if other_cycles1 != other_cycles2:
             raise Exception('left G has a different number of cycles than right G')
 
-        if self_cycles1 != other_cycles1:
-            # rings should be created during the traversal
-            # ie new cycles are important for the right topology superimposition
-            # so merging different graphs should not lead to new rings
-            print('merging graphs should not take place because they have different cycles')
-            # clean up
-            return False
-
         # check if merging the two is going to create issues
         # with the circle inequality
         # fixme - Optimise: reuse the above nx graphs rather than making an entire copy
