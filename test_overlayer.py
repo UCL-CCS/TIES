@@ -516,8 +516,17 @@ def test_mcl1_l12l35():
     c19.set_coords(np.array([7, 1, 0], dtype='float32'))
     c19.bindTo(c18)
 
-    suptops = _overlay(c5, c14)
+    # the correct solution
+    suptops = _overlay(c9, c19)
+    assert len(suptops) == 1
+    assert len(suptops[0]) == 11
 
-    #suptops = _overlay(c9, c19)
-    # two largest solutions are found?
-    print('hi')
+    """
+    fixme
+    This is a rare case around which we'll have to find a work around.
+    Basically, the best solution that obeyes our traversal allows for a superimposition
+    that should not be allowed. So additional additional way has to be checked to discredit it 
+    """
+    suptops = _overlay(c5, c14)
+    assert len(suptops) == 1
+    assert len(suptops[0]) != 12
