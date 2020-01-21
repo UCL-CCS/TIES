@@ -135,20 +135,43 @@ import copy
 
 
 class AtomNode:
-    def __init__(self, atomId, atomName, resName, resId, charge, atom_type):
-        self.atomId = atomId
-        self.atomName = atomName
-        self.resName = resName
-        self.resId = resId
-        self.charge = charge
-        self.type = atom_type.upper()
+    counter = 1
+    def __init__(self, name, type):
+        self.atomId = None
+        self.atomName = name
+        self.resname = None
+        self.resId = None
+        self.charge = None
+        self.type = type.upper()
         self.bonds = set()
 
+        self.unique_counter = AtomNode.counter
+        AtomNode.counter += 1
 
-    def set_coords(self, coords):
-        assert len(coords) == 3
-        assert coords.dtype == np.dtype('float32')
-        self.coords = coords
+
+    def set_atomName(self, atomName):
+        self.atomName = atomName
+
+
+    def set_id(self, id):
+        self.atomId = id
+
+
+    def set_resname(self, resname):
+        self.resname = resname
+
+
+    def set_resid(self, res_ID):
+        self.resId = res_ID
+
+
+    def set_charge(self, charge):
+        self.charge = charge
+
+
+    def set_coords(self, x, y, z):
+        corrected_type = np.array([x, y, z], dtype='float32')
+        self.coords = corrected_type
 
 
     def isHydrogen(self):
@@ -162,8 +185,8 @@ class AtomNode:
         m = hashlib.md5()
         # fixme - ensure that each node is characterised by its chemical info,
         # fixme - the atomId might not be unique, so check before the input data
-        m.update(self.atomName.encode('utf-8'))
         m.update(str(self.charge).encode('utf-8'))
+        m.update(str(self.unique_counter).encode('utf-8'))
         # so include the number of bonds which is basically an atom type
         m.update(str(len(self.bonds)).encode('utf-8'))
         return int(m.hexdigest(), 16)
