@@ -522,9 +522,8 @@ def test_mcl1_l12l35():
     assert len(suptops[0]) == 11
 
     """
-    fixme
     This is a rare case around which we'll have to find a work around.
-    Basically, the best solution that obeyes our traversal allows for a superimposition
+    Basically, the best solution that follows the basic traversal allows for a superimposition
     that should not be allowed. So additional additional way has to be checked to discredit it 
     """
     suptops = _overlay(c5, c14)

@@ -343,6 +343,7 @@ def test_mcl1_l12l35():
 
     # we have to discriminate against this case somehow
     suptops = _superimpose_topologies(top1_list, top2_list)
-    assert len(suptops[0]) == 1
+    assert len(suptops) == 1
+    assert len(suptops[0]) == 11
     # two largest solutions are found?
     print('hi')

@@ -264,6 +264,7 @@ class SuperimposedTopology:
         # if the found sup_top was larger and contains the current sup top, then the two can be linked
         self.uncharged_sup_top = None
         self.nodes_added_log = []
+        self.last_added_pair = None, None
 
 
     def remove_lonely_hydrogens(self):
@@ -416,7 +417,13 @@ class SuperimposedTopology:
         # update the networkx graphs
         #self.nxlg.add_node(n1)
         # self.nxrg.add_node(n2)
-        #
+
+        # save this pair as the last one added
+        self.last_added_pair = node_pair
+
+
+    def get_last_added_pair(self):
+        return self.last_added_pair
 
 
     def __copy__(self):
@@ -1046,10 +1053,14 @@ def _overlay(n1, n2, sup_top=None):
         #     return [sup_top, ]
 
         nxgl, nxgr = sup_top.getNxGraphs()
-        nxgl_cycles_num, nxgr_cycles_num = len(nx.cycle_basis(nxgl)), len(nx.cycle_basis(nxgr))
+        nxgl_cycles = nx.cycle_basis(nxgl)
+        nxgr_cycles = nx.cycle_basis(nxgr)
+        nxgl_cycles_num, nxgr_cycles_num = len(nxgl_cycles), len(nxgr_cycles)
         assert nxgl_cycles_num == nxgr_cycles_num
 
         log("Adding ", (n1, n2), "in", sup_top.matched_pairs)
+
+        n1_parent, n2_parent = sup_top.get_last_added_pair()
 
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
@@ -1061,15 +1072,66 @@ def _overlay(n1, n2, sup_top=None):
         # fixme - add tests which check of features like rings/double rings etc and see if they are found
         # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
         nxgl_after, nxgr_after = sup_top.getNxGraphs()
-        nxgl_cycles_num_after, nxgr_cycles_num_after = len(nx.cycle_basis(nxgl_after)), len(nx.cycle_basis(nxgr_after))
+        nxgl_cycles_after = nx.cycle_basis(nxgl_after)
+        nxgr_cycles_after = nx.cycle_basis(nxgr_after)
+        nxgl_cycles_num_after, nxgr_cycles_num_after = len(nxgl_cycles_after), len(nxgr_cycles_after)
         if nxgl_cycles_num_after != nxgr_cycles_num_after:
             # clearly the newly added edge changes the circles, and so it is not equivalent
             # even though it might appear like it (mcl1 case)
             sup_top.remove_node_pair((n1, n2))
             log("Removing pair because one creates a cycle and the other does not", (n1, n2))
+            # fixme - why none?
             return None
 
         if nxgl_cycles_num_after > nxgl_cycles_num:
+            # a new circle is formed in both ligands
+            # means that (n1, n2) are bound to (X1, X2)
+            # which are already contains in the two topologies
+            # let us check if the new circle is due to the same matched pair previously found
+            # fixme - what if there is more circles in one go?
+            # the newly formed cycles have to be due to to bonded atoms
+            # that are already in the bonded section, so let's check which are these
+            # so new cycles were created, so let's fine the new cycles
+            old_l_cycles = {frozenset(c) for c in nxgl_cycles}
+            new_l_cycles = {frozenset(c) for c in nxgl_cycles_after if frozenset(c) not in old_l_cycles}
+
+            old_r_cycles = {frozenset(c) for c in nxgr_cycles}
+            new_r_cycles = {frozenset(c) for c in nxgr_cycles_after if frozenset(c) not in old_r_cycles}
+
+            # so there should be a bonded atom in both cases which are matched to each other
+            should_match_l = set()
+            for bonded in n1.bonds:
+                for cycle in new_l_cycles:
+                    if bonded in cycle:
+                        should_match_l.add(bonded)
+
+            should_match_r = set()
+            for bonded in n2.bonds:
+                for cycle in new_r_cycles:
+                    if bonded in cycle:
+                        should_match_r.add(bonded)
+
+            # fixme - you could track the parent and remove them straight away from this
+            # remove the parents from this
+            should_match_l.remove(n1_parent)
+            should_match_r.remove(n2_parent)
+
+            for leftn in list(should_match_l)[::-1]:
+                for rightn in list(should_match_r)[::-1]:
+                    if sup_top.contains((leftn, rightn)):
+                        should_match_l.remove(leftn)
+                        should_match_r.remove(rightn)
+
+            # if the pair is not matched in the topology, then that means this circle
+            # is created via two completely different nodes
+            # that the current topology sees as different ones, therefore
+            # this cycle is erronous (case mcl1_l12l35)
+            if not len(should_match_l) == len(should_match_r) == 0:
+                sup_top.remove_node_pair((n1, n2))
+                log("Removing pair: created cycle through nodes X and Y "
+                    "that are not matched in the topology", (n1, n2))
+                # fixme - why none?
+                return None
             log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
 
         # try every possible pathway
@@ -1137,7 +1199,49 @@ def _overlay(n1, n2, sup_top=None):
     return [sup_top, ]
 
 
-def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
+class Topology:
+    """
+    A helper class to organise a topology and its associated functions
+    """
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+        # generate a networkx graph
+        graph = nx.Graph()
+        [graph.add_node(node) for node in nodes]
+        for node in nodes:
+            for bonded in node.bonds:
+                graph.add_edge(node, bonded)
+        self.nxgraph = graph
+
+        self.cycles()
+
+    def cycles(self):
+        # find the cycles
+        cycles = [frozenset(c) for c in nx.cycle_basis(self.nxgraph)]
+
+        self.joined_cycles = {}
+        for cycle in cycles:
+            self.joined_cycles[cycle] = set()
+
+        # see if any cycles overlap with 2 atoms
+        # this would mean that they are in the same 2D plane
+        for i, cycle1 in enumerate(cycles):
+            for cycle2 in cycles[i + 1:]:
+                if len(set(cycle1).intersection(set(cycle2))) >= 2:
+                    # the two cycles overlap and are in the same plane
+                    self.joined_cycles[cycle1].add(cycle2)
+                    self.joined_cycles[cycle2].add(cycle1)
+
+
+    def inSamePlane(self, cycle1, cycle2):
+        if cycle1 in self.joined_cycles[cycle1]:
+            return True
+
+        return False
+
+
+def superimpose_topologies(top1_nodes, top2_nodes, atol, useCharges=True, useCoords=True):
     # fixme replace with theoretical max
     large_value = 99999
     """
@@ -1155,7 +1259,7 @@ def superimpose_topologies(top1, top2, atol, useCharges=True, useCoords=True):
     how do you match them together?
     """
 
-    sup_tops_no_charges = _superimpose_topologies(top1, top2)
+    sup_tops_no_charges = _superimpose_topologies(top1_nodes, top2_nodes)
     if useCharges:
         ensure_charges_match(sup_tops_no_charges, atol=atol)
 
@@ -1291,18 +1395,23 @@ def removeCandidatesSubgraphs(candidate_suptop, suptops):
             removed_subgraphs = True
     return removed_subgraphs
 
-def _superimpose_topologies(top1_node_list, top2_node_list):
+def _superimpose_topologies(top1_nodes, top2_nodes):
     """
     Superimpose two molecules.
     """
+    # generate the graph for the top1 and top2
+    top1 = Topology(top1_nodes)
+    top2 = Topology(top2_nodes)
+
+    # superimposed topologies
     suptops = []
     # grow the topologies using every combination node1-node2 as the starting point
     # fixme - Test/Optimisation: create a theoretical maximum of a match between two molecules
     # - Proposal 1: find junctions and use them to start the search
     # - Analyse components of the graph (ie rotatable due to a single bond connection) and
     #   pick a starting point from each component
-    for node1 in top1_node_list:
-        for node2 in top2_node_list:
+    for node1 in top1_nodes:
+        for node2 in top2_nodes:
             # fixme - optimisation - reduce the number of starting nX and nY pairs
 
             # with the given starting two nodes, generate the maximum common component
@@ -1314,7 +1423,7 @@ def _superimpose_topologies(top1_node_list, top2_node_list):
             # pick one best way to traverse the molecule
             candidate_suptop = getBestRmsdMatch(candidate_suptops)
             # link the suptop to their respective ligands
-            candidate_suptop.set_tops(top1_node_list, top2_node_list)
+            candidate_suptop.set_tops(top1_nodes, top2_nodes)
 
             # check if the maximal possible solution was found
             # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
@@ -1371,8 +1480,8 @@ def _superimpose_topologies(top1_node_list, top2_node_list):
     # TEST: check that the nodes on the left are always from topology 1 and the nodes on the right are always from top2
     for suptop in suptops:
         for node1, node2 in suptop.matched_pairs:
-            assert node1 in list(top1_node_list)
-            assert node2 in list(top2_node_list)
+            assert node1 in list(top1_nodes)
+            assert node2 in list(top2_nodes)
 
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
