@@ -84,32 +84,32 @@ def test_mcl1_l17l9():
     # Agastya's cases
     liglig_path = "agastya_dataset/mcl1/l17-l9"
     lig1_nodes, lig2_nodes = get_problem(liglig_path)
-    # we are ignoring the charges by directly calling the superimposer
+
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
-    # score the suptops,
-    # fixme - note that the suptops are wirdMirrors which should have been classified as such,
+    assert len(suptops) == 2
 
-    assert len(suptops) == 1
-    suptop = suptops[0]
-
-    # the core chain should always be the same
-    core_test_pairs = [('O3', 'O6'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25')]
-    for atomName1, atomname2 in core_test_pairs:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
-
-    # resolve the multiple possbile matches
     for suptop in suptops:
-        suptop.print_summary()
-    suptop.correct_for_coordinates()
+        # the core chain should always be the same
+        core_test_pairs = [('O3', 'O6'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25')]
+        for atomName1, atomname2 in core_test_pairs:
+            assert suptop.contains_atomNamePair(atomName1, atomname2)
+
+    # use coordinates to solve multiple matches
+    corrected_suptops = [st.correct_for_coordinates() for st in suptops]
+    # sort according to the rmsd
+    corrected_suptops.sort(key=lambda suptop: suptop.rmsd())
+    solution_suptop = corrected_suptops[0]
 
     # check the core atoms of the superimposition for correctness
     # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
     # are superimposed that way
-    multchoice_test_pairs = [('O3', 'O6'), ('C18', 'C37'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25'),
-                       ('O2', 'O4'), ('O1', 'O5'), ('H10', 'H28'), ('H9', 'H27'), ('H8', 'H26'),
-                             ('H7', 'H25'), ('H6', 'H24'), ('H5', 'H23')]
+    multchoice_test_pairs = [('C18', 'C37'), ('O2', 'O4'),
+                             ('O1', 'O5'), ('H10', 'H28'),
+                             ('H9', 'H27'), ('H8', 'H26'),
+                             ('H7', 'H25'), ('H6', 'H24'),
+                             ('H5', 'H23')]
     for atomName1, atomname2 in multchoice_test_pairs:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
+        assert solution_suptop.contains_atomNamePair(atomName1, atomname2)
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
