@@ -42,7 +42,7 @@ def get_problem(liglig_path):
     return ligand1_nodes, ligand2_nodes
 
 
-def test_mcl1_l18l39_nocharges():
+def test_mcl1_l18l39():
     # Agastya's cases
     liglig_path = "agastya_dataset/mcl1/l18-l39"
     lig1_nodes, lig2_nodes = get_problem(liglig_path)
@@ -80,12 +80,12 @@ def test_mcl1_l18l39_nocharges():
         assert not suptop.contains_atomNamePair(atomName1, atomname2)
 
 
-def test_mcl1_l17l9_nocharges():
+def test_mcl1_l17l9():
     # Agastya's cases
-    liglig_path = "/home/dresio/ucl/dataset/agastya_extracted/mcl1/l17-l9"
+    liglig_path = "agastya_dataset/mcl1/l17-l9"
     lig1_nodes, lig2_nodes = get_problem(liglig_path)
     # we are ignoring the charges by directly calling the superimposer
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=9999)
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     # score the suptops,
     # fixme - note that the suptops are wirdMirrors which should have been classified as such,
 
