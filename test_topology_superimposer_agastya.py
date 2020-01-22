@@ -1,6 +1,6 @@
 # we start the testing with the defined cases by Agastya,
 
-from topology_superimposer import SuperimposedTopology, get_charges, \
+from topology_superimposer import SuperimposedTopology, get_atoms_bonds_from_ac, \
     superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb
 import networkx as nx
 import MDAnalysis as mda
@@ -16,8 +16,8 @@ def get_problem(liglig_path):
     mda_right_lig = mda.Universe(path.join(hybrid_pair_path, 'final_%s.pdb' % ligand_to))
 
     # read the corresponding charge values for the l14
-    leftlig_atoms, leftlig_bonds = get_charges(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
-    rightlig_atoms, rightlig_bonds = get_charges(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
+    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
+    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
 
     # fixme - make sure these two are superimposed etc, that data is used later
     # get the atom location using the .pdb which are superimposed onto each other
@@ -29,13 +29,13 @@ def get_problem(liglig_path):
     # create the nodes and add edges for the other ligand
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
-        ligand1_nodes[atomNode.atomId] = atomNode
+        ligand1_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto])
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
-        ligand2_nodes[atomNode.atomId] = atomNode
+        ligand2_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in rightlig_bonds:
         ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
 
@@ -44,10 +44,10 @@ def get_problem(liglig_path):
 
 def test_mcl1_l18l39_nocharges():
     # Agastya's cases
-    liglig_path = "/home/dresio/ucl/dataset/agastya_extracted/mcl1/l18-l39"
+    liglig_path = "agastya_dataset/mcl1/l18-l39"
     lig1_nodes, lig2_nodes = get_problem(liglig_path)
     # we are ignoring the charges by directly calling the superimposer
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=9999)
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     # in this case, there should be only one solution
     assert len(suptops) == 1
 
@@ -62,7 +62,7 @@ def test_mcl1_l18l39_nocharges():
     for atomName1, atomname2 in core_test_pairs:
         assert suptop.contains_atomNamePair(atomName1, atomname2)
 
-    # resolve the multiple possbile matches
+    # resolve the multiple possible matches
     avg_dst = suptop.correct_for_coordinates()
 
     # check if the mirrors were corrected

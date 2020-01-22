@@ -105,8 +105,8 @@ for protein_path in proteins_paths:
         l14 = mda.Universe(path.join(hybrid_pair_path, 'final_%s.pdb' % ligand_to))
 
         # read the corresponding charge values for the l14
-        l11_atoms, l11_bonds = get_charges(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
-        l14_atoms, l14_bonds = get_charges(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
+        l11_atoms, l11_bonds = get_atoms_bonds_from_ac(path.join(hybrid_pair_path, 'init_%s.ac' % ligand_from))
+        l14_atoms, l14_bonds = get_atoms_bonds_from_ac(path.join(hybrid_pair_path, 'final_%s.ac' % ligand_to))
 
         assign_coords_from_pdb(l11_atoms, l11)
         assign_coords_from_pdb(l14_atoms, l14)

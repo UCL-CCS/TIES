@@ -157,6 +157,10 @@ class AtomNode:
         self.atomId = id
 
 
+    def get_id(self):
+        return self.atomId
+
+
     def set_resname(self, resname):
         self.resname = resname
 
@@ -1686,7 +1690,7 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
     # a local sup top travels in the wrong direction, then we have a clear issue
 
 
-def get_charges(ac_file):
+def get_atoms_bonds_from_ac(ac_file):
     # returns
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
@@ -1699,16 +1703,27 @@ def get_charges(ac_file):
     # extract the atoms
     # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
     atom_lines = filter(lambda l:l.startswith('ATOM'), ac_lines)
-    atoms = [AtomNode(atomID, atomName, resName, resID, float(charge), atom_colloq) for
-             _, atomID, atomName, resName, resID, x, y, z, charge, atom_colloq in
-             [l.split() for l in atom_lines]]
+
+    atoms = []
+    for line in atom_lines:
+        ATOM_phrase, atomID, atomName, resName, resID, x, y, z, charge, atom_colloq = line.split()
+        x, y, z = float(x), float(y), float(z)
+        charge = float(charge)
+        resID = int(resID)
+        atomID = int(atomID)
+        atom = AtomNode(name=atomName, type=atom_colloq)
+        atom.set_charge(charge)
+        atom.set_id(atomID)
+        atom.set_coords(x, y, z)
+        atoms.append(atom)
+
     # fixme - add a check that all the charges come to 0 as declared in the header
 
     # extract the bonds, e.g.
     #     bondID atomFrom atomTo ????
     # BOND    1    1    2    7    C17  C18
     bond_lines = filter(lambda l: l.startswith('BOND'), ac_lines)
-    bonds = [(bondFrom, bondTo) for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in
+    bonds = [(int(bondFrom), int(bondTo)) for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in
              [l.split() for l in bond_lines]]
 
     return atoms, bonds
@@ -1727,7 +1742,8 @@ def assign_coords_from_pdb(atoms, pdb_atoms):
         for pdb_atom in pdb_atoms.atoms:
             if pdb_atom.name.upper() == atom.atomName.upper():
                 # assign the charges
-                atom.set_coords(pdb_atom.position)
+                pos = pdb_atom.position
+                atom.set_coords(pos[0], pos[1], pos[2])
                 found_match = True
                 break
         if not found_match:

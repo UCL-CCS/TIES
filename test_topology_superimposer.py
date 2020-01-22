@@ -4,7 +4,7 @@ superimposes the molecule in many different and
 then processes the outputs to ensure the best match is found.
 """
 
-from topology_superimposer import SuperimposedTopology, get_charges, \
+from topology_superimposer import SuperimposedTopology, get_atoms_bonds_from_ac, \
     superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb, \
     AtomNode, _overlay
 import networkx as nx

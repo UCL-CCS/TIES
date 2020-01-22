@@ -2,7 +2,7 @@
 Focuses on the _overlay function that actually traverses the molecule using the given starting points.
 """
 
-from topology_superimposer import SuperimposedTopology, get_charges, \
+from topology_superimposer import SuperimposedTopology, get_atoms_bonds_from_ac, \
     superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb, \
     AtomNode, _overlay
 import networkx as nx
