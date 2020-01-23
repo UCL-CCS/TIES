@@ -529,3 +529,99 @@ def test_mcl1_l12l35():
     suptops = _overlay(c5, c14)
     assert len(suptops) == 1
     assert len(suptops[0]) != 12
+
+
+def test_tyk2_l11l14_part():
+    """
+    Molecule inspired by Agastya's dataset.
+         n1             n11
+         |               |
+         C1-O1          C11-O11
+         |                |
+      H1-C2           H11-C12
+        /  \            /    \
+    H2-C3- C4-H3   H12-C13 - C14 - H13
+       /    \           /      \
+      F1    H4         CL1     H14
+    """
+    # construct Ligand 1
+    n1 = AtomNode(name='N1', type='N')
+    n1.set_coords(x=1, y=1, z=0)
+    c1 = AtomNode(name='C1', type='C')
+    c1.set_coords(x=2, y=1, z=0)
+    c1.bindTo(n1)
+    o1 = AtomNode(name='O1', type='O')
+    o1.set_coords(x=2, y=2, z=0)
+    o1.bindTo(c1)
+    h1 = AtomNode(name='H1', type='H')
+    h1.set_coords(x=3, y=1, z=0)
+    c2 = AtomNode(name='C2', type='C')
+    c2.set_coords(x=3, y=2, z=0)
+    c2.bindTo(h1)
+    c2.bindTo(c1)
+    h2 = AtomNode(name='H2', type='H')
+    h2.set_coords(x=4, y=1, z=0)
+    c3 = AtomNode(name='C3', type='C')
+    c3.set_coords(x=4, y=2, z=0)
+    c3.bindTo(c2)
+    c3.bindTo(h2)
+    c4 = AtomNode(name='C4', type='C')
+    c4.set_coords(x=4, y=3, z=0)
+    c4.bindTo(c2)
+    c4.bindTo(c3)
+    h3 = AtomNode(name='H3', type='H')
+    h3.set_coords(x=4, y=4, z=0)
+    h3.bindTo(c4)
+    f1 = AtomNode(name='F1', type='F')
+    f1.set_coords(x=5, y=1, z=0)
+    f1.bindTo(c3)
+    h4 = AtomNode(name='H4', type='H')
+    h4.set_coords(x=5, y=2, z=0)
+    h4.bindTo(c4)
+
+    # construct Ligand 2
+    n11 = AtomNode(name='N11', type='N')
+    n11.set_coords(x=1, y=1, z=0)
+    c11 = AtomNode(name='C11', type='C')
+    c11.set_coords(x=2, y=1, z=0)
+    c11.bindTo(n11)
+    o11 = AtomNode(name='O11', type='O')
+    o11.set_coords(x=2, y=2, z=0)
+    o11.bindTo(c11)
+    h11 = AtomNode(name='H11', type='H')
+    h11.set_coords(x=3, y=1, z=0)
+    c12 = AtomNode(name='C12', type='C')
+    c12.set_coords(x=3, y=2, z=0)
+    c12.bindTo(h11)
+    c12.bindTo(c11)
+    h12 = AtomNode(name='H12', type='H')
+    h12.set_coords(x=4, y=1, z=0)
+    c13 = AtomNode(name='C13', type='C')
+    c13.set_coords(x=4, y=2, z=0)
+    c13.bindTo(c12)
+    c13.bindTo(h12)
+    c14 = AtomNode(name='C14', type='C')
+    c14.set_coords(x=4, y=3, z=0)
+    c14.bindTo(c12)
+    c14.bindTo(c13)
+    h13 = AtomNode(name='H13', type='H')
+    h13.set_coords(x=4, y=4, z=0)
+    h13.bindTo(c14)
+    cl11 = AtomNode(name='CL11', type='CL')
+    cl11.set_coords(x=5, y=1, z=0)
+    cl11.bindTo(c13)
+    h14 = AtomNode(name='H14', type='H')
+    h14.set_coords(x=5, y=2, z=0)
+    h14.bindTo(c14)
+
+    # the correct solution
+    suptops = _overlay(n1, n11)
+    assert len(suptops) == 1
+    suptop = suptops[0]
+    assert len(suptop) == 10
+
+    matching_pairs = [('N1', 'N11'), ('C1', 'C11'), ('O1', 'O11'),
+            ('H1', 'H11'), ('C2', 'C12'), ('H2', 'H12'), ('C3', 'C13'),
+            ('C4', 'C14'), ('H3', 'H13'), ('H4', 'H14')]
+    for n1, n2 in matching_pairs:
+        assert suptop.contains_atomNamePair(n1, n2)

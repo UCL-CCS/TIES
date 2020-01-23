@@ -1264,17 +1264,21 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol, useCharges=True, useCoo
     """
 
     sup_tops_no_charges = _superimpose_topologies(top1_nodes, top2_nodes)
-    if useCharges:
-        ensure_charges_match(sup_tops_no_charges, atol=atol)
 
     if useCoords:
         for sup_top in sup_tops_no_charges:
             sup_top.correct_for_coordinates()
 
+    if useCharges:
+        ensure_charges_match(sup_tops_no_charges, atol=atol)
+
     # fixme - remove the hydrogens without attached heavy atoms
 
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
+
+    # there might be several best solutions, order them according the RMSDs
+    sup_tops_no_charges.sort(key=lambda st: st.rmsd())
 
     return sup_tops_no_charges
 
