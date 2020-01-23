@@ -7,7 +7,10 @@ import MDAnalysis as mda
 from os import path
 
 
-def get_problem(liglig_path):
+def load_problem_from_dir(liglig_path):
+    """
+    Helper function to work with the Agastya's dataset.
+    """
     ligand_from, ligand_to = path.basename(liglig_path).split('-')
     hybrid_pair_path = path.join(liglig_path, "hybrid_par")
     print("working now on: ", hybrid_pair_path)
@@ -45,7 +48,7 @@ def get_problem(liglig_path):
 def test_mcl1_l18l39():
     # Agastya's cases
     liglig_path = "agastya_dataset/mcl1/l18-l39"
-    lig1_nodes, lig2_nodes = get_problem(liglig_path)
+    lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
     # we are ignoring the charges by directly calling the superimposer
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     # in this case, there should be only one solution
@@ -83,7 +86,7 @@ def test_mcl1_l18l39():
 def test_mcl1_l17l9():
     # Agastya's cases
     liglig_path = "agastya_dataset/mcl1/l17-l9"
-    lig1_nodes, lig2_nodes = get_problem(liglig_path)
+    lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     assert len(suptops) == 2
@@ -128,7 +131,7 @@ def test_mcl1_l17l9():
 def test_tyk2_l11l14():
     # Agastya's cases
     liglig_path = "agastya_dataset/tyk2/l11-l14"
-    lig1_nodes, lig2_nodes = get_problem(liglig_path)
+    lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     suptops = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=0.1)
     assert len(suptops) == 1

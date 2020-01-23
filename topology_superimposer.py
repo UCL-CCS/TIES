@@ -132,13 +132,14 @@ import hashlib
 import numpy as np
 import networkx as nx
 import copy
+import itertools
 
 
 class AtomNode:
     counter = 1
     def __init__(self, name, type):
         self.atomId = None
-        self.atomName = name
+        self.atomName = name.upper()
         self.resname = None
         self.resId = None
         self.charge = None
@@ -269,6 +270,47 @@ class SuperimposedTopology:
         self.uncharged_sup_top = None
         self.nodes_added_log = []
         self.last_added_pair = None, None
+
+        self.removed_due_to_charge = None
+
+
+    def get_appearing_atoms(self):
+        """
+        # fixme - should check first if atomName is unique
+        Return a list of appearing atoms (atomName) which are the
+        atoms that are
+        """
+        unmatched = []
+        for top2_atom in self.top2:
+            is_matched = False
+            for _, matched_right_ligand_atom in self.matched_pairs:
+                if top2_atom is matched_right_ligand_atom:
+                    is_matched = True
+                    break
+            if not is_matched:
+                unmatched.append(top2_atom)
+
+        return top2_atom
+
+
+    def get_disappearing_atoms(self):
+        """
+        # fixme - should check first if atomName is unique
+        Return a list of appearing atoms (atomName) which are the
+        atoms that are found in the topology, and that
+        are not present in the matched_pairs
+        """
+        unmatched = []
+        for top1_atom in self.top1:
+            is_matched = False
+            for matched_left_ligand_atom, _ in self.matched_pairs:
+                if top1_atom is matched_left_ligand_atom:
+                    is_matched = True
+                    break
+            if not is_matched:
+                unmatched.append(top1_atom)
+
+        return top1_atom
 
 
     def remove_lonely_hydrogens(self):
@@ -658,6 +700,12 @@ class SuperimposedTopology:
                             pass
                 removed_pairs.append((node1, node2))
                 print('removed a pair due to the not-matching charges', node1.atomName, node2.atomName)
+
+        # keep track of the removed atoms due to the charge
+        if not self.removed_due_to_charge is None:
+            raise Exception('the charges have already been refined, should not be called twice')
+        self.removed_due_to_charge = copy.copy(removed_pairs)
+
         return removed_pairs
 
 
@@ -1245,9 +1293,7 @@ class Topology:
         return False
 
 
-def superimpose_topologies(top1_nodes, top2_nodes, atol, useCharges=True, useCoords=True):
-    # fixme replace with theoretical max
-    large_value = 99999
+def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, useCoords=True, starting_node_pairs=None):
     """
     This is a helper function that managed the entire process.
 
@@ -1263,24 +1309,24 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol, useCharges=True, useCoo
     how do you match them together?
     """
 
-    sup_tops_no_charges = _superimpose_topologies(top1_nodes, top2_nodes)
+    sup_tops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
 
     if useCoords:
-        for sup_top in sup_tops_no_charges:
+        for sup_top in sup_tops:
             sup_top.correct_for_coordinates()
 
+    # there might be several best solutions, order them according the RMSDs
+    sup_tops.sort(key=lambda st: st.rmsd())
+
     if useCharges:
-        ensure_charges_match(sup_tops_no_charges, atol=atol)
+        ensure_charges_match(sup_tops, atol=atol)
 
     # fixme - remove the hydrogens without attached heavy atoms
 
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
-    # there might be several best solutions, order them according the RMSDs
-    sup_tops_no_charges.sort(key=lambda st: st.rmsd())
-
-    return sup_tops_no_charges
+    return sup_tops
 
 
 def getBestRmsdMatch(suptops):
@@ -1403,7 +1449,8 @@ def removeCandidatesSubgraphs(candidate_suptop, suptops):
             removed_subgraphs = True
     return removed_subgraphs
 
-def _superimpose_topologies(top1_nodes, top2_nodes):
+
+def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
     """
     Superimpose two molecules.
     """
@@ -1418,52 +1465,55 @@ def _superimpose_topologies(top1_nodes, top2_nodes):
     # - Proposal 1: find junctions and use them to start the search
     # - Analyse components of the graph (ie rotatable due to a single bond connection) and
     #   pick a starting point from each component
-    for node1 in top1_nodes:
-        for node2 in top2_nodes:
-            # fixme - optimisation - reduce the number of starting nX and nY pairs
+    if starting_node_pairs is None:
+        # generate each to each nodes
+        starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
 
-            # with the given starting two nodes, generate the maximum common component
-            candidate_suptops = _overlay(node1, node2)
-            if candidate_suptops is None or len(candidate_suptops[0]) == 0:
-                # there is no overlap, ignore this case
-                continue
+    for node1, node2 in starting_node_pairs:
+        # fixme - optimisation - reduce the number of starting nX and nY pairs
 
-            # pick one best way to traverse the molecule
-            candidate_suptop = getBestRmsdMatch(candidate_suptops)
-            # link the suptop to their respective ligands
-            candidate_suptop.set_tops(top1_nodes, top2_nodes)
+        # with the given starting two nodes, generate the maximum common component
+        candidate_suptops = _overlay(node1, node2)
+        if candidate_suptops is None or len(candidate_suptops[0]) == 0:
+            # there is no overlap, ignore this case
+            continue
 
-            # check if the maximal possible solution was found
-            # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
-            candidate_suptop.is_subgraph_of_global_top()
+        # pick one best way to traverse the molecule
+        candidate_suptop = getBestRmsdMatch(candidate_suptops)
+        # link the suptop to their respective ligands
+        candidate_suptop.set_tops(top1_nodes, top2_nodes)
 
-            # ignore if this topology was found before
-            if alreadySeen(candidate_suptop, suptops):
-                continue
+        # check if the maximal possible solution was found
+        # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
+        candidate_suptop.is_subgraph_of_global_top()
 
-            # check if this superimposed topology is a mirror of one that already exists
-            # fixme the order matters in this place
-            # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
-            if isMirrorOfOne(candidate_suptop, suptops):
-                continue
+        # ignore if this topology was found before
+        if alreadySeen(candidate_suptop, suptops):
+            continue
 
-            if isSubGraphOf(candidate_suptop, suptops):
-                continue
+        # check if this superimposed topology is a mirror of one that already exists
+        # fixme the order matters in this place
+        # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
+        if isMirrorOfOne(candidate_suptop, suptops):
+            continue
 
-            removed_subgraphs = removeCandidatesSubgraphs(candidate_suptop, suptops)
-            if removed_subgraphs:
-                suptops.append(candidate_suptop)
-                continue
+        if isSubGraphOf(candidate_suptop, suptops):
+            continue
 
-            # while comparing partial overlaps, suptops can be modified
-            andIgnore = solve_partial_overlaps(candidate_suptop, suptops)
-            if andIgnore:
-                continue
-
-            # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
-            # follow a rule: if this node was used before in a larger superimposed topology, than it should
-            # not be in the final list (we guarantee that each node is used only once)
+        removed_subgraphs = removeCandidatesSubgraphs(candidate_suptop, suptops)
+        if removed_subgraphs:
             suptops.append(candidate_suptop)
+            continue
+
+        # while comparing partial overlaps, suptops can be modified
+        andIgnore = solve_partial_overlaps(candidate_suptop, suptops)
+        if andIgnore:
+            continue
+
+        # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
+        # follow a rule: if this node was used before in a larger superimposed topology, than it should
+        # not be in the final list (we guarantee that each node is used only once)
+        suptops.append(candidate_suptop)
 
     # if there are only hydrogens superimposed without a connection to any heavy atoms, ignore these too
     for suptop in suptops[::-1]:
