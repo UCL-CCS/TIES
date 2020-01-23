@@ -145,23 +145,14 @@ def test_tyk2_l11l14():
     # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
     # are superimposed that way
     # choice
-    multchoice_test_pairs = [('C15', 'C31'), ('H12', 'H24'), ('H11', 'H23'),
-                             ('C16', 'C32'), ('H2', 'H14'), ('CL1', 'CL4'),
+    multchoice_test_pairs = [('C15', 'C31'), ('H12', 'H24'), ('H11', 'H23'),('CL1', 'CL4'),
                              ('CL3', 'CL5'), ('C3', 'C19'), ('C5', 'C21'),
                              ('C6', 'C22'), ('H5', 'H17'), ('C1', 'C17'),
                              ('C2', 'C18'), ('H4', 'H16'), ('CL3', 'CL5')]
     for atomName1, atomname2 in multchoice_test_pairs:
         assert suptop.contains_atomNamePair(atomName1, atomname2), (atomName1, atomname2)
-    #
-    # # refine against charges
-    # # ie remove the matches that change due to charge rather than spieces
-    # all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
-    # print(all_removed_pairs)
-    # removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
-    # for atomName1, atomname2 in removed_pairs:
-    #     assert not suptop.contains_atomNamePair(atomName1, atomname2)
-    #
-    # # check if the lonely hydrogens were removed together with charges
-    # removed_lonely_hydrogens = [('H14', 'H32'), ('H11', 'H29')]
-    # for atomName1, atomname2 in removed_lonely_hydrogens:
-    #     assert not suptop.contains_atomNamePair(atomName1, atomname2)
+
+    # removed due to charges
+    assert not suptop.contains_atomNamePair('C16', 'C32')
+    # hydrogens should not be dangling by themselves
+    assert not suptop.contains_atomNamePair('H2', 'H14')
