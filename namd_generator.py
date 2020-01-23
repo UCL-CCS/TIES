@@ -80,10 +80,34 @@ output_dir = '/home/dresio/code/BAC2020/namd_tests/l18-l39'
 summary_filename = os.path.join(output_dir, 'l18_l39.fep')
 # fixme - check if the file exists
 with open(summary_filename, 'w') as FOUT:
-    # use json format
-    data = {'matching': suptop.matched_pairs,
-            'appearing': suptop.get_appearing_atoms(),
-            'disappearing': suptop.get_disappearing_atoms()}
-    FOUT.write(json.dump(data))
+    # use json format, only use atomNames
+    data = {
+            'matching': [{str(n1): str(n2)} for n1, n2 in suptop.matched_pairs],
+            'appearing': list(map(str, suptop.get_appearing_atoms())),
+            'disappearing': list(map(str, suptop.get_disappearing_atoms()))
+            }
+    FOUT.write(json.dumps(data, indent=4))
+
+# we have a file on which we can now rely to correct the solvated file,
+# todo copy the solvation script, as well as the ligand1, ligand2,
+
+# todo copy the little python script that will be used to udpate the solvated script
+
+# todo copy the EQ script that will be run
+
+# todo copy the lambda .fep file to
+
+"""
+what should be the overall format? 
+# todo - generate completely different directories with scripts with namd for each lambda
+
+# todo - use sqlite to synchronise the execuation and managing of all of the simulations? (ie one major script)
+for example, imagine a script that says "do_ties" which knows that there is 13 x 5 different directories
+which have to be run each, and what it does, it goes into each of them, and schedules them, but 
+it first checks where the simulation is by looking up its little .db file, 
+ie lambda1.1 simulation has a db which is empty, so it schedules it to run, but lambda 1.2 has already finished, 
+and that's written in its DB, whereas lambda 1.3 has status "submitted" and therefore does not need to be 
+submitted again, whereas lambda 1.5 has status "running" which also can be ignored. etc etc
+"""
 
 print('hi')

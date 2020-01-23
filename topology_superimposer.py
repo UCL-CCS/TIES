@@ -290,7 +290,7 @@ class SuperimposedTopology:
             if not is_matched:
                 unmatched.append(top2_atom)
 
-        return top2_atom
+        return unmatched
 
 
     def get_disappearing_atoms(self):
@@ -310,7 +310,7 @@ class SuperimposedTopology:
             if not is_matched:
                 unmatched.append(top1_atom)
 
-        return top1_atom
+        return unmatched
 
 
     def remove_lonely_hydrogens(self):
