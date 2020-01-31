@@ -4,23 +4,18 @@ using the results, generate the NAMD input files.
 """
 from os import path
 import MDAnalysis as mda
-from topology_superimposer import get_atoms_bonds_from_ac, superimpose_topologies, assign_coords_from_pdb
+from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
 import json
 
 def getSuptop():
     # test case based on agastya_dataset/mcl1/l18-l39
 
-    # load the PDB files
-    mda_left_lig = mda.Universe('agastya_dataset/mcl1/l18-l39/hybrid_par/init_l18.pdb')
-    mda_right_lig = mda.Universe('agastya_dataset/mcl1/l18-l39/hybrid_par/final_l39.pdb')
-
     # fetch the charge information from the antechamber .ac files
-    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac('agastya_dataset/mcl1/l18-l39/hybrid_par/init_l18.ac')
-    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac('agastya_dataset/mcl1/l18-l39/hybrid_par/final_l39.ac')
-
-    assign_coords_from_pdb(leftlig_atoms, mda_left_lig)
-    assign_coords_from_pdb(rightlig_atoms, mda_right_lig)
+    # ~/code/BAC2020/
+    # fixme - you've switched to .mol2 format, so use mdanalysis for everything
+    leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
+        get_atoms_bonds_from_mol2('namd_tests/l18-l39/init_l18.mol2', 'namd_tests/l18-l39/final_l39.mol2')
 
     # assign
     # fixme - there must be a better way to match these
@@ -49,15 +44,15 @@ def getSuptop():
 
     present = [('C18', 'C40'), ('O2', 'O5')]
     for atomName1, atomname2 in present:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
+        assert suptop.contains_atomNamePair(atomName1, atomname2), f'({atomName1}, {atomname2}) not found'
 
     removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
     for atomName1, atomname2 in removed_pairs:
         assert not suptop.contains_atomNamePair(atomName1, atomname2)
 
-    return suptop
+    return suptop, mda_l1, mda_l2
 
-suptop = getSuptop()
+suptop, mda_l1, mda_l2 = getSuptop()
 # we have the sup top, so we know which atoms should stay the same
 # and which atoms should disappear and appear
 # we have the coordinates too,
@@ -88,7 +83,126 @@ with open(summary_filename, 'w') as FOUT:
             }
     FOUT.write(json.dumps(data, indent=4))
 
+# fixme - find another library that can handle writing to a PDB file
+# todo
 # we have a file on which we can now rely to correct the solvated file,
+# save the ligand with all the appropriate atomic positions, write it using the pdb format
+print('hi')
+# pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
+# write a dual .pdb file
+with open('namd_tests/l18-l39/l18l39.pdb', 'w') as FOUT:
+    for atom in mda_l1.atoms:
+        """
+        There is only one forcefield which is shared across the two topologies. 
+        Basically, we need to check whether the atom is in both topologies. 
+        If that is the case, then the atom should have the same name, and therefore appear only once. 
+        However, if there is a new atom, it should be specfically be outlined 
+        that it is 1) new and 2) the right type
+        """
+        # write all the atoms if they are matched, that's the common part
+        REMAINS = 0
+        if suptop.contains_left_atomName(atom.name):
+            line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                   f"{atom.resid:>4d}    " \
+                   f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                   f"{1.0:>6.2f}{REMAINS:>6.2f}" + (' ' * 11) + \
+                   '  ' + '  ' + '\n'
+            FOUT.write(line)
+        else:
+            # this atom was not found, this means it disappears, so we should update the
+            DISAPPEARING_ATOM = -1.0
+            line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                   f"{atom.resid:>4d}    " \
+                   f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                   f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}" + \
+                   (' ' * 11) + \
+                   '  ' + '  ' + '\n'
+            FOUT.write(line)
+    # add atoms from the right topology,
+    # which are going to be created
+    for atom in mda_l2.atoms:
+        if not suptop.contains_right_atomName(atom.name):
+            APPEARING_ATOM = 1.0
+            line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                   f"{atom.resid:>4d}    " \
+                   f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                   f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}" + \
+                   (' ' * 11) + \
+                   '  ' + '  ' + '\n'
+            FOUT.write(line)
+
+# read the corresponding topology
+ltop_file = '/home/dresio/code/BAC2020/namd_tests/l18-l39/init_l18.mol2'
+rtop_file = '/home/dresio/code/BAC2020/namd_tests/l18-l39/final_l39.mol2'
+top_merged = '/home/dresio/code/BAC2020/namd_tests/l18-l39/merged.mol2'
+
+ltop = mda.Universe(ltop_file)
+rtop = mda.Universe(rtop_file)
+# todo check if the bonds information are there?
+assert len(ltop.bonds) > 0 and len(rtop.bonds) > 0
+
+# recreate the mol2 file that is merged and contains the correct atoms from both
+def write_merged(ltop, rtop, merged_filename):
+    # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
+    with open(merged_filename, 'w') as FOUT:
+        FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
+        # name of the molecule
+        FOUT.write('merged ' + os.linesep)
+        # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
+        # fixme this is tricky, adjust
+        FOUT.write(f'{len(ltop.atoms):d} {len(ltop.bonds):d}' + os.linesep)
+        # mole type
+        FOUT.write('SMALL ' + os.linesep)
+        # charge_type
+        FOUT.write('NO_CHARGES ' + os.linesep)
+        FOUT.write(os.linesep)
+
+        # write the atoms
+        FOUT.write('@<TRIPOS>ATOM ' + os.linesep)
+        # atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+        # e.g.
+        #       1 O4           3.6010   -50.1310     7.2170 o          1 L39      -0.815300
+
+        # so from the two topologies all the atoms are needed and they need to have a different atom_id
+        # so we might need to name the atom_id for them, other details are however pretty much the same
+        # the importance of atom_name is difficult to estimate
+
+        # we are going to assign IDs in the superimposed topology in order to track which atoms have IDs
+        # and which don't
+
+        subst_id = 1    # resid basically
+        # write all the atoms that were matched first with their IDs
+        for left_atom, right_atom in suptop.matched_pairs:
+            # note that the atom id is the most important
+            FOUT.write(f'{suptop.get_new_atom_ID(left_atom)} {left_atom.atomName} '
+                       f'{left_atom.position[0]} {left_atom.position[1]} {left_atom.position[2]} '
+                       f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
+
+        # write the IDs for the atoms which are appearing/disappearing
+        for unmatched in suptop.get_unmatched_atoms():
+            FOUT.write(f'{suptop.get_new_atom_ID(unmatched)} {unmatched.atomName} '
+                       f'{unmatched.position[0]} {unmatched.position[1]} {unmatched.position[2]} '
+                       f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
+
+        FOUT.write(os.linesep)
+
+        # write bonds
+        FOUT.write('@<TRIPOS>BOND ' + os.linesep)
+        # bond_id origin_atom_id target_atom_id bond_type [status_bits]
+
+        bond_id_counter = 1
+        for atom in ltop.atoms:
+            #
+            bond_id_counter += 1
+            pass
+
+write_merged(ltop, rtop, top_merged)
+
+
+print('hi')
+# todo write the topology file? example:
+# /home/dresio/ucl/namd-ties-tutorial/FEP-tutorial-files/03.Mutating-tyrosine-into-alanine/tyr2ala.top
+
 # todo copy the solvation script, as well as the ligand1, ligand2,
 
 # todo copy the little python script that will be used to udpate the solvated script

@@ -26,7 +26,14 @@ To do:
  -consider an overall try-catch that attaches a message for the user to contact you in the case something
  does not work as expected
  - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
- 
+
+ -fixme - make sure that the "bonds" are obeyed, if an atom changes its biding, e.g. it has a double bond and then it has
+ one more hydrogen, then that is a very different atom, and both need to correctly evolve into each other
+
+ Improvements:
+ - switch to mdanalysis for creating universes and bonds and etc and other stuff,
+ - switch to mdanalysis for all kinds of atom traversal - ie try to use atom bonds etc instead of doing
+ all these details myself
  
  Case:
  - in the case of a ring, if the ring stops existing, ie one of the bonds is removed, then it is a chain,
@@ -127,7 +134,9 @@ Suggestions:
  ie are these two atoms matching? Maybe the whole superimpositon should not decided about that,
  but rather, the local environment
 """
+import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
+import MDAnalysis.analysis.align
 import hashlib
 import numpy as np
 import networkx as nx
@@ -174,9 +183,9 @@ class AtomNode:
         self.charge = charge
 
 
-    def set_coords(self, x, y, z):
+    def set_position(self, x, y, z):
         corrected_type = np.array([x, y, z], dtype='float32')
-        self.coords = corrected_type
+        self.position = corrected_type
 
 
     def isHydrogen(self):
@@ -272,6 +281,62 @@ class SuperimposedTopology:
         self.last_added_pair = None, None
 
         self.removed_due_to_charge = None
+
+
+    def get_unmatched_atoms(self):
+        """
+        Find the atoms in both topologies which were unmatched and return them.
+        These are both, appearing and disappearing.
+        """
+        unmatched_atoms = []
+        for node in self.top1:
+            if not self.contains_node(node):
+                unmatched_atoms.append(node)
+
+        for node in self.top2:
+            if not self.contains_node(node):
+                unmatched_atoms.append(node)
+
+        return unmatched_atoms
+
+
+    def assign_atoms_ids(self, id_start=1):
+        """
+        Assign an ID to each pair A1-B1. This means that if we request an atom ID
+        for A1 or B1 it will be the same.
+
+        Then assign different IDs for the other atoms
+        """
+        self.internal_ids = {}
+        id_counter = id_start
+        for left_atom, right_atom in self.matched_pairs:
+            self.internal_ids[left_atom] = id_counter
+            self.internal_ids[right_atom] = id_counter
+            id_counter += 1
+
+        # for each atom that was not mapped to any other atom,
+        # but is still in the topology, generate an ID for it
+
+        # find the not mapped atoms in the left topology and assign them an atom ID
+        for node in self.top1:
+            # check if this node was matched
+            if not self.contains_node(node):
+                self.internal_ids[node] = id_counter
+                id_counter += 1
+
+        # find the not mapped atoms in the right topology and assign them an atom ID
+        for node in self.top2:
+            # check if this node was matched
+            if not self.contains_node(node):
+                self.internal_ids[node] = id_counter
+                id_counter += 1
+
+        # return the last atom
+        return id_counter
+
+
+    def get_new_atom_ID(self, atom):
+        return self.internal_ids[atom]
 
 
     def get_appearing_atoms(self):
@@ -435,7 +500,7 @@ class SuperimposedTopology:
 
         sq_dsts = []
         for nodeA, nodeB in self.matched_pairs:
-            dst = distance_array(np.array([nodeA.coords, ]), np.array([nodeB.coords, ]))[0]
+            dst = distance_array(np.array([nodeA.position, ]), np.array([nodeB.position, ]))[0]
             sq_dsts.append(dst**2)
         return np.sqrt(np.mean(sq_dsts))
 
@@ -487,6 +552,8 @@ class SuperimposedTopology:
         """
         For each pair (A1, B1) find all the other options in the mirrors where (A1, B2)
         # ie Ignore (X, B1) search, if we repair from A to B, then B to A should be repaired too
+
+        # fixme - is this still necessary if we are traversing all paths?
         """
         choices = {}
         for A1, B1 in self.matched_pairs:
@@ -572,7 +639,7 @@ class SuperimposedTopology:
                     if BX in blacklisted_bxs:
                         continue
                     # use the distance_array because of PBC correction and speed
-                    A1_BX_dst = distance_array(np.array([A1.coords, ]), np.array([BX.coords, ]))[0]
+                    A1_BX_dst = distance_array(np.array([A1.position, ]), np.array([BX.position, ]))[0]
                     if A1_BX_dst < closest_dst:
                         closest_dst = A1_BX_dst
                         closest_bx = BX
@@ -877,6 +944,22 @@ class SuperimposedTopology:
     def contains_atomNamePair(self, atomName1, atomName2):
         for m1, m2 in self.matched_pairs:
             if m1.atomName == atomName1 and m2.atomName == atomName2:
+                return True
+
+        return False
+
+
+    def contains_left_atomName(self, atomName):
+        for m1, _ in self.matched_pairs:
+            if m1.atomName == atomName:
+                return True
+
+        return False
+
+
+    def contains_right_atomName(self, atomName):
+        for _ , m in self.matched_pairs:
+            if m.atomName == atomName:
                 return True
 
         return False
@@ -1208,7 +1291,7 @@ def _overlay(n1, n2, sup_top=None):
             return [sup_top, ]
 
         # sort in the descending order
-        all_solutions.sort(key=lambda st:len(st), reverse=True)
+        all_solutions.sort(key=lambda st: len(st), reverse=True)
 
         # combine the different walks, the walks that are smaller can be thrown away?
         # we try as many mergings as possible?
@@ -1228,6 +1311,7 @@ def _overlay(n1, n2, sup_top=None):
                 if sol1.is_consistent_with(sol2):
                     # print("merging, current pair", (n1, n2))
                     # join sol2 and sol1 because they're consistent
+                    # fixme - this can be removed because it is now taken care of in the other functions?
                     g1, g2 = sol1.getNxGraphs()
                     assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
                     g3, g4 = sol2.getNxGraphs()
@@ -1235,7 +1319,6 @@ def _overlay(n1, n2, sup_top=None):
 
                     print("Will merge", sol1, 'and', sol2)
                     assert sol1.sameCircleNumber()
-                    beforeMerge = copy.copy(sol1)
                     newly_added_pairs = sol1.merge(sol2)
 
                     if not sol1.sameCircleNumber():
@@ -1244,9 +1327,16 @@ def _overlay(n1, n2, sup_top=None):
                     all_solutions.remove(sol2)
 
         # after all the merges, return the best matches only,
-        # the other mergers are wrong (and there are smaller)
-        largest_sol_size = max([len(s2) for s2 in all_solutions])
-        return list(filter(lambda st:len(st) == largest_sol_size, all_solutions))
+        # the other mergers are wrong (and they are smaller)
+        solution_sizes = [len(s2) for s2 in all_solutions]
+        largest_sol_size = max(solution_sizes)
+        # if there is more than one solution at this stage, reduce it by checking the rmsd
+        # fixme - add dihedral angles etc and make sure you always return with just one best solution
+        # maybe we can note the other solutions as part of this solution to see understand the differences
+        # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
+        # for later analysis, rather than returning which would have to be compared with a lot of other parts
+        bestSuptop = compareSuptops(list(filter(lambda st:len(st) == largest_sol_size, all_solutions)))
+        return [bestSuptop, ]
 
     return [sup_top, ]
 
@@ -1310,10 +1400,19 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     """
 
     sup_tops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
+    # connect the sup_tops to their nodes
+    for suptop in sup_tops:
+        suptop.set_tops(top1_nodes, top2_nodes)
 
     if useCoords:
         for sup_top in sup_tops:
             sup_top.correct_for_coordinates()
+
+    start_atom_id = 1
+    for suptop in sup_tops:
+        start_atom_id = suptop.assign_atoms_ids(start_atom_id)
+        # increase the start ID by 1 so that the next sup top assigns them
+        start_atom_id += 1
 
     # there might be several best solutions, order them according the RMSDs
     sup_tops.sort(key=lambda st: st.rmsd())
@@ -1327,6 +1426,59 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
     return sup_tops
+
+
+def compareSuptops(suptops):
+    """
+    Initially simply copied getBestRmsdMatch
+    """
+    # multiple different paths to traverse the topologies were found
+    # this means some kind of symmetry in the topologies
+    # For example, in the below drawn case (starting from C1-C11) there are two
+    # solutions: (O1-O11, O2-O12) and (O1-O12, O2-O11).
+    #     LIGAND 1        LIGAND 2
+    #        C1              C11
+    #        \                \
+    #        N1              N11
+    #        /\              / \
+    #     O1    O2        O11   O12
+    # Here we decide which of the mappings is better.
+    # fixme - uses coordinates to decide which mapping is better.
+    #  - Improve: use dihedral angles to decide which mapping is better too
+    if len(suptops) == 0:
+        raise Exception('Cannot generate the best mapping without any suptops')
+
+    if len(suptops) == 1:
+        # there is only one solution
+        return suptops[0]
+
+    best_suptop = None
+    best_rmsd = np.finfo('float32').max
+    rmsd = None
+    for suptop in suptops:
+        # use the avg dst after the correction to understand which one is better,
+        # and assign the worse
+        # fixme - avg dst would ideally not be np.NaN
+        avg_dst = suptop.correct_for_coordinates()
+        rmsd = suptop.rmsd()
+        # get a global match (RMSD)
+        if rmsd < best_rmsd:
+            best_suptop = suptop
+            best_rmsd = rmsd
+
+    candidate_superimposed_top = best_suptop
+
+    for suptop in suptops:
+        if suptop is candidate_superimposed_top:
+            continue
+
+        if suptop.is_mirror_of(candidate_superimposed_top):
+            candidate_superimposed_top.add_mirror_sup_top(suptop)
+            continue
+
+        candidate_superimposed_top.addWeirdSymmetry(suptop)
+
+    return candidate_superimposed_top
 
 
 def getBestRmsdMatch(suptops):
@@ -1768,7 +1920,8 @@ def get_atoms_bonds_from_ac(ac_file):
         atom = AtomNode(name=atomName, type=atom_colloq)
         atom.set_charge(charge)
         atom.set_id(atomID)
-        atom.set_coords(x, y, z)
+        atom.set_position(x, y, z)
+        atom.set_resname(resName)
         atoms.append(atom)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
@@ -1781,6 +1934,56 @@ def get_atoms_bonds_from_ac(ac_file):
              [l.split() for l in bond_lines]]
 
     return atoms, bonds
+
+
+def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
+    """
+    Use MDAnalysis to load the .mol2 files.
+
+    Use MDAnalysis to superimpose the second structure onto the first structure.
+    Examples: https://www.mdanalysis.org/MDAnalysisTutorial/analysismodule.html
+    """
+    # returns
+    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
+    # 2) a list of bonds
+
+    uref = mda.Universe(ref_filename)
+    umob = mda.Universe(mob_filename)
+
+    # find out the RMSD between them and the rotation matrix
+    uref0 = uref.atoms.positions - uref.atoms.center_of_geometry()
+    umob0 = umob.atoms.positions - umob.atoms.center_of_geometry()
+
+    # get the rotation matrix and rmsd
+    # fixme - make use of rmsd
+    R, rmsd = MDAnalysis.analysis.align.rotation_matrix(umob0, uref0)
+
+    # update the umob atoms, the new coordinates is what we want to rely on
+    umob.atoms.translate(-umob.atoms.center_of_geometry())
+    umob.atoms.rotate(R)
+    umob.atoms.translate(uref.atoms.center_of_geometry())
+
+    # create the atoms for left ligands
+    def createAtoms(mda_atoms):
+        atoms = []
+        for mda_atom in mda_atoms:
+            atom = AtomNode(name=mda_atom.name, type=mda_atom.type)
+            atom.set_charge(mda_atom.charge)
+            atom.set_id(mda_atom.id)
+            atom.set_position(mda_atom.position[0], mda_atom.position[1], mda_atom.position[2])
+            atom.set_resname(mda_atom.resname)
+            atoms.append(atom)
+        return atoms
+
+    uref_atoms = createAtoms(uref.atoms)
+    # note that these coordinate should be superimposed
+    umob_atoms = createAtoms(umob.atoms)
+
+    # fixme - add a check that all the charges come to 0 as declared in the header
+    uref_bonds = [(atom1.id, atom2.id) for atom1, atom2 in uref.bonds]
+    umob_bonds = [(atom1.id, atom2.id) for atom1, atom2 in umob.bonds]
+
+    return uref_atoms, uref_bonds, umob_atoms, umob_bonds, uref, umob
 
 
 
@@ -1797,7 +2000,7 @@ def assign_coords_from_pdb(atoms, pdb_atoms):
             if pdb_atom.name.upper() == atom.atomName.upper():
                 # assign the charges
                 pos = pdb_atom.position
-                atom.set_coords(pos[0], pos[1], pos[2])
+                atom.set_position(pos[0], pos[1], pos[2])
                 found_match = True
                 break
         if not found_match:

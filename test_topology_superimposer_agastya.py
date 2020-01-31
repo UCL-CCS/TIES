@@ -159,3 +159,41 @@ def test_tyk2_l11l14():
     assert not suptop.contains_atomNamePair('C16', 'C32')
     # hydrogens should not be dangling by themselves
     assert not suptop.contains_atomNamePair('H2', 'H14')
+
+
+def test_tyk2_l13l12():
+    # Agastya's cases
+    liglig_path = "agastya_dataset/tyk2/l13-l12"
+    lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
+
+    suptops = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=99999)
+    # take the largest solution
+    suptop = suptops[0]
+
+    # the core chain should always be the same
+    core_test_pairs = [('C4', 'C21'), ('C7', 'C24'), ('O1', 'O3'), ('N1', 'N4'),
+                       ('H4', 'H19'), ('C8', 'C25'), ('C12', 'C29'), ('C11', 'C28'),
+                       ('N3', 'N6'), ('C13', 'C30'), ('O2', 'O4'), ('C14', 'C31')]
+    for atomName1, atomname2 in core_test_pairs[::-1]:
+        if suptop.contains_atomNamePair(atomName1, atomname2):
+            core_test_pairs.remove((atomName1, atomname2))
+    assert len(core_test_pairs) == 0, core_test_pairs
+
+    # there should be only one solution? here is a tricky situation with the ring overlap
+    # assert len(suptops) == 1
+
+    # check the core atoms of the superimposition for correctness
+    # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
+    # are superimposed that way
+    # choice
+    # multchoice_test_pairs = [('C15', 'C31'), ('H12', 'H24'), ('H11', 'H23'),('CL1', 'CL4'),
+    #                          ('CL3', 'CL5'), ('C3', 'C19'), ('C5', 'C21'),
+    #                          ('C6', 'C22'), ('H5', 'H17'), ('C1', 'C17'),
+    #                          ('C2', 'C18'), ('H4', 'H16'), ('CL3', 'CL5')]
+    # for atomName1, atomname2 in multchoice_test_pairs:
+    #     assert suptop.contains_atomNamePair(atomName1, atomname2), (atomName1, atomname2)
+    #
+    # # removed due to charges
+    # assert not suptop.contains_atomNamePair('C16', 'C32')
+    # # hydrogens should not be dangling by themselves
+    # assert not suptop.contains_atomNamePair('H2', 'H14')
