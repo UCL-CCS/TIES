@@ -326,12 +326,15 @@ class SuperimposedTopology:
             from_pair_id = self.get_generated_atom_ID(from_pair)
             # there should ot be an atom pair that is bound to nothing
             assert len(bonded_pair_list) > 0
-            for bonded_pair in bonded_pair_list:
+            for bonded_pair, bond_type in bonded_pair_list:
+                assert bond_type[0] == bond_type[1]
                 # every bonded pair has to be in the topology
                 assert bonded_pair in self.matched_pairs
                 to_pair_id = self.get_generated_atom_ID(bonded_pair)
                 # before adding them to bonds, check if they are not already there
-                bonds.add(frozenset({from_pair_id, to_pair_id}))
+                bond_sorted = sorted([from_pair_id, to_pair_id])
+                bond_sorted.append(bond_type[0])
+                bonds.add(tuple(bond_sorted))
 
         return bonds
 
@@ -503,10 +506,11 @@ class SuperimposedTopology:
         del self.matched_pairs_bonds[node_pair]
 
         # make sure any
-        for bound_pair in bound_pairs:
+        for bound_pair, bond_type in bound_pairs:
+            assert bond_type[0] == bond_type[1]
             # remove their binding to the removed pair
             bound_pair_bonds = self.matched_pairs_bonds[bound_pair]
-            bound_pair_bonds.remove(node_pair)
+            bound_pair_bonds.remove((node_pair, bond_type))
             if len(bound_pair_bonds) == 0:
                 del self.matched_pairs_bonds[bound_pair]
         # else:
@@ -591,17 +595,30 @@ class SuperimposedTopology:
 
     def link_pairs(self, from_pair, pairs):
         """
-        Pairs should include ideally the parents and other pairs that are connected
+        This helps take care of the bonds.
         """
         assert from_pair in self.matched_pairs_bonds
-        for pair in pairs:
+        for pair, bond_types in pairs:
             # the parent pair should have its list of pairs
             assert pair in self.matched_pairs_bonds, f'not found pair {pair}'
 
             # link X-Y
-            self.matched_pairs_bonds[from_pair].add(pair)
+            self.matched_pairs_bonds[from_pair].add((pair, bond_types))
             # link Y-X
-            self.matched_pairs_bonds[pair].add(from_pair)
+            self.matched_pairs_bonds[pair].add((from_pair, bond_types))
+
+    def link_with_parent(self, pair, parent, type):
+        assert len(pair) == 2
+        assert len(parent) == 2
+
+        # the parent pair should have its list of pairs
+        assert pair in self.matched_pairs_bonds, f'not found pair {pair}'
+        assert parent in self.matched_pairs_bonds
+
+        # link X-Y
+        self.matched_pairs_bonds[parent].add((pair, type))
+        # link Y-X
+        self.matched_pairs_bonds[pair].add((parent, type))
 
     def __copy__(self):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
@@ -822,7 +839,8 @@ class SuperimposedTopology:
         for node1, node2 in self.matched_pairs[::-1]:
             if not node1.eq(node2, atol=atol):
                 # remove this pair
-                self.matched_pairs.remove((node1, node2))
+                # self.matched_pairs.remove((node1, node2))
+                self.remove_node_pair((node1, node2))
                 # get hydrogens attached to the heavy atoms
                 node1_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node1.bonds)
                 node2_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node2.bonds)
@@ -832,7 +850,8 @@ class SuperimposedTopology:
                     n1_pair_removed = False
                     for n2_hyd in node2_hydrogens:
                         try:
-                            self.matched_pairs.remove((n1_hyd, n2_hyd))
+                            # self.matched_pairs.remove((n1_hyd, n2_hyd))
+                            self.remove_node_pair((n1_hyd, n2_hyd))
                             print('Removed lonely hydrogen pair', (n1_hyd.atomName, n2_hyd.atomName))
                             n1_pair_removed = True
                             removed_pairs.append((n1_hyd, n2_hyd))
@@ -1232,7 +1251,7 @@ def log(*args):
         print(*args)
 
 
-def _overlay(n1, n2, parent_n1, parent_n2, suptop=None):
+def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -1273,7 +1292,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, suptop=None):
             if len(suptop.matched_pairs) == 1:
                 pass
             elif len(bonds) == 0:
-                print('off')
+                raise Exception('Error')
 
         nxgl, nxgr = suptop.getNxGraphs()
         nxgl_cycles = nx.cycle_basis(nxgl)
@@ -1287,7 +1306,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, suptop=None):
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
         suptop.add_node_pair((n1, n2))
         if not (parent_n1 is parent_n2 is None):
-            suptop.link_pairs((n1, n2), [(parent_n1, parent_n2), ])
+            suptop.link_with_parent((n1, n2), (parent_n1, parent_n2), bond_types)
 
         # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
         # is actually the wrong match, add one more criteria:
@@ -1368,7 +1387,10 @@ def _overlay(n1, n2, parent_n1, parent_n2, suptop=None):
 
                 # a copy of the sup_top is needed because the traversal can take place
                 # using different pathways
-                bond_solutions = _overlay(n1bonded_node, n2bonded_node, n1, n2, suptop=copy.copy(suptop))
+                bond_solutions = _overlay(n1bonded_node, n2bonded_node,
+                                          parent_n1=n1, parent_n2=n2,
+                                          bond_types=(btype1, btype2),
+                                          suptop=copy.copy(suptop))
                 if bond_solutions is None:
                     continue
                 all_solutions.extend(bond_solutions)
@@ -1713,7 +1735,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
         # fixme - optimisation - reduce the number of starting nX and nY pairs
 
         # with the given starting two nodes, generate the maximum common component
-        candidate_suptops = _overlay(node1, node2, parent_n1=None, parent_n2=None)
+        candidate_suptops = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None))
         if candidate_suptops is None or len(candidate_suptops[0]) == 0:
             # there is no overlap, ignore this case
             continue

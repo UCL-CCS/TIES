@@ -145,13 +145,15 @@ assert len(ltop.bonds) > 0 and len(rtop.bonds) > 0
 def write_merged(suptop, merged_filename):
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
     with open(merged_filename, 'w') as FOUT:
+        bonds = suptop.getDualTopologyBonds()
+
         FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
         # name of the molecule
         FOUT.write('merged ' + os.linesep)
         # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
         # fixme this is tricky
         FOUT.write(f'{suptop.getUnqiueAtomCount():d} '
-                   f'{100:d}' + os.linesep)
+                   f'{len(bonds):d}' + os.linesep)
         # mole type
         FOUT.write('SMALL ' + os.linesep)
         # charge_type
@@ -195,12 +197,12 @@ def write_merged(suptop, merged_filename):
         # 2) bonds which link the disappearing atoms, and their connection to the paired atoms
         # 3) bonds which link the appearing atoms, and their connections to the paired atoms
 
-        for bond_from_id, bond_to_id in suptop.getDualTopologyBonds():
+        bond_counter = 1
+        for bond_from_id, bond_to_id, bond_type in bonds:
             # Bond Line Format:
             # bond_id origin_atom_id target_atom_id bond_type [status_bits]
-            FOUT.write(f'{bond_from_id} {bond_to_id}' + os.linesep)
-
-            pass
+            FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)
+            bond_counter += 1
 
 write_merged(suptop, top_merged)
 
