@@ -278,7 +278,6 @@ class SuperimposedTopology:
         # if the found sup_top was larger and contains the current sup top, then the two can be linked
         self.uncharged_sup_top = None
         self.nodes_added_log = []
-        self.last_added_pair = None, None
 
         self.internal_ids = None
         self.removed_due_to_charge = None
@@ -326,6 +325,7 @@ class SuperimposedTopology:
         for from_pair, bonded_pair_list in self.matched_pairs_bonds.items():
             from_pair_id = self.get_generated_atom_ID(from_pair)
             for bonded_pair in bonded_pair_list:
+                assert bonded_pair in self.matched_pairs
                 to_pair_id = self.get_generated_atom_ID(bonded_pair)
                 id_list = [from_pair_id, to_pair_id]
                 id_list.sort()
@@ -498,17 +498,17 @@ class SuperimposedTopology:
         self.nodes_added_log.append(("Removed", node_pair))
 
         # remove any binding from this pair
-        if node_pair in self.matched_pairs_bonds:
-            bound_pairs = self.matched_pairs_bonds[node_pair]
-            del self.matched_pairs_bonds[node_pair]
+        # if node_pair in self.matched_pairs_bonds:
+        bound_pairs = self.matched_pairs_bonds[node_pair]
+        del self.matched_pairs_bonds[node_pair]
 
-            # make sure any
-            for bound_pair in bound_pairs:
-                # remove their binding to the removed pair
-                self.matched_pairs_bonds[bound_pair].remove(node_pair)
-        else:
-            if not ignore_not_found:
-                raise Exception('Did not find the pair in the list of bonds ', node_pair)
+        # make sure any
+        for bound_pair in bound_pairs:
+            # remove their binding to the removed pair
+            self.matched_pairs_bonds[bound_pair].remove(node_pair)
+        # else:
+        #     if not ignore_not_found:
+        #         raise Exception('Did not find the pair in the list of bonds ', node_pair)
 
 
     def findLowestRmsdMirror(self):
@@ -561,7 +561,7 @@ class SuperimposedTopology:
         return np.sqrt(np.mean(sq_dsts))
 
 
-    def add_node_pair(self, node_pair, parent_pair=None, ignore_parent=False):
+    def add_node_pair(self, node_pair, parent_pair=(None, None), ignore_parent=False):
         # fixme - use this function in the __init__ to initialise
         assert not node_pair in self.matched_pairs, 'already added'
         # check if a1 or a2 was used before
@@ -580,30 +580,20 @@ class SuperimposedTopology:
         # update the log to understand the order in which this sup top was created
         self.nodes_added_log.append(("Added", node_pair))
 
-        # fixme - ideally sup top would internally manage/use the networkx Graph
-        # update the networkx graphs
-        #self.nxlg.add_node(n1)
-        # self.nxrg.add_node(n2)
+        # --------------------
+        # update the bond information
+        # create a list of bonds for this pair
+        self.matched_pairs_bonds[node_pair] = set()
 
-        # add the new bond
-        # fixme - what if the last added pair was removed?
-        assert self.contains(self.last_added_pair)
-        # the previous pair should have a list of bonds
-        if self.last_added_pair not in self.matched_pairs_bonds:
-            self.matched_pairs_bonds[self.last_added_pair] = set()
+        if parent_pair != (None, None):
+            # the parent pair should have its list of pairs
+            assert parent_pair in self.matched_pairs_bonds
 
-        # add this node pair to the list of bonds for the previous pair
-        self.matched_pairs_bonds[self.last_added_pair].add(node_pair)
+            # link the parent pair to the new pair
+            self.matched_pairs_bonds[parent_pair].add(node_pair)
 
-        # and the reverse
-        if node_pair not in self.matched_pairs_bonds:
-            self.matched_pairs_bonds[node_pair] = set()
-        #
-        self.matched_pairs_bonds[node_pair].add(self.last_added_pair)
-
-
-    def get_last_added_pair(self):
-        return self.last_added_pair
+            # link this pair to the parent pair
+            self.matched_pairs_bonds[node_pair].add(parent_pair)
 
 
     def __copy__(self):
@@ -614,7 +604,12 @@ class SuperimposedTopology:
         newone.matched_pairs = copy.copy(self.matched_pairs)
         newone.nodes = copy.copy(self.nodes)
         newone.nodes_added_log = copy.copy(self.nodes_added_log)
-        newone.matched_pairs_bonds = copy.copy(self.matched_pairs_bonds)
+        # copy the bond information
+        # improve
+        copied_bonds = {}
+        for pair, bonded_pairs_set in self.matched_pairs_bonds.items():
+            copied_bonds[pair] = copy.copy(bonded_pairs_set)
+        newone.matched_pairs_bonds = copied_bonds
         return newone
 
 
@@ -1266,8 +1261,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, sup_top=None):
         assert nxgl_cycles_num == nxgr_cycles_num
 
         log("Adding ", (n1, n2), "in", sup_top.matched_pairs)
-
-        n1_parent, n2_parent = sup_top.get_last_added_pair()
 
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
