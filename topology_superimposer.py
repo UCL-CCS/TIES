@@ -211,9 +211,9 @@ class AtomNode:
     def __repr__(self):
         return self.atomName
 
-    def bindTo(self, other):
-        self.bonds.add(other)
-        other.bonds.add(self)
+    def bindTo(self, other, btype):
+        self.bonds.add((other, btype))
+        other.bonds.add((self, btype))
 
     def eq(self, atom, atol=0):
         """
@@ -280,7 +280,10 @@ class SuperimposedTopology:
         self.nodes_added_log = []
         self.last_added_pair = None, None
 
+        self.internal_ids = None
         self.removed_due_to_charge = None
+        self.unique_atom_count = 0
+        self.matched_pairs_bonds = {}
 
 
     def get_unmatched_atoms(self):
@@ -300,6 +303,40 @@ class SuperimposedTopology:
         return unmatched_atoms
 
 
+    def getUnqiueAtomCount(self):
+        """
+        Requires that the .assign_atoms_ids() was called.
+        This should be rewritten. But basically, it needs to count each matched pair as one atom,
+        and the apperaing and disappearing atoms separately.
+        """
+        return self.unique_atom_count
+
+
+    def getDualTopologyBonds(self):
+        """
+        Get the bonds between all the atoms.
+        Use the atom IDs for the bonds.
+        """
+        assert self.top1 is not None and self.top2 is not None
+        # fixme - check if the atoms IDs have been generated
+        assert self.internal_ids is not None
+
+        # extract the bonds for the matched molecules first
+        bonds = []
+        for from_pair, bonded_pair_list in self.matched_pairs_bonds.items():
+            from_pair_id = self.get_generated_atom_ID(from_pair)
+            for bonded_pair in bonded_pair_list:
+                to_pair_id = self.get_generated_atom_ID(bonded_pair)
+                id_list = [from_pair_id, to_pair_id]
+                id_list.sort()
+                # before adding them to bonds, check if they are not already there
+                if not id_list in bonds:
+                    bonds.append(id_list)
+
+        return bonds
+
+
+    # fixme - id_start should be a property of the suptop
     def assign_atoms_ids(self, id_start=1):
         """
         Assign an ID to each pair A1-B1. This means that if we request an atom ID
@@ -312,7 +349,11 @@ class SuperimposedTopology:
         for left_atom, right_atom in self.matched_pairs:
             self.internal_ids[left_atom] = id_counter
             self.internal_ids[right_atom] = id_counter
+            # make it possible to look up the atom ID with a pair
+            self.internal_ids[(left_atom, right_atom)] = id_counter
+
             id_counter += 1
+            self.unique_atom_count += 1
 
         # for each atom that was not mapped to any other atom,
         # but is still in the topology, generate an ID for it
@@ -323,6 +364,7 @@ class SuperimposedTopology:
             if not self.contains_node(node):
                 self.internal_ids[node] = id_counter
                 id_counter += 1
+                self.unique_atom_count += 1
 
         # find the not mapped atoms in the right topology and assign them an atom ID
         for node in self.top2:
@@ -330,12 +372,13 @@ class SuperimposedTopology:
             if not self.contains_node(node):
                 self.internal_ids[node] = id_counter
                 id_counter += 1
+                self.unique_atom_count += 1
 
         # return the last atom
         return id_counter
 
 
-    def get_new_atom_ID(self, atom):
+    def get_generated_atom_ID(self, atom):
         return self.internal_ids[atom]
 
 
@@ -444,7 +487,7 @@ class SuperimposedTopology:
             print(different)
 
 
-    def remove_node_pair(self, node_pair):
+    def remove_node_pair(self, node_pair, ignore_not_found=False):
         assert len(node_pair) == 2
         self.matched_pairs.remove(node_pair)
         # remove from the current set
@@ -453,6 +496,19 @@ class SuperimposedTopology:
 
         # update the log to understand the order in which it was created
         self.nodes_added_log.append(("Removed", node_pair))
+
+        # remove any binding from this pair
+        if node_pair in self.matched_pairs_bonds:
+            bound_pairs = self.matched_pairs_bonds[node_pair]
+            del self.matched_pairs_bonds[node_pair]
+
+            # make sure any
+            for bound_pair in bound_pairs:
+                # remove their binding to the removed pair
+                self.matched_pairs_bonds[bound_pair].remove(node_pair)
+        else:
+            if not ignore_not_found:
+                raise Exception('Did not find the pair in the list of bonds ', node_pair)
 
 
     def findLowestRmsdMirror(self):
@@ -505,7 +561,7 @@ class SuperimposedTopology:
         return np.sqrt(np.mean(sq_dsts))
 
 
-    def add_node_pair(self, node_pair):
+    def add_node_pair(self, node_pair, parent_pair=None, ignore_parent=False):
         # fixme - use this function in the __init__ to initialise
         assert not node_pair in self.matched_pairs, 'already added'
         # check if a1 or a2 was used before
@@ -529,8 +585,21 @@ class SuperimposedTopology:
         #self.nxlg.add_node(n1)
         # self.nxrg.add_node(n2)
 
-        # save this pair as the last one added
-        self.last_added_pair = node_pair
+        # add the new bond
+        # fixme - what if the last added pair was removed?
+        assert self.contains(self.last_added_pair)
+        # the previous pair should have a list of bonds
+        if self.last_added_pair not in self.matched_pairs_bonds:
+            self.matched_pairs_bonds[self.last_added_pair] = set()
+
+        # add this node pair to the list of bonds for the previous pair
+        self.matched_pairs_bonds[self.last_added_pair].add(node_pair)
+
+        # and the reverse
+        if node_pair not in self.matched_pairs_bonds:
+            self.matched_pairs_bonds[node_pair] = set()
+        #
+        self.matched_pairs_bonds[node_pair].add(self.last_added_pair)
 
 
     def get_last_added_pair(self):
@@ -545,6 +614,7 @@ class SuperimposedTopology:
         newone.matched_pairs = copy.copy(self.matched_pairs)
         newone.nodes = copy.copy(self.nodes)
         newone.nodes_added_log = copy.copy(self.nodes_added_log)
+        newone.matched_pairs_bonds = copy.copy(self.matched_pairs_bonds)
         return newone
 
 
@@ -612,7 +682,9 @@ class SuperimposedTopology:
         removed_nodes = set()
         for A1, choices in choices_mapping.items():
             # remove the old tuple
-            self.remove_node_pair((A1, choices[0]))
+            # fixme - not sure if this is the right way to go,
+            # but we break all the rules when applying this simplistic strategy
+            self.remove_node_pair((A1, choices[0]), ignore_not_found=True)
             removed_nodes.add(A1)
             removed_nodes.add(choices[0])
 
@@ -651,7 +723,7 @@ class SuperimposedTopology:
             print(closest_a1.atomName, 'is matching best with', closest_bx.atomName)
 
             # remove the old tuple and insert the new one
-            self.add_node_pair((closest_a1, closest_bx))
+            self.add_node_pair((closest_a1, closest_bx), ignore_parent=True)
             added_nodes.add(closest_a1)
             added_nodes.add(closest_bx)
             # remove from consideration
@@ -750,8 +822,8 @@ class SuperimposedTopology:
                 # remove this pair
                 self.matched_pairs.remove((node1, node2))
                 # get hydrogens attached to the heavy atoms
-                node1_hydrogens = filter(lambda a: a.atomName.upper().startswith('H'), node1.bonds)
-                node2_hydrogens = filter(lambda a: a.atomName.upper().startswith('H'), node2.bonds)
+                node1_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node1.bonds)
+                node2_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node2.bonds)
                 # fixme - ideally the hydrogens would match each other before being removed
                 for n1_hyd in node1_hydrogens:
                     # find the matching n2 hydrogen and remove them
@@ -890,7 +962,7 @@ class SuperimposedTopology:
                 n1, n2 = pair
                 if self.contains_node(n1) or self.contains_node(n2):
                     raise Exception('already uses that node')
-                self.add_node_pair(pair)
+                self.add_node_pair(pair, ignore_parent=True)
                 merged_pairs.append(pair)
 
         # removed from the "merged" the ones that agree, so it contains only the new stuff
@@ -1150,7 +1222,7 @@ def log(*args):
         print(*args)
 
 
-def _overlay(n1, n2, sup_top=None):
+def _overlay(n1, n2, parent_n1, parent_n2, sup_top=None):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -1199,7 +1271,7 @@ def _overlay(n1, n2, sup_top=None):
 
         # append both nodes as a pair to ensure that we keep track of the mapping
         # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
-        sup_top.add_node_pair((n1, n2))
+        sup_top.add_node_pair((n1, n2), (parent_n1, parent_n2))
 
         # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
         # is actually the wrong match, add one more criteria:
@@ -1235,13 +1307,13 @@ def _overlay(n1, n2, sup_top=None):
 
             # so there should be a bonded atom in both cases which are matched to each other
             should_match_l = set()
-            for bonded in n1.bonds:
+            for bonded, btype in n1.bonds:
                 for cycle in new_l_cycles:
                     if bonded in cycle:
                         should_match_l.add(bonded)
 
             should_match_r = set()
-            for bonded in n2.bonds:
+            for bonded, btype in n2.bonds:
                 for cycle in new_r_cycles:
                     if bonded in cycle:
                         should_match_r.add(bonded)
@@ -1271,8 +1343,8 @@ def _overlay(n1, n2, sup_top=None):
 
         # try every possible pathway
         all_solutions = []
-        for n1bonded_node in n1.bonds:
-            for n2bonded_node in n2.bonds:
+        for n1bonded_node, btype1 in n1.bonds:
+            for n2bonded_node, btype2 in n2.bonds:
                 # if either of the nodes has already been matched, ignore
                 if sup_top.contains_any_node([n1bonded_node, n2bonded_node]):
                     # the advantage of this approach is that we do not have to evaluate extra returned sup_tops
@@ -1280,7 +1352,7 @@ def _overlay(n1, n2, sup_top=None):
 
                 # a copy of the sup_top is needed because the traversal can take place
                 # using different pathways
-                bond_solutions = _overlay(n1bonded_node, n2bonded_node, sup_top=copy.copy(sup_top))
+                bond_solutions = _overlay(n1bonded_node, n2bonded_node, n1, n2, sup_top=copy.copy(sup_top))
                 if bond_solutions is None:
                     continue
                 all_solutions.extend(bond_solutions)
@@ -1335,7 +1407,7 @@ def _overlay(n1, n2, sup_top=None):
         # maybe we can note the other solutions as part of this solution to see understand the differences
         # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
         # for later analysis, rather than returning which would have to be compared with a lot of other parts
-        bestSuptop = compareSuptops(list(filter(lambda st:len(st) == largest_sol_size, all_solutions)))
+        bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, all_solutions)))
         return [bestSuptop, ]
 
     return [sup_top, ]
@@ -1428,7 +1500,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     return sup_tops
 
 
-def compareSuptops(suptops):
+def extractBestSuptop(suptops):
     """
     Initially simply copied getBestRmsdMatch
     """
@@ -1452,16 +1524,15 @@ def compareSuptops(suptops):
         # there is only one solution
         return suptops[0]
 
+    # check the difference between them
+    for st1, st2 in itertools.combinations(suptops, 2):
+        print(st1.report_differences(st2))
+
     best_suptop = None
     best_rmsd = np.finfo('float32').max
-    rmsd = None
     for suptop in suptops:
-        # use the avg dst after the correction to understand which one is better,
-        # and assign the worse
-        # fixme - avg dst would ideally not be np.NaN
-        avg_dst = suptop.correct_for_coordinates()
+        # the suptops are of the same length, find the one that has the lowest RMSD
         rmsd = suptop.rmsd()
-        # get a global match (RMSD)
         if rmsd < best_rmsd:
             best_suptop = suptop
             best_rmsd = rmsd
@@ -1625,7 +1696,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
         # fixme - optimisation - reduce the number of starting nX and nY pairs
 
         # with the given starting two nodes, generate the maximum common component
-        candidate_suptops = _overlay(node1, node2)
+        candidate_suptops = _overlay(node1, node2, None, None)
         if candidate_suptops is None or len(candidate_suptops[0]) == 0:
             # there is no overlap, ignore this case
             continue
@@ -1980,8 +2051,8 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
     umob_atoms = createAtoms(umob.atoms)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
-    uref_bonds = [(atom1.id, atom2.id) for atom1, atom2 in uref.bonds]
-    umob_bonds = [(atom1.id, atom2.id) for atom1, atom2 in umob.bonds]
+    uref_bonds = [(bond[0].id, bond[1].id, bond.order) for bond in uref.bonds]
+    umob_bonds = [(bond[0].id, bond[1].id, bond.order) for bond in umob.bonds]
 
     return uref_atoms, uref_bonds, umob_atoms, umob_bonds, uref, umob
 

@@ -25,8 +25,8 @@ def getSuptop():
         ligand1_nodes[atomNode.get_id()] = atomNode
         if atomNode.atomName == 'C11':
             c11 = atomNode
-    for nfrom, nto in leftlig_bonds:
-        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto])
+    for nfrom, nto, btype in leftlig_bonds:
+        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
 
     c33 = None
     ligand2_nodes = {}
@@ -34,8 +34,8 @@ def getSuptop():
         ligand2_nodes[atomNode.get_id()] = atomNode
         if atomNode.atomName == 'C33':
             c33 = atomNode
-    for nfrom, nto in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
+    for nfrom, nto, btype in rightlig_bonds:
+        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
 
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                      starting_node_pairs=[(c11, c33)])
@@ -142,15 +142,16 @@ rtop = mda.Universe(rtop_file)
 assert len(ltop.bonds) > 0 and len(rtop.bonds) > 0
 
 # recreate the mol2 file that is merged and contains the correct atoms from both
-def write_merged(ltop, rtop, merged_filename):
+def write_merged(suptop, merged_filename):
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
     with open(merged_filename, 'w') as FOUT:
         FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
         # name of the molecule
         FOUT.write('merged ' + os.linesep)
         # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-        # fixme this is tricky, adjust
-        FOUT.write(f'{len(ltop.atoms):d} {len(ltop.bonds):d}' + os.linesep)
+        # fixme this is tricky
+        FOUT.write(f'{suptop.getUnqiueAtomCount():d} '
+                   f'{100:d}' + os.linesep)
         # mole type
         FOUT.write('SMALL ' + os.linesep)
         # charge_type
@@ -174,13 +175,13 @@ def write_merged(ltop, rtop, merged_filename):
         # write all the atoms that were matched first with their IDs
         for left_atom, right_atom in suptop.matched_pairs:
             # note that the atom id is the most important
-            FOUT.write(f'{suptop.get_new_atom_ID(left_atom)} {left_atom.atomName} '
+            FOUT.write(f'{suptop.get_generated_atom_ID(left_atom)} {left_atom.atomName} '
                        f'{left_atom.position[0]} {left_atom.position[1]} {left_atom.position[2]} '
                        f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
 
         # write the IDs for the atoms which are appearing/disappearing
         for unmatched in suptop.get_unmatched_atoms():
-            FOUT.write(f'{suptop.get_new_atom_ID(unmatched)} {unmatched.atomName} '
+            FOUT.write(f'{suptop.get_generated_atom_ID(unmatched)} {unmatched.atomName} '
                        f'{unmatched.position[0]} {unmatched.position[1]} {unmatched.position[2]} '
                        f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
 
@@ -188,15 +189,21 @@ def write_merged(ltop, rtop, merged_filename):
 
         # write bonds
         FOUT.write('@<TRIPOS>BOND ' + os.linesep)
-        # bond_id origin_atom_id target_atom_id bond_type [status_bits]
 
-        bond_id_counter = 1
-        for atom in ltop.atoms:
+        # we have to list every bond:
+        # 1) all the bonds between the paired atoms, so that part is easy
+        # 2) bonds which link the disappearing atoms, and their connection to the paired atoms
+        # 3) bonds which link the appearing atoms, and their connections to the paired atoms
+
+        # Bond Line Format:
+        # bond_id origin_atom_id target_atom_id bond_type [status_bits]
+        for bond_from_id, bond_to_id in suptop.getDualTopologyBonds():
             #
-            bond_id_counter += 1
+            FOUT.write('@<TRIPOS>BOND ' + os.linesep)
+
             pass
 
-write_merged(ltop, rtop, top_merged)
+write_merged(suptop, top_merged)
 
 
 print('hi')
