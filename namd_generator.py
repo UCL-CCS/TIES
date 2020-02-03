@@ -195,11 +195,10 @@ def write_merged(suptop, merged_filename):
         # 2) bonds which link the disappearing atoms, and their connection to the paired atoms
         # 3) bonds which link the appearing atoms, and their connections to the paired atoms
 
-        # Bond Line Format:
-        # bond_id origin_atom_id target_atom_id bond_type [status_bits]
         for bond_from_id, bond_to_id in suptop.getDualTopologyBonds():
-            #
-            FOUT.write('@<TRIPOS>BOND ' + os.linesep)
+            # Bond Line Format:
+            # bond_id origin_atom_id target_atom_id bond_type [status_bits]
+            FOUT.write(f'{bond_from_id} {bond_to_id}' + os.linesep)
 
             pass
 
