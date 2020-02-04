@@ -183,6 +183,10 @@ class AtomNode:
         self.charge = charge
 
 
+    def set_type(self, amber_type):
+        self.amber_type = amber_type
+
+
     def set_position(self, x, y, z):
         corrected_type = np.array([x, y, z], dtype='float32')
         self.position = corrected_type

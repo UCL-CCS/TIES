@@ -1,6 +1,8 @@
 """
 Load two ligands, run the topology superimposer, and then
 using the results, generate the NAMD input files.
+
+frcmod file format: http://ambermd.org/FileFormats.php#frcmod
 """
 from os import path
 import MDAnalysis as mda
@@ -183,7 +185,7 @@ def write_merged(suptop, merged_filename):
         for atom in all_atoms:
             FOUT.write(f'{suptop.get_generated_atom_ID(atom)} {atom.atomName} '
                        f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
-                       f'{atom.type} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
+                       f'{atom.type.lower()} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
 
         # for left_atom, _ in suptop.matched_pairs:
         #     # note that the atom id is the most important
