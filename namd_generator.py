@@ -175,17 +175,27 @@ def write_merged(suptop, merged_filename):
 
         subst_id = 1    # resid basically
         # write all the atoms that were matched first with their IDs
-        for left_atom, right_atom in suptop.matched_pairs:
-            # note that the atom id is the most important
-            FOUT.write(f'{suptop.get_generated_atom_ID(left_atom)} {left_atom.atomName} '
-                       f'{left_atom.position[0]} {left_atom.position[1]} {left_atom.position[2]} '
-                       f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
+        # prepare all the atoms, note that we use primarily the left ligand naming
+        all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
+        # reorder the list according to the ID
+        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_ID(atom))
+
+        for atom in all_atoms:
+            FOUT.write(f'{suptop.get_generated_atom_ID(atom)} {atom.atomName} '
+                       f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
+                       f'{atom.type} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
+
+        # for left_atom, _ in suptop.matched_pairs:
+        #     # note that the atom id is the most important
+        #     FOUT.write(f'{suptop.get_generated_atom_ID(left_atom)} {left_atom.atomName} '
+        #                f'{left_atom.position[0]:.4f} {left_atom.position[1]:.4f} {left_atom.position[2]:.4f} '
+        #                f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
 
         # write the IDs for the atoms which are appearing/disappearing
-        for unmatched in suptop.get_unmatched_atoms():
-            FOUT.write(f'{suptop.get_generated_atom_ID(unmatched)} {unmatched.atomName} '
-                       f'{unmatched.position[0]} {unmatched.position[1]} {unmatched.position[2]} '
-                       f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
+        # for unmatched in suptop.get_unmatched_atoms():
+        #     FOUT.write(f'{suptop.get_generated_atom_ID(unmatched)} {unmatched.atomName} '
+        #                f'{unmatched.position[0]:.4f} {unmatched.position[1]:.4f} {unmatched.position[2]:.4f} '
+        #                f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
 
         FOUT.write(os.linesep)
 
@@ -198,7 +208,8 @@ def write_merged(suptop, merged_filename):
         # 3) bonds which link the appearing atoms, and their connections to the paired atoms
 
         bond_counter = 1
-        for bond_from_id, bond_to_id, bond_type in bonds:
+        list(bonds)
+        for bond_from_id, bond_to_id, bond_type in sorted(list(bonds)):
             # Bond Line Format:
             # bond_id origin_atom_id target_atom_id bond_type [status_bits]
             FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)

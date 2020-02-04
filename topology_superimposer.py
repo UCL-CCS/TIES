@@ -284,11 +284,19 @@ class SuperimposedTopology:
         self.unique_atom_count = 0
         self.matched_pairs_bonds = {}
 
+    def find_pair_with_atom(self, atomName):
+        for node1, node2 in self.matched_pairs:
+            if node1.atomName == atomName or node2.atomName == atomName:
+                return node1, node2
+
+        return None
 
     def get_unmatched_atoms(self):
         """
         Find the atoms in both topologies which were unmatched and return them.
         These are both, appearing and disappearing.
+
+        Note that some atoms were removed due to charges.
         """
         unmatched_atoms = []
         for node in self.top1:
@@ -336,6 +344,44 @@ class SuperimposedTopology:
                 bond_sorted.append(bond_type[0])
                 bonds.add(tuple(bond_sorted))
 
+        # extract the bond information from the unmatched
+        unmatched_atoms = self.get_unmatched_atoms()
+        # for every atom, check to which "pair" the bond connects,
+        # and use that pair's ID to make the link
+
+        # several iterations of walking through the atoms,
+        # this is to ensure that we remove each atom one by one
+        # e.g. imagine this PAIR-SingleA1-SingleA2-SingleA3
+        # so only the first SingleA1 is connected to a pair,
+        # so the first iteration would take care of that,
+        # the next iteration would connect SingleA2 to SingleA1, etc
+        # first, remove the atoms that are connected to pairs
+        for atom in unmatched_atoms:
+            linked_to_matched_pair = False
+            for bonded_atom, bond_type in atom.bonds:
+                unmatched_atom_id = self.get_generated_atom_ID(atom)
+                # check if the unmatched atom is bonded to any pair
+                pair = self.find_pair_with_atom(bonded_atom.atomName)
+                if pair is not None:
+                    pairId = self.get_generated_atom_ID(pair[0])
+                    # add the bond between the atom and the
+                    bond_sorted = sorted([unmatched_atom_id, pairId])
+                    bond_sorted.append(bond_type[0])
+                    bonds.add(tuple(bond_sorted))
+                    linked_to_matched_pair = True
+                if not linked_to_matched_pair:
+                    # it is not directly linked to a matched pair,
+                    # simply add this missing bond
+                    another_unmatched_atom_id = self.get_generated_atom_ID(bonded_atom)
+                    bond_sorted = sorted([unmatched_atom_id, another_unmatched_atom_id])
+                    bond_sorted.append(bond_type[0])
+                    bonds.add(tuple(bond_sorted))
+
+        # fixme - what about circles etc? these bonds
+        # that form circles should probably be added while checking if the circles make sense etc
+        # also, rather than checking if it is a circle, we could check if the new linked atom,
+        # is in a pair to which the new pair refers (the same rule that is used currently)
+
         return bonds
 
 
@@ -349,6 +395,7 @@ class SuperimposedTopology:
         """
         self.internal_ids = {}
         id_counter = id_start
+        # for each pair assign an ID
         for left_atom, right_atom in self.matched_pairs:
             self.internal_ids[left_atom] = id_counter
             self.internal_ids[right_atom] = id_counter
@@ -1325,6 +1372,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             # fixme - why none?
             return None
 
+        created_new_cycle = False
         if nxgl_cycles_num_after > nxgl_cycles_num:
             # a new circle is formed in both ligands
             # means that (n1, n2) are bound to (X1, X2)
@@ -1375,6 +1423,23 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                 # fixme - why none?
                 return None
             log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
+            created_new_cycle = True
+
+        # the extra bonds are legitimate
+        # so let's make sure they added
+        for n1bonded_node, btype1 in n1.bonds:
+            # ignore left parent
+            if n1bonded_node is parent_n1:
+                continue
+            for n2bonded_node, btype2 in n2.bonds:
+                # ignore right parent
+                if n2bonded_node is parent_n2:
+                    continue
+
+                # if the pair exists, add a bond between the two pairs
+                if suptop.contains((n1bonded_node, n2bonded_node)):
+                    suptop.link_pairs((n1, n2),
+                        [((n1bonded_node, n2bonded_node), (btype1, btype2)), ])
 
         # try every possible pathway
         all_solutions = []
@@ -1519,6 +1584,13 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
 
+    # note that charges need to be checked before assigning IDs.
+    # ie if charges are different, the matched pair
+    # becomes two different atoms with different IDs
+    if useCharges:
+        ensure_charges_match(sup_tops, atol=atol)
+
+    # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1
     for suptop in sup_tops:
         start_atom_id = suptop.assign_atoms_ids(start_atom_id)
@@ -1527,9 +1599,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
 
     # there might be several best solutions, order them according the RMSDs
     sup_tops.sort(key=lambda st: st.rmsd())
-
-    if useCharges:
-        ensure_charges_match(sup_tops, atol=atol)
 
     # fixme - remove the hydrogens without attached heavy atoms
 
