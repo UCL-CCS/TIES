@@ -79,7 +79,7 @@ summary_filename = os.path.join(output_dir, 'l18_l39.fep')
 with open(summary_filename, 'w') as FOUT:
     # use json format, only use atomNames
     data = {
-            'matching': [{str(n1): str(n2)} for n1, n2 in suptop.matched_pairs],
+            'matching': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
             'appearing': list(map(str, suptop.get_appearing_atoms())),
             'disappearing': list(map(str, suptop.get_disappearing_atoms()))
             }
