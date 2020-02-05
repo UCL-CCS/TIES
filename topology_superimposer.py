@@ -985,10 +985,10 @@ class SuperimposedTopology:
         # add all the edges
         for nA, nB in self.matched_pairs:
             # add the edges from nA
-            for bonded_to_nA in nA.bonds:
+            for bonded_to_nA, bondtype1 in nA.bonds:
                 if bonded_to_nA in gl:
                     gl.add_edge(nA, bonded_to_nA)
-            for bonded_to_nB in nB.bonds:
+            for bonded_to_nB, bondtype1 in nB.bonds:
                 if bonded_to_nB in gr:
                     gr.add_edge(nB, bonded_to_nB)
 
