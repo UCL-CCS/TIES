@@ -3,6 +3,8 @@ Focuses on the _overlay function that actually traverses the molecule using the 
 
 TODO:
 - add more complex test case with multiple solutions (2 levels)  similar to test_SimpleMultipleSolutions_rightStart
+- add a test case that shows that molecules cannot be fully superimposed when it is broken in half
+- add more test cases that take into account the "differences"
 """
 
 from topology_superimposer import AtomNode, _overlay

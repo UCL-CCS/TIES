@@ -34,13 +34,13 @@ def load_problem_from_dir(liglig_path):
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in leftlig_bonds:
-        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto])
+        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], 'bondType1')
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto])
+        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], 'bondType1')
 
     return ligand1_nodes, ligand2_nodes
 

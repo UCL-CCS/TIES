@@ -30,6 +30,10 @@ To do:
  -fixme - make sure that the "bonds" are obeyed, if an atom changes its biding, e.g. it has a double bond and then it has
  one more hydrogen, then that is a very different atom, and both need to correctly evolve into each other
 
+TODO:
+ - the _overlayer now always can return only one solution, is there a situation where it cannot?
+ - we should demand that the particles have 3D coordinates, and base our work on that
+
  Improvements:
  - switch to mdanalysis for creating universes and bonds and etc and other stuff,
  - switch to mdanalysis for all kinds of atom traversal - ie try to use atom bonds etc instead of doing

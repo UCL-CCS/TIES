@@ -2,6 +2,9 @@
 Focuses on the _superimpose_topology function that
 superimposes the molecule in many different and
 then processes the outputs to ensure the best match is found.
+
+TODO
+- this testing module should focus on "separated" molecules
 """
 
 from topology_superimposer import _superimpose_topologies, AtomNode
