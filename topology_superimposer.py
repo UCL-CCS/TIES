@@ -282,9 +282,6 @@ class SuperimposedTopology:
         self.weird_symmetries = []
         # this is a set of all nodes rather than their pairs
         self.nodes = set(all_matched_nodes)
-        # the uncharged sup top is a sup top that was generated when the charges were ignored
-        # if the found sup_top was larger and contains the current sup top, then the two can be linked
-        self.uncharged_sup_top = None
         self.nodes_added_log = []
 
         self.internal_ids = None
@@ -679,10 +676,12 @@ class SuperimposedTopology:
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
         newone = type(self)()
         newone.__dict__.update(self.__dict__)
+
         # make a shallow copy of the arrays
         newone.matched_pairs = copy.copy(self.matched_pairs)
         newone.nodes = copy.copy(self.nodes)
         newone.nodes_added_log = copy.copy(self.nodes_added_log)
+
         # copy the bond information
         # improve
         copied_bonds = {}
@@ -692,6 +691,8 @@ class SuperimposedTopology:
 
         # copy the mirrors
         newone.mirrors = copy.copy(self.mirrors)
+        newone.weird_symmetries = copy.copy(self.weird_symmetries)
+
         # fixme - check any other lists that you keep track of
         return newone
 
