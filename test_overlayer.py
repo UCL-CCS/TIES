@@ -184,6 +184,105 @@ def test_SimpleMultipleSolutions_rightStart():
         assert suptop.contains_atomNamePair(atomName1, atomName2)
 
 
+def test_MultipleSolutions2Levels_rightStart():
+    """
+    A test with many different solutions.
+    The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    Then for each of the mapping there are two ways to map Nitrogens N
+    e.g. for (O1-O11) there is (N1-N11)(N2-N12) or (N1-N12)(N2-N11)
+    However, since we are eagerly accepting early matches, not all possible
+    combinations will be explored. 
+
+    So we have:
+
+         LIGAND 1        LIGAND 2
+            C1              C11
+            /\              / \
+         O1    O2        O11   O12
+        / \    / \      /  \   /  \
+       N1 N2  N3 N4   N11 N12 N13 N14
+    """
+    # ignore the third coordinate dimension
+    # construct the LIGAND 1
+    c1 = AtomNode(name='C1', type='C')
+    c1.set_position(x=1, y=1, z=0)
+    o1 = AtomNode(name='O1', type='O')
+    o1.set_position(x=1, y=3, z=0)
+    o1.bindTo(c1, 'bondType1')
+    o2 = AtomNode(name='O2', type='O')
+    o2.set_position(x=2, y=3, z=0)
+    o2.bindTo(c1, 'bondType1')
+    n1 = AtomNode(name='N1', type='N')
+    n1.set_position(3, 1, 0)
+    n1.bindTo(o1, 'bondType1')
+    n2 = AtomNode(name='N2', type='N')
+    n2.set_position(3, 2, 0)
+    n2.bindTo(o1, 'bondType1')
+    n3 = AtomNode(name='N3', type='N')
+    n3.set_position(3, 3, 0)
+    n3.bindTo(o2, 'bondType1')
+    n4 = AtomNode(name='N4', type='N')
+    n4.set_position(3, 4, 0)
+    n4.bindTo(o2, 'bondType1')
+
+    # construct the LIGAND 2
+    c11 = AtomNode(name='C11', type='C')
+    c11.set_position(x=1, y=1, z=0)
+    o11 = AtomNode(name='O11', type='O')
+    o11.set_position(x=1, y=3, z=0)
+    o11.bindTo(c11, 'bondType1')
+    o12 = AtomNode(name='O12', type='O')
+    o12.set_position(x=2, y=3, z=0)
+    o12.bindTo(c11, 'bondType1')
+    n11 = AtomNode(name='N11', type='N')
+    n11.set_position(3, 1, 0)
+    n11.bindTo(o11, 'bondType1')
+    n12 = AtomNode(name='N12', type='N')
+    n12.set_position(3, 2, 0)
+    n12.bindTo(o11, 'bondType1')
+    n13 = AtomNode(name='N13', type='N')
+    n13.set_position(3, 3, 0)
+    n13.bindTo(o12, 'bondType1')
+    n14 = AtomNode(name='N14', type='N')
+    n14.set_position(3, 4, 0)
+    n14.bindTo(o12, 'bondType1')
+
+    # the good solution is (O1-O11) and (O2-O12)
+
+    # should generate one topology which has one "symmetry"
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert len(suptops) == 1
+    suptop = suptops[0]
+
+    # check if the main solution is correct
+    correct_overlaps = [('C1', 'C11'),
+                        ('O1', 'O11'), ('O2', 'O12'),
+                        ('N1', 'N11'), ('N2', 'N12'), ('N3', 'N13'), ('N4', 'N14')]
+    for atomName1, atomName2 in correct_overlaps:
+        assert suptop.contains_atomNamePair(atomName1, atomName2)
+
+    # check if we are generating all of the alternative solutions
+    # for some mirror this must be true
+    mirror1 = [('O1', 'O12'), ('O1', 'O12'),
+               ('N1', 'N13'), ('N2', 'N14'), ('N3', 'N11'), ('N4', 'N12')]
+    assert any(all(symmetry_suptop.contains_atomNamePair(atom1, atom2) for atom1, atom2 in mirror1)
+               for symmetry_suptop in suptop.mirrors)
+
+    # for some mirror this must be true
+    mirror1 = [('O1', 'O12'), ('O1', 'O12'),
+               ('N1', 'N13'), ('N2', 'N14'), ('N3', 'N11'), ('N4', 'N12')]
+    assert any(all(symmetry_suptop.contains_atomNamePair(atom1, atom2) for atom1, atom2 in mirror1)
+        for symmetry_suptop in suptop.mirrors)
+
+    assert len(suptop.mirrors) == 1
+    worse_st = suptop.mirrors[0]
+
+    # check if both representations were found
+    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    assert worse_st.contains_atomNamePair('O1', 'O12') and worse_st.contains_atomNamePair('O2', 'O11')
+
+
+
 def test_2sameAtoms_2Cs_symmetry():
     """
     Two solutions with different starting points.

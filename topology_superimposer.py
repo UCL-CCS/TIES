@@ -689,6 +689,10 @@ class SuperimposedTopology:
         for pair, bonded_pairs_set in self.matched_pairs_bonds.items():
             copied_bonds[pair] = copy.copy(bonded_pairs_set)
         newone.matched_pairs_bonds = copied_bonds
+
+        # copy the mirrors
+        newone.mirrors = copy.copy(self.mirrors)
+        # fixme - check any other lists that you keep track of
         return newone
 
 
@@ -1251,10 +1255,6 @@ class SuperimposedTopology:
         if len(self.matched_pairs) != len(other_sup_top.matched_pairs):
             return False
 
-        # this should not be applied on the same topology match
-        if self.eq(other_sup_top):
-            raise Exception("They are already the same, cannot be a mirror")
-
         for nodeA, nodeB in self.matched_pairs:
             # find each node in the other sup top
             nodeA_found = False
@@ -1271,7 +1271,7 @@ class SuperimposedTopology:
         return True
 
 
-    def add_mirror_sup_top(self, suptop):
+    def add_mirror_suptop(self, suptop):
         assert len(self.matched_pairs) == len(suptop.matched_pairs)
         # check if this this mirror was already added
         for mirror in self.mirrors:
@@ -1641,8 +1641,8 @@ def extractBestSuptop(suptops):
         return suptops[0]
 
     # check the difference between them
-    for st1, st2 in itertools.combinations(suptops, 2):
-        print(st1.report_differences(st2))
+    # for st1, st2 in itertools.combinations(suptops, 2):
+    #     log(st1.report_differences(st2))
 
     best_suptop = None
     best_rmsd = np.finfo('float32').max
@@ -1660,7 +1660,7 @@ def extractBestSuptop(suptops):
             continue
 
         if suptop.is_mirror_of(candidate_superimposed_top):
-            candidate_superimposed_top.add_mirror_sup_top(suptop)
+            candidate_superimposed_top.add_mirror_suptop(suptop)
             continue
 
         candidate_superimposed_top.addWeirdSymmetry(suptop)
@@ -1723,9 +1723,12 @@ def alreadySeen(suptop, suptops):
 
 
 def isMirrorOfOne(suptop, suptops):
+    """
+    "Mirror" in the sense that it is an alternative topological way to traverse the molecule
+    """
     for next_suptop in suptops:
         if next_suptop.is_mirror_of(suptop):
-            next_suptop.add_mirror_sup_top(suptop)
+            next_suptop.add_mirror_suptop(suptop)
             return True
 
     return False
