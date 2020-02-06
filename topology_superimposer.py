@@ -1280,6 +1280,10 @@ class SuperimposedTopology:
                 # a mirror like that already exists
                 return
 
+        # when you "absorb" another suptop as a mirror, extract its mirrors too
+        self.mirrors.extend(suptop.mirrors)
+        suptop.mirrors = []
+
         # add the mirror
         self.mirrors.append(suptop)
 
