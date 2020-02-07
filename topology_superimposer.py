@@ -1587,6 +1587,10 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     how do you match them together?
     """
 
+    # ensure that none of the atomName across the two nodes are the same,
+    sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
+    assert len(sameAtomNames) == 0
+
     sup_tops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
     # connect the sup_tops to their nodes
     for suptop in sup_tops:
