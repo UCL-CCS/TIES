@@ -1140,9 +1140,10 @@ class SuperimposedTopology:
 
     def report_differences(self, suptop):
         selfHasNotSuptop = self.has_in_contrast_to(suptop)
-        print("self has not suptop:", selfHasNotSuptop)
+        log("self has not suptop:", selfHasNotSuptop)
         suptopHasNotSelf = suptop.has_in_contrast_to(self)
-        print('Suptop has not self', suptopHasNotSelf)
+        log('Suptop has not self', suptopHasNotSelf)
+        return selfHasNotSuptop, suptopHasNotSelf
 
 
     def has_left_nodes_same_as(self, other):
@@ -1334,199 +1335,202 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
 
     # if either of the nodes has already been matched, ignore
     if suptop.contains_any_node([n1, n2]):
-        return [suptop, ]
+        return None
 
     # if the two nodes are "the same"
     # fixme - remove the charges from here, you're not using them anyway for now
-    if n1.sameType(n2):
-        # Alternative to checking for cycles:
-        # check if both n1 and n2 contain a bonded atom that already is in the topology
-        # this way we know both create some connection back to the molecule
-        # fixme - did not seem to work?
-        # n1_common_nodes_tot = sup_top.count_common_nodes(n1.bonds)
-        # n2_common_nodes_tot = sup_top.count_common_nodes(n2.bonds)
-        # if n1_common_nodes_tot != n2_common_nodes_tot:
-        #     return [sup_top, ]
+    if not n1.sameType(n2):
+        # these two atoms have a different type, so return None
+        return None
 
-        for pair, bonds in suptop.matched_pairs_bonds.items():
-            if len(suptop.matched_pairs) == 1:
-                pass
-            elif len(bonds) == 0:
-                raise Exception('Error')
 
-        nxgl, nxgr = suptop.getNxGraphs()
-        nxgl_cycles = nx.cycle_basis(nxgl)
-        nxgr_cycles = nx.cycle_basis(nxgr)
-        nxgl_cycles_num, nxgr_cycles_num = len(nxgl_cycles), len(nxgr_cycles)
-        assert nxgl_cycles_num == nxgr_cycles_num
+    # Alternative to checking for cycles:
+    # check if both n1 and n2 contain a bonded atom that already is in the topology
+    # this way we know both create some connection back to the molecule
+    # fixme - did not seem to work?
+    # n1_common_nodes_tot = sup_top.count_common_nodes(n1.bonds)
+    # n2_common_nodes_tot = sup_top.count_common_nodes(n2.bonds)
+    # if n1_common_nodes_tot != n2_common_nodes_tot:
+    #     return [sup_top, ]
 
-        log("Adding ", (n1, n2), "in", suptop.matched_pairs)
+    for pair, bonds in suptop.matched_pairs_bonds.items():
+        if len(suptop.matched_pairs) == 1:
+            pass
+        elif len(bonds) == 0:
+            raise Exception('Error')
 
-        # append both nodes as a pair to ensure that we keep track of the mapping
-        # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
-        suptop.add_node_pair((n1, n2))
-        if not (parent_n1 is parent_n2 is None):
-            suptop.link_with_parent((n1, n2), (parent_n1, parent_n2), bond_types)
+    nxgl, nxgr = suptop.getNxGraphs()
+    nxgl_cycles = nx.cycle_basis(nxgl)
+    nxgr_cycles = nx.cycle_basis(nxgr)
+    nxgl_cycles_num, nxgr_cycles_num = len(nxgl_cycles), len(nxgr_cycles)
+    assert nxgl_cycles_num == nxgr_cycles_num
 
-        # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
-        # is actually the wrong match, add one more criteria:
-        # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
-        # fixme - add tests which check of features like rings/double rings etc and see if they are found
-        # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
-        nxgl_after, nxgr_after = suptop.getNxGraphs()
-        nxgl_cycles_after = nx.cycle_basis(nxgl_after)
-        nxgr_cycles_after = nx.cycle_basis(nxgr_after)
-        nxgl_cycles_num_after, nxgr_cycles_num_after = len(nxgl_cycles_after), len(nxgr_cycles_after)
-        if nxgl_cycles_num_after != nxgr_cycles_num_after:
-            # clearly the newly added edge changes the circles, and so it is not equivalent
-            # even though it might appear like it (mcl1 case)
+    log("Adding ", (n1, n2), "in", suptop.matched_pairs)
+
+    # append both nodes as a pair to ensure that we keep track of the mapping
+    # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
+    suptop.add_node_pair((n1, n2))
+    if not (parent_n1 is parent_n2 is None):
+        suptop.link_with_parent((n1, n2), (parent_n1, parent_n2), bond_types)
+
+    # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
+    # is actually the wrong match, add one more criteria:
+    # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
+    # fixme - add tests which check of features like rings/double rings etc and see if they are found
+    # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
+    nxgl_after, nxgr_after = suptop.getNxGraphs()
+    nxgl_cycles_after = nx.cycle_basis(nxgl_after)
+    nxgr_cycles_after = nx.cycle_basis(nxgr_after)
+    nxgl_cycles_num_after, nxgr_cycles_num_after = len(nxgl_cycles_after), len(nxgr_cycles_after)
+    if nxgl_cycles_num_after != nxgr_cycles_num_after:
+        # clearly the newly added edge changes the circles, and so it is not equivalent
+        # even though it might appear like it (mcl1 case)
+        suptop.remove_node_pair((n1, n2))
+        log("Removing pair because one creates a cycle and the other does not", (n1, n2))
+        # fixme - why none?
+        return None
+
+    created_new_cycle = False
+    if nxgl_cycles_num_after > nxgl_cycles_num:
+        # a new circle is formed in both ligands
+        # means that (n1, n2) are bound to (X1, X2)
+        # which are already contains in the two topologies
+        # let us check if the new circle is due to the same matched pair previously found
+        # fixme - what if there is more circles in one go?
+        # the newly formed cycles have to be due to to bonded atoms
+        # that are already in the bonded section, so let's check which are these
+        # so new cycles were created, so let's fine the new cycles
+        old_l_cycles = {frozenset(c) for c in nxgl_cycles}
+        new_l_cycles = {frozenset(c) for c in nxgl_cycles_after if frozenset(c) not in old_l_cycles}
+
+        old_r_cycles = {frozenset(c) for c in nxgr_cycles}
+        new_r_cycles = {frozenset(c) for c in nxgr_cycles_after if frozenset(c) not in old_r_cycles}
+
+        # so there should be a bonded atom in both cases which are matched to each other
+        should_match_l = set()
+        for bonded, btype in n1.bonds:
+            for cycle in new_l_cycles:
+                if bonded in cycle:
+                    should_match_l.add(bonded)
+
+        should_match_r = set()
+        for bonded, btype in n2.bonds:
+            for cycle in new_r_cycles:
+                if bonded in cycle:
+                    should_match_r.add(bonded)
+
+        # fixme - you could track the parent and remove them straight away from this
+        # remove the parents from this
+        should_match_l.remove(parent_n1)
+        should_match_r.remove(parent_n2)
+
+        for leftn in list(should_match_l)[::-1]:
+            for rightn in list(should_match_r)[::-1]:
+                if suptop.contains((leftn, rightn)):
+                    should_match_l.remove(leftn)
+                    should_match_r.remove(rightn)
+
+        # if the pair is not matched in the topology, then that means this circle
+        # is created via two completely different nodes
+        # that the current topology sees as different ones, therefore
+        # this cycle is erronous (case mcl1_l12l35)
+        if not len(should_match_l) == len(should_match_r) == 0:
             suptop.remove_node_pair((n1, n2))
-            log("Removing pair because one creates a cycle and the other does not", (n1, n2))
+            log("Removing pair: created cycle through nodes X and Y "
+                "that are not matched in the topology", (n1, n2))
             # fixme - why none?
             return None
+        log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
+        created_new_cycle = True
 
-        created_new_cycle = False
-        if nxgl_cycles_num_after > nxgl_cycles_num:
-            # a new circle is formed in both ligands
-            # means that (n1, n2) are bound to (X1, X2)
-            # which are already contains in the two topologies
-            # let us check if the new circle is due to the same matched pair previously found
-            # fixme - what if there is more circles in one go?
-            # the newly formed cycles have to be due to to bonded atoms
-            # that are already in the bonded section, so let's check which are these
-            # so new cycles were created, so let's fine the new cycles
-            old_l_cycles = {frozenset(c) for c in nxgl_cycles}
-            new_l_cycles = {frozenset(c) for c in nxgl_cycles_after if frozenset(c) not in old_l_cycles}
-
-            old_r_cycles = {frozenset(c) for c in nxgr_cycles}
-            new_r_cycles = {frozenset(c) for c in nxgr_cycles_after if frozenset(c) not in old_r_cycles}
-
-            # so there should be a bonded atom in both cases which are matched to each other
-            should_match_l = set()
-            for bonded, btype in n1.bonds:
-                for cycle in new_l_cycles:
-                    if bonded in cycle:
-                        should_match_l.add(bonded)
-
-            should_match_r = set()
-            for bonded, btype in n2.bonds:
-                for cycle in new_r_cycles:
-                    if bonded in cycle:
-                        should_match_r.add(bonded)
-
-            # fixme - you could track the parent and remove them straight away from this
-            # remove the parents from this
-            should_match_l.remove(parent_n1)
-            should_match_r.remove(parent_n2)
-
-            for leftn in list(should_match_l)[::-1]:
-                for rightn in list(should_match_r)[::-1]:
-                    if suptop.contains((leftn, rightn)):
-                        should_match_l.remove(leftn)
-                        should_match_r.remove(rightn)
-
-            # if the pair is not matched in the topology, then that means this circle
-            # is created via two completely different nodes
-            # that the current topology sees as different ones, therefore
-            # this cycle is erronous (case mcl1_l12l35)
-            if not len(should_match_l) == len(should_match_r) == 0:
-                suptop.remove_node_pair((n1, n2))
-                log("Removing pair: created cycle through nodes X and Y "
-                    "that are not matched in the topology", (n1, n2))
-                # fixme - why none?
-                return None
-            log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
-            created_new_cycle = True
-
-        # the extra bonds are legitimate
-        # so let's make sure they added
-        for n1bonded_node, btype1 in n1.bonds:
-            # ignore left parent
-            if n1bonded_node is parent_n1:
+    # the extra bonds are legitimate
+    # so let's make sure they added
+    for n1bonded_node, btype1 in n1.bonds:
+        # ignore left parent
+        if n1bonded_node is parent_n1:
+            continue
+        for n2bonded_node, btype2 in n2.bonds:
+            # ignore right parent
+            if n2bonded_node is parent_n2:
                 continue
-            for n2bonded_node, btype2 in n2.bonds:
-                # ignore right parent
-                if n2bonded_node is parent_n2:
-                    continue
 
-                # if the pair exists, add a bond between the two pairs
-                if suptop.contains((n1bonded_node, n2bonded_node)):
-                    suptop.link_pairs((n1, n2),
-                        [((n1bonded_node, n2bonded_node), (btype1, btype2)), ])
+            # if the pair exists, add a bond between the two pairs
+            if suptop.contains((n1bonded_node, n2bonded_node)):
+                suptop.link_pairs((n1, n2),
+                    [((n1bonded_node, n2bonded_node), (btype1, btype2)), ])
 
-        # try every possible pathway
-        all_solutions = []
-        for n1bonded_node, btype1 in n1.bonds:
-            for n2bonded_node, btype2 in n2.bonds:
-                # if either of the nodes has already been matched, ignore
-                if suptop.contains_any_node([n1bonded_node, n2bonded_node]):
-                    # the advantage of this approach is that we do not have to evaluate extra returned sup_tops
-                    continue
+    # try every possible pathway
+    all_solutions = []
+    for n1bonded_node, btype1 in n1.bonds:
+        for n2bonded_node, btype2 in n2.bonds:
+            # if either of the nodes has already been matched, ignore
+            if n1bonded_node is parent_n1 or n2bonded_node is parent_n2:
+                continue
 
-                # a copy of the sup_top is needed because the traversal can take place
-                # using different pathways
-                bond_solutions = _overlay(n1bonded_node, n2bonded_node,
-                                          parent_n1=n1, parent_n2=n2,
-                                          bond_types=(btype1, btype2),
-                                          suptop=copy.copy(suptop))
-                if bond_solutions is None:
-                    continue
-                all_solutions.extend(bond_solutions)
-                # fixme - when you have a mirror like ester O1-O2 matches, then you could store them differently here
+            # a copy of the sup_top is needed because the traversal can take place
+            # using different pathways
+            bond_solutions = _overlay(n1bonded_node, n2bonded_node,
+                                      parent_n1=n1, parent_n2=n2,
+                                      bond_types=(btype1, btype2),
+                                      suptop=copy.copy(suptop))
+            # if they were different type, etc, ignore
+            if bond_solutions is None:
+                continue
 
-        # if this was the last atom traversed together, return the current sup top
-        if len(all_solutions) == 0:
-            return [suptop, ]
+            all_solutions.extend(bond_solutions)
+            # fixme - when you have a mirror like ester O1-O2 matches, then you could store them differently here
 
-        # sort in the descending order
-        all_solutions.sort(key=lambda st: len(st), reverse=True)
+    # if this was the last atom traversed together, return the current sup top
+    if len(all_solutions) == 0:
+        return [suptop, ]
 
-        # combine the different walks, the walks that are smaller can be thrown away?
-        # we try as many mergings as possible?
-        for sol1 in all_solutions:
-            for sol2 in all_solutions[::-1]:
-                if sol1 is sol2:
-                    continue
+    # sort in the descending order
+    all_solutions.sort(key=lambda st: len(st), reverse=True)
 
-                if sol1.eq(sol2):
-                    log("Found the same solution and removing, solution", sol1.matched_pairs)
-                    all_solutions.remove(sol2)
-                    continue
+    # combine the different walks, the walks that are smaller can be thrown away?
+    # we try as many mergings as possible?
+    for sol1 in all_solutions:
+        for sol2 in all_solutions[::-1]:
+            if sol1 is sol2:
+                continue
 
-                if sol2.is_subgraph_of(sol1):
-                    continue
+            if sol1.eq(sol2):
+                log("Found the same solution and removing, solution", sol1.matched_pairs)
+                all_solutions.remove(sol2)
+                continue
 
-                if sol1.is_consistent_with(sol2):
-                    # print("merging, current pair", (n1, n2))
-                    # join sol2 and sol1 because they're consistent
-                    # fixme - this can be removed because it is now taken care of in the other functions?
-                    g1, g2 = sol1.getNxGraphs()
-                    assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
-                    g3, g4 = sol2.getNxGraphs()
-                    assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
+            if sol2.is_subgraph_of(sol1):
+                continue
 
-                    print("Will merge", sol1, 'and', sol2)
-                    assert sol1.sameCircleNumber()
-                    newly_added_pairs = sol1.merge(sol2)
+            if sol1.is_consistent_with(sol2):
+                # print("merging, current pair", (n1, n2))
+                # join sol2 and sol1 because they're consistent
+                # fixme - this can be removed because it is now taken care of in the other functions?
+                g1, g2 = sol1.getNxGraphs()
+                assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
+                g3, g4 = sol2.getNxGraphs()
+                assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
 
-                    if not sol1.sameCircleNumber():
-                        raise Exception('something off')
-                    # remove sol2 from the solutions:
-                    all_solutions.remove(sol2)
+                print("Will merge", sol1, 'and', sol2)
+                assert sol1.sameCircleNumber()
+                newly_added_pairs = sol1.merge(sol2)
 
-        # after all the merges, return the best matches only,
-        # the other mergers are wrong (and they are smaller)
-        solution_sizes = [len(s2) for s2 in all_solutions]
-        largest_sol_size = max(solution_sizes)
-        # if there is more than one solution at this stage, reduce it by checking the rmsd
-        # fixme - add dihedral angles etc and make sure you always return with just one best solution
-        # maybe we can note the other solutions as part of this solution to see understand the differences
-        # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
-        # for later analysis, rather than returning which would have to be compared with a lot of other parts
-        bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, all_solutions)))
-        return [bestSuptop, ]
+                if not sol1.sameCircleNumber():
+                    raise Exception('something off')
+                # remove sol2 from the solutions:
+                all_solutions.remove(sol2)
 
-    return [suptop, ]
+    # after all the merges, return the best matches only,
+    # the other mergers are wrong (and they are smaller)
+    solution_sizes = [len(s2) for s2 in all_solutions]
+    largest_sol_size = max(solution_sizes)
+    # if there is more than one solution at this stage, reduce it by checking the rmsd
+    # fixme - add dihedral angles etc and make sure you always return with just one best solution
+    # maybe we can note the other solutions as part of this solution to see understand the differences
+    # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
+    # for later analysis, rather than returning which would have to be compared with a lot of other parts
+    bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, all_solutions)))
+    return [bestSuptop, ]
 
 
 class Topology:
@@ -1625,6 +1629,14 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     return sup_tops
 
 
+def calculateRmsd(atomPairs):
+    deviations = []
+    for atom1, atom2 in atomPairs:
+        # check how far the atoms are to each other
+        deviations.append(atom1.position - atom2.position)
+    return np.sqrt(np.mean(((np.array(deviations)) ** 2)))
+
+
 def extractBestSuptop(suptops):
     """
     Initially simply copied getBestRmsdMatch
@@ -1649,20 +1661,41 @@ def extractBestSuptop(suptops):
         # there is only one solution
         return suptops[0]
 
-    # check the difference between them
-    # for st1, st2 in itertools.combinations(suptops, 2):
-    #     log(st1.report_differences(st2))
+    candidates = copy.copy(suptops)
 
-    best_suptop = None
-    best_rmsd = np.finfo('float32').max
-    for suptop in suptops:
-        # the suptops are of the same length, find the one that has the lowest RMSD
-        rmsd = suptop.rmsd()
-        if rmsd < best_rmsd:
-            best_suptop = suptop
-            best_rmsd = rmsd
+    # compare every two suptops to each other
+    # calculate the rmsd only for the found differences, rather than using
+    # the .rmsd of the entire topology, which can cover up some problems
+    for st1, st2 in itertools.combinations(suptops, 2):
+        selfHasNotSuptop, suptopHasNotSelf = st1.report_differences(st2)
+        selfRMSD = calculateRmsd(selfHasNotSuptop)
+        otherRMSD = calculateRmsd(suptopHasNotSelf)
+        # naively remove the worse canddiate
+        # if ('H5', 'H21' selfHasNotSuptop
+        h5 = any('H5' == a.atomName for a, b in selfHasNotSuptop) or \
+             any('H5' == a.atomName for a, b in suptopHasNotSelf)
+        print('hi')
+        if selfRMSD < otherRMSD:
+            candidates.remove(st2)
+        else:
+            candidates.remove(st1)
 
-    candidate_superimposed_top = best_suptop
+    # the problem with this approach is that it takes the .rmsd()
+    # of the entire suptop, which overall ideally would work,
+    # because we always have the same number of elements in both suptops,
+    # however, some mismatches might cancel other mismatches etc, so this is not the best way
+    # best_suptop = None
+    # best_rmsd = np.finfo('float32').max
+    # for suptop in suptops:
+    #     # the suptops are of the same length, find the one that has the lowest RMSD
+    #     rmsd = suptop.rmsd()
+    #     if rmsd < best_rmsd:
+    #         best_suptop = suptop
+    #         best_rmsd = rmsd
+
+    assert len(candidates) == 1
+
+    candidate_superimposed_top = candidates[0]
 
     for suptop in suptops:
         if suptop is candidate_superimposed_top:

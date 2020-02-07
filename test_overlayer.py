@@ -36,8 +36,7 @@ def test_2diffAtoms_CN_wrongStart():
     # should return a list with an empty sup_top
     suptops = _overlay(c1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
     # it should return an empty suptop
-    assert len(suptops) == 1
-    assert len(suptops[0]) == 0
+    assert suptops is None
 
 
 def test_2diffAtoms_CN_rightStart():
@@ -707,4 +706,5 @@ def test_tyk2_l11l14_part():
             ('H1', 'H11'), ('C2', 'C12'), ('H2', 'H12'), ('C3', 'C13'),
             ('C4', 'C14'), ('H3', 'H13'), ('H4', 'H14')]
     for n1, n2 in matching_pairs:
-        assert suptop.contains_atomNamePair(n1, n2)
+        assert suptop.contains_atomNamePair(n1, n2), (n1, n2)
+    print('hi')
