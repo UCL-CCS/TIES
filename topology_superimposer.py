@@ -1540,14 +1540,67 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             # many in the left ligand, unknown in the right ligand
             # case: only 1 in the right ligand, so Many2One case
             # check if all the atoms in the left ligand map to the same atom in the right ligand
-            if len({list(a.keys())[0] for a in atoms.values()}) == 1:
+            unique_atoms = set()
+            for keys in atoms.values():
+                for name in keys.keys():
+                    unique_atoms.add(name)
+            if len(unique_atoms) == 1:
                 print('Many (left) to one (right)')
                 # just pick the best match fro the right ligand
                 candidates = [list(v.values())[0] for v in atoms.values()]
                 largest_candidates = get_largest(candidates)
                 best = extractBestSuptop(largest_candidates)
                 return best
-            print('hi')
+
+            # ie one type
+            # many to many, ie
+            # L1 L2 and R1 R2, so we have to create to create mappings,
+            # and then merge, and then evaluate
+            left_ligand_keys = list(atoms.keys())
+            right_ligand_keys = list(unique_atoms)
+
+            # generate all pairs first
+            # fixme - this should be moved up?
+            # fixme - these functions should be factored out and tested separately
+            all_pairs = list(itertools.product(left_ligand_keys, right_ligand_keys))
+            def combine(all_pairs):
+                combined = set()
+                # used pairs keep track of which pairs have been combined
+                used_pairs = set()
+                for _ in range(len(all_pairs)):
+                    # take one item, and try to combine it with as many as possible
+                    basis = [all_pairs.pop(), ]
+                    for a1, a2 in all_pairs:
+                        # if the pair does not have any common elements, combine
+                        if not any(a1 == a or a2 == b for a,b in basis):
+                            basis.append((a1, a2))
+                            used_pairs.add(basis[0])
+                            used_pairs.add((a1, a2))
+                    # if the basis was not combined with anything
+                    if len(basis) == 1 and basis[0] in used_pairs:
+                        continue
+                    combined.add(tuple(basis))
+                # remove the subsets of larger sets
+                return combined
+
+            combined = combine(all_pairs)
+            # now that we have the pairs combined, we have to attempt to marge them this way,
+            alternatives = []
+            for combined_pairs in combined:
+                merged = None
+                for lk, rk in combined_pairs:
+                    top = atoms[lk][rk]
+                    if merged is None:
+                        merged = top
+                        continue
+
+                    # fixme - carry out all checks
+                    merged.merge(top)
+                alternatives.append(merged)
+            # now that all alternatives have been computed,
+            # decide which is best
+            largest_candidates = get_largest(alternatives)
+            return extractBestSuptop(largest_candidates)
 
         print('Multiple solutions for a single atom')
         # there are multiple solutions for this atom,

@@ -63,9 +63,8 @@ def test_2diffAtoms_CN_rightStart():
     c11.bindTo(n11, 'bondType1')
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
 
     # the number of overlapped atoms is two
     assert len(suptop) == 2
