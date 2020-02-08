@@ -228,6 +228,51 @@ def test_One2Many():
     assert suptop.contains_atomNamePair('N1', 'N11')
 
 
+def test_Many2One():
+    """
+
+     LIGAND 1        LIGAND 2
+        N1              N11
+        / \              /
+     O1    O2          O11
+
+    """
+    # ignore the third coordinate dimension
+    # construct the LIGAND 1
+    n1 = AtomNode(name='N1', type='N')
+    n1.set_position(x=1, y=1, z=0)
+    o1 = AtomNode(name='O1', type='O')
+    o1.set_position(x=2, y=1, z=0)
+    o1.bindTo(n1, 'bondType1')
+    o2 = AtomNode(name='O2', type='O')
+    o2.set_position(x=2, y=2, z=0)
+    o2.bindTo(n1, 'bondType1')
+
+    # construct the LIGAND 2
+    n11 = AtomNode(name='N11', type='N')
+    n11.set_position(x=1, y=1, z=0)
+    o11 = AtomNode(name='O11', type='O')
+    o11.set_position(x=2, y=1, z=0)
+    o11.bindTo(n11, 'bondType1')
+
+    # the good solution is (O1-O11)
+
+    # should generate one topology which has one "symmetry"
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert len(suptop) == 2
+
+    assert len(suptop.alternative_mappings) == 1
+    worse_st = suptop.alternative_mappings[0]
+
+    # check if both representations were found
+    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    assert suptop.contains_atomNamePair('O1', 'O11')
+    assert worse_st.contains_atomNamePair('O1', 'O12')
+
+    assert suptop.contains_atomNamePair('N1', 'N11')
+
+
 def test_MultipleSolutions2Levels_rightStart():
     """
     A test with many different solutions.

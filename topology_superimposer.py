@@ -1498,7 +1498,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             atom_type_solutions = {}
             for n1bonded_node, btype1 in n1_bonds:
                 # so we first try each combintion with atom1
-                solutions_for_this_left_atom = []
+                solutions_for_this_left_atom = {}
                 # so for every atom we have a list of choices,
                 for n2bonded_node, btype2 in n2_bonds:
                     # a copy of the sup_top is needed because the traversal can take place
@@ -1512,7 +1512,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                         continue
 
                     assert type(bond_solutions) is not list
-                    solutions_for_this_left_atom.append(bond_solutions)
+                    solutions_for_this_left_atom[n2bonded_node] = bond_solutions
 
                 # record all possible solution for this one atom
                 atom_type_solutions[n1bonded_node] = solutions_for_this_left_atom
@@ -1531,14 +1531,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     if len(combinations) == 1:
         atoms = combinations[0]
         if len(atoms) == 1:
-            # simple case,  one in the left ligands, plural in the right ligand, pick the best
+            # simple case,  one in the left ligands, many in the right ligand, pick the best
             atom, candidates = list(atoms.items())[0]
-            largest_candidates = get_largest(candidates)
+            largest_candidates = get_largest(list(candidates.values()))
             best = extractBestSuptop(largest_candidates)
             return best
-        if len(solutions_for_this_left_atom) == 1:
-            # there is only one solution, and therefore return the solution
-            return solutions_for_this_left_atom[0]
+        elif len(atoms) > 1:
+            # many in the left ligand, unknown in the right ligand
+            # case: only 1 in the right ligand, so Many2One case
+            print('hi')
 
         print('Multiple solutions for a single atom')
         # there are multiple solutions for this atom,
