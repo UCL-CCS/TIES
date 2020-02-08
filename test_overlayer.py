@@ -110,9 +110,8 @@ def test_3diffAtoms_CNO_rightStart():
     o11.bindTo(n11, 'bondType1')
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
 
     # the number of overlapped atoms is two
     assert len(suptop) == 3
@@ -167,9 +166,10 @@ def test_SimpleMultipleSolutions_rightStart():
     # the good solution is (O1-O11) and (O2-O12)
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert len(suptop) == 4
+
     assert len(suptop.mirrors) == 1
     worse_st = suptop.mirrors[0]
 
@@ -181,6 +181,51 @@ def test_SimpleMultipleSolutions_rightStart():
     correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
     for atomName1, atomName2 in correct_overlaps:
         assert suptop.contains_atomNamePair(atomName1, atomName2)
+
+
+def test_One2Many():
+    """
+
+     LIGAND 1        LIGAND 2
+        N1              N11
+        /              /   \
+     O1              O11   O12
+
+    """
+    # ignore the third coordinate dimension
+    # construct the LIGAND 1
+    n1 = AtomNode(name='N1', type='N')
+    n1.set_position(x=1, y=1, z=0)
+    o1 = AtomNode(name='O1', type='O')
+    o1.set_position(x=2, y=1, z=0)
+    o1.bindTo(n1, 'bondType1')
+
+    # construct the LIGAND 2
+    n11 = AtomNode(name='N11', type='N')
+    n11.set_position(x=1, y=1, z=0)
+    o11 = AtomNode(name='O11', type='O')
+    o11.set_position(x=2, y=1, z=0)
+    o11.bindTo(n11, 'bondType1')
+    o12 = AtomNode(name='O12', type='O')
+    o12.set_position(x=2, y=2, z=0)
+    o12.bindTo(n11, 'bondType1')
+
+    # the good solution is (O1-O11)
+
+    # should generate one topology which has one "symmetry"
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert len(suptop) == 2
+
+    assert len(suptop.alternative_mappings) == 1
+    worse_st = suptop.alternative_mappings[0]
+
+    # check if both representations were found
+    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    assert suptop.contains_atomNamePair('O1', 'O11')
+    assert worse_st.contains_atomNamePair('O1', 'O12')
+
+    assert suptop.contains_atomNamePair('N1', 'N11')
 
 
 def test_MultipleSolutions2Levels_rightStart():
@@ -297,6 +342,48 @@ def test_2sameAtoms_2Cs_symmetry():
     assert len(suptops) == 1
     assert suptops[0].contains_atomNamePair('C1', 'C12')
     assert suptops[0].contains_atomNamePair('C2', 'C11')
+
+
+def test_methyl():
+    """
+    Two solutions with different starting points.
+
+     LIGAND 1        LIGAND 2
+        C1              C11
+       / | \            / | \
+     H1 H2 H3        H11 H12 H13
+    """
+    # construct the LIGAND 1
+    c1 = AtomNode(name='C1', type='C')
+    c1.set_position(x=1, y=1, z=0)
+    h1 = AtomNode(name='H1', type='H')
+    h1.set_position(x=2, y=1, z=0)
+    c1.bindTo(h1, 'bondType1')
+    h2 = AtomNode(name='H2', type='H')
+    h2.set_position(x=2, y=2, z=0)
+    c1.bindTo(h2, 'bondType1')
+    h3 = AtomNode(name='H3', type='H')
+    h3.set_position(x=2, y=3, z=0)
+    c1.bindTo(h3, 'bondType1')
+
+    # construct the LIGAND 2
+    c11 = AtomNode(name='C11', type='C')
+    c11.set_position(x=1, y=1, z=0)
+    h11 = AtomNode(name='H11', type='H')
+    h11.set_position(x=2, y=1, z=0)
+    c11.bindTo(h11, 'bondType1')
+    h12 = AtomNode(name='H12', type='H')
+    h12.set_position(x=2, y=2, z=0)
+    c11.bindTo(h12, 'bondType1')
+    h13 = AtomNode(name='H13', type='H')
+    h13.set_position(x=2, y=3, z=0)
+    c11.bindTo(h13, 'bondType1')
+
+    # should return a list with an empty sup_top
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert len(suptops) == 1
+    assert suptops[0].contains_atomNamePair('C1', 'C11')
+    assert suptops[0].contains_atomNamePair('C2', 'C12')
 
 
 def test_mutation_separate_unique_match():
@@ -707,4 +794,3 @@ def test_tyk2_l11l14_part():
             ('C4', 'C14'), ('H3', 'H13'), ('H4', 'H14')]
     for n1, n2 in matching_pairs:
         assert suptop.contains_atomNamePair(n1, n2), (n1, n2)
-    print('hi')

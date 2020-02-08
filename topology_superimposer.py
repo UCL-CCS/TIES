@@ -279,7 +279,7 @@ class SuperimposedTopology:
         #fixme
 
         self.mirrors = []
-        self.weird_symmetries = []
+        self.alternative_mappings = []
         # this is a set of all nodes rather than their pairs
         self.nodes = set(all_matched_nodes)
         self.nodes_added_log = []
@@ -691,7 +691,7 @@ class SuperimposedTopology:
 
         # copy the mirrors
         newone.mirrors = copy.copy(self.mirrors)
-        newone.weird_symmetries = copy.copy(self.weird_symmetries)
+        newone.alternative_mappings = copy.copy(self.alternative_mappings)
 
         # fixme - check any other lists that you keep track of
         return newone
@@ -719,12 +719,12 @@ class SuperimposedTopology:
         return choices
 
 
-    def addWeirdSymmetry(self, weird_symmetry):
+    def addAlternativeMapping(self, weird_symmetry):
         """
         This means that there is another way to traverse and overlap the two molecules,
         but that the self is better (e.g. lower rmsd) than the other one
         """
-        self.weird_symmetries.append(weird_symmetry)
+        self.alternative_mappings.append(weird_symmetry)
 
 
     def correct_for_coordinates(self):
@@ -1312,6 +1312,15 @@ def log(*args):
         print(*args)
 
 
+def get_largest(lists):
+    """
+    return a list of largest solutions
+    """
+    solution_sizes = [len(st) for st in lists]
+    largest_sol_size = max(solution_sizes)
+    return list(filter(lambda st: len(st) == largest_sol_size, lists))
+
+
 def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     """
     n1 should be from one graph, and n2 should be from another.
@@ -1459,36 +1468,134 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                 suptop.link_pairs((n1, n2),
                     [((n1bonded_node, n2bonded_node), (btype1, btype2)), ])
 
-    # try every possible pathway
-    all_solutions = []
-    for n1bonded_node, btype1 in n1.bonds:
-        for n2bonded_node, btype2 in n2.bonds:
-            # if either of the nodes has already been matched, ignore
-            if n1bonded_node is parent_n1 or n2bonded_node is parent_n2:
+    # filter out parents
+    n1_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n1, n1.bonds))
+    n2_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n2, n2.bonds))
+
+    # so first we have to group with groupby
+    combinations = []
+    for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent,
+                                               key=lambda bonded: bonded[0].type):
+        for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent,
+                                                   key=lambda bonded: bonded[0].type):
+            # the types will only match once
+            if n1_type != n2_type:
                 continue
 
-            # a copy of the sup_top is needed because the traversal can take place
-            # using different pathways
-            bond_solutions = _overlay(n1bonded_node, n2bonded_node,
-                                      parent_n1=n1, parent_n2=n2,
-                                      bond_types=(btype1, btype2),
-                                      suptop=copy.copy(suptop))
-            # if they were different type, etc, ignore
-            if bond_solutions is None:
-                continue
+            # convert into a list
+            n1_bonds = list(n1_bonds)
+            n2_bonds = list(n2_bonds)
 
-            all_solutions.extend(bond_solutions)
+            # these two groups are of the same type, so we have to do each to each combination,
+
+            # if one atom list of length 1, then we have L1-R1 and L1-R2 and
+            # these two are in contradiction to each other
+
+            # For 2 C in left and right, we have 2*2=4 combinations,
+            # ie LC1-RC1 LC2-RC2 and LC1-RC2 LC2-RC1 which shuld be split into two groups
+
+            # For 3 C ... fixme
+            atom_type_solutions = {}
+            for n1bonded_node, btype1 in n1_bonds:
+                # so we first try each combintion with atom1
+                solutions_for_this_left_atom = []
+                # so for every atom we have a list of choices,
+                for n2bonded_node, btype2 in n2_bonds:
+                    # a copy of the sup_top is needed because the traversal can take place
+                    # using different pathways
+                    bond_solutions = _overlay(n1bonded_node, n2bonded_node,
+                                              parent_n1=n1, parent_n2=n2,
+                                              bond_types=(btype1, btype2),
+                                              suptop=copy.copy(suptop))
+                    # if they were different type, etc, ignore
+                    if bond_solutions is None:
+                        continue
+
+                    assert type(bond_solutions) is not list
+                    solutions_for_this_left_atom.append(bond_solutions)
+
+                # record all possible solution for this one atom
+                atom_type_solutions[n1bonded_node] = solutions_for_this_left_atom
+            if len(atom_type_solutions) != 0:
+                combinations.append(atom_type_solutions)
+
+    # fixme
+    # so we have all combinations for each atom,
+    # and we have to put them together sensibly,
+
+    # if there is no solution, return the current suptop
+    if len(combinations) == 0:
+        return suptop
+
+    # simplest case: 1 atom type
+    if len(combinations) == 1:
+        atoms = combinations[0]
+        if len(atoms) == 1:
+            # simple case,  one in the left ligands, plural in the right ligand, pick the best
+            atom, candidates = list(atoms.items())[0]
+            largest_candidates = get_largest(candidates)
+            best = extractBestSuptop(largest_candidates)
+            return best
+        if len(solutions_for_this_left_atom) == 1:
+            # there is only one solution, and therefore return the solution
+            return solutions_for_this_left_atom[0]
+
+        print('Multiple solutions for a single atom')
+        # there are multiple solutions for this atom,
+        # so pick the best solution
+        solution_sizes = [len(st) for st in solutions_for_this_left_atom]
+        largest_sol_size = max(solution_sizes)
+        bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, solutions_for_this_left_atom)))
+        return bestSuptop
+
+    #
+    print(combinations)
+    #
+    print('combons done')
+
+
+    # for n1bonded_node, btype1 in n1.bonds:
+    #     for n2bonded_node, btype2 in n2.bonds:
+    #         # if either of the nodes has already been matched, ignore
+    #         if n1bonded_node is parent_n1 or n2bonded_node is parent_n2:
+    #             continue
+    #
+    #         # a copy of the sup_top is needed because the traversal can take place
+    #         # using different pathways
+    #         bond_solutions = _overlay(n1bonded_node, n2bonded_node,
+    #                                   parent_n1=n1, parent_n2=n2,
+    #                                   bond_types=(btype1, btype2),
+    #                                   suptop=copy.copy(suptop))
+    #         # if they were different type, etc, ignore
+    #         if bond_solutions is None:
+    #             continue
+    #
+    #         all_solutions.extend(bond_solutions)
             # fixme - when you have a mirror like ester O1-O2 matches, then you could store them differently here
 
-    # if this was the last atom traversed together, return the current sup top
-    if len(all_solutions) == 0:
-        return [suptop, ]
+    # fixme - there should never the "equal" suptops in the solutions?
+    # in relation to #15
+    # combine the different walks,
+    # Take two of -C-CH2-C- and focus on the middle part.
+    # some solutions will be shorter: for example
+    # the two H can be matched in two ways.
+    # so we have to understand which solutions are "mirror"
+    # images of themselves.
+    # ie only one out of the two ways to match the hydrogens is corrects
+    # here, we find which walks are alternatives to each other,
+    # and we pick the best one
+    # we could try to merge each with each which would create
+    # lots of different combinations, but ideally
+    # we would be able to say which solutions are in conflict with which
+    # other solutions,
+    # Say that there are 5 solutions and 4 of them are in conflict,
+
+    # try every possible pathway
+    all_solutions = []
+    assert True == False
 
     # sort in the descending order
     all_solutions.sort(key=lambda st: len(st), reverse=True)
-
-    # combine the different walks, the walks that are smaller can be thrown away?
-    # we try as many mergings as possible?
     for sol1 in all_solutions:
         for sol2 in all_solutions[::-1]:
             if sol1 is sol2:
@@ -1530,7 +1637,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
     # for later analysis, rather than returning which would have to be compared with a lot of other parts
     bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, all_solutions)))
-    return [bestSuptop, ]
+    return bestSuptop
 
 
 class Topology:
@@ -1671,27 +1778,10 @@ def extractBestSuptop(suptops):
         selfRMSD = calculateRmsd(selfHasNotSuptop)
         otherRMSD = calculateRmsd(suptopHasNotSelf)
         # naively remove the worse canddiate
-        # if ('H5', 'H21' selfHasNotSuptop
-        h5 = any('H5' == a.atomName for a, b in selfHasNotSuptop) or \
-             any('H5' == a.atomName for a, b in suptopHasNotSelf)
-        print('hi')
         if selfRMSD < otherRMSD:
             candidates.remove(st2)
         else:
             candidates.remove(st1)
-
-    # the problem with this approach is that it takes the .rmsd()
-    # of the entire suptop, which overall ideally would work,
-    # because we always have the same number of elements in both suptops,
-    # however, some mismatches might cancel other mismatches etc, so this is not the best way
-    # best_suptop = None
-    # best_rmsd = np.finfo('float32').max
-    # for suptop in suptops:
-    #     # the suptops are of the same length, find the one that has the lowest RMSD
-    #     rmsd = suptop.rmsd()
-    #     if rmsd < best_rmsd:
-    #         best_suptop = suptop
-    #         best_rmsd = rmsd
 
     assert len(candidates) == 1
 
@@ -1705,7 +1795,7 @@ def extractBestSuptop(suptops):
             candidate_superimposed_top.add_mirror_suptop(suptop)
             continue
 
-        candidate_superimposed_top.addWeirdSymmetry(suptop)
+        candidate_superimposed_top.addAlternativeMapping(suptop)
 
     return candidate_superimposed_top
 
@@ -1804,10 +1894,10 @@ def solve_partial_overlaps(candidate_suptop, suptops):
                 # which is the "worse symmetry",
                 # let us use atom coordinates to score them
                 if suptop.rmsd() < candidate_suptop.rmsd():
-                    suptop.addWeirdSymmetry(candidate_suptop)
+                    suptop.addAlternativeMapping(candidate_suptop)
                     ignore_cand_sup_top = True
                 else:
-                    candidate_suptop.addWeirdSymmetry(suptop)
+                    candidate_suptop.addAlternativeMapping(suptop)
                     suptops.remove(suptop)
 
 
