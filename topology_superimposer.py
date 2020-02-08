@@ -1539,6 +1539,14 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
         elif len(atoms) > 1:
             # many in the left ligand, unknown in the right ligand
             # case: only 1 in the right ligand, so Many2One case
+            # check if all the atoms in the left ligand map to the same atom in the right ligand
+            if len({list(a.keys())[0] for a in atoms.values()}) == 1:
+                print('Many (left) to one (right)')
+                # just pick the best match fro the right ligand
+                candidates = [list(v.values())[0] for v in atoms.values()]
+                largest_candidates = get_largest(candidates)
+                best = extractBestSuptop(largest_candidates)
+                return best
             print('hi')
 
         print('Multiple solutions for a single atom')
