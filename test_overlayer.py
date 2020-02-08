@@ -380,9 +380,8 @@ def test_MultipleSolutions2Levels_rightStart():
     # the good solution is (O1-O11) and (O2-O12)
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
 
     # check if the main solution is correct
     correct_overlaps = [('C1', 'C11'),
@@ -418,15 +417,15 @@ def test_2sameAtoms_2Cs_symmetry():
     c11.bindTo(c12, 'bondType1')
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C11')
-    assert suptops[0].contains_atomNamePair('C2', 'C12')
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert len(suptop) == 2
+    assert suptop.contains_atomNamePair('C1', 'C11')
+    assert suptop.contains_atomNamePair('C2', 'C12')
 
-    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C12')
-    assert suptops[0].contains_atomNamePair('C2', 'C11')
+    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert len(suptop) == 2
+    assert suptop.contains_atomNamePair('C1', 'C12')
+    assert suptop.contains_atomNamePair('C2', 'C11')
 
 
 def test_methyl():
@@ -465,10 +464,12 @@ def test_methyl():
     c11.bindTo(h13, 'bondType1')
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C11')
-    assert suptops[0].contains_atomNamePair('C2', 'C12')
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert suptop.contains_atomNamePair('C1', 'C11')
+    assert suptop.contains_atomNamePair('H1', 'H11')
+    assert suptop.contains_atomNamePair('H2', 'H12')
+    assert suptop.contains_atomNamePair('H3', 'H13')
 
 
 def test_mutation_separate_unique_match():

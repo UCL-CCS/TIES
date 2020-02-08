@@ -1563,19 +1563,28 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             # fixme - this should be moved up?
             # fixme - these functions should be factored out and tested separately
             all_pairs = list(itertools.product(left_ligand_keys, right_ligand_keys))
+            longest_match = max(len(left_ligand_keys), len(right_ligand_keys))
+            # generate all possible combinations
+            all_combinations = list(itertools.combinations(all_pairs, longest_match))
+            # filter out the ones that are impossible
+            chosen = list(filter(lambda s: len({pair[0] for pair in s}) == longest_match
+                                           and len({pair[1] for pair in s}) == longest_match,
+                                 all_combinations))
+            # fixme - use itertools instead?
+
             def combine(all_pairs):
                 combined = set()
                 # used pairs keep track of which pairs have been combined
                 used_pairs = set()
-                for _ in range(len(all_pairs)):
+                for i, pair in enumerate(all_pairs):
                     # take one item, and try to combine it with as many as possible
-                    basis = [all_pairs.pop(), ]
-                    for a1, a2 in all_pairs:
+                    basis = [pair, ]
+                    # for j, pair2 in enumerate(all_pairs):
                         # if the pair does not have any common elements, combine
-                        if not any(a1 == a or a2 == b for a,b in basis):
-                            basis.append((a1, a2))
-                            used_pairs.add(basis[0])
-                            used_pairs.add((a1, a2))
+                        # if not any(a1 == a or a2 == b for a,b in basis):
+                        #     basis.append((a1, a2))
+                        #     used_pairs.add(basis[0])
+                        #     used_pairs.add((a1, a2))
                     # if the basis was not combined with anything
                     if len(basis) == 1 and basis[0] in used_pairs:
                         continue
@@ -1583,7 +1592,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                 # remove the subsets of larger sets
                 return combined
 
-            combined = combine(all_pairs)
+            combined = chosen
             # now that we have the pairs combined, we have to attempt to marge them this way,
             alternatives = []
             for combined_pairs in combined:
@@ -1591,7 +1600,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                 for lk, rk in combined_pairs:
                     top = atoms[lk][rk]
                     if merged is None:
-                        merged = top
+                        merged = copy.copy(top)
                         continue
 
                     # fixme - carry out all checks
@@ -1601,14 +1610,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             # decide which is best
             largest_candidates = get_largest(alternatives)
             return extractBestSuptop(largest_candidates)
-
-        print('Multiple solutions for a single atom')
-        # there are multiple solutions for this atom,
-        # so pick the best solution
-        solution_sizes = [len(st) for st in solutions_for_this_left_atom]
-        largest_sol_size = max(solution_sizes)
-        bestSuptop = extractBestSuptop(list(filter(lambda st: len(st) == largest_sol_size, solutions_for_this_left_atom)))
-        return bestSuptop
+    else:
+        raise Exception('more atom spieces')
 
     #
     print(combinations)
@@ -1841,9 +1844,15 @@ def extractBestSuptop(suptops):
         otherRMSD = calculateRmsd(suptopHasNotSelf)
         # naively remove the worse canddiate
         if selfRMSD < otherRMSD:
-            candidates.remove(st2)
+            try:
+                candidates.remove(st2)
+            except Exception:
+                pass
         else:
-            candidates.remove(st1)
+            try:
+                candidates.remove(st1)
+            except Exception:
+                pass
 
     assert len(candidates) == 1
 
