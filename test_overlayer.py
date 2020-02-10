@@ -553,13 +553,13 @@ def test_mutation_separate_unique_match():
     n11.bindTo(o11, 'bondType1')
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('C1', 'C11')
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert suptop.contains_atomNamePair('C1', 'C11')
 
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atomNamePair('N1', 'N11')
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert suptop.contains_atomNamePair('N1', 'N11')
 
 
 def test_3C_circle():
@@ -869,13 +869,14 @@ def test_tyk2_l11l14_part():
     h14.bindTo(c14, 'bondType1')
 
     # the correct solution
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     assert len(suptop) == 10
 
     matching_pairs = [('N1', 'N11'), ('C1', 'C11'), ('O1', 'O11'),
             ('H1', 'H11'), ('C2', 'C12'), ('H2', 'H12'), ('C3', 'C13'),
             ('C4', 'C14'), ('H3', 'H13'), ('H4', 'H14')]
-    for n1, n2 in matching_pairs:
-        assert suptop.contains_atomNamePair(n1, n2), (n1, n2)
+    for n1, n2 in matching_pairs[::-1]:
+        if suptop.contains_atomNamePair(n1, n2):
+            matching_pairs.remove((n1, n2))
+    assert len(matching_pairs) == 0, matching_pairs
