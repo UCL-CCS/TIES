@@ -773,16 +773,17 @@ def test_mcl1_l12l35():
     # the correct solution
     suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None))
     assert suptop is not None
-    assert suptop == 11
+    assert len(suptop) == 11
 
     """
-    This is a rare case around which we'll have to find a work around.
-    Basically, the best solution that follows the basic traversal allows for a superimposition
-    that should not be allowed. So additional additional way has to be checked to discredit it 
+    This is a rare case which uses the rules of "consistent circles".
+    A naive traversal of this is possible that reaches 12 nodes. However, 
+    that means that there is atom match (L1-R1) such that L1 creates a 
+    cricle in its own topology, and R1 does not. 
     """
     suptop = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None))
     assert suptop is not None
-    assert suptop != 12
+    assert len(suptop) != 12
 
 
 def test_tyk2_l11l14_part():

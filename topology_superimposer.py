@@ -1321,6 +1321,46 @@ def get_largest(lists):
     return list(filter(lambda st: len(st) == largest_sol_size, lists))
 
 
+def long_merge(suptop1, suptop2):
+    """
+    Carry out a merge and apply all checks.
+    Merge suptop2 into suptop1.
+
+    """
+    if suptop1 is suptop2:
+        return suptop1
+
+    if suptop1.eq(suptop2):
+        log("Merge: the two are the equal. Ignoring")
+        return suptop1
+
+    if suptop2.is_subgraph_of(suptop1):
+        log("Merge: this is already a superset. Ignoring")
+        return suptop1
+
+    # check if the two are consistent
+    # ie there is no clashes
+    if not suptop1.is_consistent_with(suptop2):
+        log("Merge: cannot merge - not consistent")
+        return -1
+
+    # fixme - this can be removed because it is now taken care of in the other functions?
+    # g1, g2 = suptop1.getNxGraphs()
+    # assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
+    # g3, g4 = suptop2.getNxGraphs()
+    # assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
+    #
+    # print("Will merge", suptop1, 'and', suptop2)
+    # assert suptop1.sameCircleNumber()
+    newly_added_pairs = suptop1.merge(suptop2)
+
+    # if not suptop1.sameCircleNumber():
+    #     raise Exception('something off')
+    # # remove sol2 from the solutions:
+    # all_solutions.remove(sol2)
+    return newly_added_pairs
+
+
 def solve_one_combination(one_atom_spieces):
     atoms = one_atom_spieces
     if len(atoms) == 1:
@@ -1356,7 +1396,9 @@ def solve_one_combination(one_atom_spieces):
         # fixme - this should be moved up?
         # fixme - these functions should be factored out and tested separately
         all_pairs = list(itertools.product(left_ligand_keys, right_ligand_keys))
-        longest_match = max(len(left_ligand_keys), len(right_ligand_keys))
+        # if the left ligand can only match 2 atoms but the right 3 atoms,
+        # then the best possible match is that of 2 pairs
+        longest_match = min(len(left_ligand_keys), len(right_ligand_keys))
         # generate all possible combinations
         all_combinations = list(itertools.combinations(all_pairs, longest_match))
         # filter out the ones that are impossible
@@ -1386,20 +1428,35 @@ def solve_one_combination(one_atom_spieces):
             # remove the subsets of larger sets
             return combined
 
-        combined = chosen
+        generated_combinations = chosen
         # now that we have the pairs combined, we have to attempt to marge them this way,
         alternatives = []
-        for combined_pairs in combined:
+        for combined_pairs in generated_combinations:
             merged = None
             for lk, rk in combined_pairs:
-                top = atoms[lk][rk]
+                # note that if the key is not present, this means it is not an option,
+                # for example, it might have been tried, but because of the circle consistency rule,
+                # it might have been deleted, for that reason that generated theoretical combination
+                # will not work
+                if lk not in atoms:
+                    continue
+                lk_map = atoms[lk]
+                if rk not in lk_map:
+                    continue
+
+                top = lk_map[rk]
                 if merged is None:
                     merged = copy.copy(top)
                     continue
 
-                # fixme - carry out all checks
-                merged.merge(top)
+                # check the output,
+                # fixme - what to do when this is wrong?
+                long_merge(merged, top)
+            if merged is None:
+                # this probably means that this combination is not possible e.g. due to cycles
+                continue
             alternatives.append(merged)
+        assert len(alternatives) >= 1
         # now that all alternatives have been computed,
         # decide which is best
         largest_candidates = get_largest(alternatives)
