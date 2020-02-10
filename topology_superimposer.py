@@ -2081,13 +2081,11 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
         # fixme - optimisation - reduce the number of starting nX and nY pairs
 
         # with the given starting two nodes, generate the maximum common component
-        candidate_suptops = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None))
-        if candidate_suptops is None or len(candidate_suptops[0]) == 0:
+        candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None))
+        if candidate_suptop is None or len(candidate_suptop) == 0:
             # there is no overlap, ignore this case
             continue
 
-        # pick one best way to traverse the molecule
-        candidate_suptop = getBestRmsdMatch(candidate_suptops)
         # link the suptop to their respective ligands
         candidate_suptop.set_tops(top1_nodes, top2_nodes)
 
