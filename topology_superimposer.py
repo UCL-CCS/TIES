@@ -1515,7 +1515,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
                     solutions_for_this_left_atom[n2bonded_node] = bond_solutions
 
                 # record all possible solution for this one atom
-                atom_type_solutions[n1bonded_node] = solutions_for_this_left_atom
+                if len(solutions_for_this_left_atom) > 0:
+                    atom_type_solutions[n1bonded_node] = solutions_for_this_left_atom
             if len(atom_type_solutions) != 0:
                 combinations.append(atom_type_solutions)
 

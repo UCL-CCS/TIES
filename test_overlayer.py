@@ -594,10 +594,9 @@ def test_3C_circle():
     c13.bindTo(c11, 'bondType1')
     c13.bindTo(c12, 'bondType1')
 
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
     # there is one main component - that is the good solution
-    assert len(suptops) == 1
-    suptop = suptops[0]
+    assert suptop is not None
     # there is one symmetrical way to traverse it
     assert len(suptop.mirrors) == 1
     wrong_st = suptop.mirrors[0]
@@ -610,53 +609,53 @@ def test_3C_circle():
     assert all(st.sameCircleNumber() for st in [suptop, wrong_st])
     assert all(st.getCircleNumber() == (1, 1) for st in [suptop, wrong_st])
 
-    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
-    suptops = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
+    suptop = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
     # there should be one circle in each
-    assert suptops[0].sameCircleNumber()
-    assert suptops[0].getCircleNumber() == (1, 1)
+    assert suptop.sameCircleNumber()
+    assert suptop.getCircleNumber() == (1, 1)
 
 
 def test_mcl1_l12l35():
@@ -772,18 +771,18 @@ def test_mcl1_l12l35():
     c19.bindTo(c18, 'bondType1')
 
     # the correct solution
-    suptops = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert len(suptops[0]) == 11
+    suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert suptop == 11
 
     """
     This is a rare case around which we'll have to find a work around.
     Basically, the best solution that follows the basic traversal allows for a superimposition
     that should not be allowed. So additional additional way has to be checked to discredit it 
     """
-    suptops = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert len(suptops[0]) != 12
+    suptop = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    assert suptop is not None
+    assert suptop != 12
 
 
 def test_tyk2_l11l14_part():
