@@ -1616,11 +1616,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     n1_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n1, n1.bonds))
     n2_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n2, n2.bonds))
 
+    # sort for the itertools.groupby
+    n1_bonds_no_parent_srt = sorted(n1_bonds_no_parent, key=lambda b: b[0].type)
+    n2_bonds_no_parent_srt = sorted(n2_bonds_no_parent, key=lambda b: b[0].type)
+
     # so first we have to group with groupby
     combinations = []
-    for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent,
+    for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent_srt,
                                                key=lambda bonded: bonded[0].type):
-        for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent,
+        for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent_srt,
                                                    key=lambda bonded: bonded[0].type):
             # the types will only match once
             if n1_type != n2_type:

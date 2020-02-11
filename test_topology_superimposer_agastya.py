@@ -178,8 +178,8 @@ def test_mcl1_l8l18():
 
     # check the linker hydrogens
     linker_hydrogens = [('H5', 'H21'), ('H4', 'H20'),
-                        ('H7', 'H23'),
-                        ('H6', 'H22'), ('H9', 'H25'), ('H8', 'H24')]
+                        ('H7', 'H23'), ('H6', 'H22'),
+                        ('H9', 'H25'), ('H8', 'H24')]
     for atomName1, atomname2 in linker_hydrogens[::-1]:
         if suptop.contains_atomNamePair(atomName1, atomname2):
             linker_hydrogens.remove((atomName1, atomname2))
