@@ -188,12 +188,11 @@ def test_mcl1_l8l18():
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
     removed_pairs = suptop.refineAgainstCharges(atol=0.1)
-    should_remove_pairs = [('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
+    # extract the atom names
+    removed_atom_names = [(left.atomName, right.atomName) for left, right in removed_pairs]
+    should_be_removed = [('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
                            ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')]
-    for atomName1, atomname2 in should_remove_pairs[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
-            should_remove_pairs.remove((atomName1, atomname2))
-    assert len(should_remove_pairs) == 0, should_remove_pairs
+    assert should_be_removed == removed_atom_names
 
     # check if the dangling hydrogens were removed
     removed_dangling_hydrogens = [('H3', 'H19'), ('H1', 'H17')]
