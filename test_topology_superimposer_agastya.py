@@ -197,7 +197,7 @@ def test_mcl1_l8l18():
     # check if the dangling hydrogens were removed
     removed_dangling_hydrogens = [('H3', 'H19'), ('H1', 'H17')]
     for atomName1, atomname2 in removed_dangling_hydrogens:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+        assert not suptop.contains_atomNamePair(atomName1, atomname2), (atomName1, atomname2)
 
 
 def test_mcl1_l32_l42():

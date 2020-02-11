@@ -911,12 +911,13 @@ class SuperimposedTopology:
                     for n2_hyd in node2_hydrogens:
                         try:
                             # self.matched_pairs.remove((n1_hyd, n2_hyd))
-                            self.remove_node_pair((n1_hyd, n2_hyd))
-                            print('Removed lonely hydrogen pair', (n1_hyd.atomName, n2_hyd.atomName))
+                            self.remove_node_pair((n1_hyd[0], n2_hyd[0]))
+                            print('Removed lonely hydrogen pair', (n1_hyd[0].atomName, n2_hyd[0].atomName))
                             n1_pair_removed = True
-                            removed_pairs.append((n1_hyd, n2_hyd))
+                            removed_pairs.append((n1_hyd[0], n2_hyd[0]))
                             break
-                        except:
+                        except Exception as exception:
+                            print('could not remove the dangling hydrogens')
                             pass
                 removed_pairs.append((node1, node2))
                 print('removed a pair due to the not-matching charges', node1.atomName, node2.atomName)
