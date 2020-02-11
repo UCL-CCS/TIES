@@ -1995,11 +1995,23 @@ def alreadySeen(suptop, suptops):
 
 def isMirrorOfOne(suptop, suptops):
     """
-    "Mirror" in the sense that it is an alternative topological way to traverse the molecule
+    "Mirror" in the sense that it is an alternative topological way to traverse the molecule.
+
+    Depending on the "better" fit between the two mirrors, we pick the one that is better.
     """
     for next_suptop in suptops:
         if next_suptop.is_mirror_of(suptop):
-            next_suptop.add_mirror_suptop(suptop)
+            # the suptop saved as the mirror should be the suptop
+            # that is judged to be of a lower quality
+            bestSuptop = extractBestSuptop([suptop, next_suptop])
+            if bestSuptop is next_suptop:
+                next_suptop.add_mirror_suptop(suptop)
+
+            # the new suptop is better than the previous one
+            suptops.remove(next_suptop)
+            bestSuptop.add_mirror_suptop(next_suptop)
+            suptops.append(bestSuptop)
+
             return True
 
     return False
@@ -2091,7 +2103,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
             # there is no overlap, ignore this case
             continue
 
-        # link the suptop to their respective ligands
+        # link the suptop to their respective ligands (of no major consequence right now)
         candidate_suptop.set_tops(top1_nodes, top2_nodes)
 
         # check if the maximal possible solution was found
@@ -2102,13 +2114,14 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
         if alreadySeen(candidate_suptop, suptops):
             continue
 
+        # ignore if it is a subgraph of another solution
+        if isSubGraphOf(candidate_suptop, suptops):
+            continue
+
         # check if this superimposed topology is a mirror of one that already exists
         # fixme the order matters in this place
         # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
         if isMirrorOfOne(candidate_suptop, suptops):
-            continue
-
-        if isSubGraphOf(candidate_suptop, suptops):
             continue
 
         removed_subgraphs = removeCandidatesSubgraphs(candidate_suptop, suptops)
@@ -2409,18 +2422,19 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
     uref = mda.Universe(ref_filename)
     umob = mda.Universe(mob_filename)
 
+    # this RMSD superimposition requires the same number of atoms to be superimposed
     # find out the RMSD between them and the rotation matrix
-    uref0 = uref.atoms.positions - uref.atoms.center_of_geometry()
-    umob0 = umob.atoms.positions - umob.atoms.center_of_geometry()
-
-    # get the rotation matrix and rmsd
-    # fixme - make use of rmsd
-    R, rmsd = MDAnalysis.analysis.align.rotation_matrix(umob0, uref0)
-
-    # update the umob atoms, the new coordinates is what we want to rely on
-    umob.atoms.translate(-umob.atoms.center_of_geometry())
-    umob.atoms.rotate(R)
-    umob.atoms.translate(uref.atoms.center_of_geometry())
+    # uref0 = uref.atoms.positions - uref.atoms.center_of_geometry()
+    # umob0 = umob.atoms.positions - umob.atoms.center_of_geometry()
+    #
+    # # get the rotation matrix and rmsd
+    # # fixme - make use of rmsd
+    # R, rmsd = MDAnalysis.analysis.align.rotation_matrix(umob0, uref0)
+    #
+    # # update the umob atoms, the new coordinates is what we want to rely on
+    # umob.atoms.translate(-umob.atoms.center_of_geometry())
+    # umob.atoms.rotate(R)
+    # umob.atoms.translate(uref.atoms.center_of_geometry())
 
     # create the atoms for left ligands
     def createAtoms(mda_atoms):
