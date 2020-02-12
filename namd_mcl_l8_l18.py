@@ -2,12 +2,22 @@
 Load two ligands, run the topology superimposer, and then
 using the results, generate the NAMD input files.
 
-frcmod file format: http://ambermd.org/FileFormats.php#frcmod
+Improvements:
+todo - use ambertools python interface rather than ambertools directly,
+       or find some other API bbblocks building blocks? or some other API,
+       or create minimal your own
+
+frcmod file format: `http://ambermd.org/FileFormats.php#frcmod`
 """
 from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
 import json
 import numpy as np
+import shutil
+import sys
+import subprocess
+from collections import OrderedDict
+import copy
 
 def getSuptop(mol1, mol2):
     # use mdanalysis to load the files
@@ -174,25 +184,206 @@ def write_merged(suptop, merged_filename):
             bond_counter += 1
 
 
-root_path = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
-# load the files and superimpose the two topologies
-# before you carry out the first step, you have to generate the .mol2
-# with bond and charge information, and ideally superimposed molecule?
+def join_frcmod_files(f1, f2, output_filepath):
+    # fixme - load f1 and f2
+
+    def get_section(name, rlines):
+        """
+        Chips away from the lines until the section is ready
+
+        fixme is there a .frcmod reader in ambertools?
+        http://ambermd.org/FileFormats.php#frcmod
+        """
+        section_names = ['MASS', 'BOND', 'ANGLE', 'DIHE', 'IMPROPER', 'NONBON']
+        assert name in rlines.pop().strip()
+
+        section = []
+        while not (len(rlines) == 0 or any(rlines[-1].startswith(sname) for sname in section_names)):
+            nextl = rlines.pop().strip()
+            if nextl == '':
+                continue
+            # depending on the column name, parse differently
+            if name == 'ANGLE':
+                # e.g.
+                # c -cc-na   86.700     123.270   same as c2-cc-na, penalty score=  2.6
+                atom_types = nextl[:8]
+                other = nextl[9:].split()[::-1]
+                # The harmonic force constants for the angle "ITT"-"JTT"-
+                #                     "KTT" in units of kcal/mol/(rad**2) (radians are the
+                #                     traditional unit for angle parameters in force fields).
+                harmonicForceConstant = float(other.pop())
+                # TEQ        The equilibrium bond angle for the above angle in degrees.
+                eq_bond_angle = float(other.pop())
+                # the overall angle
+                section.append([atom_types, harmonicForceConstant, eq_bond_angle])
+            elif name == 'DIHE':
+                # e.g.
+                # ca-ca-cd-cc   1    0.505       180.000           2.000      same as c2-ce-ca-ca, penalty score=229.0
+                atom_types = nextl[:11]
+                other = nextl[11:].split()[::-1]
+                """
+                IDIVF      The factor by which the torsional barrier is divided.
+                    Consult Weiner, et al., JACS 106:765 (1984) p. 769 for
+                    details. Basically, the actual torsional potential is
+
+                           (PK/IDIVF) * (1 + cos(PN*phi - PHASE))
+
+                 PK         The barrier height divided by a factor of 2.
+
+                 PHASE      The phase shift angle in the torsional function.
+
+                            The unit is degrees.
+
+                 PN         The periodicity of the torsional barrier.
+                            NOTE: If PN .lt. 0.0 then the torsional potential
+                                  is assumed to have more than one term, and the
+                                  values of the rest of the terms are read from the
+                                  next cards until a positive PN is encountered.  The
+                                  negative value of pn is used only for identifying
+                                  the existence of the next term and only the
+                                  absolute value of PN is kept.
+                """
+                IDIVF = float(other.pop())
+                PK = float(other.pop())
+                PHASE = float(other.pop())
+                PN = float(other.pop())
+                section.append([atom_types, IDIVF, PK, PHASE, PN])
+            elif name == 'IMPROPER':
+                # e.g.
+                # cc-o -c -o          1.1          180.0         2.0          Using general improper torsional angle  X- o- c- o, penalty score=  3.0)
+                # ...  IDIVF , PK , PHASE , PN
+                atom_types = nextl[:11]
+                other = nextl[11:].split()[::-1]
+                # fixme - what is going on here? why is not generated this number?
+                # IDIVF = float(other.pop())
+                PK = float(other.pop())
+                PHASE = float(other.pop())
+                PN = float(other.pop())
+                if PN < 0:
+                    raise Exception('Unimplemented - ordering using with negative 0')
+                section.append([atom_types, PK, PHASE, PN])
+            else:
+                section.append(nextl.split())
+        return {name: section}
+
+    def load_frcmod(filepath):
+        # remark line
+        rlines = open(filepath).readlines()[::-1]
+        assert 'Remark' in rlines.pop()
+
+        parsed = OrderedDict()
+        for section_name in ['MASS', 'BOND', 'ANGLE', 'DIHE', 'IMPROPER', 'NONBON']:
+            parsed.update(get_section(section_name, rlines))
+
+        return parsed
+
+    def join_frcmod(left_frc, right_frc):
+        joined = OrderedDict()
+        for left, right in zip(left_frc.items(), right_frc.items()):
+            lname, litems = left
+            rname, ritems = right
+            assert lname == rname
+
+            joined[lname] = copy.copy(litems)
+
+            if lname == 'MASS':
+                if len(litems) > 0 or len(ritems) > 0:
+                    raise Exception('Unimplemented')
+            elif lname == 'BOND':
+                if len(litems) > 0 or len(ritems) > 0:
+                    raise Exception('Unimplemented')
+            # ANGLE, e.g.
+            # c -cc-na   86.700     123.270   same as c2-cc-na, penalty score=  2.6
+            elif lname == 'ANGLE':
+                for ritem in ritems:
+                    # if the item is not in the litems, add it there
+                    # extra the first three terms to determine if it is present
+                    # fixme - note we are ignoring the "same as" note
+                    if ritem not in joined[lname]:
+                        joined[lname].append(ritem)
+            elif lname == 'DIHE':
+                for ritem in ritems:
+                    if ritem not in joined[lname]:
+                        joined[lname].append(ritem)
+            elif lname == 'IMPROPER':
+                for ritem in ritems:
+                    if ritem not in joined[lname]:
+                        joined[lname].append(ritem)
+        return joined
+
+    def write_frcmod(frcmod, filename):
+        with open(filename, 'w') as FOUT:
+            for sname, items in frcmod.items():
+                FOUT.write(f'{sname}' + os.linesep)
+                for item in items:
+                    atom_types = item[0]
+                    FOUT.write(atom_types)
+                    numbers = ' \t'.join([str(n) for n in item[1:]])
+                    FOUT.write(' \t' + numbers)
+                    FOUT.write(os.linesep)
+                # the ending line
+                FOUT.write(os.linesep)
+                print('hi')
+
+    left_frc = load_frcmod(f1)
+    right_frc = load_frcmod(f2)
+    joined_frc = join_frcmod(left_frc, right_frc)
+    write_frcmod(joined_frc, output_filepath)
+
+
+workplace_root = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
+# todo - check if there is left.pdb and right.pdb
+if not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+    print('File left.pdb not found in', workplace_root)
+    sys.exit(1)
+elif not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+    print('File right.pdb not found in', workplace_root)
+    sys.exit(1)
+# copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
+antechamber_sqm_script_name = 'assign_charge_parameters.sh'
+script_dir = 'md_scripts'
+shutil.copy(os.path.join(script_dir, antechamber_sqm_script_name), workplace_root)
+# execute the script (the script has to source amber.sh)
+# do not do this if there is a .frcmod files
+if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
+    # fixme - add checks for other files
+    output = subprocess.check_output(['sh', os.path.join(workplace_root, antechamber_sqm_script_name), 'left', 'right'])
+    # todo - CHECK IF THE RESULTS ARE CORRECT
+
+# load the files (.mol2) and superimpose the two topologies
+# fixme - superimpose the molecules or stop relaying on RMSD info
 # fixme - call any of the tools you have (antechamber, parmchk2)
-suptop, mda_l1, mda_l2 = getSuptop(os.path.join(root_path, 'left.mol2'),
-                                   os.path.join(root_path, 'right.mol2'))
+suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
+                                   os.path.join(workplace_root, 'right.mol2'))
 # save the results of the topology superimposition as a json
-save_superimposition_results(os.path.join(root_path, 'left_right_meta_fep.json'))
-write_dual_top_pdb(os.path.join(root_path, 'left_right.pdb'))
+save_superimposition_results(os.path.join(workplace_root, 'left_right_meta_fep.json'))
+write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
 # save the merged topologies as a .mol2 file
-top_merged_filename = os.path.join(root_path, 'merged.mol2')
+top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
 write_merged(suptop, top_merged_filename)
 
-# solvate using namd, this means copying the leap.in script and using tleap
+# check if the .frcmod were generated
+left_frcmod = os.path.join(workplace_root, 'left.frcmod')
+right_frcmod = os.path.join(workplace_root, 'right.frcmod')
+if not os.path.isfile(left_frcmod):
+    sys.exit(5)
+elif not os.path.isfile(right_frcmod):
+    sys.exit(5)
+
+# generate the joint .frcmod file
+merged_frc_filename = os.path.join(workplace_root, 'merged.frcmod')
+join_frcmod_files(left_frcmod, right_frcmod, merged_frc_filename)
+
+# copy the solvate script for tleap
+shutil.copy(os.path.join(script_dir, "run_tleap.sh"), workplace_root)
+shutil.copy(os.path.join(script_dir, "leap.in"), workplace_root)
+# solvate using AmberTools, copy leap.in and use tleap
+output = subprocess.check_output(['sh', os.path.join(workplace_root, "run_tleap.sh")])
+
 
 # Generate the directory structure for all the lambdas, and copy the files
 for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-    lambda_path = os.path.join(root_path, f'lambda_{lambda_step:.2f}')
+    lambda_path = os.path.join(workplace_root, f'lambda_{lambda_step:.2f}')
     if not os.path.exists(lambda_path):
         os.makedirs(lambda_path)
 

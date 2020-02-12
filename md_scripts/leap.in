@@ -4,8 +4,6 @@ source leaprc.water.tip3p
 source leaprc.gaff2
 
 loadamberparams merged.frcmod
-# loadoff /cs/biomd/shunzhou/gpcr/ties/hybrid-lig/XAC~Theo/hybrid.lib
-# lig = loadpdb /cs/biomd/shunzhou/gpcr/ties/hybrid-lig/XAC~Theo/hybrid.pdb
 lig = loadMol2 merged.mol2
 solvatebox lig TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
