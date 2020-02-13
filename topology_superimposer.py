@@ -26,6 +26,7 @@ To do:
  -consider an overall try-catch that attaches a message for the user to contact you in the case something
  does not work as expected
  - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
+ - ensure that the mirrors are recorded in a better way (rather than as whole suptops?)
 
  -fixme - make sure that the "bonds" are obeyed, if an atom changes its biding, e.g. it has a double bond and then it has
  one more hydrogen, then that is a very different atom, and both need to correctly evolve into each other

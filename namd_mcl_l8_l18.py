@@ -18,6 +18,7 @@ import sys
 import subprocess
 from collections import OrderedDict
 import copy
+import MDAnalysis as mda
 
 def getSuptop(mol1, mol2):
     # use mdanalysis to load the files
@@ -331,6 +332,39 @@ def join_frcmod_files(f1, f2, output_filepath):
     write_frcmod(joined_frc, output_filepath)
 
 
+def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filename):
+    """
+    fixme - this function does not need to use the file?
+    we have the json information available here.
+    """
+    u = mda.Universe(source_pdb_filename)
+    fep_meta_str = open(fep_json_filename).read()
+    fep_meta = json.loads(fep_meta_str)
+
+    left_matched = list(fep_meta['matching'].keys())
+    appearing_atoms = fep_meta['appearing']
+    disappearing_atoms = fep_meta['disappearing']
+
+    # update the Temp column
+    for atom in u.atoms:
+        # ignore water and ions
+        if atom.resname in ['WAT', 'Na+', 'Cl-']:
+            continue
+
+        # if the atom was "matched", meaning present in both ligands (left and right)
+        # then ignore
+        # note: we only use the left ligand
+        if atom.name in left_matched:
+            continue
+        elif atom.name in appearing_atoms:
+            # appearing atoms should
+            atom.tempfactor = 1
+        elif atom.name in disappearing_atoms:
+            atom.tempfactor = -1
+
+    u.atoms.write(new_pdb_filename)
+
+
 workplace_root = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
 # todo - check if there is left.pdb and right.pdb
 if not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
@@ -342,6 +376,7 @@ elif not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
 # copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
 antechamber_sqm_script_name = 'assign_charge_parameters.sh'
 script_dir = 'md_scripts'
+# fixme - what are the net charges?
 shutil.copy(os.path.join(script_dir, antechamber_sqm_script_name), workplace_root)
 # execute the script (the script has to source amber.sh)
 # do not do this if there is a .frcmod files
@@ -356,7 +391,8 @@ if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
 suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
                                    os.path.join(workplace_root, 'right.mol2'))
 # save the results of the topology superimposition as a json
-save_superimposition_results(os.path.join(workplace_root, 'left_right_meta_fep.json'))
+top_sup_joint_meta = os.path.join(workplace_root, 'joint_meta_fep.json')
+save_superimposition_results(top_sup_joint_meta)
 write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
 # save the merged topologies as a .mol2 file
 top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
@@ -379,6 +415,10 @@ shutil.copy(os.path.join(script_dir, "run_tleap.sh"), workplace_root)
 shutil.copy(os.path.join(script_dir, "leap.in"), workplace_root)
 # solvate using AmberTools, copy leap.in and use tleap
 output = subprocess.check_output(['sh', os.path.join(workplace_root, "run_tleap.sh")])
+# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
+merged_solvated = os.path.join(workplace_root, "merged_solvated.pdb")
+merged_solvated_fep = os.path.join(workplace_root, "merged_solvated_fep.pdb")
+correct_fep_tempfactor(top_sup_joint_meta, merged_solvated, merged_solvated_fep)
 
 
 # Generate the directory structure for all the lambdas, and copy the files
