@@ -103,6 +103,12 @@ alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
 
+# read which lambda we are working on
+set lambda_f [open "lambda" r]
+set lambda_value [read $lambda_f]
+puts "Lambda value is $lambda_value"
+close $lambda_f
+
 #Prod_Run
-set lamb LAMB
+set lamb $lambda_f
 runTIlist  $lamb   3000000;             # 6 ns

@@ -84,6 +84,12 @@ set dLambda	0.0
 set nSteps      2000
 set nMinSteps	5000
 
+# read which lambda we are working on
+set lambda_f [open "lambda" r]
+set lambda_value [read $lambda_f]
+puts "Lambda value is $lambda_value"
+close $lambda_f
+
 # protocol - MD
-set lamb 0.01
+set lamb $lambda_value
 runFEPmin $lamb $lamb 0 100000 5000 $temp  

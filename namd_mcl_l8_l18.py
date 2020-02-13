@@ -433,8 +433,24 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
         if not os.path.exists(replica_dir):
             os.makedirs(replica_dir)
 
-        # copy the correct files to each of the directories
-        #
+        # copy the files for each simulation
+        # "coordinates" with the fep metadata
+        shutil.copy(merged_solvated_fep, replica_dir)
+        # fixme - where was this file generated
+        shutil.copy(os.path.join(workplace_root, "merged_solvated.top"), replica_dir)
+
+        # copy the NAMD files
+        shutil.copy(os.path.join(script_dir, "eq.namd"), replica_dir)
+        shutil.copy(os.path.join(script_dir, "prod.namd"), replica_dir)
+
+        # copy the .tcl script that runs TIES
+        shutil.copy(os.path.join(script_dir, "fep.tcl"), replica_dir)
+
+        # set the lambda value for the directory
+        with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
+            FOUT.write(str(lambda_step))
+
+
         # todo
 print('hi')
 
