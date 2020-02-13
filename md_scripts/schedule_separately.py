@@ -17,17 +17,20 @@ for lambda_dir in os.listdir('.'):
         if not rep.startswith('rep'):
             continue
 
-        submit_sh_loc = os.path.join(lambda_dir, rep, 'submit.sh')
+        rep_dir = os.path.join(lambda_dir, rep)
         try:
-            output = subprocess.check_output(['sbatch', submit_sh_loc])
+            # fixme - add a name to each job: lambda + pro + protein name
+            # each script is submitted from the correct directory
+            output = subprocess.check_output(['sbatch', '--job-name=l%sr%s' % (lambda_dir.split('_')[1], rep[3:]), 'submit.sh'],
+                                             cwd=rep_dir)
         except Exception as e:
             print(e)
             sys.exit(0)
-
-        # fixme - add a name to each job: lambda + pro + protein name
 
         # e.g. Submitted batch job 7599862
         if "Submitted batch job" not in str(output):
             print('There was a problem with submitting a job')
             print('Directory: ', submit_sh_loc)
             print('Full output', output)
+        else:
+            print(output)

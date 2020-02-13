@@ -104,5 +104,5 @@ alchVdwLambdaEnd        1.0
 alchDecouple            on
 
 #Prod_Run
-set lamb LAMB
+set lamb 0.01
 runTIlist  $lamb   3000000;             # 6 ns
