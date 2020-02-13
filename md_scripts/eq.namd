@@ -8,7 +8,7 @@ outputname	   $outputname;
 
 # Unchanging information
 ################################################################################
-set temp	310.15
+set temp	300
 temperature 	$temp
 # Force-Field Parameters
 exclude             scaled1-4
@@ -46,8 +46,8 @@ PMEGridSpacing     1.0;
 ####################################################### MEMBRANE RELATED #####################################################################
 useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
                                        # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
-useFlexibleCell        yes;            # yes for anisotropic system like membrane
-useConstantRatio       yes;            # keeps the ratio of the unit cell in the x-y plane constant A=B
+# useFlexibleCell        yes;            # yes for anisotropic system like membrane
+# useConstantRatio       yes;            # keeps the ratio of the unit cell in the x-y plane constant A=B
 #############################################################################################################################################                                       
 langevin            on    ;# do langevin dynamics
 langevinDamping     1     ;# damping coefficient (gamma) of 5/ps

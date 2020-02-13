@@ -30,7 +30,7 @@ for lambda_dir in os.listdir('.'):
         # e.g. Submitted batch job 7599862
         if "Submitted batch job" not in str(output):
             print('There was a problem with submitting a job')
-            print('Directory: ', submit_sh_loc)
+            print('Directory: ', rep_dir)
             print('Full output', output)
         else:
             print(output)

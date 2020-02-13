@@ -4,8 +4,8 @@ amber on
 coordinates        merged_solvated_fep.pdb
 parmfile           merged_solvated.top
 
-set temp           310.15;
-set outputname     prod1;               # base name for output from this run
+set temp           300;
+set outputname     prod;               # base name for output from this run
                                        # NAMD writes two files at the end, final coord and vel
                                        # in the format of first-dyn.coor and first-dyn.vel
 outputName         $outputname
@@ -58,7 +58,7 @@ pairlistsPerCycle    2;                # 2 is the default
 timestep            2.0;               # fs/step
 rigidBonds          all;               # Bound constraint all bonds involving H are fixed in length
 nonbondedFreq       1;                 # nonbonded forces every step
-fullElectFrequency  1;                 # PME every step
+fullElectFrequency  2;                 # PME every step
 
 wrapWater           on;                # wrap water to central cell
 wrapAll             on;                # wrap other molecules too
@@ -67,7 +67,7 @@ wrapNearest         off;               # use for non-rectangular cells (wrap to 
 # PME (for full-system periodic electrostatics)
 PME                yes;
 PMEGridSpacing       1;
-PMEInterpOrder       4;                # interpolation order (spline order 6 in charmm)
+# PMEInterpOrder       4;                # interpolation order (spline order 6 in charmm)
 # Constant Pressure Control (variable volume)
 useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
                                        # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
