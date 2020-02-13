@@ -110,5 +110,5 @@ puts "Lambda value is $lambda_value"
 close $lambda_f
 
 #Prod_Run
-set lamb $lambda_f
+set lamb $lambda_value
 runTIlist  $lamb   3000000;             # 6 ns

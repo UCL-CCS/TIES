@@ -2,10 +2,12 @@
 Load two ligands, run the topology superimposer, and then
 using the results, generate the NAMD input files.
 
-Improvements:
 todo - use ambertools python interface rather than ambertools directly,
        or find some other API bbblocks building blocks? or some other API,
        or create minimal your own
+todo - adjust the input for surfsara for nwo
+todo - estimate the size and legnth of the simulation, to adjust the number of cores/nodes
+todo -
 
 frcmod file format: `http://ambermd.org/FileFormats.php#frcmod`
 """
@@ -448,10 +450,12 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
 
         # set the lambda value for the directory
         with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
-            FOUT.write(str(lambda_step))
+            FOUT.write(f'{lambda_step:.2f}')
 
+        # copy the surfsara submit script - fixme - make this general
+        shutil.copy(os.path.join(script_dir, "surfsara.sh"), os.path.join(replica_dir, 'submit.sh'))
 
-        # todo
+        # fixme States show the progress of the simulation.
 print('hi')
 
 # todo copy the solvation script, as well as the ligand1, ligand2,
