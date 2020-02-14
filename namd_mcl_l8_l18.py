@@ -457,6 +457,7 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
 
         # copy the scheduler to the main directory
         shutil.copy(os.path.join(script_dir, "schedule_separately.py"), workplace_root)
+        shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), workplace_root)
 
         # fixme States show the progress of the simulation.
 print('hi')
