@@ -416,8 +416,6 @@ write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
 top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
 write_merged(suptop, top_merged_filename)
 
-sys.exit(0)
-
 # check if the .frcmod were generated
 left_frcmod = os.path.join(workplace_root, 'left.frcmod')
 right_frcmod = os.path.join(workplace_root, 'right.frcmod')
@@ -563,10 +561,9 @@ shutil.copy(os.path.join(workplace_root, 'protein.pdb'), complex_workplace)
 # todo - call antechamber?
 
 # copy the ligand (the morphed ligand), and its .frcmod
-ligand_dualmorph = os.path.join(workplace_root, 'merged.mol2')
-shutil.copy(ligand_dualmorph, complex_workplace)
-
+shutil.copy(top_merged_filename, complex_workplace)
 shutil.copy(os.path.join(workplace_root, merged_frc_filename), complex_workplace)
+
 # todo - dock with the ligand to create a complex
 # copy the protein tleap input file (ambertools)
 shutil.copy(os.path.join(script_dir, 'leap_protein.in'), complex_workplace)
@@ -581,8 +578,6 @@ assert 'Errors = 0' in str(output)
 complex_merged_solvated = os.path.join(workplace_root, 'complex_merged_solvated.pdb')
 
 # fixme - ensure that the _fep is only applied to the ligand, not the protein,
-# get/ensure that the ligand has only one resname
-lig_resnames = get_morphed_ligand_resnames(ligand_dualmorph)
 # fixme - check that the protein does not have the same resname
 
 # update the complex to create complex.fep file
