@@ -416,6 +416,8 @@ write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
 top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
 write_merged(suptop, top_merged_filename)
 
+sys.exit(0)
+
 # check if the .frcmod were generated
 left_frcmod = os.path.join(workplace_root, 'left.frcmod')
 right_frcmod = os.path.join(workplace_root, 'right.frcmod')
@@ -605,7 +607,7 @@ shutil.copy(os.path.join(script_dir, complex_prod_namd_filename), complex_workpl
 complex_prod_namd = os.path.join(complex_workplace, complex_prod_namd_filename)
 # modify the NAMD to reflect on the correct PBC boundaries
 # update PBC in the .namd inputs
-update_PBC_in_namd_input(complex_eq_namd, solv_box_complex_pbc)
+# update_PBC_in_namd_input(complex_eq_namd, solv_box_complex_pbc)
 
 # copy the minmisation file
 namd_input_min = os.path.join(script_dir, "complex_min.namd")
@@ -625,15 +627,20 @@ conskfile  constraint{4- i}_complex_merged_solvated.pdb
 conskcol  B
     """
     original_complex_eq_namd = os.path.join(script_dir, complex_eq_namd_filename)
+    if i == 0:
+        prev_output = 'complex_min_out'
+    else:
+        # take the output from the previous run
+        prev_output = 'complex_eq_out_%d' % i
+
     reformatted_namd_in = open(original_complex_eq_namd).read().format(
         cell_x=solv_box_complex_pbc[0], cell_y=solv_box_complex_pbc[1], cell_z=solv_box_complex_pbc[2],
-        constraints=constraints, output='complex_eq_out_%d' % i)
+        constraints=constraints, output='complex_eq_out_%d' % (i + 1),
+        prev_output=prev_output)
     # write to the file, start eq files count from 1
-    open("complex_eq_step%d.namd" % (i + 1), 'w').write(reformatted_namd_in)
+    open(os.path.join(complex_workplace, "complex_eq_step%d.namd" % (i + 1)), 'w').write(reformatted_namd_in)
 
 # todo
-# copy the .tcl script that runs TIES
-shutil.copy(os.path.join(script_dir, "fep.tcl"), complex_workplace)
 
 # set the lambda value for the directory
 # with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
