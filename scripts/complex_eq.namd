@@ -1,0 +1,124 @@
+# Forcefield/Topology Information
+amber on
+set structure      complex_merged_solvated_fep
+coordinates        complex_merged_solvated_fep.pdb
+parmfile           complex_merged_solvated.top
+set outputname 	   {output};
+outputname	   $outputname;
+
+# get the coordinates from the previous run
+bincoordinates     $inputname.coor;    # coordinates from last run (binary)
+binvelocities      $inputname.vel;     # velocities from last run (binary)
+extendedSystem     $inputname.xsc;     # cell dimensions from last run
+
+# Unchanging information
+################################################################################
+set temp	300
+temperature 	$temp
+# Force-Field Parameters
+exclude             scaled1-4
+1-4scaling          0.833333
+cutoff              12.
+switching           on
+switchdist          10.
+pairlistdist        13.5
+# Integrator Parameters
+timestep            1.0  ;# 2fs/step
+rigidBonds          all  ;# needed for 2fs steps
+rigidtolerance      0.00001
+rigidIterations     100
+nonbondedFreq       1
+fullElectFrequency  1
+stepspercycle       10
+wrapWater           on
+wrapAll             on
+# Output
+OutputTiming        10000
+OutputEnergies      10000
+
+# Protocol specific information
+################################################################################
+set wrapnearst off
+
+# ...
+cellBasisVector1	{cell_x}  0.000  0.000
+cellBasisVector2	 0.000  {cell_y}  0.000
+cellBasisVector3	 0.000  0.000 {cell_z}
+cellOrigin		 0.000  0.000  0.000
+
+PME                 yes
+PMEInterpOrder	    4
+PMEGridSpacing     1.0;
+
+{constraints}
+# e.g.:
+#constraints  on
+#consexp  2
+# use the same file for the position reference and the B column
+#consref  prot-f1.pdb ;#need all positions
+#conskfile  prot-f1.pdb
+#conskcol  B
+
+####################################################### MEMBRANE RELATED #####################################################################
+useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
+                                       # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
+# useFlexibleCell        yes;            # yes for anisotropic system like membrane
+# useConstantRatio       yes;            # keeps the ratio of the unit cell in the x-y plane constant A=B
+#############################################################################################################################################                                       
+langevin            on    ;# do langevin dynamics
+langevinDamping     1     ;# damping coefficient (gamma) of 5/ps
+langevinTemp        $temp 
+langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
+
+langevinPiston          on;            # Nose-Hoover Langevin piston pressure control
+langevinPistonTarget  1.01325;         # target pressure in bar 1atm = 1.01325bar
+langevinPistonPeriod  50.0;            # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
+langevinPistonTemp    $temp            # f=1/T=20.0(pgamma)
+langevinPistonDecay   25.0;            # oscillation decay time. smaller value correspons to larger random
+                                       # forces and increased coupling to the Langevin temp bath.
+                                       # Equall or smaller than piston period
+binaryoutput          yes;
+# alchemical
+# source          fep.tcl
+alch            on
+alchType        ti
+#alchLambda2	0
+alchFile        complex_merged_solvated_fep.pdb
+alchCol         B
+alchOutFile     $outputname.alch
+alchOutFreq     1000
+alchEquilSteps  2000
+
+alchVdwShiftCoeff       5
+alchElecLambdaStart     0.45
+alchVdwLambdaEnd        1.0
+alchDecouple            on
+
+set start 	0.0	
+set stop	0.0
+set dLambda	0.0
+set nSteps      2000
+set nMinSteps	5000
+
+# read which lambda we are working on
+set lambda_f [open "lambda" r]
+set lambda_value [read $lambda_f]
+puts "Lambda value is $lambda_value"
+close $lambda_f
+
+# protocol - MD
+set lamb $lambda_value
+
+set start $lambda_value
+set stop $lambda_value
+# we explicitly run only one lambda window here
+set run_dLambda 0
+# we use this file only for minimisation
+set nStepsSimulation 100000
+set nMinSteps 0
+
+runFEPmin $start $stop $run_dLambda $nStepsSimulation $nMinSteps $temp
+#firsttimestep 0
+#alchLambda       0
+#alchLambda2      0
+#run 5000

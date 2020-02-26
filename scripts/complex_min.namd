@@ -1,9 +1,9 @@
 # Forcefield/Topology Information
 amber on
-set structure      merged_solvated_fep
-coordinates        merged_solvated_fep.pdb
-parmfile           merged_solvated.top
-set outputname 	   eq;
+set structure      complex_merged_solvated_fep
+coordinates        complex_merged_solvated_fep.pdb
+parmfile           complex_merged_solvated.top
+set outputname 	   complex_min_out;
 outputname	   $outputname;
 
 # Unchanging information
@@ -35,14 +35,24 @@ OutputEnergies      10000
 ################################################################################
 set wrapnearst off
 
-cellBasisVector1	41.724  0.000  0.000
-cellBasisVector2	 0.000  38.354  0.000
-cellBasisVector3	 0.000  0.000 36.599
+# ...
+cellBasisVector1	75.18400573730469  0.000  0.000
+cellBasisVector2	 0.000  72.54499816894531  0.000
+cellBasisVector3	 0.000  0.000 71.03500366210938
 cellOrigin		 0.000  0.000  0.000
 
 PME                 yes
 PMEInterpOrder	    4
 PMEGridSpacing     1.0;
+
+# set up constraints
+constraints  on
+consexp  2
+# use the same file for the position reference and the B column
+consref  constraint4_complex_merged_solvated.pdb ;#need all positions
+conskfile  constraint4_complex_merged_solvated.pdb
+conskcol  B
+
 ####################################################### MEMBRANE RELATED #####################################################################
 useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
                                        # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
@@ -63,11 +73,11 @@ langevinPistonDecay   25.0;            # oscillation decay time. smaller value c
                                        # Equall or smaller than piston period
 binaryoutput          yes;
 # alchemical
-source          fep.tcl
+# source          fep.tcl
 alch            on
 alchType        ti
 #alchLambda2	0
-alchFile        merged_solvated_fep.pdb
+alchFile        complex_merged_solvated_fep.pdb
 alchCol         B
 alchOutFile     $outputname.alch
 alchOutFreq     1000
@@ -78,18 +88,16 @@ alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
 
-set start 	0.0	
-set stop	0.0
-set dLambda	0.0
-set nSteps      2000
-set nMinSteps	5000
-
 # read which lambda we are working on
 set lambda_f [open "lambda" r]
 set lambda_value [read $lambda_f]
 puts "Lambda value is $lambda_value"
 close $lambda_f
 
-# protocol - MD
-set lamb $lambda_value
-runFEPmin $lamb $lamb 0 100000 5000 $temp  
+# run minimisation
+alchLambda       $lambda_value
+alchLambda2      $lambda_value
+# minimise with the given number of steps
+minimize 5000
+# generate velocities
+reinitvels $temp
