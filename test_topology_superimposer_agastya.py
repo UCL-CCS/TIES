@@ -1,4 +1,6 @@
 """
+
+TIES - test cases for how charges and deletions affect bond generation
 The testing with the defined cases by Agastya.
 
 TODO - add test cases which capture which atoms do not match together.

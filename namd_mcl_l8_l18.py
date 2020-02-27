@@ -181,7 +181,7 @@ def write_merged(suptop, merged_filename):
 
         bond_counter = 1
         list(bonds)
-        for bond_from_id, bond_to_id, bond_type in sorted(list(bonds)):
+        for bond_from_id, bond_to_id, bond_type in sorted(list(bonds), key=lambda b: b[:2]):
             # Bond Line Format:
             # bond_id origin_atom_id target_atom_id bond_type [status_bits]
             FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)
@@ -408,6 +408,8 @@ if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
 # fixme - call any of the tools you have (antechamber, parmchk2)
 suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
                                    os.path.join(workplace_root, 'right.mol2'))
+# verify the suptop
+
 # save the results of the topology superimposition as a json
 top_sup_joint_meta = os.path.join(workplace_root, 'joint_meta_fep.json')
 save_superimposition_results(top_sup_joint_meta)
@@ -415,6 +417,8 @@ write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
 # save the merged topologies as a .mol2 file
 top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
 write_merged(suptop, top_merged_filename)
+
+sys.exit(0)
 
 # check if the .frcmod were generated
 left_frcmod = os.path.join(workplace_root, 'left.frcmod')

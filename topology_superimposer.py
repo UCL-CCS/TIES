@@ -363,21 +363,21 @@ class SuperimposedTopology:
         # the next iteration would connect SingleA2 to SingleA1, etc
         # first, remove the atoms that are connected to pairs
         for atom in unmatched_atoms:
-            linked_to_matched_pair = False
             for bonded_atom, bond_type in atom.bonds:
                 unmatched_atom_id = self.get_generated_atom_ID(atom)
                 # check if the unmatched atom is bonded to any pair
                 pair = self.find_pair_with_atom(bonded_atom.atomName)
                 if pair is not None:
+                    # this atom is bound to a pair, so add the bond to the pair
                     pairId = self.get_generated_atom_ID(pair[0])
-                    # add the bond between the atom and the
+                    # add the bond between the atom and the pair
                     bond_sorted = sorted([unmatched_atom_id, pairId])
                     bond_sorted.append(bond_type[0])
                     bonds.add(tuple(bond_sorted))
                     linked_to_matched_pair = True
-                if not linked_to_matched_pair:
+                else:
                     # it is not directly linked to a matched pair,
-                    # simply add this missing bond
+                    # simply add this missing bond to whatever atom it is bound
                     another_unmatched_atom_id = self.get_generated_atom_ID(bonded_atom)
                     bond_sorted = sorted([unmatched_atom_id, another_unmatched_atom_id])
                     bond_sorted.append(bond_type[0])
@@ -387,7 +387,6 @@ class SuperimposedTopology:
         # that form circles should probably be added while checking if the circles make sense etc
         # also, rather than checking if it is a circle, we could check if the new linked atom,
         # is in a pair to which the new pair refers (the same rule that is used currently)
-
         return bonds
 
 
