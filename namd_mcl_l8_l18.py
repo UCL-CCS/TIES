@@ -382,110 +382,6 @@ def get_morphed_ligand_resnames(filename):
     return lig_resnames
 
 
-workplace_root = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
-
-# todo - check if there is left.pdb and right.pdb
-if not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
-    print('File left.pdb not found in', workplace_root)
-    sys.exit(1)
-elif not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
-    print('File right.pdb not found in', workplace_root)
-    sys.exit(1)
-# copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
-antechamber_sqm_script_name = 'assign_charge_parameters.sh'
-script_dir = 'scripts'
-# fixme - what are the net charges?
-shutil.copy(os.path.join(script_dir, antechamber_sqm_script_name), workplace_root)
-# execute the script (the script has to source amber.sh)
-# do not do this if there is a .frcmod files
-if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
-    # fixme - add checks for other files
-    output = subprocess.check_output(['sh', os.path.join(workplace_root, antechamber_sqm_script_name), 'left', 'right'])
-    # todo - CHECK IF THE RESULTS ARE CORRECT
-
-# load the files (.mol2) and superimpose the two topologies
-# fixme - superimpose the molecules or stop relaying on RMSD info
-# fixme - call any of the tools you have (antechamber, parmchk2)
-suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
-                                   os.path.join(workplace_root, 'right.mol2'))
-# verify the suptop
-
-# save the results of the topology superimposition as a json
-top_sup_joint_meta = os.path.join(workplace_root, 'joint_meta_fep.json')
-save_superimposition_results(top_sup_joint_meta)
-write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
-# save the merged topologies as a .mol2 file
-top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
-write_merged(suptop, top_merged_filename)
-
-sys.exit(0)
-
-# check if the .frcmod were generated
-left_frcmod = os.path.join(workplace_root, 'left.frcmod')
-right_frcmod = os.path.join(workplace_root, 'right.frcmod')
-if not os.path.isfile(left_frcmod):
-    sys.exit(5)
-elif not os.path.isfile(right_frcmod):
-    sys.exit(5)
-
-# generate the joint .frcmod file
-merged_frc_filename = os.path.join(workplace_root, 'merged.frcmod')
-join_frcmod_files(left_frcmod, right_frcmod, merged_frc_filename)
-
-# copy the solvate script for tleap
-shutil.copy(os.path.join(script_dir, "run_tleap.sh"), workplace_root)
-shutil.copy(os.path.join(script_dir, "leap.in"), workplace_root)
-# solvate using AmberTools, copy leap.in and use tleap
-output = subprocess.check_output(['sh', os.path.join(workplace_root, "run_tleap.sh")])
-# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
-merged_solvated = os.path.join(workplace_root, "merged_solvated.pdb")
-merged_solvated_fep = os.path.join(workplace_root, "merged_solvated_fep.pdb")
-correct_fep_tempfactor(top_sup_joint_meta, merged_solvated, merged_solvated_fep)
-
-# take care of the ligand-ligand without the protein
-liglig_workplace = os.path.join(workplace_root, 'liglig')
-if not os.path.isdir(liglig_workplace):
-    os.makedirs(liglig_workplace)
-
-# Generate the directory structure for all the lambdas, and copy the files
-for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-    lambda_path = os.path.join(liglig_workplace, f'lambda_{lambda_step:.2f}')
-    if not os.path.exists(lambda_path):
-        os.makedirs(lambda_path)
-
-    # for each lambda create 5 replicas
-    for replica_no in range(1, 5 + 1):
-        replica_dir = os.path.join(lambda_path, f'rep{replica_no}')
-        if not os.path.exists(replica_dir):
-            os.makedirs(replica_dir)
-
-        # copy the files for each simulation
-        # "coordinates" with the fep metadata
-        shutil.copy(merged_solvated_fep, replica_dir)
-        # fixme - where was this file generated
-        shutil.copy(os.path.join(workplace_root, "merged_solvated.top"), replica_dir)
-
-        # copy the NAMD files
-        shutil.copy(os.path.join(script_dir, "fep_min.namd"), replica_dir)
-        shutil.copy(os.path.join(script_dir, "prod.namd"), replica_dir)
-
-        # copy the .tcl script that runs TIES
-        shutil.copy(os.path.join(script_dir, "fep.tcl"), replica_dir)
-
-        # set the lambda value for the directory
-        with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
-            FOUT.write(f'{lambda_step:.2f}')
-
-        # copy the surfsara submit script - fixme - make this general
-        shutil.copy(os.path.join(script_dir, "surfsara.sh"), os.path.join(replica_dir, 'submit.sh'))
-
-        # copy the scheduler to the main directory
-        shutil.copy(os.path.join(script_dir, "schedule_separately.py"), liglig_workplace)
-        shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), liglig_workplace)
-
-# ------------------ complex-complex --------------
-# fixme - use tleap to merge+solvate, decide on the charges?
-
 def get_PBC_coords(pdb_file):
     """
     Return [x, y, z]
@@ -554,11 +450,115 @@ conskcol  B
     return filenames
 
 
+workplace_root = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
+
+# todo - check if there is left.pdb and right.pdb
+if not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+    print('File left.pdb not found in', workplace_root)
+    sys.exit(1)
+elif not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+    print('File right.pdb not found in', workplace_root)
+    sys.exit(1)
+# copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
+antechamber_sqm_script_name = 'assign_charge_parameters.sh'
+script_dir = 'scripts'
+# fixme - what are the net charges?
+shutil.copy(os.path.join(script_dir, antechamber_sqm_script_name), workplace_root)
+# execute the script (the script has to source amber.sh)
+# do not do this if there is a .frcmod files
+if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
+    # fixme - add checks for other files
+    output = subprocess.check_output(['sh', os.path.join(workplace_root, antechamber_sqm_script_name), 'left', 'right'])
+    # todo - CHECK IF THE RESULTS ARE CORRECT
+
+# load the files (.mol2) and superimpose the two topologies
+# fixme - superimpose the molecules or stop relaying on RMSD info
+# fixme - call any of the tools you have (antechamber, parmchk2)
+suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
+                                   os.path.join(workplace_root, 'right.mol2'))
+# verify the suptop
+
+# save the results of the topology superimposition as a json
+top_sup_joint_meta = os.path.join(workplace_root, 'joint_meta_fep.json')
+save_superimposition_results(top_sup_joint_meta)
+write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
+# save the merged topologies as a .mol2 file
+top_merged_filename = os.path.join(workplace_root, 'merged.mol2')
+write_merged(suptop, top_merged_filename)
+
+# check if the .frcmod were generated
+left_frcmod = os.path.join(workplace_root, 'left.frcmod')
+right_frcmod = os.path.join(workplace_root, 'right.frcmod')
+if not os.path.isfile(left_frcmod):
+    sys.exit(5)
+elif not os.path.isfile(right_frcmod):
+    sys.exit(5)
+
+# generate the joint .frcmod file
+merged_frc_filename = os.path.join(workplace_root, 'merged.frcmod')
+join_frcmod_files(left_frcmod, right_frcmod, merged_frc_filename)
+
+# copy the solvate script for tleap
+shutil.copy(os.path.join(script_dir, "run_tleap.sh"), workplace_root)
+shutil.copy(os.path.join(script_dir, "leap.in"), workplace_root)
+# solvate using AmberTools, copy leap.in and use tleap
+output = subprocess.check_output(['sh', os.path.join(workplace_root, "run_tleap.sh")])
+# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
+merged_solvated = os.path.join(workplace_root, "merged_solvated.pdb")
+merged_solvated_fep = os.path.join(workplace_root, "merged_solvated_fep.pdb")
+correct_fep_tempfactor(top_sup_joint_meta, merged_solvated, merged_solvated_fep)
+
+# take care of the ligand-ligand without the protein
+liglig_workplace = os.path.join(workplace_root, 'liglig')
+if not os.path.isdir(liglig_workplace):
+    os.makedirs(liglig_workplace)
+
+# Generate the directory structure for all the lambdas, and copy the files
+for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
+    lambda_path = os.path.join(liglig_workplace, f'lambda_{lambda_step:.2f}')
+    if not os.path.exists(lambda_path):
+        os.makedirs(lambda_path)
+
+    # for each lambda create 5 replicas
+    for replica_no in range(1, 5 + 1):
+        replica_dir = os.path.join(lambda_path, f'rep{replica_no}')
+        if not os.path.exists(replica_dir):
+            os.makedirs(replica_dir)
+
+        # copy the files for each simulation
+        # "coordinates" with the fep metadata
+        shutil.copy(merged_solvated_fep, replica_dir)
+        # copy the ambertools generated topology file
+        shutil.copy(os.path.join(workplace_root, "merged_solvated.top"), replica_dir)
+
+        # copy the NAMD files
+        shutil.copy(os.path.join(script_dir, "fep_min.namd"), replica_dir)
+        shutil.copy(os.path.join(script_dir, "prod.namd"), replica_dir)
+
+        # copy the .tcl script that runs TIES
+        # todo - remove the .tcl file and replace it with more scripts that do the right steps
+        # ie min/eq1,2,3,4/prod
+        shutil.copy(os.path.join(script_dir, "fep.tcl"), replica_dir)
+
+        # set the lambda value for the directory
+        with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
+            FOUT.write(f'{lambda_step:.2f}')
+
+        # copy the surfsara submit script - fixme - make this general
+        shutil.copy(os.path.join(script_dir, "surfsara.sh"), os.path.join(replica_dir, 'submit.sh'))
+
+        # copy the scheduler to the main directory
+        shutil.copy(os.path.join(script_dir, "schedule_separately.py"), liglig_workplace)
+        shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), liglig_workplace)
+
+# ------------------ complex-complex --------------
+# fixme - use tleap to merge+solvate, decide on the charges?
+
 complex_workplace = os.path.join(workplace_root, 'complexcomplex')
 if not os.path.isdir(complex_workplace):
     os.makedirs(complex_workplace)
-    # test:  let's start without replicas
 
+# prepare the simulation files
 # copy the complex .pdb
 shutil.copy(os.path.join(workplace_root, 'protein.pdb'), complex_workplace)
 # todo - ensure the protein protonation is correct
@@ -573,32 +573,27 @@ shutil.copy(os.path.join(workplace_root, merged_frc_filename), complex_workplace
 shutil.copy(os.path.join(script_dir, 'leap_protein.in'), complex_workplace)
 shutil.copy(os.path.join(script_dir, 'run_tleap_complex.sh'), complex_workplace)
 
-# call tleap (ambertools) to solvate the complex
+# solvate the complex (tleap, ambertools)
 #      rn tleap also combines complex+ligand, and generates amberparm
 output = subprocess.check_output(['sh', os.path.join(complex_workplace, "run_tleap_complex.sh")],
                                  cwd=complex_workplace)
 assert 'Errors = 0' in str(output)
 # tleap generates these:
-complex_merged_solvated = os.path.join(workplace_root, 'complex_merged_solvated.pdb')
-
-# fixme - ensure that the _fep is only applied to the ligand, not the protein,
-# fixme - check that the protein does not have the same resname
+complex_merged_solvated = os.path.join(complex_workplace, 'complex_merged_solvated.pdb')
 
 # update the complex to create complex.fep file
 # generate the merged .fep file
 complex_merged_solvated_fep = os.path.join(workplace_root, 'complex_merged_solvated_fep.pdb')
 correct_fep_tempfactor(top_sup_joint_meta, complex_merged_solvated, complex_merged_solvated_fep)
 
+# fixme - ensure that the _fep is only applied to the ligand, not the protein,
+# fixme - check that the protein does not have the same resname
+
 # get the PBC data from MDAnalysis
 solv_box_complex_pbc = get_PBC_coords(complex_merged_solvated)
 
-# todo - create a lambda directory
-lambda_var = 0
-# create a lambda file
-open(os.path.join(complex_workplace, 'lambda'), 'w').write(str(lambda_var))
-
 # copy the NAMD input files to the main directory first
-complex_eq_namd_filename = "complex_eq.namd"
+complex_eq_namd_filename = "complex_eq_template.namd"
 shutil.copy(os.path.join(script_dir, complex_eq_namd_filename), complex_workplace)
 complex_eq_namd = os.path.join(complex_workplace, complex_eq_namd_filename)
 complex_prod_namd_filename = "complex_prod.namd"
@@ -638,6 +633,51 @@ conskcol  B
         prev_output=prev_output)
     # write to the file, start eq files count from 1
     open(os.path.join(complex_workplace, "complex_eq_step%d.namd" % (i + 1)), 'w').write(reformatted_namd_in)
+
+
+# Generate the directory structure for all the lambdas, and copy the files
+for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
+    lambda_path = os.path.join(complex_workplace, f'lambda_{lambda_step:.2f}')
+    if not os.path.exists(lambda_path):
+        os.makedirs(lambda_path)
+
+    # for each lambda create 5 replicas
+    for replica_no in range(1, 5 + 1):
+        replica_dir = os.path.join(lambda_path, f'rep{replica_no}')
+        if not os.path.exists(replica_dir):
+            os.makedirs(replica_dir)
+
+        # set the lambda value for the directory
+        with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
+            FOUT.write(f'{lambda_step:.2f}')
+
+        # copy all the necessary files
+        shutil.copy(complex_merged_solvated_fep, replica_dir)
+
+        # copy the ambertools generated topology
+        shutil.copy(os.path.join(complex_workplace, "complex_merged_solvated.top"), replica_dir)
+
+        # copy the NAMD protocol files
+        shutil.copy(os.path.join(complex_workplace, "complex_min.namd"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "complex_eq_step1.namd"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "complex_eq_step2.namd"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "complex_eq_step3.namd"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "complex_eq_step4.namd"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "complex_prod.namd"), replica_dir)
+
+        # copy the .pdb files with constraints in the B column
+        shutil.copy(os.path.join(complex_workplace, "constraint1_complex_merged_solvated.pdb"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "constraint2_complex_merged_solvated.pdb"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "constraint3_complex_merged_solvated.pdb"), replica_dir)
+        shutil.copy(os.path.join(complex_workplace, "constraint4_complex_merged_solvated.pdb"), replica_dir)
+
+        # copy the surfsara submit script - fixme - make this general
+        shutil.copy(os.path.join(script_dir, "surfsara_complex.sh"), os.path.join(replica_dir, 'submit.sh'))
+
+# copy the scheduler to the main directory
+shutil.copy(os.path.join(script_dir, "schedule_separately.py"), complex_workplace)
+shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), complex_workplace)
+
 
 # todo
 

@@ -112,7 +112,7 @@ set nStepsSimulation 100000
 set nMinSteps 0
 
 # runFEPmin $start $stop $run_dLambda $nStepsSimulation $nMinSteps $temp
-firsttimestep 0
-alchLambda       0
-alchLambda2      0
-run 100000
+firsttimestep       0
+alchLambda          $lambda_value
+alchLambda2         $lambda_value
+run                 100000

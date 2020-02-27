@@ -1,15 +1,13 @@
-set structure      merged_solvated_fep
-
 amber on
-coordinates        merged_solvated_fep.pdb
-parmfile           merged_solvated.top
+coordinates        complex_merged_solvated_fep.pdb
+parmfile           complex_merged_solvated.top
 
 set temp           300;
 set outputname     prod;               # base name for output from this run
                                        # NAMD writes two files at the end, final coord and vel
                                        # in the format of first-dyn.coor and first-dyn.vel
 outputName         $outputname
-set inputname      eq;
+set inputname      complex_eq_out_4;
 bincoordinates     $inputname.coor;    # coordinates from last run (binary)
 binvelocities      $inputname.vel;     # velocities from last run (binary)
 extendedSystem     $inputname.xsc;     # cell dimensions from last run
@@ -110,5 +108,8 @@ puts "Lambda value is $lambda_value"
 close $lambda_f
 
 #Prod_Run
-set lamb $lambda_value
-runTIlist  $lamb   3000000;             # 6 ns
+# runTIlist  $lambda_value   3000000;             # 6 ns
+firsttimestep       0
+alchLambda          $lambda_value
+alchLambda2         $lambda_value
+run                 3000000;             # 6 ns
