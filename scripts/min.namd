@@ -1,9 +1,8 @@
 # Forcefield/Topology Information
 amber on
-set structure      morph_solvated
-coordinates        $structure.pdb
-parmfile           $structure.top
-set outputname 	   morph_min_out;
+coordinates        {structure_name}.pdb
+parmfile           {structure_name}.top
+set outputname 	   min_out;
 outputname	   $outputname;
 
 # Unchanging information
@@ -49,8 +48,8 @@ PMEGridSpacing     1.0;
 constraints  on
 consexp  2
 # use the same file for the position reference and the B column
-consref  constraint4_morph_solvated.pdb ;#need all positions
-conskfile  constraint4_morph_solvated.pdb
+consref  constraint4_{structure_name}.pdb ;#need all positions
+conskfile  constraint4_{structure_name}.pdb
 conskcol  B
 
 ####################################################### MEMBRANE RELATED #####################################################################
@@ -77,7 +76,7 @@ binaryoutput          yes;
 alch            on
 alchType        ti
 #alchLambda2	0
-alchFile        $structure_fep.pdb
+alchFile        {structure_name}_fep.pdb
 alchCol         B
 alchOutFile     $outputname.alch
 alchOutFreq     1000
@@ -94,10 +93,6 @@ set lambda_value [read $lambda_f]
 puts "Lambda value is $lambda_value"
 close $lambda_f
 
-# run minimisation
 alchLambda       $lambda_value
-alchLambda2      $lambda_value
-# minimise with the given number of steps
-minimize 5000
-# generate velocities
-reinitvels $temp
+minimize 5000 ;     # minimise with the given number of steps
+reinitvels $temp ; # generate velocities

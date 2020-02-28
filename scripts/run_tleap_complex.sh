@@ -8,4 +8,4 @@ cd $CURRENT_DIR
 echo 'Current Dir' $CURRENT_DIR
 
 # generate the param file
-tleap -s -f leap_protein.in
+tleap -s -f leap_complex.in

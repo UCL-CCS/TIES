@@ -1,8 +1,8 @@
 # Forcefield/Topology Information
 amber on
-set structure      complex_merged_solvated_fep
-coordinates        complex_merged_solvated_fep.pdb
-parmfile           complex_merged_solvated.top
+set structure      complex_solvated
+coordinates        $structure.pdb
+parmfile           $structure.top
 set outputname 	   {output};
 outputname	   $outputname;
 
@@ -76,8 +76,7 @@ binaryoutput          yes;
 # source          fep.tcl
 alch            on
 alchType        ti
-#alchLambda2	0
-alchFile        complex_merged_solvated_fep.pdb
+alchFile        ${structure}_fep.pdb
 alchCol         B
 alchOutFile     $outputname.alch
 alchOutFreq     1000
@@ -88,12 +87,6 @@ alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
 
-set start 	0.0	
-set stop	0.0
-set dLambda	0.0
-set nSteps      2000
-set nMinSteps	5000
-
 # read which lambda we are working on
 set lambda_f [open "lambda" r]
 set lambda_value [read $lambda_f]
@@ -101,18 +94,6 @@ puts "Lambda value is $lambda_value"
 close $lambda_f
 
 # protocol - MD
-set lamb $lambda_value
-
-set start $lambda_value
-set stop $lambda_value
-# we explicitly run only one lambda window here
-set run_dLambda 0
-# we use this file only for minimisation
-set nStepsSimulation 100000
-set nMinSteps 0
-
-# runFEPmin $start $stop $run_dLambda $nStepsSimulation $nMinSteps $temp
 firsttimestep       0
 alchLambda          $lambda_value
-alchLambda2         $lambda_value
-run                 100000
+run                 100000; # steps

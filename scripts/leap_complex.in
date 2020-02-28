@@ -3,15 +3,15 @@ source leaprc.protein.ff14SB
 source leaprc.water.tip3p
 source leaprc.gaff2
 
-loadamberparams merged.frcmod
+loadamberparams morph.frcmod
 # fixme merged here refers to the morphed ligands, ie merged ligands lambda 0 and lambda 13
-lig = loadMol2 merged.mol2
+lig = loadMol2 morph.mol2
 protein = LoadPdb protein.pdb
 complex = Combine {lig protein}
 solvatebox complex TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
 addIons complex Na+ 0
 addIons complex Cl- 0
-savepdb complex complex_merged_solvated.pdb
-saveamberparm complex complex_merged_solvated.top complex_merged_solvated.crd
+savepdb complex complex_solvated.pdb
+saveamberparm complex complex_solvated.top complex_solvated.crd
 quit

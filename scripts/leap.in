@@ -3,12 +3,12 @@ source leaprc.protein.ff14SB
 source leaprc.water.tip3p
 source leaprc.gaff2
 
-loadamberparams merged.frcmod
-lig = loadMol2 merged.mol2
+loadamberparams morph.frcmod
+lig = loadMol2 morph.mol2
 solvatebox lig TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
 addIons lig Na+ 0
 addIons lig Cl- 0
-savepdb lig merged_solvated.pdb
-saveamberparm lig merged_solvated.top merged_solvated.crd
+savepdb lig morph_solv.pdb
+saveamberparm lig morph_solv.top morph_solv.crd
 quit
