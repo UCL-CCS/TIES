@@ -87,7 +87,6 @@ langevinTemp         $temp;            # random noise at this level
 langevinHydrogen       off;            # don't couple bath to hydrogens
 
 # run Alchemistry
-source          fep.tcl
 alch            on
 alchType        ti
 alchLambda2     0.0
