@@ -11,6 +11,9 @@ todo -
 
 frcmod file format: `http://ambermd.org/FileFormats.php#frcmod`
 
+Improvements Long Term:
+ - adapt pathlib to work with the directories
+
 """
 from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
@@ -22,6 +25,8 @@ import subprocess
 from collections import OrderedDict
 import copy
 import MDAnalysis as mda
+from pathlib import Path, PurePosixPath, PosixPath
+
 
 def getSuptop(mol1, mol2):
     # use mdanalysis to load the files
@@ -387,9 +392,9 @@ def get_PBC_coords(pdb_file):
     Return [x, y, z]
     """
     u = mda.Universe(pdb_file)
-    x = max(u.atoms.positions[:, 0]) + (-min(u.atoms.positions[:, 0]))
-    y = max(u.atoms.positions[:, 1]) + (-min(u.atoms.positions[:, 1]))
-    z = max(u.atoms.positions[:, 2]) + (-min(u.atoms.positions[:, 2]))
+    x = np.abs(max(u.atoms.positions[:, 0]) - min(u.atoms.positions[:, 0]))
+    y = np.abs(max(u.atoms.positions[:, 1]) - min(u.atoms.positions[:, 1]))
+    z = np.abs(max(u.atoms.positions[:, 2]) - min(u.atoms.positions[:, 2]))
     return (x, y, z)
 
 def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
@@ -415,11 +420,11 @@ def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, con
 def create_4_constraint_files(original_pdb, location):
     # Generate 4 constraint files and return the filenames
     """
-coordinates  ../build/complex.pdb
+coordinates  complex.pdb
 constraints  on
 consexp  2
-consref  ../build/complex.pdb ;#need all positions
-conskfile  ../constraint/f4.pdb
+consref  complex.pdb ;#need all positions
+conskfile  constraint_f4.pdb
 conskcol  B
     """
 
@@ -427,7 +432,7 @@ conskcol  B
         # for each atom, give the B column the right value
         for atom in mda_universe.atoms:
             # ignore water
-            if atom.resname == 'WAT':
+            if atom.resname == 'WAT' or atom.resname == 'Na+':
                 continue
 
             # set each atom depending on whether it is a H or not
@@ -443,114 +448,166 @@ conskcol  B
     filenames = []
     u = mda.Universe(original_pdb)
     for i in range(1, 4+1):
-        next_constraint_filename = os.path.join(location, 'constraint%d_complex_solvated.pdb' % i)
+        next_constraint_filename = location / f'constraint_f{i:d}.pdb'
         create_constraint(u, next_constraint_filename, i)
         filenames.append(next_constraint_filename)
 
     return filenames
 
 
-# copy the NAMD MD protocol files
-def init_namd_file(from_dir, to_dir, filename, structure_name):
+def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
+    min_namd_initialised = open(os.path.join(from_dir, filename)).read()\
+        .format(structure_name=structure_name,
+                cell_x=pbc_box[0], cell_y=pbc_box[1], cell_z=pbc_box[2])
+    open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
+
+
+def init_namd_file_prod(from_dir, to_dir, filename, structure_name):
     min_namd_initialised = open(os.path.join(from_dir, filename)).read()\
         .format(structure_name=structure_name)
     open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
 
-workplace_root = '/home/dresio/code/BAC2020/namd_study/mcl_l8_l18'
+
+def generate_namd_eq(namd_eq, dst_dir, structure_name):
+    input_data = open(namd_eq).read()
+    eq_namd_filenames = []
+    for i in range(4):
+        constraints = f"""
+constraints  on
+consexp  2
+# use the same file for the position reference and the B column
+consref  constraint_f{4 - i}.pdb ;#need all positions
+conskfile  constraint_f{4- i}.pdb
+conskcol  B
+        """
+        if i == 0:
+            prev_output = 'min_out'
+        else:
+            # take the output from the previous run
+            prev_output = 'eq_out_%d' % i
+
+        reformatted_namd_in = input_data.format(
+            constraints=constraints, output='eq_out_%d' % (i + 1),
+            prev_output=prev_output, structure_name=structure_name)
+        # write to the file, start eq files count from 1
+        next_eq_step_filename = dst_dir / ("eq_step%d.namd" % (i + 1))
+        open(next_eq_step_filename, 'w').write(reformatted_namd_in)
+        eq_namd_filenames.append(next_eq_step_filename)
+    return eq_namd_filenames
+
+
+workplace_root = Path('/home/dresio/code/BAC2020/namd_study/mcl_l8_l18')
 
 # todo - check if there is left.pdb and right.pdb
-if not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+if not (workplace_root / 'left.pdb').is_file():
     print('File left.pdb not found in', workplace_root)
     sys.exit(1)
-elif not os.path.isfile(os.path.join(workplace_root, 'left.pdb')):
+elif not (workplace_root / 'left.pdb').is_file():
     print('File right.pdb not found in', workplace_root)
     sys.exit(1)
 # copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
 antechamber_sqm_script_name = 'assign_charge_parameters.sh'
-script_dir = 'scripts'
+script_dir = PurePosixPath('/home/dresio/code/BAC2020/scripts')
+namd_script_dir = script_dir / 'namd'
+ambertools_script_dir = script_dir / 'ambertools'
 # fixme - what are the net charges?
-shutil.copy(os.path.join(script_dir, antechamber_sqm_script_name), workplace_root)
+shutil.copy(ambertools_script_dir / antechamber_sqm_script_name, workplace_root)
 # execute the script (the script has to source amber.sh)
 # do not do this if there is a .frcmod files
-if not os.path.isfile(os.path.join(workplace_root, 'left.frcmod')):
+if not (workplace_root / 'left.frcmod').is_file():
     # fixme - add checks for other files
-    output = subprocess.check_output(['sh', os.path.join(workplace_root, antechamber_sqm_script_name), 'left', 'right'])
+    output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, 'left', 'right'])
     # todo - CHECK IF THE RESULTS ARE CORRECT
 
 # load the files (.mol2) and superimpose the two topologies
 # fixme - superimpose the molecules or stop relaying on RMSD info
 # fixme - call any of the tools you have (antechamber, parmchk2)
-suptop, mda_l1, mda_l2 = getSuptop(os.path.join(workplace_root, 'left.mol2'),
-                                   os.path.join(workplace_root, 'right.mol2'))
+suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2',
+                                   workplace_root / 'right.mol2')
 # verify the suptop
 
 # save the results of the topology superimposition as a json
-top_sup_joint_meta = os.path.join(workplace_root, 'joint_meta_fep.json')
+top_sup_joint_meta = workplace_root / 'joint_meta_fep.json'
 save_superimposition_results(top_sup_joint_meta)
-write_dual_top_pdb(os.path.join(workplace_root, 'left_right.pdb'))
+write_dual_top_pdb(workplace_root / 'left_right.pdb')
 # save the merged topologies as a .mol2 file
-top_merged_filename = os.path.join(workplace_root, 'morph.mol2')
+top_merged_filename = workplace_root / 'morph.mol2'
 write_merged(suptop, top_merged_filename)
 
 # check if the .frcmod were generated
-left_frcmod = os.path.join(workplace_root, 'left.frcmod')
-right_frcmod = os.path.join(workplace_root, 'right.frcmod')
-if not os.path.isfile(left_frcmod):
+left_frcmod = workplace_root / 'left.frcmod'
+right_frcmod = workplace_root / 'right.frcmod'
+if not left_frcmod.is_file():
     sys.exit(5)
-elif not os.path.isfile(right_frcmod):
+elif not right_frcmod.is_file():
     sys.exit(5)
 
 # generate the joint .frcmod file
-merged_frc_filename = os.path.join(workplace_root, 'morph.frcmod')
+merged_frc_filename = workplace_root / 'morph.frcmod'
 join_frcmod_files(left_frcmod, right_frcmod, merged_frc_filename)
 
 # copy the solvate script for tleap
-shutil.copy(os.path.join(script_dir, "run_tleap.sh"), workplace_root)
-shutil.copy(os.path.join(script_dir, "leap.in"), workplace_root)
+shutil.copy(ambertools_script_dir / "run_tleap.sh", workplace_root)
+shutil.copy(ambertools_script_dir / "leap.in", workplace_root)
 # solvate using AmberTools, copy leap.in and use tleap
-output = subprocess.check_output(['sh', os.path.join(workplace_root, "run_tleap.sh")])
+output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
 # this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
-merged_solvated = os.path.join(workplace_root, "morph_solv.pdb")
-morph_solv_fep = os.path.join(workplace_root, "morph_solv_fep.pdb")
-correct_fep_tempfactor(top_sup_joint_meta, merged_solvated, morph_solv_fep)
+morph_solv = workplace_root / "morph_solv.pdb"
+morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
+correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
 
 # take care of the ligand-ligand without the protein
-liglig_workplace = os.path.join(workplace_root, 'liglig')
-if not os.path.isdir(liglig_workplace):
-    os.makedirs(liglig_workplace)
+liglig_workplace = workplace_root / 'liglig'
+if not liglig_workplace.is_dir():
+    liglig_workplace.mkdir()
+
+# generate the constraint files in liglig
+constraint_files = create_4_constraint_files(morph_solv, liglig_workplace)
+pbc_dimensions = get_PBC_coords(morph_solv)
+init_namd_file_min(namd_script_dir, liglig_workplace, "min.namd",
+                           structure_name='morph_solv', pbc_box=pbc_dimensions)
+# prepare the namd eq
+eq_namd_files = generate_namd_eq(namd_script_dir / "eq.namd", liglig_workplace, 'morph_solv')
+# namd production protocol
+init_namd_file_prod(namd_script_dir, liglig_workplace, "prod.namd", structure_name='morph_solv')
 
 # Generate the directory structure for all the lambdas, and copy the files
 for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-    lambda_path = os.path.join(liglig_workplace, f'lambda_{lambda_step:.2f}')
+    lambda_path = liglig_workplace / f'lambda_{lambda_step:.2f}'
     if not os.path.exists(lambda_path):
         os.makedirs(lambda_path)
 
     # for each lambda create 5 replicas
     for replica_no in range(1, 5 + 1):
-        replica_dir = os.path.join(lambda_path, f'rep{replica_no}')
+        replica_dir = lambda_path / f'rep{replica_no}'
         if not os.path.exists(replica_dir):
             os.makedirs(replica_dir)
             # set the lambda value for the directory
-            open(os.path.join(replica_dir, 'lambda'), 'w').write(f'{lambda_step:.2f}')
+
+        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
         # copy the files for each simulation
         # "coordinates" with the fep metadata
         shutil.copy(morph_solv_fep, replica_dir)
         # copy the ambertools generated topology file
-        shutil.copy(os.path.join(workplace_root, "morph_solv.top"), replica_dir)
+        shutil.copy(workplace_root / "morph_solv.top", replica_dir)
         # the normal coordinates
-        shutil.copy(os.path.join(workplace_root, "morph_solv.pdb"), replica_dir)
+        shutil.copy(workplace_root / "morph_solv.pdb", replica_dir)
 
-        init_namd_file(script_dir, replica_dir, "min.namd", structure_name='morph_solv')
-        # TODO - use the eq scripts with different constraints
-        init_namd_file(script_dir, replica_dir, "prod.namd", structure_name='morph_solv')
+        # copy the restraint files, which use b column
+        [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
 
+        # copy NAMD protocol
+        shutil.copy(liglig_workplace / 'min.namd', replica_dir)
+        [shutil.copy(eq, replica_dir) for eq in eq_namd_files]
+
+        # todo - create/copy the 4 different EQ files
         # copy the surfsara submit script
-        shutil.copy(os.path.join(script_dir, "surfsara.sh"), os.path.join(replica_dir, 'submit.sh'))
+        shutil.copy(script_dir / "surfsara.sh", replica_dir / 'submit.sh')
 
 # copy the scheduler to the main directory
-shutil.copy(os.path.join(script_dir, "schedule_separately.py"), liglig_workplace)
-shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), liglig_workplace)
+shutil.copy(script_dir / "schedule_separately.py", liglig_workplace)
+shutil.copy(script_dir /"check_namd_outputs.py", liglig_workplace)
 
 sys.exit(1)
 
@@ -558,40 +615,40 @@ sys.exit(1)
 # ------------------ complex-complex --------------
 # fixme - use tleap to merge+solvate, decide on the charges?
 
-complex_workplace = os.path.join(workplace_root, 'complexcomplex')
+complex_workplace = workplace_root / 'complexcomplex'
 if not os.path.isdir(complex_workplace):
     os.makedirs(complex_workplace)
 
 # prepare the simulation files
 # copy the complex .pdb
-shutil.copy(os.path.join(workplace_root, 'protein.pdb'), complex_workplace)
+shutil.copy(workplace_root / 'protein.pdb', complex_workplace)
 # todo - ensure the protein protonation is correct
 # todo - call antechamber?
 
 # copy the ligand (the morphed ligand), and its .frcmod
 shutil.copy(top_merged_filename, complex_workplace)
-shutil.copy(os.path.join(workplace_root, merged_frc_filename), complex_workplace)
+shutil.copy(workplace_root / merged_frc_filename, complex_workplace)
 
 # todo - dock with the ligand to create a complex
 # copy the protein tleap input file (ambertools)
-shutil.copy(os.path.join(script_dir, 'leap_complex.in'), complex_workplace)
-shutil.copy(os.path.join(script_dir, 'run_tleap_complex.sh'), complex_workplace)
+shutil.copy(script_dir / 'leap_complex.in', complex_workplace)
+shutil.copy(script_dir / 'run_tleap_complex.sh', complex_workplace)
 
 # solvate the complex (tleap, ambertools)
 #      rn tleap also combines complex+ligand, and generates amberparm
 try:
-    output = subprocess.check_output(['sh', os.path.join(complex_workplace, "run_tleap_complex.sh")],
+    output = subprocess.check_output(['sh', complex_workplace / "run_tleap_complex.sh"],
                                  cwd=complex_workplace)
 except Exception as ex:
     print(ex.output)
     raise ex
 assert 'Errors = 0' in str(output)
 # tleap generates these:
-complex_solvated = os.path.join(complex_workplace, 'complex_solvated.pdb')
+complex_solvated = complex_workplace / 'complex_solvated.pdb'
 
 # update the complex to create complex.fep file
 # generate the merged .fep file
-complex_solvated_fep = os.path.join(workplace_root, 'complex_solvated_fep.pdb')
+complex_solvated_fep = workplace_root / 'complex_solvated_fep.pdb'
 correct_fep_tempfactor(top_sup_joint_meta, complex_solvated, complex_solvated_fep)
 
 # fixme - ensure that the _fep is only applied to the ligand, not the protein,
@@ -602,62 +659,41 @@ solv_box_complex_pbc = get_PBC_coords(complex_solvated)
 
 # copy the NAMD input files to the main directory first
 complex_eq_namd_filename = "complex_eq_template.namd"
-shutil.copy(os.path.join(script_dir, complex_eq_namd_filename), complex_workplace)
-complex_eq_namd = os.path.join(complex_workplace, complex_eq_namd_filename)
+shutil.copy(script_dir / complex_eq_namd_filename, complex_workplace)
+complex_eq_namd = complex_workplace / complex_eq_namd_filename
 complex_prod_namd_filename = "complex_prod.namd"
-shutil.copy(os.path.join(script_dir, complex_prod_namd_filename), complex_workplace)
-complex_prod_namd = os.path.join(complex_workplace, complex_prod_namd_filename)
+shutil.copy(script_dir / complex_prod_namd_filename, complex_workplace)
+complex_prod_namd = complex_workplace / complex_prod_namd_filename
 # modify the NAMD to reflect on the correct PBC boundaries
 # update PBC in the .namd inputs
 # update_PBC_in_namd_input(complex_eq_namd, solv_box_complex_pbc)
 
 # copy the minmisation file
-namd_input_min = os.path.join(script_dir, "min.namd")
+namd_input_min = script_dir / "min.namd"
 shutil.copy(namd_input_min, complex_workplace)
 update_PBC_in_namd_input(namd_input_min, solv_box_complex_pbc, 'complex_solvated')
 
 # generate the 4 different constrain .pdb files files, which use b column
 constraint_files = create_4_constraint_files(complex_solvated, complex_workplace)
 # todo prepare four 4 eq input namd which have different constraints, this requires pbc info + constraint info
-original_complex_eq_namd = os.path.join(script_dir, complex_eq_namd_filename)
-input_data = open(original_complex_eq_namd).read()
-for i in range(4):
-    constraints = f"""
-constraints  on
-consexp  2
-# use the same file for the position reference and the B column
-consref  constraint{4 - i}_complex_merged_solvated.pdb ;#need all positions
-conskfile  constraint{4- i}_complex_merged_solvated.pdb
-conskcol  B
-    """
-    if i == 0:
-        prev_output = 'complex_min_out'
-    else:
-        # take the output from the previous run
-        prev_output = 'complex_eq_out_%d' % i
-
-    reformatted_namd_in = input_data.format(
-        cell_x=solv_box_complex_pbc[0], cell_y=solv_box_complex_pbc[1], cell_z=solv_box_complex_pbc[2],
-        constraints=constraints, output='complex_eq_out_%d' % (i + 1),
-        prev_output=prev_output)
-    # write to the file, start eq files count from 1
-    open(os.path.join(complex_workplace, "complex_eq_step%d.namd" % (i + 1)), 'w').write(reformatted_namd_in)
+original_complex_eq_namd = script_dir / complex_eq_namd_filename
+generate_namd_eq(original_complex_eq_namd, solv_box_complex_pbc, complex_workplace)
 
 
 # Generate the directory structure for all the lambdas, and copy the files
 for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-    lambda_path = os.path.join(complex_workplace, f'lambda_{lambda_step:.2f}')
+    lambda_path = complex_workplace / f'lambda_{lambda_step:.2f}'
     if not os.path.exists(lambda_path):
         os.makedirs(lambda_path)
 
     # for each lambda create 5 replicas
     for replica_no in range(1, 5 + 1):
-        replica_dir = os.path.join(lambda_path, f'rep{replica_no}')
+        replica_dir = lambda_path / f'rep{replica_no}'
         if not os.path.exists(replica_dir):
             os.makedirs(replica_dir)
 
         # set the lambda value for the directory
-        with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
+        with open(replica_dir / 'lambda', 'w') as FOUT:
             FOUT.write(f'{lambda_step:.2f}')
 
         # copy all the necessary files
@@ -665,28 +701,28 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
         shutil.copy(complex_solvated, replica_dir)
 
         # copy the ambertools generated topology
-        shutil.copy(os.path.join(complex_workplace, "complex_solvated.top"), replica_dir)
+        shutil.copy(complex_workplace / "complex_solvated.top", replica_dir)
 
         # copy the NAMD protocol files
-        shutil.copy(os.path.join(complex_workplace, "min.namd"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "complex_eq_step1.namd"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "complex_eq_step2.namd"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "complex_eq_step3.namd"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "complex_eq_step4.namd"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "complex_prod.namd"), replica_dir)
+        shutil.copy(complex_workplace / "min.namd", replica_dir)
+        shutil.copy(complex_workplace / "complex_eq_step1.namd", replica_dir)
+        shutil.copy(complex_workplace / "complex_eq_step2.namd", replica_dir)
+        shutil.copy(complex_workplace / "complex_eq_step3.namd", replica_dir)
+        shutil.copy(complex_workplace / "complex_eq_step4.namd", replica_dir)
+        shutil.copy(complex_workplace / "complex_prod.namd", replica_dir)
 
         # copy the .pdb files with constraints in the B column
-        shutil.copy(os.path.join(complex_workplace, "constraint1_complex_solvated.pdb"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "constraint2_complex_solvated.pdb"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "constraint3_complex_solvated.pdb"), replica_dir)
-        shutil.copy(os.path.join(complex_workplace, "constraint4_complex_solvated.pdb"), replica_dir)
+        shutil.copy(complex_workplace / "constraint1_complex_solvated.pdb", replica_dir)
+        shutil.copy(complex_workplace / "constraint2_complex_solvated.pdb", replica_dir)
+        shutil.copy(complex_workplace / "constraint3_complex_solvated.pdb", replica_dir)
+        shutil.copy(complex_workplace / "constraint4_complex_solvated.pdb", replica_dir)
 
         # copy the surfsara submit script - fixme - make this general
-        shutil.copy(os.path.join(script_dir, "surfsara_complex.sh"), os.path.join(replica_dir, 'submit.sh'))
+        shutil.copy(script_dir / "surfsara_complex.sh", replica_dir / 'submit.sh')
 
 # copy the scheduler to the main directory
-shutil.copy(os.path.join(script_dir, "schedule_separately.py"), complex_workplace)
-shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), complex_workplace)
+shutil.copy(script_dir / "schedule_separately.py", complex_workplace)
+shutil.copy(script_dir / "check_namd_outputs.py", complex_workplace)
 
 
 # todo

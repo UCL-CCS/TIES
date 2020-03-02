@@ -1,8 +1,7 @@
 # Forcefield/Topology Information
 amber on
-set structure      complex_solvated
-coordinates        $structure.pdb
-parmfile           $structure.top
+coordinates        {structure_name}.pdb
+parmfile           {structure_name}.top
 set outputname 	   {output};
 outputname	   $outputname;
 
@@ -76,7 +75,7 @@ binaryoutput          yes;
 # source          fep.tcl
 alch            on
 alchType        ti
-alchFile        ${structure}_fep.pdb
+alchFile        {structure_name}_fep.pdb
 alchCol         B
 alchOutFile     $outputname.alch
 alchOutFreq     1000

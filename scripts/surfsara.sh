@@ -21,7 +21,12 @@
 module load pre2019
 module load NAMD/2.12-foss-2017b-mpi
 
-# run the EQ
-mpirun -np $SLURM_CPUS_ON_NODE namd2 eq.namd > eq.log
+# energy minimisation
+mpirun -np $SLURM_CPUS_ON_NODE namd2 min.namd > min.log
+# equilibriate with different constraints
+mpirun -np $SLURM_CPUS_ON_NODE namd2 eq_step1.namd > eq_step1.log
+mpirun -np $SLURM_CPUS_ON_NODE namd2 eq_step2.namd > eq_step2.log
+mpirun -np $SLURM_CPUS_ON_NODE namd2 eq_step3.namd > eq_step3.log
+mpirun -np $SLURM_CPUS_ON_NODE namd2 eq_step4.namd > eq_step4.log
 # run the production
 mpirun -np $SLURM_CPUS_ON_NODE namd2 prod.namd > prod.log
