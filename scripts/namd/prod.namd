@@ -7,7 +7,7 @@ set outputname     prod;               # base name for output from this run
                                        # NAMD writes two files at the end, final coord and vel
                                        # in the format of first-dyn.coor and first-dyn.vel
 outputName         $outputname
-set inputname      complex_eq_out_4;
+set inputname      eq_out_4;
 bincoordinates     $inputname.coor;    # coordinates from last run (binary)
 binvelocities      $inputname.vel;     # velocities from last run (binary)
 extendedSystem     $inputname.xsc;     # cell dimensions from last run

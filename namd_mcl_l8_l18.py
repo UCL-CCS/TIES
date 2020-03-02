@@ -14,6 +14,9 @@ frcmod file format: `http://ambermd.org/FileFormats.php#frcmod`
 Improvements Long Term:
  - adapt pathlib to work with the directories
 
+fixme - create a function that takes care of each thing
+fixme - liglig and protprot follow pretty much the same protocol, so it should be one function?
+
 """
 from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
@@ -465,10 +468,12 @@ def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
 def init_namd_file_prod(from_dir, to_dir, filename, structure_name):
     min_namd_initialised = open(os.path.join(from_dir, filename)).read()\
         .format(structure_name=structure_name)
-    open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
+    prod_filename = os.path.join(to_dir, filename)
+    open(prod_filename, 'w').write(min_namd_initialised)
+    return prod_filename
 
 
-def generate_namd_eq(namd_eq, dst_dir, structure_name):
+def generate_namd_eq(namd_eq, dst_dir, structure_name='morph_solv'):
     input_data = open(namd_eq).read()
     eq_namd_filenames = []
     for i in range(4):
@@ -557,7 +562,7 @@ morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
 correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
 
 # take care of the ligand-ligand without the protein
-liglig_workplace = workplace_root / 'liglig'
+liglig_workplace = workplace_root / 'lig'
 if not liglig_workplace.is_dir():
     liglig_workplace.mkdir()
 
@@ -567,9 +572,9 @@ pbc_dimensions = get_PBC_coords(morph_solv)
 init_namd_file_min(namd_script_dir, liglig_workplace, "min.namd",
                            structure_name='morph_solv', pbc_box=pbc_dimensions)
 # prepare the namd eq
-eq_namd_files = generate_namd_eq(namd_script_dir / "eq.namd", liglig_workplace, 'morph_solv')
+eq_namd_files = generate_namd_eq(namd_script_dir / "eq.namd", liglig_workplace)
 # namd production protocol
-init_namd_file_prod(namd_script_dir, liglig_workplace, "prod.namd", structure_name='morph_solv')
+prod_filename = init_namd_file_prod(namd_script_dir, liglig_workplace, "prod.namd", structure_name='morph_solv')
 
 # Generate the directory structure for all the lambdas, and copy the files
 for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
@@ -600,6 +605,7 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
         # copy NAMD protocol
         shutil.copy(liglig_workplace / 'min.namd', replica_dir)
         [shutil.copy(eq, replica_dir) for eq in eq_namd_files]
+        shutil.copy(prod_filename, replica_dir)
 
         # todo - create/copy the 4 different EQ files
         # copy the surfsara submit script
@@ -609,15 +615,14 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
 shutil.copy(script_dir / "schedule_separately.py", liglig_workplace)
 shutil.copy(script_dir /"check_namd_outputs.py", liglig_workplace)
 
-sys.exit(1)
-
 ##########################################################
 # ------------------ complex-complex --------------
+
 # fixme - use tleap to merge+solvate, decide on the charges?
 
-complex_workplace = workplace_root / 'complexcomplex'
-if not os.path.isdir(complex_workplace):
-    os.makedirs(complex_workplace)
+complex_workplace = workplace_root / 'complex'
+if not complex_workplace.is_dir():
+    complex_workplace.mkdir()
 
 # prepare the simulation files
 # copy the complex .pdb
@@ -631,8 +636,8 @@ shutil.copy(workplace_root / merged_frc_filename, complex_workplace)
 
 # todo - dock with the ligand to create a complex
 # copy the protein tleap input file (ambertools)
-shutil.copy(script_dir / 'leap_complex.in', complex_workplace)
-shutil.copy(script_dir / 'run_tleap_complex.sh', complex_workplace)
+shutil.copy(ambertools_script_dir / 'leap_complex.in', complex_workplace)
+shutil.copy(ambertools_script_dir / 'run_tleap_complex.sh', complex_workplace)
 
 # solvate the complex (tleap, ambertools)
 #      rn tleap also combines complex+ligand, and generates amberparm
@@ -643,12 +648,13 @@ except Exception as ex:
     print(ex.output)
     raise ex
 assert 'Errors = 0' in str(output)
-# tleap generates these:
-complex_solvated = complex_workplace / 'complex_solvated.pdb'
+
+# tleap generates these
+complex_solvated = complex_workplace / 'morph_solv.pdb'
 
 # update the complex to create complex.fep file
 # generate the merged .fep file
-complex_solvated_fep = workplace_root / 'complex_solvated_fep.pdb'
+complex_solvated_fep = complex_workplace / 'morph_solv_fep.pdb'
 correct_fep_tempfactor(top_sup_joint_meta, complex_solvated, complex_solvated_fep)
 
 # fixme - ensure that the _fep is only applied to the ligand, not the protein,
@@ -658,27 +664,14 @@ correct_fep_tempfactor(top_sup_joint_meta, complex_solvated, complex_solvated_fe
 solv_box_complex_pbc = get_PBC_coords(complex_solvated)
 
 # copy the NAMD input files to the main directory first
-complex_eq_namd_filename = "complex_eq_template.namd"
-shutil.copy(script_dir / complex_eq_namd_filename, complex_workplace)
-complex_eq_namd = complex_workplace / complex_eq_namd_filename
-complex_prod_namd_filename = "complex_prod.namd"
-shutil.copy(script_dir / complex_prod_namd_filename, complex_workplace)
-complex_prod_namd = complex_workplace / complex_prod_namd_filename
-# modify the NAMD to reflect on the correct PBC boundaries
-# update PBC in the .namd inputs
-# update_PBC_in_namd_input(complex_eq_namd, solv_box_complex_pbc)
-
-# copy the minmisation file
-namd_input_min = script_dir / "min.namd"
-shutil.copy(namd_input_min, complex_workplace)
-update_PBC_in_namd_input(namd_input_min, solv_box_complex_pbc, 'complex_solvated')
+# prepare the namd minmisation
+init_namd_file_min(namd_script_dir, complex_workplace, "min.namd",
+                           structure_name='morph_solv', pbc_box=solv_box_complex_pbc)
+eq_namd_filenames = generate_namd_eq(namd_script_dir / "eq.namd", complex_workplace)
+init_namd_file_prod(namd_script_dir, complex_workplace, "prod.namd", structure_name='morph_solv')
 
 # generate the 4 different constrain .pdb files files, which use b column
 constraint_files = create_4_constraint_files(complex_solvated, complex_workplace)
-# todo prepare four 4 eq input namd which have different constraints, this requires pbc info + constraint info
-original_complex_eq_namd = script_dir / complex_eq_namd_filename
-generate_namd_eq(original_complex_eq_namd, solv_box_complex_pbc, complex_workplace)
-
 
 # Generate the directory structure for all the lambdas, and copy the files
 for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
@@ -693,65 +686,31 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
             os.makedirs(replica_dir)
 
         # set the lambda value for the directory
-        with open(replica_dir / 'lambda', 'w') as FOUT:
-            FOUT.write(f'{lambda_step:.2f}')
+        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
         # copy all the necessary files
-        shutil.copy(complex_solvated_fep, replica_dir)
         shutil.copy(complex_solvated, replica_dir)
-
+        shutil.copy(complex_solvated_fep, replica_dir)
         # copy the ambertools generated topology
-        shutil.copy(complex_workplace / "complex_solvated.top", replica_dir)
+        shutil.copy(complex_workplace / "morph_solv.top", replica_dir)
+        # copy the .pdb files with constraints in the B column
+        [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
 
         # copy the NAMD protocol files
         shutil.copy(complex_workplace / "min.namd", replica_dir)
-        shutil.copy(complex_workplace / "complex_eq_step1.namd", replica_dir)
-        shutil.copy(complex_workplace / "complex_eq_step2.namd", replica_dir)
-        shutil.copy(complex_workplace / "complex_eq_step3.namd", replica_dir)
-        shutil.copy(complex_workplace / "complex_eq_step4.namd", replica_dir)
-        shutil.copy(complex_workplace / "complex_prod.namd", replica_dir)
-
-        # copy the .pdb files with constraints in the B column
-        shutil.copy(complex_workplace / "constraint1_complex_solvated.pdb", replica_dir)
-        shutil.copy(complex_workplace / "constraint2_complex_solvated.pdb", replica_dir)
-        shutil.copy(complex_workplace / "constraint3_complex_solvated.pdb", replica_dir)
-        shutil.copy(complex_workplace / "constraint4_complex_solvated.pdb", replica_dir)
+        [shutil.copy(eq, replica_dir) for eq in eq_namd_filenames]
+        shutil.copy(complex_workplace / "prod.namd", replica_dir)
 
         # copy the surfsara submit script - fixme - make this general
-        shutil.copy(script_dir / "surfsara_complex.sh", replica_dir / 'submit.sh')
+        shutil.copy(script_dir / "surfsara.sh", replica_dir / 'submit.sh')
 
 # copy the scheduler to the main directory
 shutil.copy(script_dir / "schedule_separately.py", complex_workplace)
 shutil.copy(script_dir / "check_namd_outputs.py", complex_workplace)
 
-
-# todo
-
-# set the lambda value for the directory
-# with open(os.path.join(replica_dir, 'lambda'), 'w') as FOUT:
-#     FOUT.write(f'{lambda_step:.2f}')
-
-# copy the surfsara submit script - fixme - make this general
-# shutil.copy(os.path.join(script_dir, "surfsara.sh"), os.path.join(replica_dir, 'submit.sh'))
-
-# copy the scheduler to the main directory
-# shutil.copy(os.path.join(script_dir, "schedule_separately.py"), liglig_workplace)
-# shutil.copy(os.path.join(script_dir, "check_namd_outputs.py"), liglig_workplace)
-
 # fixme States show the progress of the simulation.
 
 # use the preprepared pdb complex with the ligand
 # solvate the preprepared pdb complex with the ligand
-# generate all the merged files 
-
-"""
-# todo - generate completely different directories with scripts with namd for each lambda
-# todo - use sqlite to synchronise the execution and managing of all of the simulations? (ie one major script)
-for example, imagine a script that says "do_ties" which knows that there is 13 x 5 different directories
-which have to be run each, and what it does, it goes into each of them, and schedules them, but 
-it first checks where the simulation is by looking up its little .db file, 
-ie lambda1.1 simulation has a db which is empty, so it schedules it to run, but lambda 1.2 has already finished, 
-and that's written in its DB, whereas lambda 1.3 has status "submitted" and therefore does not need to be 
-submitted again, whereas lambda 1.5 has status "running" which also can be ignored. etc etc
-"""
+# generate all the merged files
 

@@ -12,6 +12,6 @@ solvatebox complex TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
 addIons complex Na+ 0
 addIons complex Cl- 0
-savepdb complex complex_solvated.pdb
-saveamberparm complex complex_solvated.top complex_solvated.crd
+savepdb complex morph_solv.pdb
+saveamberparm complex morph_solv.top morph_solv.crd
 quit
