@@ -8,7 +8,7 @@ import copy
 import MDAnalysis as mda
 
 
-def getSuptop(mol1, mol2):
+def getSuptop(mol1, mol2, reference_match=None):
     # use mdanalysis to load the files
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2)
@@ -19,7 +19,7 @@ def getSuptop(mol1, mol2):
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
-        if atomNode.atomName == 'O3':
+        if reference_match is not None and atomNode.atomName == reference_match[0]:
             startLeft = atomNode
     for nfrom, nto, btype in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
@@ -28,7 +28,7 @@ def getSuptop(mol1, mol2):
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
-        if atomNode.atomName == 'O7':
+        if reference_match is not None and atomNode.atomName == reference_match[1]:
             startRight = atomNode
     for nfrom, nto, btype in rightlig_bonds:
         ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
