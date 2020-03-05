@@ -914,12 +914,14 @@ class SuperimposedTopology:
         # walk through the superimposed topologies
         # and move the atom-atom pairs that suffer from being the same
         removed_pairs = []
+        removed_attached_hydrogens = []
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
             # remove any dangling hydrogens from this pair
-            self.remove_attached_hydrogens((node1, node2))
+            removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            removed_attached_hydrogens.extend(removed_h_pairs)
             # remove this pair
             self.remove_node_pair((node1, node2))
 
@@ -930,7 +932,7 @@ class SuperimposedTopology:
             raise Exception('the charges have already been refined, should not be called twice')
         self.removed_due_to_charge = removed_pairs
 
-        return removed_pairs
+        return removed_pairs, removed_attached_hydrogens
 
 
     def is_consistent_cycles(self, suptop):

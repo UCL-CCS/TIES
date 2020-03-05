@@ -259,16 +259,21 @@ def test_mcl1_l32_l42():
     # FIXME - CHECK THE REST
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    removed_pairs, rm_h_pairs = suptop.refineAgainstCharges(atol=0.1)
     print('removed', removed_pairs)
-    should_remove_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
-    for atomName1, atomname2 in should_remove_pairs:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'),
+        ('C20', 'C42'), ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'),
+        ('C14', 'C35'), ('C11', 'C32')]
+    for n1, n2 in removed_pairs:
+        should_remove_pairs.remove((n1.atomName, n2.atomName))
+    assert len(should_remove_pairs) == 0, should_remove_pairs
 
     # check if the lonely hydrogens were removed together with charges
-    removed_lonely_hydrogens = [('H14', 'H32'), ('H11', 'H29')]
-    for atomName1, atomname2 in removed_lonely_hydrogens:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+    removed_lonely_hydrogens = [('H15', 'H33'), ('H14', 'H32'),
+                   ('H12', 'H29'), ('H8', 'H24'), ('H7', 'H25')]
+    for n1, n2 in rm_h_pairs:
+        removed_lonely_hydrogens.remove((n1.atomName, n2.atomName))
+    assert len(removed_lonely_hydrogens) == 0, removed_lonely_hydrogens
 
 
 
