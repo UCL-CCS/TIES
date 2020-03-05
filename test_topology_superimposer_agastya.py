@@ -204,7 +204,12 @@ def test_mcl1_l32_l42():
     liglig_path = "agastya_dataset/mcl1/l32-l42"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
+    #'C17' 'C38'
+    c17 = next(filter(lambda x: x.atomName == 'C17', lig1_nodes.values()))
+    c38 = next(filter(lambda x: x.atomName == 'C38', lig2_nodes.values()))
+
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
+                                      starting_node_pairs=[(c17, c38)])
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -232,11 +237,14 @@ def test_mcl1_l32_l42():
     mutating_area = [('C13', 'C34'), ('C15', 'C36'), ('H11', 'H28'), ('C14', 'C35'),
                      ('H12', 'H29'), ('C18', 'C39'), ('C17', 'C38'), ('C16', 'C37'),
                      ('H16', 'H34'), ('C21', 'C43'), ('H15', 'H33'), ('C20', 'C42'),
-                     ('H14', 'H32'), ('C19', 'C41'), ('H13', 'H31')]
+                     ('H14', 'H32'), ('C19', 'C41')]
     for atomName1, atomname2 in mutating_area[::-1]:
         if suptop.contains_atomNamePair(atomName1, atomname2):
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
+
+    # this pair of hydrogens has actually a different type, so it is not found
+    assert not suptop.contains_atomNamePair('H13', 'H31')
 
     # check the linker hydrogens
     # note that it is 1) not clear which are which, 2) should not matter

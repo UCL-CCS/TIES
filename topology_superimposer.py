@@ -544,16 +544,16 @@ class SuperimposedTopology:
 
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2
+        # remove the pair
         self.matched_pairs.remove(node_pair)
         # remove from the current set
         self.nodes.remove(node_pair[0])
         self.nodes.remove(node_pair[1])
 
-        # update the log to understand the order in which it was created
+        # update the log
         self.nodes_added_log.append(("Removed", node_pair))
 
-        # remove any binding from this pair
-        # if node_pair in self.matched_pairs_bonds:
+        # get bonds to and from this pair
         bound_pairs = self.matched_pairs_bonds[node_pair]
         del self.matched_pairs_bonds[node_pair]
 
@@ -563,11 +563,29 @@ class SuperimposedTopology:
             # remove their binding to the removed pair
             bound_pair_bonds = self.matched_pairs_bonds[bound_pair]
             bound_pair_bonds.remove((node_pair, bond_type))
-            if len(bound_pair_bonds) == 0:
-                del self.matched_pairs_bonds[bound_pair]
-        # else:
-        #     if not ignore_not_found:
-        #         raise Exception('Did not find the pair in the list of bonds ', node_pair)
+
+    def remove_attached_hydrogens(self, node_pair):
+        """
+        This means that the node_pair, to which these hydrogens are attached, was removed.
+        Therefore these are dangling hydrogens.
+
+        Check if these hydrogen are matched/superimposed. If that is the case. Remove the pairs.
+
+        Note that if the hydrogens are paired and attached to node_pairA,
+        they have to be attached to node_pairB, as a rule of being a match.
+        """
+        attached_pairs = self.matched_pairs_bonds[node_pair]
+
+        removed_pairs = []
+        for pair, bond_types in list(attached_pairs):
+            # ignore non hydrogens
+            if not pair[0].atomName.startswith('H'):
+                continue
+
+            self.remove_node_pair(pair)
+            log('Removed attached hydrogen pair: ', pair)
+            removed_pairs.append(pair)
+        return removed_pairs
 
 
     def findLowestRmsdMirror(self):
@@ -897,35 +915,20 @@ class SuperimposedTopology:
         # and move the atom-atom pairs that suffer from being the same
         removed_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
-            if not node1.eq(node2, atol=atol):
-                # remove this pair
-                # self.matched_pairs.remove((node1, node2))
-                self.remove_node_pair((node1, node2))
-                # get hydrogens attached to the heavy atoms
-                node1_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node1.bonds)
-                node2_hydrogens = filter(lambda b: b[0].atomName.upper().startswith('H'), node2.bonds)
-                # fixme - ideally the hydrogens would match each other before being removed
-                for n1_hyd in node1_hydrogens:
-                    # find the matching n2 hydrogen and remove them
-                    n1_pair_removed = False
-                    for n2_hyd in node2_hydrogens:
-                        try:
-                            # self.matched_pairs.remove((n1_hyd, n2_hyd))
-                            self.remove_node_pair((n1_hyd[0], n2_hyd[0]))
-                            print('Removed lonely hydrogen pair', (n1_hyd[0].atomName, n2_hyd[0].atomName))
-                            n1_pair_removed = True
-                            removed_pairs.append((n1_hyd[0], n2_hyd[0]))
-                            break
-                        except Exception as exception:
-                            print('could not remove the dangling hydrogens')
-                            pass
-                removed_pairs.append((node1, node2))
-                print('removed a pair due to the not-matching charges', node1.atomName, node2.atomName)
+            if node1.eq(node2, atol=atol):
+                continue
 
+            # remove any dangling hydrogens from this pair
+            self.remove_attached_hydrogens((node1, node2))
+            # remove this pair
+            self.remove_node_pair((node1, node2))
+
+            removed_pairs.append((node1, node2))
+            log('Removed due to the charge incompatibility: ', node1.atomName, node2.atomName)
         # keep track of the removed atoms due to the charge
         if not self.removed_due_to_charge is None:
             raise Exception('the charges have already been refined, should not be called twice')
-        self.removed_due_to_charge = copy.copy(removed_pairs)
+        self.removed_due_to_charge = removed_pairs
 
         return removed_pairs
 
@@ -1598,7 +1601,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
         created_new_cycle = True
 
     # the extra bonds are legitimate
-    # so let's make sure they added
+    # so let's make sure they are added
     for n1bonded_node, btype1 in n1.bonds:
         # ignore left parent
         if n1bonded_node is parent_n1:
