@@ -26,7 +26,8 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from generator import *
 
-
+# fixme - turn into a function and give it the hpc submit
+hpc_submit = 'hpc_daint.sh'
 workplace_root = Path('/home/dresio/code/BAC2020/namd_study/mcl_l32_l42')
 
 # todo - check if there is left.pdb and right.pdb
@@ -135,8 +136,8 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
         shutil.copy(prod_filename, replica_dir)
 
         # todo - create/copy the 4 different EQ files
-        # copy the surfsara submit script
-        shutil.copy(script_dir / "surfsara.sh", replica_dir / 'submit.sh')
+        # copy the submit script
+        shutil.copy(script_dir / hpc_submit, replica_dir / 'submit.sh')
 
 # copy the scheduler to the main directory
 shutil.copy(script_dir / "schedule_separately.py", liglig_workplace)
@@ -229,7 +230,7 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
         shutil.copy(complex_workplace / "prod.namd", replica_dir)
 
         # copy the surfsara submit script - fixme - make this general
-        shutil.copy(script_dir / "surfsara.sh", replica_dir / 'submit.sh')
+        shutil.copy(script_dir / hpc_submit, replica_dir / 'submit.sh')
 
 # copy the scheduler to the main directory
 shutil.copy(script_dir / "schedule_separately.py", complex_workplace)
