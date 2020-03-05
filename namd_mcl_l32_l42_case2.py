@@ -29,6 +29,18 @@ from generator import *
 # fixme - turn into a function and give it the hpc submit
 hpc_submit = 'hpc_daint.sh'
 workplace_root = Path('/home/dresio/code/BAC2020/namd_study/mcl_l32_l42')
+net_charge = -1
+reference_match = ('C17', 'C38')
+
+def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
+    """
+    Prepare the ambertools scripts.
+    Particularly, create the scritp so that it has the net charge
+    # fixme - run antechamber directly with the right settings from here?
+    # fixme - check if antechamber has a python interface?
+    """
+    net_charge_set = open(source_script).read().format(net_charge=net_charge)
+    open(target_script, 'w').write(net_charge_set)
 
 # todo - check if there is left.pdb and right.pdb
 if not (workplace_root / 'left.pdb').is_file():
@@ -43,7 +55,8 @@ script_dir = PurePosixPath('/home/dresio/code/BAC2020/scripts')
 namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
 # fixme - what are the net charges?
-shutil.copy(ambertools_script_dir / antechamber_sqm_script_name, workplace_root)
+prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
+                             workplace_root / antechamber_sqm_script_name, net_charge=net_charge)
 # execute the script (the script has to source amber.sh)
 # do not do this if there is a .frcmod files
 if not (workplace_root / 'left.frcmod').is_file():
@@ -56,7 +69,7 @@ if not (workplace_root / 'left.frcmod').is_file():
 # fixme - call any of the tools you have (antechamber, parmchk2)
 suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2',
                                    workplace_root / 'right.mol2',
-                                   ('C17', 'C38'))
+                                   reference_match=reference_match)
 # verify the suptop
 
 # save the results of the topology superimposition as a json

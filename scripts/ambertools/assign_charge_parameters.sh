@@ -11,8 +11,8 @@ cd $CURRENT_DIR
 echo 'Current Dir' $CURRENT_DIR
 
 # generate the mol2 topology
-antechamber -i $LEFT.pdb -fi pdb -o $LEFT.mol2 -fo mol2 -c bcc -at gaff2 -nc -1
-antechamber -i $RIGHT.pdb -fi pdb -o $RIGHT.mol2 -fo mol2 -c bcc -at gaff2 -nc -1
+antechamber -i $LEFT.pdb -fi pdb -o $LEFT.mol2 -fo mol2 -c bcc -at gaff2 -nc {net_charge}
+antechamber -i $RIGHT.pdb -fi pdb -o $RIGHT.mol2 -fo mol2 -c bcc -at gaff2 -nc {net_charge}
 
 # note that the charge -nc -1 so that you have to know the charges ahead
 # QUESTION: is there an automatic charge detection? 
