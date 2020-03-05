@@ -204,12 +204,12 @@ def test_mcl1_l32_l42():
     liglig_path = "agastya_dataset/mcl1/l32-l42"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    #'C17' 'C38'
-    c17 = next(filter(lambda x: x.atomName == 'C17', lig1_nodes.values()))
-    c38 = next(filter(lambda x: x.atomName == 'C38', lig2_nodes.values()))
+    # c17 = next(filter(lambda x: x.atomName == 'C17', lig1_nodes.values()))
+    # c38 = next(filter(lambda x: x.atomName == 'C38', lig2_nodes.values()))
+    # suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
+    #                                   starting_node_pairs=[(c17, c38)])
 
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
-                                      starting_node_pairs=[(c17, c38)])
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -255,8 +255,6 @@ def test_mcl1_l32_l42():
     if len(linker_hydrogens) == 0:
         print(linker_hydrogens)
 
-
-    # FIXME - CHECK THE REST
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
     removed_pairs, rm_h_pairs = suptop.refineAgainstCharges(atol=0.1)
