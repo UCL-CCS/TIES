@@ -147,6 +147,9 @@ import numpy as np
 import networkx as nx
 import copy
 import itertools
+import sys
+import os
+from io import StringIO
 
 
 class AtomNode:
@@ -2413,6 +2416,31 @@ def get_atoms_bonds_from_ac(ac_file):
     return atoms, bonds
 
 
+def load_mol2_wrapper(filename):
+    """
+    Load a .mol2 file with MDAnalysis but
+    capture the error output which are
+    warnings and ignore it.
+    It is polluting the space.
+    """
+    # redirect the errors
+    original = sys.stderr
+    sys.stderr = mda_stderr = StringIO()
+    u = mda.Universe(filename)
+    sys.stderr = original
+
+    # remove the warnings about mass
+    for line in mda_stderr.getvalue().split(os.linesep):
+        if 'UserWarning: Failed to guess the mass for the following atom types' in line:
+            continue
+        if 'warn("Failed to guess the mass for the following atom types' in line:
+            continue
+
+        print(line, file=sys.stderr)
+
+    return u
+
+
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
     """
     Use MDAnalysis to load the .mol2 files.
@@ -2424,8 +2452,8 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
 
-    uref = mda.Universe(ref_filename)
-    umob = mda.Universe(mob_filename)
+    uref = load_mol2_wrapper(ref_filename)
+    umob = load_mol2_wrapper(mob_filename)
 
     # this RMSD superimposition requires the same number of atoms to be superimposed
     # find out the RMSD between them and the rotation matrix
