@@ -279,8 +279,10 @@ def join_frcmod_files(f1, f2, output_filepath):
                 if len(litems) > 0 or len(ritems) > 0:
                     raise Exception('Unimplemented')
             elif lname == 'BOND':
-                if len(litems) > 0 or len(ritems) > 0:
-                    raise Exception('Unimplemented')
+                for ritem in ritems:
+                    if len(litems) > 0 or len(ritems) > 0:
+                        if ritem not in joined[lname]:
+                            raise Exception('Unimplemented')
             # ANGLE, e.g.
             # c -cc-na   86.700     123.270   same as c2-cc-na, penalty score=  2.6
             elif lname == 'ANGLE':
@@ -298,6 +300,14 @@ def join_frcmod_files(f1, f2, output_filepath):
                 for ritem in ritems:
                     if ritem not in joined[lname]:
                         joined[lname].append(ritem)
+            elif lname == 'NONBON':
+                # if they're empty
+                if not litems and not ritems:
+                    continue
+
+                raise Exception('Unimplemented')
+            else:
+                raise Exception('Unimplemented')
         return joined
 
     def write_frcmod(frcmod, filename):

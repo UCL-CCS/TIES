@@ -342,3 +342,77 @@ def test_tyk2_l13l12():
     # assert not suptop.contains_atomNamePair('C16', 'C32')
     # # hydrogens should not be dangling by themselves
     # assert not suptop.contains_atomNamePair('H2', 'H14')
+
+
+def test_tyk2_l6l11():
+    # Agastya's cases
+    liglig_path = "agastya_dataset/tyk2/l6-l11"
+    lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
+
+    lefthook = next(filter(lambda x: x.atomName == 'N1', lig1_nodes.values()))
+    righthook = next(filter(lambda x: x.atomName == 'N4', lig2_nodes.values()))
+    suptop = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
+                                      starting_node_pairs=[(lefthook, righthook)])
+
+    # suptop = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
+    assert suptop is not None
+
+    # two rings that not been mutated
+    two_untouched_rings = [('C5', 'C26'), ('H2', 'H19'), ('C6', 'C27'), ('H3', 'H20'),
+                           ('C4', 'C25'), ('H1', 'H18'), ('C7', 'C28'), ('H4', 'H21'),
+                           ('C3', 'C24'), ('C8', 'C29'), ('N2', 'N3'), ('H17', 'H35'),
+                           ('C2', 'C23'), ('C9', 'C30'), ('C1', 'C22'), ('O1', 'O5'),
+                           ('O2', 'O4')]
+    for atomName1, atomname2 in two_untouched_rings[::-1]:
+        # the core chain should always be the same
+        if suptop.contains_atomNamePair(atomName1, atomname2):
+            two_untouched_rings.remove((atomName1, atomname2))
+    # the pairs that remain were not found
+    assert len(two_untouched_rings) == 0, two_untouched_rings
+
+    # check the linker backbone
+    linker_backbone = [('O3', 'O6'), ('C12', 'C33'), ('C11', 'C32'), ('C10', 'C31')]
+    for atomName1, atomname2 in linker_backbone[::-1]:
+        if suptop.contains_atomNamePair(atomName1, atomname2):
+            linker_backbone.remove((atomName1, atomname2))
+    assert len(linker_backbone) == 0, linker_backbone
+
+    # check the rings that mutate
+    mutating_area = [('C13', 'C34'), ('C15', 'C36'), ('H11', 'H28'), ('C14', 'C35'),
+                     ('H12', 'H29'), ('C18', 'C39'), ('C17', 'C38'), ('C16', 'C37'),
+                     ('H16', 'H34'), ('C21', 'C43'), ('H15', 'H33'), ('C20', 'C42'),
+                     ('H14', 'H32'), ('C19', 'C41')]
+    for atomName1, atomname2 in mutating_area[::-1]:
+        if suptop.contains_atomNamePair(atomName1, atomname2):
+            mutating_area.remove((atomName1, atomname2))
+    assert len(mutating_area) == 0, mutating_area
+
+    # this pair of hydrogens has actually a different type, so it is not found
+    assert not suptop.contains_atomNamePair('H13', 'H31')
+
+    # check the linker hydrogens
+    # note that it is 1) not clear which are which, 2) should not matter
+    linker_hydrogens = [('H6', 'H23'), ('H5', 'H22'), ('H7', 'H25'), ('H8', 'H24'), ('H10', 'H26')]
+    for atomName1, atomname2 in linker_hydrogens[::-1]:
+        if suptop.contains_atomNamePair(atomName1, atomname2):
+            linker_hydrogens.remove((atomName1, atomname2))
+    if len(linker_hydrogens) == 0:
+        print(linker_hydrogens)
+
+    # refine against charges
+    # ie remove the matches that change due to charge rather than spieces
+    removed_pairs, rm_h_pairs = suptop.refineAgainstCharges(atol=0.1)
+    print('removed', removed_pairs)
+    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'),
+                           ('C20', 'C42'), ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'),
+                           ('C14', 'C35'), ('C11', 'C32')]
+    for n1, n2 in removed_pairs:
+        should_remove_pairs.remove((n1.atomName, n2.atomName))
+    assert len(should_remove_pairs) == 0, should_remove_pairs
+
+    # check if the lonely hydrogens were removed together with charges
+    removed_lonely_hydrogens = [('H15', 'H33'), ('H14', 'H32'),
+                                ('H12', 'H29'), ('H8', 'H24'), ('H7', 'H25')]
+    for n1, n2 in rm_h_pairs:
+        removed_lonely_hydrogens.remove((n1.atomName, n2.atomName))
+    assert len(removed_lonely_hydrogens) == 0, removed_lonely_hydrogens

@@ -5,14 +5,15 @@
 # 1 MPI task per node, 24 OpenMP threads per task with hyperthreading (--ntasks-per-core=2)
 #
 #SBATCH --job-name="namd"
-#SBATCH --time=01:00:00
+#SBATCH --time=22:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=24
 # we do not use the GPU
-##SBATCH --constraint=gpu
-#SBATCH --constraint=cpu
+#SBATCH --constraint=gpu
+# we don't have the CPU account?
+##SBATCH --constraint=cpu
 #========================================
 # load modules and run simulation
 

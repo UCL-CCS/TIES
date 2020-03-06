@@ -527,10 +527,14 @@ class SuperimposedTopology:
 
         # extract all the unique nodes from the pairs
         all_matched_nodes = set()
-        print("Superimposed topology: len %d :" % len(self.matched_pairs),
+        print("VMD Superimposed topology: len %d :" % len(self.matched_pairs),
               'name ' + ' '.join([node1.atomName.upper() for node1, _ in self.matched_pairs]),
               '\nto\n',
               'name ' + ' '.join([node2.atomName.upper() for _, node2 in self.matched_pairs]))
+        print("PYMOL Superimposed topology: len %d :" % len(self.matched_pairs),
+              'sel left, name ' + '+'.join([node1.atomName.upper() for node1, _ in self.matched_pairs]),
+              '\nto\n',
+              'sel right, name ' + '+'.join([node2.atomName.upper() for _, node2 in self.matched_pairs]))
         print(', '.join([a.atomName + '-' + b.atomName for a,b in self.matched_pairs]))
         print("Creation Order: ", self.nodes_added_log)
         unique_nodes = []
