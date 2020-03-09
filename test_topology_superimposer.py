@@ -139,6 +139,64 @@ def test_SimpleMultipleSolutions():
     suptops = _superimpose_topologies(top1_list, top2_list)
     # there is one solution
     assert len(suptops) == 1
+
+    correct_overlaps = [('C1', 'C11'), ('N1', 'N11'), ('O1', 'O11'), ('O2', 'O12')]
+    for st in suptops:
+        for atomName1, atomName2 in correct_overlaps:
+            assert st.contains_atomNamePair(atomName1, atomName2)
+
+    # fixme - add a test case for the superimposer function that makes use of _overlay,
+    # this is to resolve multiple solutions such as the one here
+
+
+def test_SimpleMultipleSolutions_mirrors():
+    """
+    A simple molecule chain with an ester.
+    The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+    # fixme what if you start from the wrong O-O matching? should that be a case? how does
+    comparies topologies would behave in that case?
+
+     LIGAND 1        LIGAND 2
+        C1              C11
+        \                \
+        N1              N11
+        /\              / \
+     O1    O2        O11   O12
+
+    """
+    # ignore the third coordinate dimension
+    # construct the LIGAND 1
+    c1 = AtomNode(name='C1', type='C')
+    c1.set_position(x=1, y=1, z=0)
+    n1 = AtomNode(name='N1', type='N')
+    n1.set_position(x=1, y=2, z=0)
+    c1.bindTo(n1, 'bondType1')
+    o1 = AtomNode(name='O1', type='O')
+    o1.set_position(x=1, y=3, z=0)
+    o1.bindTo(n1, 'bondType1')
+    o2 = AtomNode(name='O2', type='O')
+    o2.set_position(x=2, y=3, z=0)
+    o2.bindTo(n1, 'bondType1')
+    top1_list = [c1, n1, o1, o2]
+
+    # construct the LIGAND 2
+    c11 = AtomNode(name='C11', type='C')
+    c11.set_position(x=1, y=1, z=0)
+    n11 = AtomNode(name='N11', type='N')
+    n11.set_position(x=1, y=2, z=0)
+    c11.bindTo(n11, 'bondType1')
+    o11 = AtomNode(name='O11', type='O')
+    o11.set_position(x=1, y=3, z=0)
+    o11.bindTo(n11, 'bondType1')
+    o12 = AtomNode(name='O12', type='O')
+    o12.set_position(x=2, y=3, z=0)
+    o12.bindTo(n11, 'bondType1')
+    top2_list = [c11, n11, o11, o12]
+
+    # should be two topologies
+    suptops = _superimpose_topologies(top1_list, top2_list)
+    # there is one solution
+    assert len(suptops) == 1
     #
     assert len(suptops[0].mirrors) == 1
 
@@ -152,6 +210,37 @@ def test_SimpleMultipleSolutions():
 
 
 def test_2sameAtoms_2Cs_symmetry():
+    """
+    Two solutions with different starting points.
+
+     LIGAND 1        LIGAND 2
+        C1              C11
+        \                \
+        C2              C12
+    """
+    # construct the LIGAND 1
+    c1 = AtomNode(name='C1', type='C')
+    c1.set_position(x=1, y=1, z=0)
+    c2 = AtomNode(name='C2', type='C')
+    c2.set_position(x=1, y=2, z=0)
+    c1.bindTo(c2, 'bondType1')
+    top1_list = [c1, c2]
+
+    # construct the LIGAND 2
+    c11 = AtomNode(name='C11', type='C')
+    c11.set_position(x=1, y=1, z=0)
+    c12 = AtomNode(name='C12', type='C')
+    c12.set_position(x=1, y=2, z=0)
+    c11.bindTo(c12, 'bondType1')
+    top2_list = [c11, c12]
+
+    # should return a list with an empty sup_top
+    suptops = _superimpose_topologies(top1_list, top2_list)
+    assert len(suptops) == 1
+    assert len(suptops[0]) == 2
+
+
+def test_2sameAtoms_2Cs_symmetry_mirrors():
     """
     Two solutions with different starting points.
 

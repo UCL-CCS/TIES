@@ -76,8 +76,6 @@ for lambda_dir in os.listdir('.'):
             vdw_deriv = -energies[1] + energies[3]
             dis_ele = energies[2]
             app_ele = -energies[0]
-        print('hi')
-        print('hi')
 
         # change the electrostatic terms dependant on the lambda
         # add them row by row to get all the energies
@@ -114,6 +112,9 @@ dis_ele_xs.reverse()
 dis_avgs_ele.append(dis_avgs_ele[-1])
 
 app_avgs_ele.insert(0, app_avgs_ele[0])
+
+print('dis ele xs', dis_ele_xs)
+print('app ele xs', app_ele_xs)
 
 # integrate
 int_vdw = np.trapz(averages_vdw, x=lambdas)
