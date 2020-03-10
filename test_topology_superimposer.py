@@ -434,3 +434,8 @@ def test_mcl1_l12l35():
     assert len(suptops[0]) == 11
     # two largest solutions are found?
     print('hi')
+
+
+# def cprofile_mcl1():
+# import cProfile
+# cProfile.run("test_mcl1_l12l35()")

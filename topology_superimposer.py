@@ -166,46 +166,36 @@ class AtomNode:
         self.unique_counter = AtomNode.counter
         AtomNode.counter += 1
 
-
     def set_atomName(self, atomName):
         self.atomName = atomName
-
 
     def set_id(self, id):
         self.atomId = id
 
-
     def get_id(self):
         return self.atomId
-
 
     def set_resname(self, resname):
         self.resname = resname
 
-
     def set_resid(self, res_ID):
         self.resId = res_ID
-
 
     def set_charge(self, charge):
         self.charge = charge
 
-
     def set_type(self, amber_type):
         self.amber_type = amber_type
-
 
     def set_position(self, x, y, z):
         corrected_type = np.array([x, y, z], dtype='float32')
         self.position = corrected_type
-
 
     def isHydrogen(self):
         if self.type == 'H':
             return True
 
         return False
-
 
     def __hash__(self):
         m = hashlib.md5()
@@ -238,13 +228,11 @@ class AtomNode:
 
         return False
 
-
     def sameType(self, atom):
         if self.type == atom.type.upper():
             return True
 
         return False
-
 
     def __deepcopy__(self, memodict={}):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
@@ -318,7 +306,6 @@ class SuperimposedTopology:
 
         return unmatched_atoms
 
-
     def getUnqiueAtomCount(self):
         """
         Requires that the .assign_atoms_ids() was called.
@@ -326,7 +313,6 @@ class SuperimposedTopology:
         and the apperaing and disappearing atoms separately.
         """
         return self.unique_atom_count
-
 
     def getDualTopologyBonds(self):
         """
@@ -392,7 +378,6 @@ class SuperimposedTopology:
         # is in a pair to which the new pair refers (the same rule that is used currently)
         return bonds
 
-
     # fixme - id_start should be a property of the suptop
     def assign_atoms_ids(self, id_start=1):
         """
@@ -435,10 +420,8 @@ class SuperimposedTopology:
         # return the last atom
         return id_counter
 
-
     def get_generated_atom_ID(self, atom):
         return self.internal_ids[atom]
-
 
     def get_appearing_atoms(self):
         """
@@ -458,7 +441,6 @@ class SuperimposedTopology:
 
         return unmatched
 
-
     def get_disappearing_atoms(self):
         """
         # fixme - should check first if atomName is unique
@@ -477,7 +459,6 @@ class SuperimposedTopology:
                 unmatched.append(top1_atom)
 
         return unmatched
-
 
     def remove_lonely_hydrogens(self):
         """
@@ -502,19 +483,15 @@ class SuperimposedTopology:
 
         return removed_pairs
 
-
     def __len__(self):
         return len(self.matched_pairs)
-
 
     def __repr__(self):
         return str(len(self.matched_pairs)) + ":" + ', '.join([a.atomName + '-' + b.atomName for a,b in self.matched_pairs])
 
-
     def set_tops(self, top1, top2):
         self.top1 = top1
         self.top2 = top2
-
 
     def print_summary(self):
         print("Topology Pairs ", len(self.matched_pairs), "Mirror Number", len(self.mirrors))
@@ -547,7 +524,6 @@ class SuperimposedTopology:
             # print only the mismatching pairs
             different = set(si_top.matched_pairs).difference(set(self.matched_pairs))
             print(different)
-
 
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2
@@ -594,7 +570,6 @@ class SuperimposedTopology:
             removed_pairs.append(pair)
         return removed_pairs
 
-
     def findLowestRmsdMirror(self):
         """
         Walk through the different mirrors and out of all options select the one
@@ -616,7 +591,6 @@ class SuperimposedTopology:
             return lowest_rmsd, self, False
         else:
             return lowest_rmsd, winner, True
-
 
     def is_subgraph_of_global_top(self):
         """
@@ -721,7 +695,6 @@ class SuperimposedTopology:
         # fixme - check any other lists that you keep track of
         return newone
 
-
     def findMirrorChoices(self):
         """
         For each pair (A1, B1) find all the other options in the mirrors where (A1, B2)
@@ -743,14 +716,12 @@ class SuperimposedTopology:
 
         return choices
 
-
     def addAlternativeMapping(self, weird_symmetry):
         """
         This means that there is another way to traverse and overlap the two molecules,
         but that the self is better (e.g. lower rmsd) than the other one
         """
         self.alternative_mappings.append(weird_symmetry)
-
 
     def correct_for_coordinates(self):
         """
@@ -846,7 +817,6 @@ class SuperimposedTopology:
 
         return avg_dst
 
-
     def get_toppology_similarity_score(self):
         """
         Having the superimposed A(Left) and B(Right), score the match.
@@ -910,7 +880,6 @@ class SuperimposedTopology:
                 # if node_b leads to the same node X
         return overall_score
 
-
     def refineAgainstCharges(self, atol):
         """
         Removes the matched pairs which turn out to have charges more different
@@ -941,7 +910,6 @@ class SuperimposedTopology:
 
         return removed_pairs, removed_attached_hydrogens
 
-
     def is_consistent_cycles(self, suptop):
         # check if each sup top has the same number of cycles
         # fixme - not sure?
@@ -965,7 +933,6 @@ class SuperimposedTopology:
             return False
 
         return True
-
 
     def is_consistent_with(self, suptop):
         """
@@ -995,7 +962,6 @@ class SuperimposedTopology:
 
         return True
 
-
     def getNxGraphs(self):
         "maybe at some point this should be created and used internally more? "
         gl = nx.Graph()
@@ -1016,7 +982,6 @@ class SuperimposedTopology:
 
         return gl, gr
 
-
     def getCircles(self):
         gl, gr = self.getNxGraphs()
         gl_circles = nx.cycle_basis(gl)
@@ -1035,7 +1000,6 @@ class SuperimposedTopology:
             return True
 
         return False
-
 
     def merge(self, suptop):
         """
@@ -1074,8 +1038,6 @@ class SuperimposedTopology:
         # check if duplication occured, fixme - temporary
         return merged_pairs
 
-
-
     def contains_node(self, node):
         # checks if this node was used in this overlay
         if len(self.nodes.intersection(set([node,]))) == 1:
@@ -1083,29 +1045,24 @@ class SuperimposedTopology:
 
         return False
 
-
     def contains_any_node(self, node_list):
         if len(self.nodes.intersection(set(node_list))) > 0:
             return True
 
         return False
 
-
     def count_common_nodes(self, node_list):
         number_of_common_nodes = len(self.nodes.intersection(set(node_list)))
         return number_of_common_nodes
 
-
     def count_common_node_pairs(self, other_suptop):
         return len(set(self.matched_pairs).intersection(set(other_suptop.matched_pairs)))
-
 
     def contains_any_node_from(self, other_sup_top):
         if len(self.nodes.intersection(other_sup_top.nodes)) > 0:
             return True
 
         return False
-
 
     def contains(self, node_pair):
         for match_pair in self.matched_pairs:
@@ -1114,14 +1071,12 @@ class SuperimposedTopology:
 
         return False
 
-
     def contains_atomNamePair(self, atomName1, atomName2):
         for m1, m2 in self.matched_pairs:
             if m1.atomName == atomName1 and m2.atomName == atomName2:
                 return True
 
         return False
-
 
     def contains_left_atomName(self, atomName):
         for m1, _ in self.matched_pairs:
@@ -1130,14 +1085,12 @@ class SuperimposedTopology:
 
         return False
 
-
     def contains_right_atomName(self, atomName):
         for _ , m in self.matched_pairs:
             if m.atomName == atomName:
                 return True
 
         return False
-
 
     def contains_all(self, other_sup_top):
         for pair in other_sup_top.matched_pairs:
@@ -1146,10 +1099,8 @@ class SuperimposedTopology:
 
         return True
 
-
     def has_in_contrast_to(self, sup_top):
         return set(self.matched_pairs).difference(set(sup_top.matched_pairs))
-
 
     def report_differences(self, suptop):
         selfHasNotSuptop = self.has_in_contrast_to(suptop)
@@ -1157,7 +1108,6 @@ class SuperimposedTopology:
         suptopHasNotSelf = suptop.has_in_contrast_to(self)
         log('Suptop has not self', suptopHasNotSelf)
         return selfHasNotSuptop, suptopHasNotSelf
-
 
     def has_left_nodes_same_as(self, other):
         if len(self.matched_pairs) != len(other.matched_pairs):
@@ -1175,7 +1125,6 @@ class SuperimposedTopology:
 
         return True
 
-
     def has_right_nodes_same_as(self, other):
         if len(self.matched_pairs) != len(other.matched_pairs):
             return False
@@ -1191,7 +1140,6 @@ class SuperimposedTopology:
                 return False
 
         return True
-
 
     def is_subgraph_of(self, other_sup_top):
         """
@@ -1213,7 +1161,6 @@ class SuperimposedTopology:
 
         # other is bigger than self, but not a subgraph of self
         return False
-
 
     def subgraph_relationship(self, other_sup_top):
         """
@@ -1253,7 +1200,6 @@ class SuperimposedTopology:
             # other is bigger than self, but it is not a subgraph
             return 0
 
-
     def is_mirror_of(self, other_sup_top):
         """
         this is a naive check
@@ -1285,7 +1231,6 @@ class SuperimposedTopology:
 
         return True
 
-
     def add_mirror_suptop(self, suptop):
         assert len(self.matched_pairs) == len(suptop.matched_pairs)
         # check if this this mirror was already added
@@ -1300,7 +1245,6 @@ class SuperimposedTopology:
 
         # add the mirror
         self.mirrors.append(suptop)
-
 
     def eq(self, sup_top):
         """
@@ -1319,6 +1263,7 @@ class SuperimposedTopology:
         return True
 
 
+# todo - move to logging rather than this
 verbose_log = True
 def log(*args):
     if verbose_log:
