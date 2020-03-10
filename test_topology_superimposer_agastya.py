@@ -318,7 +318,7 @@ def test_tyk2_l13l12():
     # the core chain should always be the same
     core_test_pairs = [('C4', 'C21'), ('C7', 'C24'), ('O1', 'O3'), ('N1', 'N4'),
                        ('H4', 'H19'), ('C8', 'C25'), ('C12', 'C29'), ('C11', 'C28'),
-                       ('N3', 'N6'), ('C13', 'C30'), ('O2', 'O4'), ('C14', 'C31')]
+                       ('N3', 'N6'), ('C13', 'C30'), ('O2', 'O4')]
     for atomName1, atomname2 in core_test_pairs[::-1]:
         if suptop.contains_atomNamePair(atomName1, atomname2):
             core_test_pairs.remove((atomName1, atomname2))
