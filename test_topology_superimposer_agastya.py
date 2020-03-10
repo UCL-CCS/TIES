@@ -186,17 +186,15 @@ def test_mcl1_l8l18():
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    removed_pairs, removed_attached_hydrogens = suptop.refineAgainstCharges(atol=0.1)
     # extract the atom names
     removed_atom_names = [(left.atomName, right.atomName) for left, right in removed_pairs]
-    should_be_removed = [('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
+    assert removed_atom_names == [('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
                            ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')]
-    assert should_be_removed == removed_atom_names
 
     # check if the dangling hydrogens were removed
-    removed_dangling_hydrogens = [('H3', 'H19'), ('H1', 'H17')]
-    for atomName1, atomname2 in removed_dangling_hydrogens:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2), (atomName1, atomname2)
+    removed_attached_hydrogens = [(left.atomName, right.atomName) for left, right in removed_attached_hydrogens]
+    assert removed_attached_hydrogens == [('H3', 'H19'), ('H1', 'H17')]
 
 
 def test_mcl1_l32_l42():
@@ -280,8 +278,9 @@ def test_tyk2_l11l14():
     liglig_path = "agastya_dataset/tyk2/l11-l14"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    suptop = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=0.1)
-    assert suptop is not None
+    suptops = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=0.1)
+    assert suptops[0] is not None
+    suptop = suptops[0]
 
     # the core chain should always be the same
     core_test_pairs = [('C4', 'C20'), ('C7', 'C23'), ('O1', 'O3'), ('N1', 'N4'), ('H6', 'H18'), ('C8', 'C24'), ('C9', 'C25'),
@@ -312,8 +311,9 @@ def test_tyk2_l13l12():
     liglig_path = "agastya_dataset/tyk2/l13-l12"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    suptop = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=99999)
-    assert suptop is not None
+    suptops = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), atol=99999)
+    assert suptops[0] is not None
+    suptop = suptops[0]
 
     # the core chain should always be the same
     core_test_pairs = [('C4', 'C21'), ('C7', 'C24'), ('O1', 'O3'), ('N1', 'N4'),
