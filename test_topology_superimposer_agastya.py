@@ -351,9 +351,9 @@ def test_tyk2_l6l11():
 
     lefthook = next(filter(lambda x: x.atomName == 'N1', lig1_nodes.values()))
     righthook = next(filter(lambda x: x.atomName == 'N4', lig2_nodes.values()))
-    suptop = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
                                       starting_node_pairs=[(lefthook, righthook)])
-
+    suptop = suptops[0]
     # suptop = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
     assert suptop is not None
 
