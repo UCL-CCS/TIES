@@ -436,7 +436,4 @@ def test_mcl1_l12l35():
     print('hi')
 
 
-# def cprofile_mcl1():
-# import cProfile
-# cProfile.run("test_mcl1_l12l35()")
-test_mcl1_l12l35()
+# test_mcl1_l12l35()
