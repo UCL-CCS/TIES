@@ -3,59 +3,63 @@
 # todo - upgrade to pathlib
 """
 import os
-import sys
 import numpy as np
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from pathlib import Path
+
 
 def get_energies(location):
     # extract from each replica the right
-    lambdas = []
+    vdw_lambdas = []
     dis_avgs_ele = []
     dis_ele_xs = []
     app_avgs_ele = []
-    app_ele_xs = [0, ]
+    app_ele_xs = []
     averages_vdw = []
 
-    # get only lambda dirs
-    lambda_dirs = filter(lambda d: d.startswith('lambda_'), os.listdir(location))
-    # sort in the right order
-    lambda_dirs = sorted(lambda_dirs, key=lambda d: d.split('_')[1])
+    # take only the lambda directories
+    lambda_dirs = filter(lambda d: d.is_dir(), Path(location).glob(r'lambda_0.[0-9]*'))
+    # sort lambda directories in the increasing order
+    lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split('_')[1]))
+
+    # data contains lambdas
+    data = {}
 
     for lambda_dir in lambda_dirs:
-        if not lambda_dir.startswith('lambda_'):
-            continue
-
         dis_ele = None
         app_ele = None
 
-        # fixme - they have to be in the right order,
+        # ? we have to average the results over the replicas
 
-        # we have to average the results over the replicas
-        next_lambda = float(lambda_dir.split('_')[1])
+        # ensure that lambdas are in the right order
+        next_lambda = float(lambda_dir.name.split('_')[1])
         assert 1 >= next_lambda >= 0
-        if lambdas:
-            assert next_lambda > lambdas[-1]
-        lambdas.append(next_lambda)
+        if vdw_lambdas:
+            assert next_lambda > vdw_lambdas[-1]
+        vdw_lambdas.append(next_lambda)
+
+        # each lambda is going to have {vdw, appearing ele, disappearing ele}
+        # for which there are going to be datapoints
+        data[next_lambda] = {'vdw': [], 'aele': [], 'dele': []}
 
         dis_replicas_avgs_ele = []
         app_replicas_avgs_ele = []
         replicas_avgs_vdw = []
 
-        reps_eles = []
-
-        # go into the replicas
-        for rep in os.listdir(os.path.join(location, lambda_dir)):
-            # for each replica, go in and schedule the simulation
-            if not rep.startswith('rep'):
+        for rep in lambda_dir.glob('rep[0-9]*'):
+            if not rep.is_dir():
                 continue
 
-            prod_alch = os.path.join(location, lambda_dir, rep, 'prod.alch')
+            prod_alch = rep / 'prod.alch'
+
+            # COLUMNS:
             # 5 is AVGELECT1
             # 7 is AVGVDW1
             # 11 is AVGELECT2
             # 13 is AVGVDW2
-
-            # we take the last row because these are running averages computed by NAMD
+            # we take the last row because these are the running averages computed by NAMD
             energies = np.loadtxt(prod_alch, comments='#', usecols=[5, 7, 11, 13])[-1]
 
             # load metadata
@@ -98,12 +102,9 @@ def get_energies(location):
                 app_replicas_avgs_ele.append(app_ele)
 
             replicas_avgs_vdw.append(vdw_deriv)
-
-            ele = np.loadtxt(prod_alch, comments='#', usecols=[4])
-            reps_eles.append(ele)
-        #     plt.plot(ele)
-        # plt.show()
-        # break
+            # plt.plot(energies_over_time)
+            # plt.show()
+            # break
 
         # use the average from the replicas
         averages_vdw.append(np.average(replicas_avgs_vdw))
@@ -119,21 +120,14 @@ def get_energies(location):
         # plt.show()
         # break
 
-    dis_ele_xs.append(0)
-    dis_ele_xs.reverse()
-    dis_avgs_ele.append(dis_avgs_ele[-1])
-
-    app_avgs_ele.insert(0, app_avgs_ele[0])
-
     print('dis ele xs', dis_ele_xs)
     print('app ele xs', app_ele_xs)
-    print('lambdas are', lambdas)
 
     # integrate
-    int_vdw = np.trapz(averages_vdw, x=lambdas)
+    int_vdw = np.trapz(averages_vdw, x=vdw_lambdas)
     # trapz_res = np.trapz(averages_vdw, x=[0.45])averages_vdw
     print("vdw integral", int_vdw)
-    plt.plot(lambdas, averages_vdw, label='vdw')
+    plt.plot(vdw_lambdas, averages_vdw, label='vdw')
     plt.plot(dis_ele_xs, dis_avgs_ele, label='dis ele')
     plt.plot(app_ele_xs, app_avgs_ele, label='app ele')
 
@@ -145,8 +139,9 @@ def get_energies(location):
     print('Altogether:', int_dis_ele + int_app_ele + int_vdw)
     plt.legend()
     plt.show()
+
     return int_dis_ele + int_app_ele + int_vdw
 
-complex_energies = get_energies('complex')
-lig_energies = get_energies('lig')
-print('Final', complex_energies - lig_energies)
+complex_all = get_energies('complex')
+lig_all = get_energies('lig')
+print("Final: ", complex_all - lig_all)
