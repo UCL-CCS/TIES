@@ -1454,7 +1454,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
         # these two atoms have a different type, so return None
         return None
 
-
     # Alternative to checking for cycles:
     # check if both n1 and n2 contain a bonded atom that already is in the topology
     # this way we know both create some connection back to the molecule
@@ -1463,12 +1462,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     # n2_common_nodes_tot = sup_top.count_common_nodes(n2.bonds)
     # if n1_common_nodes_tot != n2_common_nodes_tot:
     #     return [sup_top, ]
-
-    for pair, bonds in suptop.matched_pairs_bonds.items():
-        if len(suptop.matched_pairs) == 1:
-            pass
-        elif len(bonds) == 0:
-            raise Exception('Error')
 
     nxgl, nxgr = suptop.getNxGraphs()
     nxgl_cycles = nx.cycle_basis(nxgl)
