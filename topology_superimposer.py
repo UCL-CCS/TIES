@@ -166,6 +166,8 @@ class AtomNode:
         self.unique_counter = AtomNode.counter
         AtomNode.counter += 1
 
+        self.hash_value = None
+
     def set_atomName(self, atomName):
         self.atomName = atomName
 
@@ -198,6 +200,10 @@ class AtomNode:
         return False
 
     def __hash__(self):
+        # Compute the hash key once
+        if self.hash_value is not None:
+            return self.hash_value
+
         m = hashlib.md5()
         # fixme - ensure that each node is characterised by its chemical info,
         # fixme - the atomId might not be unique, so check before the input data
@@ -205,7 +211,9 @@ class AtomNode:
         m.update(str(self.unique_counter).encode('utf-8'))
         # so include the number of bonds which is basically an atom type
         m.update(str(len(self.bonds)).encode('utf-8'))
-        return int(m.hexdigest(), 16)
+        self.hash_value = int(m.hexdigest(), 16)
+
+        return self.hash_value
 
     def __str__(self):
         return self.atomName
