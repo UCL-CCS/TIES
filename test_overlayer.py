@@ -943,14 +943,16 @@ def test_mcl1_l12l35_bonds():
     assert {x[0] for x in suptop.matched_pairs_bonds[(c1, c11)]} == {(c2, c12), (c3, c13)}
     # (c2, c12) should be linked to (c1, c11), (c4, c14)
     assert {x[0] for x in suptop.matched_pairs_bonds[(c2, c12)]} == {(c1, c11), (c4, c14)}
-    # (c3, c13) should be linked to (c1, c11), (c5, c15)
+    # etc
     assert {x[0] for x in suptop.matched_pairs_bonds[(c3, c13)]} == {(c1, c11), (c5, c15)}
-    # (c5, c15) links to (c3, c13), (c6, c16), (c7, c17)
+    assert {x[0] for x in suptop.matched_pairs_bonds[(c4, c14)]} == {(c2, c12), (c6, c16)}
     assert {x[0] for x in suptop.matched_pairs_bonds[(c5, c15)]} == {(c3, c13), (c6, c16), (c7, c17)}
-
     assert {x[0] for x in suptop.matched_pairs_bonds[(c6, c16)]} == {(c5, c15), (c4, c14), (n1, n11)}
+    assert {x[0] for x in suptop.matched_pairs_bonds[(c7, c17)]} == {(c5, c15), (c10, c20), (c8, c18)}
     assert {x[0] for x in suptop.matched_pairs_bonds[(c8, c18)]} == {(c7, c17), (n1, n11), (c9, c19)}
+    assert {x[0] for x in suptop.matched_pairs_bonds[(c9, c19)]} == {(c8, c18)}
     assert {x[0] for x in suptop.matched_pairs_bonds[(c10, c20)]} == {(c7, c17)}
+    assert {x[0] for x in suptop.matched_pairs_bonds[(n1, n11)]} == {(c6, c16), (c8, c18)}
 
 
 def test_tyk2_l11l14_part():
