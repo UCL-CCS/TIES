@@ -945,7 +945,6 @@ class SuperimposedTopology:
     def is_consistent_with(self, suptop):
         """
         Conditions:
-
             - There should be a minimal overlap of at least 1 node.
             - There is no no pair (A=B) in this sup top such that (A=C) or (B=C) exists in other.
             - The number of cycles in this suptop and the other suptop must be the same
@@ -1462,130 +1461,45 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     if not n1.sameType(n2):
         # these two atoms have a different type, so return None
         return None
-  
-    # TODO: does the symmetric case need handling? Yes. Can we break? no.
+   
+    # Check for cycles
     safe = True
-    # if n1 connects to a node that was matched previously:
+    # if n1 is linked with node in suptop other than parent
     for b1 in n1.bonds:
         if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
-            safe = False
-    #       if n2 connects to a node that was matched previously:
+            safe = False # n1 forms cycle, now need to check n2
             for b2 in n2.bonds:
                 if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
-    #               if n1 and n2 previously matched nodes are not matched together:
-                    if suptop.contains((b1[0], b2[0])):
+                    # b2 forms cycle, now need to check it's the same in both
+                    if suptop.contains((b1[0],b2[0])):
                         safe = True
                         break
-            if not safe:
+            if not safe: # only n1 forms a cycle
                 break
-    if not safe:
+    if not safe: # either only n1 forms cycle or both do but different cycles
         return None
+    
+    # now the same for any remaining unchecked bonds in n2
     safe = True
-    # Now the same for any unchecked bonds in n2
     for b2 in n2.bonds:
         if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
             safe = False
             for b1 in n1.bonds:
                 if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
-                    if suptop.contains((b2[0], b1[0])):
+                    if suptop.contains((b1[0],b2[0])):
                         safe = True
                         break
             if not safe:
                 break
     if not safe:
         return None
-    # Alternative to checking for cycles:
-    # check if both n1 and n2 contain a bonded atom that already is in the topology
-    # this way we know both create some connection back to the molecule
-    # fixme - did not seem to work?
-    # n1_common_nodes_tot = sup_top.count_common_nodes(n1.bonds)
-    # n2_common_nodes_tot = sup_top.count_common_nodes(n2.bonds)
-    # if n1_common_nodes_tot != n2_common_nodes_tot:
-    #     return [sup_top, ]
 
-##    nxgl, nxgr = suptop.getNxGraphs()
-##    nxgl_cycles = nx.cycle_basis(nxgl)
-##    nxgr_cycles = nx.cycle_basis(nxgr)
-##    nxgl_cycles_num, nxgr_cycles_num = len(nxgl_cycles), len(nxgr_cycles)
-##    assert nxgl_cycles_num == nxgr_cycles_num
-
-##    log("Adding ", (n1, n2), "in", suptop.matched_pairs)
-
+    log("Adding ", (n1, n2), "in", suptop.matched_pairs)
     # append both nodes as a pair to ensure that we keep track of the mapping
     # having both nodes appended also ensure that we do not revisit/readd neither n1 and n2
     suptop.add_node_pair((n1, n2))
     if not (parent_n1 is parent_n2 is None):
         suptop.link_with_parent((n1, n2), (parent_n1, parent_n2), bond_types)
-
-    # fixme - it is possible (see mcl1 case) to find a situation where a larger match that is found
-    # is actually the wrong match, add one more criteria:
-    # if the new atom completes a ring, but the other atom does not, then the two are heading in the wrong dimension
-    # fixme - add tests which check of features like rings/double rings etc and see if they are found
-    # in both superimpositions and yet "not present" in the sup-top, meaning that the sup-top is wrong
-##    nxgl_after, nxgr_after = suptop.getNxGraphs()
-##    nxgl_cycles_after = nx.cycle_basis(nxgl_after)
-##    nxgr_cycles_after = nx.cycle_basis(nxgr_after)
-##    nxgl_cycles_num_after, nxgr_cycles_num_after = len(nxgl_cycles_after), len(nxgr_cycles_after)
-##    if nxgl_cycles_num_after != nxgr_cycles_num_after:
-        # clearly the newly added edge changes the circles, and so it is not equivalent
-        # even though it might appear like it (mcl1 case)
-##        suptop.remove_node_pair((n1, n2))
-##        log("Removing pair because one creates a cycle and the other does not", (n1, n2))
-        # fixme - why none?
-##        return None
-
-##    created_new_cycle = False
-##    if nxgl_cycles_num_after > nxgl_cycles_num:
-        # a new circle is formed in both ligands
-        # means that (n1, n2) are bound to (X1, X2)
-        # which are already contains in the two topologies
-        # let us check if the new circle is due to the same matched pair previously found
-        # fixme - what if there is more circles in one go?
-        # the newly formed cycles have to be due to to bonded atoms
-        # that are already in the bonded section, so let's check which are these
-        # so new cycles were created, so let's fine the new cycles
-##        old_l_cycles = {frozenset(c) for c in nxgl_cycles}
-##        new_l_cycles = {frozenset(c) for c in nxgl_cycles_after if frozenset(c) not in old_l_cycles}
-
-##        old_r_cycles = {frozenset(c) for c in nxgr_cycles}
-##        new_r_cycles = {frozenset(c) for c in nxgr_cycles_after if frozenset(c) not in old_r_cycles}
-
-        # so there should be a bonded atom in both cases which are matched to each other
-##        should_match_l = set()
-##        for bonded, btype in n1.bonds:
-##            for cycle in new_l_cycles:
-##                if bonded in cycle:
-##                    should_match_l.add(bonded)
-
-##        should_match_r = set()
-##        for bonded, btype in n2.bonds:
-##            for cycle in new_r_cycles:
-##                if bonded in cycle:
-##                    should_match_r.add(bonded)
-
-        # fixme - you could track the parent and remove them straight away from this
-        # remove the parents from this
-##        should_match_l.remove(parent_n1)
-##        should_match_r.remove(parent_n2)
-
-##        for leftn in list(should_match_l)[::-1]:
-##            for rightn in list(should_match_r)[::-1]:
-##                if suptop.contains((leftn, rightn)):
-##                    should_match_l.remove(leftn)
-##                    should_match_r.remove(rightn)
-
-        # if the pair is not matched in the topology, then that means this circle
-        # is created via two completely different nodes
-        # that the current topology sees as different ones, therefore
-        # this cycle is erronous (case mcl1_l12l35)
-##        if not len(should_match_l) == len(should_match_r) == 0:
-##            suptop.remove_node_pair((n1, n2))
-##            log("Removing pair: created cycle through nodes X and Y "
-##                "that are not matched in the topology", (n1, n2))
-            # fixme - why none?
-##            return None
-##        log("Added a new cycle to both nxgr and nxgl by adding the pair", (n1, n2))
-##        created_new_cycle = True
 
     # the extra bonds are legitimate
     # so let's make sure they are added
@@ -1736,18 +1650,9 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             if sol1.is_consistent_with(sol2):
                 # print("merging, current pair", (n1, n2))
                 # join sol2 and sol1 because they're consistent
-                # fixme - this can be removed because it is now taken care of in the other functions?
-##                g1, g2 = sol1.getNxGraphs()
-##                assert len(nx.cycle_basis(g1)) == len(nx.cycle_basis(g2))
-##                g3, g4 = sol2.getNxGraphs()
-##                assert len(nx.cycle_basis(g3)) == len(nx.cycle_basis(g4))
-
-##                print("Will merge", sol1, 'and', sol2)
-##                assert sol1.sameCircleNumber()
+                print("Will merge", sol1, 'and', sol2)
                 newly_added_pairs = sol1.merge(sol2)
 
-##                if not sol1.sameCircleNumber():
-##                    raise Exception('something off')
                 # remove sol2 from the solutions:
                 all_solutions.remove(sol2)
 
