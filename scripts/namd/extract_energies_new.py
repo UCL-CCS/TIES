@@ -34,10 +34,10 @@ def populate_stats(dataset):
         # flatten the list
         merged_replicas = []
         for rep in reps:
-            merged_replicas.extend(rep)
-            break
+            # merged_replicas.extend(rep)
+            # break
             # use Chodera's EQ code to only extract the prod values after equilibration
-            # merged_replicas.extend(choder_get_eqpart(rep))
+            merged_replicas.extend(choder_get_eqpart(rep))
         # item[f'merged_{itype}_sem'] = sem(merged_replicas)
         meta[f'merged_mean'][lambda_val] = np.mean(merged_replicas)
         # item[f'merged_{itype}_std'] = np.std(merged_replicas)
@@ -158,12 +158,24 @@ def analyse(data, location):
 
     # integrate
     print(location)
+    # sort by lambda before integrating
+    avdw_means.sort()
+    print('avdw means sorted', avdw_means)
     avdw_int = np.trapz(avdw_means[1], x=avdw_means[0])
     print('int avdw', avdw_int)
+
+    dvdw_means.sort()
+    print('avdw means sorted', dvdw_means)
     dvdw_int = np.trapz(dvdw_means[1], x=dvdw_means[0])
     print('int dvdw_means', dvdw_int)
+
+    aele_means.sort()
+    print('avdw means sorted', aele_means)
     aele_int = np.trapz(aele_means[1], x=aele_means[0])
     print('int aele_means', aele_int)
+
+    dele_means.sort()
+    print('avdw means sorted', dele_means)
     dele_int = np.trapz(dele_means[1], x=dele_means[0])
     print('int dele_means', dele_int)
 
@@ -179,7 +191,8 @@ def analyse(data, location):
     # if l1 is -10, but l2 is -12, then -10--12=2, but -12--10=-2, so it is just sign,
 
     # return aele_scratch - dele_scratch + avdw_scratch - dvdw_scratch
-    return (aele_int - dele_int) + (avdw_int - dvdw_int)
+    # return (dele_int - aele_int) + (dvdw_int - avdw_int)
+    return dele_int + aele_int + dvdw_int + avdw_int
 
 complex_all = get_energies('complex')
 complex_delta = analyse(complex_all, 'complex')
