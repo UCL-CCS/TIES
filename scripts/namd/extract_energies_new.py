@@ -198,4 +198,7 @@ complex_all = get_energies('complex')
 complex_delta = analyse(complex_all, 'complex')
 lig_all = get_energies('lig')
 lig_delta = analyse(lig_all, 'lig')
+
+print("Delta ligand", lig_delta)
+print("Delta complex", complex_delta)
 print("Delta Delta: ", complex_delta - lig_delta)
