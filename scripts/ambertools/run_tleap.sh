@@ -1,6 +1,6 @@
 
 # load the tools
-source /opt/ambertools/amber.sh
+source ~/software/amber18install/amber.sh
 
 # update to eval rather than ``
 CURRENT_DIR=`dirname $0`

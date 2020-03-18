@@ -1,4 +1,4 @@
-source /opt/ambertools/amber.sh
+source ~/software/amber18install/amber.sh
 # Log of work with Shunzhou
 
 # todo - check if these are files with the right extension etc
