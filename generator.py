@@ -425,7 +425,7 @@ conskcol  B
         # for each atom, give the B column the right value
         for atom in mda_universe.atoms:
             # ignore water
-            if atom.resname == 'WAT' or atom.resname == 'Na+':
+            if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3']:
                 continue
 
             # set each atom depending on whether it is a H or not
