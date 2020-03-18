@@ -1729,7 +1729,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
 
     # ensure that none of the atomName across the two nodes are the same,
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
-    assert len(sameAtomNames) == 0
+    assert len(sameAtomNames) == 0, sameAtomNames
 
     sup_tops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
     # connect the sup_tops to their nodes

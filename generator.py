@@ -15,7 +15,6 @@ def getSuptop(mol1, mol2, reference_match=None):
 
     # assign
     # fixme - Ideally I would reuse the mdanalysis data for this
-    startLeft = None
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
@@ -24,7 +23,6 @@ def getSuptop(mol1, mol2, reference_match=None):
     for nfrom, nto, btype in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
 
-    startRight = None
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
@@ -33,8 +31,13 @@ def getSuptop(mol1, mol2, reference_match=None):
     for nfrom, nto, btype in rightlig_bonds:
         ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
 
+    if reference_match is None:
+        starting_node_pairs = None
+    else:
+        starting_node_pairs = [(startLeft, startRight)]
+
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                     starting_node_pairs=[(startLeft, startRight)])
+                                     starting_node_pairs=starting_node_pairs)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
