@@ -83,7 +83,7 @@ def choder_get_eqpart(datapoints):
     Extracts the equilibriated part
     """
     [t0, g, Neff_max] = timeseries.detectEquilibration(datapoints)
-    print ('Chodera: t0 is', t0)
+    # print('Chodera: t0 is', t0)
     return datapoints[t0:]
 
 
@@ -146,31 +146,36 @@ def analyse(data, location, choderas_cut=False):
     print(location)
     # appearing vdw should have lambda values from 0 to 1,
     assert all([x < y for x, y in zip(avdw_means[0], avdw_means[0][1:])])
+    avdw_means.sort()
     avdw_int = np.trapz(avdw_means[1], x=avdw_means[0])
     print('int avdw', avdw_int)
 
     # disappearing vdw should have lambda values from 1 to 0,
     assert all([x > y for x, y in zip(dvdw_means[0], dvdw_means[0][1:])])
+    dvdw_means.sort()
     dvdw_int = np.trapz(dvdw_means[1], x=dvdw_means[0])
     print('int dvdw_means', dvdw_int)
 
     # appearing ele should have lambda values from 0 to 1,
     assert all([x < y for x, y in zip(aele_means[0], aele_means[0][1:])])
+    aele_means.sort()
     aele_int = np.trapz(aele_means[1], x=aele_means[0])
     print('int aele_means', aele_int)
 
     # disappearing ele should have lambda values from 1 to 0,
     assert all([x > y for x, y in zip(dele_means[0], dele_means[0][1:])])
+    dele_means.sort()
     dele_int = np.trapz(dele_means[1], x=dele_means[0])
     print('int dele_means', dele_int)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
-    return dele_int + aele_int + dvdw_int + avdw_int
+    return aele_int + avdw_int - dvdw_int - dele_int
 
+choderas_cut = False
 complex_all = extract_energies('complex')
-complex_delta = analyse(complex_all, 'complex')
+complex_delta = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
 lig_all = extract_energies('lig')
-lig_delta = analyse(lig_all, 'lig')
+lig_delta = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
 
 print("Delta ligand", lig_delta)
 print("Delta complex", complex_delta)
