@@ -144,38 +144,46 @@ def analyse(data, location):
     # plot the average of the entire datasets now
     plt.figure()
     avdw_means = np.array(list(meta['avdw']['merged_mean'].items())).T
-    plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='--')
+    plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
     dvdw_means = np.array(list(meta['dvdw']['merged_mean'].items())).T
-    plt.plot(dvdw_means[0], dvdw_means[1], label='Disappearing VdW', linestyle='--')
+    plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
     aele_means = np.array(list(meta['aele']['merged_mean'].items())).T
-    plt.plot(aele_means[0], aele_means[1], label='Appearing q')
+    plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
     dele_means = np.array(list(meta['dele']['merged_mean'].items())).T
-    plt.plot(dele_means[0], dele_means[1], label='Disappearing q')
+    plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
     plt.title(location)
     plt.legend()
     # plt.show()
-    plt.savefig('/home/dresio/' + location + '.png')
+    plt.savefig(location + '.png')
 
     # integrate
     print(location)
     # sort by lambda before integrating
-    avdw_means.sort()
-    print('avdw means sorted', avdw_means)
+    # avdw_means.sort()
+    # appearing vdw should have lambda values from 0 to 1,
+    assert all([x < y for x, y in zip(avdw_means[0], avdw_means[0][1:])])
+    # print('avdw means sorted', avdw_means)
     avdw_int = np.trapz(avdw_means[1], x=avdw_means[0])
     print('int avdw', avdw_int)
 
-    dvdw_means.sort()
-    print('avdw means sorted', dvdw_means)
+    # dvdw_means.sort()
+    # disappearing vdw should have lambda values from 1 to 0,
+    assert all([x > y for x, y in zip(dvdw_means[0], dvdw_means[0][1:])])
+    # print('avdw means sorted', dvdw_means)
     dvdw_int = np.trapz(dvdw_means[1], x=dvdw_means[0])
     print('int dvdw_means', dvdw_int)
 
-    aele_means.sort()
-    print('avdw means sorted', aele_means)
+    # aele_means.sort()
+    # appearing ele should have lambda values from 0 to 1,
+    assert all([x < y for x, y in zip(aele_means[0], aele_means[0][1:])])
+    # print('avdw means sorted', aele_means)
     aele_int = np.trapz(aele_means[1], x=aele_means[0])
     print('int aele_means', aele_int)
 
-    dele_means.sort()
-    print('avdw means sorted', dele_means)
+    # dele_means.sort()
+    # disappearing ele should have lambda values from 1 to 0,
+    assert all([x > y for x, y in zip(dele_means[0], dele_means[0][1:])])
+    # print('avdw means sorted', dele_means)
     dele_int = np.trapz(dele_means[1], x=dele_means[0])
     print('int dele_means', dele_int)
 
