@@ -61,34 +61,44 @@ foreach my $file (sort{ -M $b <=> -M $a } @outfiles) {   # cycle through files..
   elsif (!$dgonly) {print ".";}
   open (FILE, "$file");
   my $first = <FILE>;
-  if (! ($first =~ /\#       STEP      Elec_d[EU]\/dl/) ) {
+  if (! ($first =~ /\#TITITLE:    TS          BOND1/) ) {
     print ("Output file $file not recognised as a NAMD TI output file\n"); next;
   }
   while (my $line = <FILE>) {  # cycle through every line...
     $linenr ++;
     if ($line =~ /^\#/) { # starting with #, this is some kind of control information
-      if ($line =~ /WINDOW: LAMBDA (\S+)/) { $lambda = $1; $outputfreq = 0; $prevstepnr = 0; $datalinecount = 0;}
+      if ($line =~ /WINDOW: LAMBDA (\S+)/) { 
+      	$lambda = $1; $outputfreq = 0; $prevstepnr = 0; $datalinecount = 0;
+      	print ("lambda $lambda\n");
+      }
       #plugging in some more consistency checks. If in any case, a given global lambda value is associated with more than one elec/vdw lambda value, something has gone wrong and the data is no longer self-consistent...
-      if ($line =~ /1 VDW LAMBDA (\S+)/) { 
+      # was #PARTITION 1 VDW LAMBDA 0.8
+      # is now #PARTITION 1 SCALING: BOND 1 VDW 0 ELEC 0
+      # extract vdw lambda
+      if ($line =~ /1 SCALING: BOND \S+ VDW (\S+)/) { 
         $vdwl1 = $1; 
+        print ("1 vdw lambda $vdwl1 \n");
         if (($vdwl1 == 1) && ($lambda < $vdwl1_one_lowestlambda)) {$vdwl1_one_lowestlambda = $lambda; delete($vdw1{$vdwl1}); }
         if (defined(${lambda_hash{$lambda}}{vdw1}) && (${$lambda_hash{$lambda}}{vdw1} != $vdwl1)) {$warnings{lambdaconsistency} = 1;}
         else {${$lambda_hash{$lambda}}{vdw1} = $vdwl1; }
       }
-      if ($line =~ /2 VDW LAMBDA (\S+)/) { 
+      if ($line =~ /2 SCALING: BOND \S+ VDW (\S+)/) { 
         $vdwl2 = $1; 
+        print ("2 vdw lambda $vdwl2 \n");
         if (($vdwl2 == 1) && ($lambda > $vdwl2_one_highestlambda)) {$vdwl2_one_highestlambda = $lambda; delete($vdw2{$vdwl2}); }
         if (defined(${lambda_hash{$lambda}}{vdw2}) && (${$lambda_hash{$lambda}}{vdw2} != $vdwl2)) {$warnings{lambdaconsistency} = 1;}
         else {${$lambda_hash{$lambda}}{vdw2} = $vdwl2; }
       }
-      if ($line =~ /1 ELEC LAMBDA (\S+)/) { 
+      if ($line =~ /1 SCALING: BOND \S+ VDW \S+ ELEC (\S+)/) { 
         $elecl1 = $1; 
+        print ("1 elec lambda $elecl1 \n");
         if (($elecl1 == 0) && ($lambda > $elecl1_zero_highestlambda)) {$elecl1_zero_highestlambda = $lambda; delete($elec1{$elecl1}); }
         if (defined(${lambda_hash{$lambda}}{elec1}) && (${$lambda_hash{$lambda}}{elec1} != $elecl1)) {$warnings{lambdaconsistency} = 1;}
         else {${$lambda_hash{$lambda}}{elec1} = $elecl1; }
       }
-      if ($line =~ /2 ELEC LAMBDA (\S+)/) { 
+      if ($line =~ /2 SCALING: BOND \S+ VDW \S+ ELEC (\S+)/) { 
         $elecl2 = $1; 
+        print ("1 elec lambda $elecl2 \n");
         if (($elecl2 == 0) && ($lambda < $elecl2_zero_lowestlambda)) {$elecl2_zero_lowestlambda = $lambda; delete($elec2{$elecl2}); }
         if (defined(${lambda_hash{$lambda}}{elec2}) && (${$lambda_hash{$lambda}}{elec2} != $elecl2)) {$warnings{lambdaconsistency} = 1;}
         else {${$lambda_hash{$lambda}}{elec2} = $elecl2; }
@@ -109,7 +119,13 @@ foreach my $file (sort{ -M $b <=> -M $a } @outfiles) {   # cycle through files..
         $outputfreq = 0; $prevstepnr = 0;
       }
     }
-    if ($line =~ m/TI\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/ ) { # match the actual data lines
+    # these are the previous columns (which do not include bonds, so it is 9 columns with numbers)
+    # #       STEP      Elec_dU/dl      Elec_avg        vdW_dU/dl      vdw_avg       Elec_dU/dl      Elec_avg      vdW_dU/dl       vdw_avg       PME_dU/dl      PME_avg
+    # these are the new columns, including bonds, so 4 extra, so 13 columns
+    # #TITITLE:    TS          BOND1       AVGBOND1         ELECT1      AVGELECT1                VDW1        AVGVDW1          BOND2       AVGBOND2         ELECT2           AVGELECT2           VDW2        AVGVDW2
+
+
+    if ($line =~ m/TI:\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/ ) { # match the actual data lines
       $datalinecount ++;
       if (!$outputfreq) { # get the outputfreq as stepnr - prevstepnr, if we don't have it already
         if (!$prevstepnr) {$prevstepnr = $1;} 
@@ -120,10 +136,13 @@ foreach my $file (sort{ -M $b <=> -M $a } @outfiles) {   # cycle through files..
         $prevstepnr = $1;
       }
       # for each of these dE/dls: add the instantaneous dE/dl value onto an array, which sits inside hash with key=lambda, value=dE/dl array
-      if ($lambda >= $elecl1_zero_highestlambda) {  push (@{$elec1{$elecl1}}, $2); }
-      if ($lambda <= $elecl2_zero_lowestlambda) {  push (@{$elec2{$elecl2}}, $6); }
-      if ($lambda <= $vdwl1_one_lowestlambda) {  push (@{$vdw1{$vdwl1}}, $4); }
-      if ($lambda >= $vdwl2_one_highestlambda) {  push (@{$vdw2{$vdwl2}}, $8); }
+      # so $2 refered to ele, now it is four
+      if ($lambda >= $elecl1_zero_highestlambda) {  push (@{$elec1{$elecl1}}, $4); }
+      # $6 referered to part2 ele, now it is $10
+      if ($lambda <= $elecl2_zero_lowestlambda) {  push (@{$elec2{$elecl2}}, $10); }
+      # 
+      if ($lambda <= $vdwl1_one_lowestlambda) {  push (@{$vdw1{$vdwl1}}, $6); }
+      if ($lambda >= $vdwl2_one_highestlambda) {  push (@{$vdw2{$vdwl2}}, $12); }
       push (@{$pme{$lambda}}, 0); 
       $timesteps{$lambda} += $outputfreq;
     }
