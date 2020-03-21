@@ -13,7 +13,7 @@ import pandas as pd
 from itertools import accumulate
 from pymbar import timeseries
 from collections import OrderedDict
-from scipy.interpolate import interp1d
+from scipy import interpolate
 
 
 def extract_energies(location):
@@ -116,6 +116,26 @@ def get_replicas_stats(dataset, choderas_cut=False):
     return meta
 
 
+def get_int(xs, ys, interp=False):
+    if interp:
+        xnew = np.linspace(0, 1, num=50)
+        # cubic_interp = interpolate.interp1d(dvdw_means[0], dvdw_means[1], kind='cubic')
+        tck = interpolate.splrep(xs, ys, s=0)
+        ynew = interpolate.splev(xnew, tck, der=False)
+
+        # new_values = cubic_interp(newx)
+        plt.plot(xs, ys, label='original')
+        # plt.plot(newx, new_values, label='cubic interpolation')
+        plt.plot(xnew, ynew, label='spline der0')
+        plt.legend()
+        plt.show()
+
+    # the xs (or lambdas) should be in a growing order
+    assert np.all(np.diff(xs) > 0)
+    return np.trapz(ys, x=xs)
+
+
+
 def analyse(data, location, choderas_cut=False):
     """
     Process the timeseries from each replica
@@ -129,14 +149,22 @@ def analyse(data, location, choderas_cut=False):
         stats[interaction_type] = get_replicas_stats(dataset, choderas_cut=choderas_cut)
 
     # plot the average of the entire datasets now
+    # sort all lambdas from 0 to 1
     plt.figure()
-    avdw_means = np.array(list(stats['avdw']['merged_mean'].items())).T
+    avdw_before_sort = list(stats['avdw']['merged_mean'].items())
+    avdw_means = np.array(sorted(avdw_before_sort, key=lambda x: x[0])).T
     plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
-    dvdw_means = np.array(list(stats['dvdw']['merged_mean'].items())).T
+
+    dvdw_before_sort = list(stats['dvdw']['merged_mean'].items())
+    dvdw_means = np.array(sorted(dvdw_before_sort, key=lambda x: x[0])).T
     plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
-    aele_means = np.array(list(stats['aele']['merged_mean'].items())).T
+
+    aele_before_sort = list(stats['aele']['merged_mean'].items())
+    aele_means = np.array(sorted(aele_before_sort, key=lambda x: x[0])).T
     plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
-    dele_means = np.array(list(stats['dele']['merged_mean'].items())).T
+
+    dele_before_sort = list(stats['dele']['merged_mean'].items())
+    dele_means = np.array(sorted(dele_before_sort, key=lambda x: x[0])).T
     plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
     plt.title(location)
     plt.legend()
@@ -146,34 +174,14 @@ def analyse(data, location, choderas_cut=False):
 
     # integrate over the means from each replica
     print(location)
-    # from 13 lambdas to 50 interpolation
-    newx_interp = np.linspace(0, 1, num=50)
-    # appearing vdw should have lambda values from 0 to 1,
-    assert all([x < y for x, y in zip(avdw_means[0], avdw_means[0][1:])])
-    avdw_means.sort()
-    avdw_int = np.trapz(avdw_means[1], x=avdw_means[0])
+
+    avdw_int = get_int(avdw_means[0], avdw_means[1])
     print('int avdw', avdw_int)
-
-    # disappearing vdw should have lambda values from 1 to 0,
-    assert all([x > y for x, y in zip(dvdw_means[0], dvdw_means[0][1:])])
-    dvdw_means.sort()
-    i = np.interp(newx_interp, xp=dvdw_means[0], fp=dvdw_means[1])
-    dvdw_int = np.trapz(dvdw_means[1], x=dvdw_means[0])
-    plt.plot(dvdw_means[0], dvdw_means[1], label='dvdw before')
-    plt.plot(newx_interp, i, label='after')
-    plt.legend()
+    dvdw_int = get_int(dvdw_means[0], dvdw_means[1])
     print('int dvdw_means', dvdw_int)
-
-    # appearing ele should have lambda values from 0 to 1,
-    assert all([x < y for x, y in zip(aele_means[0], aele_means[0][1:])])
-    aele_means.sort()
-    aele_int = np.trapz(aele_means[1], x=aele_means[0])
+    aele_int = get_int(aele_means[0], aele_means[1])
     print('int aele_means', aele_int)
-
-    # disappearing ele should have lambda values from 1 to 0,
-    assert all([x > y for x, y in zip(dele_means[0], dele_means[0][1:])])
-    dele_means.sort()
-    dele_int = np.trapz(dele_means[1], x=dele_means[0])
+    dele_int = get_int(dele_means[0], dele_means[1])
     print('int dele_means', dele_int)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
