@@ -13,6 +13,7 @@ import pandas as pd
 from itertools import accumulate
 from pymbar import timeseries
 from collections import OrderedDict
+from scipy.interpolate import interp1d
 
 
 def extract_energies(location):
@@ -141,9 +142,12 @@ def analyse(data, location, choderas_cut=False):
     plt.legend()
     # plt.show()
     plt.savefig(location + '.png')
+    plt.cla()
 
     # integrate over the means from each replica
     print(location)
+    # from 13 lambdas to 50 interpolation
+    newx_interp = np.linspace(0, 1, num=50)
     # appearing vdw should have lambda values from 0 to 1,
     assert all([x < y for x, y in zip(avdw_means[0], avdw_means[0][1:])])
     avdw_means.sort()
@@ -153,7 +157,11 @@ def analyse(data, location, choderas_cut=False):
     # disappearing vdw should have lambda values from 1 to 0,
     assert all([x > y for x, y in zip(dvdw_means[0], dvdw_means[0][1:])])
     dvdw_means.sort()
+    i = np.interp(newx_interp, xp=dvdw_means[0], fp=dvdw_means[1])
     dvdw_int = np.trapz(dvdw_means[1], x=dvdw_means[0])
+    plt.plot(dvdw_means[0], dvdw_means[1], label='dvdw before')
+    plt.plot(newx_interp, i, label='after')
+    plt.legend()
     print('int dvdw_means', dvdw_int)
 
     # appearing ele should have lambda values from 0 to 1,
