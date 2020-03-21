@@ -116,22 +116,22 @@ def get_replicas_stats(dataset, choderas_cut=False):
     return meta
 
 
-def get_int(xs, ys, interp=False):
+def get_int(xs, ys, interp=True):
+    assert np.all(np.diff(xs) > 0)
+
     if interp:
         xnew = np.linspace(0, 1, num=50)
         # cubic_interp = interpolate.interp1d(dvdw_means[0], dvdw_means[1], kind='cubic')
         tck = interpolate.splrep(xs, ys, s=0)
         ynew = interpolate.splev(xnew, tck, der=False)
 
-        # new_values = cubic_interp(newx)
         plt.plot(xs, ys, label='original')
-        # plt.plot(newx, new_values, label='cubic interpolation')
-        plt.plot(xnew, ynew, label='spline der0')
-        plt.legend()
-        plt.show()
+        # plt.plot(xnew, ynew, label='spline der0')
+        # plt.legend()
+        # plt.show()
+        return np.trapz(ynew, x=xnew)
 
     # the xs (or lambdas) should be in a growing order
-    assert np.all(np.diff(xs) > 0)
     return np.trapz(ys, x=xs)
 
 
@@ -176,23 +176,33 @@ def analyse(data, location, choderas_cut=False):
     print(location)
 
     avdw_int = get_int(avdw_means[0], avdw_means[1])
-    print('int avdw', avdw_int)
     dvdw_int = get_int(dvdw_means[0], dvdw_means[1])
-    print('int dvdw_means', dvdw_int)
     aele_int = get_int(aele_means[0], aele_means[1])
-    print('int aele_means', aele_int)
     dele_int = get_int(dele_means[0], dele_means[1])
-    print('int dele_means', dele_int)
+
+    out = f"""
+------------------------------------------------------------------------
+                  Elec            vdW         Subtotal
+------------------------------------------------------------------------
+Part 1(app)     {aele_int:7.4f}  |  {avdw_int:7.4f}  | {aele_int + avdw_int:7.4f}     
+Part 2(disapp)  {dele_int:7.4f}  |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4f}
+------------------------------------------------------------------------
+Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  |  {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
+------------------------------------------------------------------------
+    """
+    print(out)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
-    return aele_int + avdw_int - dvdw_int - dele_int
+    return aele_int, avdw_int, dvdw_int, dele_int
 
 choderas_cut = False
 complex_all = extract_energies('complex')
-complex_delta = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 lig_all = extract_energies('lig')
-lig_delta = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
+laele_int, lavdw_int, ldvdw_int, ldele_int = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
+lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
 
-print("Delta ligand", lig_delta)
-print("Delta complex", complex_delta)
+# print("Delta ligand", lig_delta)
+# print("Delta complex", complex_delta)
 print("Delta Delta: ", complex_delta - lig_delta)
