@@ -30,6 +30,8 @@ def extract_energies(location):
     data = {'avdw': OrderedDict(), 'dvdw': OrderedDict(), 'aele': OrderedDict(), 'dele': OrderedDict()}
 
     for lambda_dir in lambda_dirs:
+        fresh_lambda = True
+        ignore_dele_lambda = False
         for rep in lambda_dir.glob('rep[0-9]*'):
             if not rep.is_dir():
                 continue
@@ -54,27 +56,39 @@ def extract_energies(location):
                 # PARTITION 2 SCALING: BOND 1 VDW 0.7 ELEC 0.454545
                 assert partition1.startswith('#PARTITION 1')
                 assert partition2.startswith('#PARTITION 2')
-                app_vdw_x = float(partition1.split('VDW')[1].split('ELEC')[0])
-                assert app_vdw_x == float(str(lambda_dir).split('_')[1])
-                dis_vdw_x = float(partition2.split('VDW')[1].split('ELEC')[0])
-                assert np.isclose(app_vdw_x, 1 - dis_vdw_x)
-                app_ele_x = float(partition1.split('ELEC')[1])
-                dis_ele_x = float(partition2.split('ELEC')[1])
+                app_vdw_lambda = float(partition1.split('VDW')[1].split('ELEC')[0])
+                assert app_vdw_lambda == float(str(lambda_dir).split('_')[1])
+                dis_vdw_lambda = float(partition2.split('VDW')[1].split('ELEC')[0])
+                assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
+                app_ele_lambda = float(partition1.split('ELEC')[1])
+                dis_ele_lambda = float(partition2.split('ELEC')[1])
 
-                if app_vdw_x not in data['avdw']:
-                    data['avdw'][app_vdw_x] = []
-                if dis_vdw_x not in data['dvdw']:
-                    data['dvdw'][dis_vdw_x] = []
-                if app_ele_x not in data['aele']:
-                    data['aele'][app_ele_x] = []
-                if dis_ele_x not in data['dele']:
-                    data['dele'][dis_ele_x] = []
+                if app_vdw_lambda not in data['avdw']:
+                    data['avdw'][app_vdw_lambda] = []
+                if dis_vdw_lambda not in data['dvdw']:
+                    data['dvdw'][dis_vdw_lambda] = []
+                if app_ele_lambda not in data['aele']:
+                    data['aele'][app_ele_lambda] = []
+                if dis_ele_lambda not in data['dele']:
+                    data['dele'][dis_ele_lambda] = []
+
+                if fresh_lambda:
+                    # part 1 / aele, if this lambda is 0, then discard the previous derivative, the previous lambda 0
+                    # was not the real the first lambda 0
+                    if app_ele_lambda == 0:
+                        data['aele'][app_ele_lambda] = []
 
                 # add to the right dataset
-                data['avdw'][app_vdw_x].append(energies_datapoints[:, 1])
-                data['dvdw'][dis_vdw_x].append(energies_datapoints[:, 3])
-                data['aele'][app_ele_x].append(energies_datapoints[:, 0])
-                data['dele'][dis_ele_x].append(energies_datapoints[:, 2])
+                data['avdw'][app_vdw_lambda].append(energies_datapoints[:, 1])
+                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[:, 3])
+                data['aele'][app_ele_lambda].append(energies_datapoints[:, 0])
+                # add part2/dele only the first time
+                if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
+                    ignore_dele_lambda = True
+                if not ignore_dele_lambda:
+                    data['dele'][dis_ele_lambda].append(energies_datapoints[:, 2])
+
+            fresh_lambda = False
 
     return data
 
