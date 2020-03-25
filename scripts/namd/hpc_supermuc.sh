@@ -10,7 +10,7 @@
 #SBATCH -e ./%x.%j.err
 #Initial working directory (also --chdir):
 #SBATCH -D ./
-#SBATCH --time=00:20:00
+#SBATCH --time=23:20:00
 #SBATCH --no-requeue
 
 #SBATCH --nodes=1
@@ -19,17 +19,17 @@
 #SBATCH --export=NONE
 #SBATCH --get-user-env
 #SBATCH --account=pn98ve
-#SBATCH --partition=test #, micro, general, large or fat
+#SBATCH --partition=general # test, micro, general, large or fat
 #========================================
 module load slurm_setup
 module load namd
 
 # energy minimisation
-mpirun -np $SLURM_NTASKS namd2 min.namd > min.log
+mpiexec -n $SLURM_NTASKS namd2 min.namd > min.log
 # equilibriate with different constraints
-mpirun -np $SLURM_NTASKS namd2 eq_step1.namd > eq_step1.log
-mpirun -np $SLURM_NTASKS namd2 eq_step2.namd > eq_step2.log
-mpirun -np $SLURM_NTASKS namd2 eq_step3.namd > eq_step3.log
-mpirun -np $SLURM_NTASKS namd2 eq_step4.namd > eq_step4.log
+mpiexec -n $SLURM_NTASKS namd2 eq_step1.namd > eq_step1.log
+mpiexec -n $SLURM_NTASKS namd2 eq_step2.namd > eq_step2.log
+mpiexec -n $SLURM_NTASKS namd2 eq_step3.namd > eq_step3.log
+mpiexec -n $SLURM_NTASKS namd2 eq_step4.namd > eq_step4.log
 # run the production
-mpirun -np $SLURM_NTASKS namd2 prod.namd > prod.log
+mpiexec -n $SLURM_NTASKS namd2 prod.namd > prod.log
