@@ -3,6 +3,7 @@
 # 144 Fat compute nodes each 48 cores and 768 GB memory per node
 # https://doku.lrz.de/display/PUBLIC/SuperMUC-NG
 # docs.google.com/spreadsheets/d/1jbWBUUz3w8_mbxyxJWGOP0znV1gjBBY5DqMHF_RpY7Y/edit#gid=1795899925
+# https://doku.lrz.de/display/PUBLIC/NAMD
 
 #SBATCH --job-name="namd"
 #Output and error (also --output, --error):
@@ -19,7 +20,7 @@
 #SBATCH --export=NONE
 #SBATCH --get-user-env
 #SBATCH --account=pn98ve
-#SBATCH --partition=general # test, micro, general, large or fat
+#SBATCH --partition=micro # test, micro, general, large or fat
 #========================================
 module load slurm_setup
 module load namd
