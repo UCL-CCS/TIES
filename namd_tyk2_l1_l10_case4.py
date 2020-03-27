@@ -28,7 +28,7 @@ from generator import *
 
 # fixme - turn into a function and give it the hpc submit
 hpc_submit = 'hpc_surfsara.sh'
-workplace_root = Path('/home/dresio/code/BAC2020/namd_study/tyk2_l6_l11')
+workplace_root = Path('/home/dresio/code/BAC2020/namd_study/tyk2_l1_l10')
 net_charge = 0
 reference_match = ('N1', 'N4')
 

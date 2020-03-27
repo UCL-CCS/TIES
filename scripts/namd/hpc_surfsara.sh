@@ -14,7 +14,7 @@
 ##SBATCH -t 2:00:00  # The job can take at most 2 wall-clock hours.
 ##SBATCH -t 10       # 10 minutes
 ##SBATCH -t 10:20    # 10 minutes plus 20 seconds
-#SBATCH -t 23:20:30 #  10 hours plus 20 minutes plus 30 seconds
+#SBATCH -t 15:20:30 #  10 hours plus 20 minutes plus 30 seconds
 
 module load 2019
 module load NAMD/2.13-foss-2018b-mpi
