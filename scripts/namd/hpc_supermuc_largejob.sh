@@ -12,16 +12,19 @@
 #SBATCH -e ./%x.%j.err
 #Initial working directory (also --chdir):
 #SBATCH -D ./
-#SBATCH --time=23:20:00
+#SBATCH --time=10:30:00
 #SBATCH --no-requeue
 
-#SBATCH --nodes=3
+#SBATCH --nodes=65
 #SBATCH --ntasks-per-node=48
 
 #SBATCH --export=NONE
 #SBATCH --get-user-env
 #SBATCH --account=pn98ve
-#SBATCH --partition=micro # test, micro, general, large or fat
+#SBATCH --partition=general # test, micro, general, large or fat
+
+#constraints are optional
+#--constraint="scratch&work"
 #========================================
 module load slurm_setup
 module load namd
@@ -46,7 +49,7 @@ function schedule_system() {
 }
 
 # schedule the ligands
-root_dir=lig
+root_dir=complex
 cd root_dir
     for L in lambda*/ ; do
         cd $L
