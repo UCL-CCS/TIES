@@ -12,9 +12,12 @@
 #SBATCH -e ./%x.%j.err
 #Initial working directory (also --chdir):
 #SBATCH -D ./
-#SBATCH --time=10:30:00
+#Notification and type
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=bieniekmat@gmail.com
 #SBATCH --no-requeue
 
+#SBATCH --time=10:30:00
 #SBATCH --nodes=65
 #SBATCH --ntasks-per-node=48
 
