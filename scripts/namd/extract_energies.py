@@ -3,150 +3,220 @@
 # todo - upgrade to pathlib
 """
 import os
-import sys
 import numpy as np
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from pathlib import Path
+from scipy.stats import sem
+import pandas as pd
+from itertools import accumulate
+from pymbar import timeseries
+from collections import OrderedDict
+from scipy import interpolate
 
-def get_energies(location):
-    # extract from each replica the right
-    lambdas = []
-    dis_avgs_ele = []
-    dis_ele_xs = []
-    app_avgs_ele = []
-    app_ele_xs = [0, ]
-    averages_vdw = []
 
-    # get only lambda dirs
-    lambda_dirs = filter(lambda d: d.startswith('lambda_'), os.listdir(location))
-    # sort in the right order
-    lambda_dirs = sorted(lambda_dirs, key=lambda d: d.split('_')[1])
+def extract_energies(location):
+    """
+    @location - referes to the main locations where the lambda directories reside
+    """
+
+    # take only the lambda directories
+    lambda_dirs = filter(lambda d: d.is_dir(), Path(location).glob(r'lambda_[0-1].[0-9]*'))
+    # sort lambda directories in the increasing order
+    lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split('_')[1]))
+
+    # different datasets
+    data = {'avdw': OrderedDict(), 'dvdw': OrderedDict(), 'aele': OrderedDict(), 'dele': OrderedDict()}
 
     for lambda_dir in lambda_dirs:
-        if not lambda_dir.startswith('lambda_'):
-            continue
-
-        dis_ele = None
-        app_ele = None
-
-        # fixme - they have to be in the right order,
-
-        # we have to average the results over the replicas
-        next_lambda = float(lambda_dir.split('_')[1])
-        assert 1 >= next_lambda >= 0
-        if lambdas:
-            assert next_lambda > lambdas[-1]
-        lambdas.append(next_lambda)
-
-        dis_replicas_avgs_ele = []
-        app_replicas_avgs_ele = []
-        replicas_avgs_vdw = []
-
-        reps_eles = []
-
-        # go into the replicas
-        for rep in os.listdir(os.path.join(location, lambda_dir)):
-            # for each replica, go in and schedule the simulation
-            if not rep.startswith('rep'):
+        fresh_lambda = True
+        ignore_dele_lambda = False
+        for rep in lambda_dir.glob('rep[0-9]*'):
+            if not rep.is_dir():
                 continue
 
-            prod_alch = os.path.join(location, lambda_dir, rep, 'prod.alch')
-            # 5 is AVGELECT1
-            # 7 is AVGVDW1
-            # 11 is AVGELECT2
-            # 13 is AVGVDW2
+            prod_alch = rep / 'prod.alch'
 
-            # we take the last row because these are running averages computed by NAMD
-            energies = np.loadtxt(prod_alch, comments='#', usecols=[5, 7, 11, 13])[-1]
+            # partition1 is appearing
+            # partition2 is disappearing
 
-            # load metadata
-            # NEW TI WINDOW: LAMBDA 0.3
-            # PARTITION 1 SCALING: BOND 1 VDW 0.3 ELEC 0
-            # PARTITION 2 SCALING: BOND 1 VDW 0.7 ELEC 0.454545
+            # extract the raw datapoints
+            # 4 is ELECT1
+            # 6 is VDW1
+            # 10 is ELECT2
+            # 12 is VDW2
+            energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[4, 6, 10, 12])
+
+            # load metadata from the file
             with open(prod_alch) as myfile:
                 partition1, partition2 = [myfile.readline() for x in range(4)][-2:]
+                # lines that we are parsing:
+                # PARTITION 1 SCALING: BOND 1 VDW 0.3 ELEC 0
+                # PARTITION 2 SCALING: BOND 1 VDW 0.7 ELEC 0.454545
                 assert partition1.startswith('#PARTITION 1')
                 assert partition2.startswith('#PARTITION 2')
-                app_ele_x = float(partition1.split('ELEC')[1])
-                dis_ele_x = float(partition2.split('ELEC')[1])
+                app_vdw_lambda = float(partition1.split('VDW')[1].split('ELEC')[0])
+                assert app_vdw_lambda == float(str(lambda_dir).split('_')[1])
+                dis_vdw_lambda = float(partition2.split('VDW')[1].split('ELEC')[0])
+                assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
+                app_ele_lambda = float(partition1.split('ELEC')[1])
+                dis_ele_lambda = float(partition2.split('ELEC')[1])
 
-            if app_ele_x == dis_ele_x == 0:
-                # only take the VDW terms
-                vdw_deriv = -energies[1] + energies[3]
-                app_ele = dis_ele = None
-            elif app_ele_x == 0:
-                vdw_deriv = -energies[1] + energies[3]
-                dis_ele = energies[2]
-                app_ele = None
-            elif dis_ele_x == 0:
-                vdw_deriv = -energies[1] + energies[3]
-                app_ele = -energies[0]
-                dis_ele = None
+                if app_vdw_lambda not in data['avdw']:
+                    data['avdw'][app_vdw_lambda] = []
+                if dis_vdw_lambda not in data['dvdw']:
+                    data['dvdw'][dis_vdw_lambda] = []
+                if app_ele_lambda not in data['aele']:
+                    data['aele'][app_ele_lambda] = []
+                if dis_ele_lambda not in data['dele']:
+                    data['dele'][dis_ele_lambda] = []
+
+                if fresh_lambda:
+                    # part 1 / aele, if this lambda is 0, then discard the previous derivative, the previous lambda 0
+                    # was not the real the first lambda 0
+                    if app_ele_lambda == 0:
+                        data['aele'][app_ele_lambda] = []
+
+                # add to the right dataset
+                data['avdw'][app_vdw_lambda].append(energies_datapoints[:, 1])
+                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[:, 3])
+                data['aele'][app_ele_lambda].append(energies_datapoints[:, 0])
+                # add part2/dele only the first time
+                if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
+                    ignore_dele_lambda = True
+                if not ignore_dele_lambda:
+                    data['dele'][dis_ele_lambda].append(energies_datapoints[:, 2])
+
+            fresh_lambda = False
+
+    return data
+
+
+def choder_get_eqpart(datapoints):
+    """
+    Extracts the equilibriated part
+    """
+    [t0, g, Neff_max] = timeseries.detectEquilibration(datapoints)
+    # print('Chodera: t0 is', t0)
+    return datapoints[t0:]
+
+
+def autocorr(x):
+    result = np.correlate(x, x, mode='full')
+    return result[int(result.size / 2):]
+
+
+def get_replicas_stats(dataset, choderas_cut=False):
+    meta = {
+        'merged_mean': {},
+        'merged_sem': {},
+        'merged_std': {},
+    }
+    for lambda_val, replicas in dataset.items():
+        # extract all the data points
+        merged_replicas = []
+        for rep in replicas:
+            if choderas_cut:
+                merged_replicas.extend(choder_get_eqpart(rep))
             else:
-                vdw_deriv = -energies[1] + energies[3]
-                dis_ele = energies[2]
-                app_ele = -energies[0]
+                merged_replicas.extend(rep)
 
-            # change the electrostatic terms dependant on the lambda
-            # add them row by row to get all the energies
-            # namd_averaged_deriv = -energies[0] - energies[1] + energies[2] + energies[3]
-            # get the average of the second half
-            # half2_avg = np.average(energies_over_time[int(len(energies_over_time)/2):])
-            if dis_ele is not None:
-                dis_replicas_avgs_ele.append(dis_ele)
+        # record the observables
+        meta['merged_mean'][lambda_val] = np.mean(merged_replicas)
+        meta['merged_sem'][lambda_val] = sem(merged_replicas)
+        meta['merged_std'][lambda_val] = np.std(merged_replicas)
+        # fixme - add other errors, add bootstrapping here
+    return meta
 
-            if app_ele is not None:
-                app_replicas_avgs_ele.append(app_ele)
 
-            replicas_avgs_vdw.append(vdw_deriv)
+def get_int(xs, ys, interp=True):
+    assert np.all(np.diff(xs) > 0)
 
-            ele = np.loadtxt(prod_alch, comments='#', usecols=[4])
-            reps_eles.append(ele)
-        #     plt.plot(ele)
+    if interp:
+        xnew = np.linspace(0, 1, num=50)
+        # cubic_interp = interpolate.interp1d(dvdw_means[0], dvdw_means[1], kind='cubic')
+        tck = interpolate.splrep(xs, ys, s=0)
+        ynew = interpolate.splev(xnew, tck, der=False)
+
+        plt.plot(xs, ys, label='original')
+        # plt.plot(xnew, ynew, label='spline der0')
+        # plt.legend()
         # plt.show()
-        # break
+        return np.trapz(ynew, x=xnew)
 
-        # use the average from the replicas
-        averages_vdw.append(np.average(replicas_avgs_vdw))
-        if dis_ele is not None:
-            dis_avgs_ele.append(np.average(dis_replicas_avgs_ele))
-            dis_ele_xs.append(dis_ele_x)
+    # the xs (or lambdas) should be in a growing order
+    return np.trapz(ys, x=xs)
 
-        if app_ele is not None:
-            app_avgs_ele.append(np.average(app_replicas_avgs_ele))
-            app_ele_xs.append(app_ele_x)
 
-        # plt.plot(replicas_avgs)
-        # plt.show()
-        # break
 
-    dis_ele_xs.append(0)
-    dis_ele_xs.reverse()
-    dis_avgs_ele.append(dis_avgs_ele[-1])
+def analyse(data, location, choderas_cut=False):
+    """
+    Process the timeseries from each replica
+    """
 
-    app_avgs_ele.insert(0, app_avgs_ele[0])
+    print('Choderas cut turned on:', choderas_cut)
 
-    print('dis ele xs', dis_ele_xs)
-    print('app ele xs', app_ele_xs)
-    print('lambdas are', lambdas)
+    # apply to each dataset
+    stats = {}
+    for interaction_type, dataset in data.items():
+        stats[interaction_type] = get_replicas_stats(dataset, choderas_cut=choderas_cut)
 
-    # integrate
-    int_vdw = np.trapz(averages_vdw, x=lambdas)
-    # trapz_res = np.trapz(averages_vdw, x=[0.45])averages_vdw
-    print("vdw integral", int_vdw)
-    plt.plot(lambdas, averages_vdw, label='vdw')
-    plt.plot(dis_ele_xs, dis_avgs_ele, label='dis ele')
-    plt.plot(app_ele_xs, app_avgs_ele, label='app ele')
+    # plot the average of the entire datasets now
+    # sort all lambdas from 0 to 1
+    plt.figure()
+    avdw_before_sort = list(stats['avdw']['merged_mean'].items())
+    avdw_means = np.array(sorted(avdw_before_sort, key=lambda x: x[0])).T
+    plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
 
-    int_dis_ele = np.trapz(dis_avgs_ele, x=dis_ele_xs)
-    int_app_ele = np.trapz(app_avgs_ele, x=app_ele_xs)
-    print("ele dis integral", int_dis_ele)
-    print("ele app integral", int_app_ele)
-    # plt.plot(lambdas, averages_ele, label='ele')
-    print('Altogether:', int_dis_ele + int_app_ele + int_vdw)
+    dvdw_before_sort = list(stats['dvdw']['merged_mean'].items())
+    dvdw_means = np.array(sorted(dvdw_before_sort, key=lambda x: x[0])).T
+    plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
+
+    aele_before_sort = list(stats['aele']['merged_mean'].items())
+    aele_means = np.array(sorted(aele_before_sort, key=lambda x: x[0])).T
+    plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
+
+    dele_before_sort = list(stats['dele']['merged_mean'].items())
+    dele_means = np.array(sorted(dele_before_sort, key=lambda x: x[0])).T
+    plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
+    plt.title(location)
     plt.legend()
-    plt.show()
-    return int_dis_ele + int_app_ele + int_vdw
+    # plt.show()
+    plt.savefig(location + '.png')
+    plt.cla()
 
-complex_energies = get_energies('complex')
-lig_energies = get_energies('lig')
-print('Final', complex_energies - lig_energies)
+    # integrate over the means from each replica
+    print(location)
+
+    avdw_int = get_int(avdw_means[0], avdw_means[1])
+    dvdw_int = get_int(dvdw_means[0], dvdw_means[1])
+    aele_int = get_int(aele_means[0], aele_means[1])
+    dele_int = get_int(dele_means[0], dele_means[1])
+
+    out = f"""
+------------------------------------------------------------------------
+                  Elec            vdW         Subtotal
+------------------------------------------------------------------------
+Part 1(app)     {aele_int:7.4f}  |  {avdw_int:7.4f}  | {aele_int + avdw_int:7.4f}     
+Part 2(disapp)  {dele_int:7.4f}  |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4f}
+------------------------------------------------------------------------
+Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  |  {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
+------------------------------------------------------------------------
+    """
+    print(out)
+
+    # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
+    return aele_int, avdw_int, dvdw_int, dele_int
+
+choderas_cut = False
+complex_all = extract_energies('complex')
+caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
+lig_all = extract_energies('lig')
+laele_int, lavdw_int, ldvdw_int, ldele_int = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
+lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
+
+# print("Delta ligand", lig_delta)
+# print("Delta complex", complex_delta)
+print("Delta Delta: ", complex_delta - lig_delta)
