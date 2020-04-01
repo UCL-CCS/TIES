@@ -26,8 +26,11 @@ def extract_energies(location):
     # sort lambda directories in the increasing order
     lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split('_')[1]))
 
-    # different datasets
-    data = {'avdw': OrderedDict(), 'dvdw': OrderedDict(), 'aele': OrderedDict(), 'dele': OrderedDict()}
+    # different datasets, add bonded information for the future. It is not used now.
+    data = {
+        'dvdw': OrderedDict(), 'dele': OrderedDict(), 'dbon': OrderedDict(),
+        'avdw': OrderedDict(), 'aele': OrderedDict(), 'abon': OrderedDict()
+    }
 
     for lambda_dir in lambda_dirs:
         fresh_lambda = True
