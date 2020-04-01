@@ -45,11 +45,13 @@ def extract_energies(location):
             # partition2 is disappearing
 
             # extract the raw datapoints
+            # 2 is BOND1
             # 4 is ELECT1
             # 6 is VDW1
+            # 8 is BOND2
             # 10 is ELECT2
             # 12 is VDW2
-            energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[4, 6, 10, 12])
+            energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[2, 4, 6, 8, 10, 12])
 
             # load metadata from the file
             with open(prod_alch) as myfile:
@@ -82,14 +84,14 @@ def extract_energies(location):
                         data['aele'][app_ele_lambda] = []
 
                 # add to the right dataset
-                data['avdw'][app_vdw_lambda].append(energies_datapoints[:, 1])
-                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[:, 3])
-                data['aele'][app_ele_lambda].append(energies_datapoints[:, 0])
+                data['avdw'][app_vdw_lambda].append(energies_datapoints[:, 2])
+                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[:, 5])
+                data['aele'][app_ele_lambda].append(energies_datapoints[:, 1])
                 # add part2/dele only the first time
                 if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
                     ignore_dele_lambda = True
                 if not ignore_dele_lambda:
-                    data['dele'][dis_ele_lambda].append(energies_datapoints[:, 2])
+                    data['dele'][dis_ele_lambda].append(energies_datapoints[:, 4])
 
             fresh_lambda = False
 
