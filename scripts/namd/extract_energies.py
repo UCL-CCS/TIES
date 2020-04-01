@@ -37,6 +37,9 @@ def extract_energies(location):
                 continue
 
             prod_alch = rep / 'prod.alch'
+            if not prod_alch.is_file():
+                print("A missing file: ", prod_alch)
+                continue
 
             # partition1 is appearing
             # partition2 is disappearing
