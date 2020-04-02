@@ -325,7 +325,6 @@ def join_frcmod_files(f1, f2, output_filepath):
                     FOUT.write(os.linesep)
                 # the ending line
                 FOUT.write(os.linesep)
-                print('hi')
 
     left_frc = load_frcmod(f1)
     right_frc = load_frcmod(f2)

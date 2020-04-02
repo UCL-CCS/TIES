@@ -25,6 +25,7 @@ import sys
 import subprocess
 from pathlib import Path, PurePosixPath
 from generator import *
+import topology_superimposer
 
 # fixme - turn into a function and give it the hpc submit
 hpc_submit = 'hpc_surfsara.sh'
@@ -33,6 +34,8 @@ net_charge = 0
 reference_match = ('N1', 'N4')
 # rather than using the empirical antechamber -c bcc, copy agastya's values
 use_agastyas_charges = True
+# .ac files location with chares if the above is used:
+ac_file_location = "agastya_dataset/tyk2/l1-l10"
 
 # todo - check if there is left.pdb and right.pdb
 if not (workplace_root / 'left.pdb').is_file():
@@ -47,17 +50,22 @@ script_dir = PurePosixPath('/home/dresio/code/BAC2020/scripts')
 namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
 
-if not use_agastyas_charges:
-    prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
-                                workplace_root / antechamber_sqm_script_name, net_charge=net_charge)
-    # execute the script (the script has to source amber.sh)
-    # do not do this if there is a .frcmod files
-    if not (workplace_root / 'left.frcmod').is_file():
-        # fixme - add checks for other files
-        output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, 'left', 'right'])
-        # todo - CHECK IF THE RESULTS ARE CORRECT
-else:
+prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
+                            workplace_root / antechamber_sqm_script_name, net_charge=net_charge)
+# execute the script (the script has to source amber.sh)
+# do not do this if there is a .frcmod files
+if not (workplace_root / 'left.frcmod').is_file():
+    # fixme - add checks for other files
+    output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, 'left', 'right'])
+    # todo - CHECK IF THE RESULTS ARE CORRECT
+
+if use_agastyas_charges:
     # fixme - copy agastya's charge values
+    # take the .mol2 file and correct the charges to reflect Agastya's
+    left_ac = topology_superimposer.get_atoms_bonds_from_ac(Path(ac_file_location) / 'left.ac')
+    right_ac = topology_superimposer.get_atoms_bonds_from_ac(Path(ac_file_location) / 'right.ac')
+    #
+    print('hi')
     pass
 
 # load the files (.mol2) and superimpose the two topologies
@@ -250,4 +258,5 @@ shutil.copy(script_dir / "check_namd_outputs.py", complex_workplace)
 # use the preprepared pdb complex with the ligand
 # solvate the preprepared pdb complex with the ligand
 # generate all the merged files
+
 

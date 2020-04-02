@@ -607,7 +607,7 @@ class SuperimposedTopology:
         """
         # check if one topology is a subgraph of another topology
         if len(self.matched_pairs) == len(self.top1) or len(self.matched_pairs) == len(self.top2):
-            print("This graph is a equivalent to the topology")
+            log("This graph is a equivalent to the topology")
             return True
 
         return False
@@ -803,7 +803,7 @@ class SuperimposedTopology:
             # across all the possible choices, found the best match now:
             blacklisted_bxs.append(closest_bx)
             shortest_dsts.append(closest_dst)
-            print(closest_a1.atomName, 'is matching best with', closest_bx.atomName)
+            log(closest_a1.atomName, 'is matching best with', closest_bx.atomName)
 
             # remove the old tuple and insert the new one
             self.add_node_pair((closest_a1, closest_bx))
@@ -1272,7 +1272,7 @@ class SuperimposedTopology:
 
 
 # todo - move to logging rather than this
-verbose_log = True
+verbose_log = False
 def log(*args):
     if verbose_log:
         print(*args)
@@ -1344,7 +1344,7 @@ def solve_one_combination(one_atom_spieces):
             for name in keys.keys():
                 unique_atoms.add(name)
         if len(unique_atoms) == 1:
-            print('Many (left) to one (right)')
+            log('Many (left) to one (right)')
             # just pick the best match fro the right ligand
             candidates = [list(v.values())[0] for v in atoms.values()]
             largest_candidates = get_largest(candidates)
@@ -1591,7 +1591,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
         all_solutions.append(solve_one_combination(atom_type))
 
     assert len(all_solutions) > 1
-    print('combons done')
+    log('combons done')
 
     # for n1bonded_node, btype1 in n1.bonds:
     #     for n2bonded_node, btype2 in n2.bonds:
@@ -1650,7 +1650,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             if sol1.is_consistent_with(sol2):
                 # print("merging, current pair", (n1, n2))
                 # join sol2 and sol1 because they're consistent
-                print("Will merge", sol1, 'and', sol2)
+                log("Will merge", sol1, 'and', sol2)
                 newly_added_pairs = sol1.merge(sol2)
 
                 # remove sol2 from the solutions:
@@ -2043,7 +2043,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
                 all_hydrogens = False
                 break
         if all_hydrogens:
-            print("Removing sup top because only hydrogens found", suptop.matched_pairs)
+            log("Removing sup top because only hydrogens found", suptop.matched_pairs)
             suptops.remove(suptop)
 
     # TEST: check that each node was used only once
@@ -2064,7 +2064,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
-    print("Found altogether overlays", len(suptops))
+    log("Found altogether overlays", len(suptops))
 
     # fixme - return other info
     return suptops
@@ -2103,7 +2103,7 @@ def resolve_sup_top_multiple_match(sup_tops):
                         break
                 if not added_to_previous:
                     same_left_sup_tops.append([sup_top1, sup_top2])
-                print('found same left', sup_top1.matched_pairs, 'with', sup_top1.matched_pairs)
+                log('found same left', sup_top1.matched_pairs, 'with', sup_top1.matched_pairs)
 
             if sup_top1.has_right_nodes_same_as(sup_top2):
                 added_to_previous = False
@@ -2118,7 +2118,7 @@ def resolve_sup_top_multiple_match(sup_tops):
                         break
                 if not added_to_previous:
                     same_right_sup_tops.append([sup_top1, sup_top2])
-                print('found same right', sup_top1.matched_pairs)
+                log('found same right', sup_top1.matched_pairs)
 
     # first, attempt to see if you can resolve the conflict by going back to the sup_top without charges,
     for same_left_sup_top_list in same_left_sup_tops:
@@ -2176,14 +2176,14 @@ def resolve_sup_top_multiple_match(sup_tops):
 
         # choose the best scoring match based on the previous work
         winner_index = multiple_match_that_have_superset.index(max(multiple_match_that_have_superset))
-        print("multiple match winner is", same_left_sup_top_list[winner_index].matched_pairs)
+        log("multiple match winner is", same_left_sup_top_list[winner_index].matched_pairs)
 
         # remove the losers
         for index, worse_match in enumerate(same_left_sup_top_list):
             if index == winner_index:
                 pass
             else:
-                print("Removing a worse match", worse_match.matched_pairs)
+                log("Removing a worse match", worse_match.matched_pairs)
                 sup_tops.remove(worse_match)
 
         # remove the deleted not chosen topologies but keep track of them and return them as well,
@@ -2253,7 +2253,7 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
                             # there might be at any time any two nodes that are similar enough (eq), which means
                             # this is not a universal approach in itself, however, do we gain anything more
                             # knowing that one of the nodes is a part of another component? fixme
-                            print("found assymetry", node1.atomName, node2.atomName,
+                            log("found assymetry", node1.atomName, node2.atomName,
                                   "due to", bond1.atomName, bond2.atomName)
             pass
         pass
@@ -2398,5 +2398,5 @@ def assign_coords_from_pdb(atoms, pdb_atoms):
                 found_match = True
                 break
         if not found_match:
-            print("Did not find atom?", atom.atomName)
+            log("Did not find atom?", atom.atomName)
             raise Exception("wait a minute")
