@@ -335,7 +335,7 @@ class SuperimposedTopology:
         bonds = set()
         for from_pair, bonded_pair_list in self.matched_pairs_bonds.items():
             from_pair_id = self.get_generated_atom_ID(from_pair)
-            # there should ot be an atom pair that is bound to nothing
+            # there should not be an atom pair that is bound to nothing
             assert len(bonded_pair_list) > 0
             for bonded_pair, bond_type in bonded_pair_list:
                 assert bond_type[0] == bond_type[1]
