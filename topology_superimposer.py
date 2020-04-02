@@ -154,12 +154,12 @@ from io import StringIO
 
 class AtomNode:
     counter = 1
-    def __init__(self, name, type):
+    def __init__(self, name, type, charge=None):
         self.atomId = None
         self.atomName = name.upper()
         self.resname = None
         self.resId = None
-        self.charge = None
+        self.charge = charge
         self.type = type.upper()
         self.bonds = set()
 
