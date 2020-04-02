@@ -195,23 +195,20 @@ def analyse(data, location, choderas_cut=False):
     plt.cla()
 
     # integrate over the means from each replica
-    print(location)
-
     avdw_int = get_int(avdw_means[0], avdw_means[1])
     dvdw_int = get_int(dvdw_means[0], dvdw_means[1])
     aele_int = get_int(aele_means[0], aele_means[1])
     dele_int = get_int(dele_means[0], dele_means[1])
 
     out = f"""
-------------------------------------------------------------------------
+-------------------------{location:^10s}----------------------
                   Elec            vdW         Subtotal
-------------------------------------------------------------------------
+---------------------------------------------------------
 Part 1(app)     {aele_int:7.4f}  |  {avdw_int:7.4f}  | {aele_int + avdw_int:7.4f}     
 Part 2(disapp)  {dele_int:7.4f}  |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4f}
-------------------------------------------------------------------------
+---------------------------------------------------------
 Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  |  {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
-------------------------------------------------------------------------
-    """
+---------------------------------------------------------"""
     print(out)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.

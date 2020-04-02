@@ -390,6 +390,18 @@ def get_PBC_coords(pdb_file):
     z = np.abs(max(u.atoms.positions[:, 2]) - min(u.atoms.positions[:, 2]))
     return (x, y, z)
 
+
+def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
+    """
+    Prepare the ambertools scripts.
+    Particularly, create the scritp so that it has the net charge
+    # fixme - run antechamber directly with the right settings from here?
+    # fixme - check if antechamber has a python interface?
+    """
+    net_charge_set = open(source_script).read().format(net_charge=net_charge)
+    open(target_script, 'w').write(net_charge_set)
+
+
 def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
     """
     fixme - rename this file since it generates the .eq files
