@@ -335,9 +335,6 @@ class SuperimposedTopology:
         bonds = set()
         for from_pair, bonded_pair_list in self.matched_pairs_bonds.items():
             from_pair_id = self.get_generated_atom_ID(from_pair)
-            # there should not be an atom pair that is bound to nothing
-            if len(bonded_pair_list) == 0:
-                raise Exception('There is a disconnected pair found in one supotp. This is not allowed: ', from_pair)
             for bonded_pair, bond_type in bonded_pair_list:
                 assert bond_type[0] == bond_type[1]
                 # every bonded pair has to be in the topology
