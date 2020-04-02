@@ -162,8 +162,8 @@ def analyse(data, location, choderas_cut=False):
     """
     Process the timeseries from each replica
     """
-
-    print('Choderas cut turned on:', choderas_cut)
+    if choderas_cut:
+        print('Choderas cut turned on')
 
     # apply to each dataset
     stats = {}
@@ -200,14 +200,13 @@ def analyse(data, location, choderas_cut=False):
     aele_int = get_int(aele_means[0], aele_means[1])
     dele_int = get_int(dele_means[0], dele_means[1])
 
-    out = f"""
--------------------------{location:^10s}----------------------
-                  Elec            vdW         Subtotal
+    out = f"""-------------------------{location:^10s}----------------------
+                  Elec         vdW       Subtotal
 ---------------------------------------------------------
 Part 1(app)     {aele_int:7.4f}  |  {avdw_int:7.4f}  | {aele_int + avdw_int:7.4f}     
-Part 2(disapp)  {dele_int:7.4f}  |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4f}
+Part 2(disapp)  {dele_int:7.4f}   |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4f}
 ---------------------------------------------------------
-Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  |  {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
+Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
 ---------------------------------------------------------"""
     print(out)
 
@@ -215,12 +214,12 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  |  {a
     return aele_int, avdw_int, dvdw_int, dele_int
 
 choderas_cut = False
-complex_all = extract_energies('complex')
-caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
-complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 lig_all = extract_energies('lig')
 laele_int, lavdw_int, ldvdw_int, ldele_int = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
 lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
+complex_all = extract_energies('complex')
+caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # print("Delta ligand", lig_delta)
 # print("Delta complex", complex_delta)
