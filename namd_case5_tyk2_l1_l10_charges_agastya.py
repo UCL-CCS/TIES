@@ -26,16 +26,20 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from generator import *
 import topology_superimposer
+import time
 
 # fixme - turn into a function and give it the hpc submit
 hpc_submit = 'hpc_surfsara.sh'
 workplace_root = Path('/home/dresio/code/BAC2020/namd_study/tyk2_l1_l10_charges_matched')
 net_charge = 0
 reference_match = ('N1', 'N4')
+force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')]
+force_mismatch_list = None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
 use_agastyas_charges = True
 # .ac files location with chares if the above is used:
 ac_file_location = "agastya_dataset/tyk2/l1-l10"
+
 
 # todo - check if there is left.pdb and right.pdb
 if not (workplace_root / 'left.pdb').is_file():
@@ -46,35 +50,45 @@ elif not (workplace_root / 'left.pdb').is_file():
     sys.exit(1)
 # copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
 antechamber_sqm_script_name = 'assign_charge_parameters.sh'
+assign_charges_antechamber_script_filename = 'assign_charge_parameters_antechamber.sh'
+assign_charges_parmchk2_script_filename = 'assign_charge_parameters_parmchk2.sh'
 script_dir = PurePosixPath('/home/dresio/code/BAC2020/scripts')
 namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
 
-prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
+if not use_agastyas_charges:
+    prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
                             workplace_root / antechamber_sqm_script_name, net_charge=net_charge)
-# execute the script (the script has to source amber.sh)
-# do not do this if there is a .frcmod files
-if not (workplace_root / 'left.frcmod').is_file():
-    # fixme - add checks for other files
-    output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, 'left', 'right'])
-    # todo - CHECK IF THE RESULTS ARE CORRECT
+    # execute the script (the script has to source amber.sh)
+    # do not do this if there is a .frcmod files
+    if not (workplace_root / 'left.frcmod').is_file():
+        # fixme - add checks for other files
+        output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, 'left', 'right'])
+        # todo - CHECK IF THE RESULTS ARE CORRECT
+elif use_agastyas_charges:
+    prepare_antechamber_parmchk2(ambertools_script_dir/assign_charges_antechamber_script_filename,
+                                 workplace_root/assign_charges_antechamber_script_filename, net_charge=net_charge)
 
-if use_agastyas_charges:
-    # fixme - copy agastya's charge values
+    # create the .mol2 files
+    if not (workplace_root / 'left.frcmod').is_file():
+        output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script_filename, 'left', 'right'])
+
     # take the .mol2 file and correct the charges to reflect Agastya's
-    left_ac = topology_superimposer.get_atoms_bonds_from_ac(Path(ac_file_location) / 'left.ac')
-    right_ac = topology_superimposer.get_atoms_bonds_from_ac(Path(ac_file_location) / 'right.ac')
-    #
-    print('hi')
-    pass
+    set_charges_from_ac(workplace_root / 'left.mol2', Path(ac_file_location) / 'left.ac')
+    set_charges_from_ac(workplace_root / 'right.mol2', Path(ac_file_location) / 'right.ac')
+
+    # copy and execute parmchk2 to generate the .frcmod
+    shutil.copy(ambertools_script_dir/assign_charges_parmchk2_script_filename, workplace_root)
+    subprocess.check_output(['sh', workplace_root/assign_charges_parmchk2_script_filename, 'left', 'right'])
+
 
 # load the files (.mol2) and superimpose the two topologies
 # fixme - superimpose the molecules or stop relaying on RMSD info
 # fixme - call any of the tools you have (antechamber, parmchk2)
 suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2',
                                    workplace_root / 'right.mol2',
-                                   reference_match=reference_match)
-# verify the suptop
+                                   reference_match=reference_match,
+                                   force_mismatch=force_mismatch_list)
 
 # save the results of the topology superimposition as a json
 top_sup_joint_meta = workplace_root / 'joint_meta_fep.json'
@@ -83,6 +97,11 @@ write_dual_top_pdb(workplace_root / 'left_right.pdb', mda_l1, mda_l2, suptop)
 # save the merged topologies as a .mol2 file
 top_merged_filename = workplace_root / 'morph.mol2'
 write_merged(suptop, top_merged_filename)
+
+# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
+morph_solv = workplace_root / "morph_solv.pdb"
+morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
+correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
 
 # check if the .frcmod were generated
 left_frcmod = workplace_root / 'left.frcmod'
@@ -95,16 +114,21 @@ elif not right_frcmod.is_file():
 # generate the joint .frcmod file
 merged_frc_filename = workplace_root / 'morph.frcmod'
 join_frcmod_files(left_frcmod, right_frcmod, merged_frc_filename)
+# fixme
+updated_frcmod = check_hybrid_frcmod(top_merged_filename, merged_frc_filename, '/home/dresio/software/amber18install/bin/tleap', 'gaff')
+with open(merged_frc_filename, 'w') as FOUT:
+    FOUT.write(updated_frcmod)
 
 # copy the solvate script for tleap
 shutil.copy(ambertools_script_dir / "run_tleap.sh", workplace_root)
 shutil.copy(ambertools_script_dir / "leap.in", workplace_root)
 # solvate using AmberTools, copy leap.in and use tleap
 output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
-# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
-morph_solv = workplace_root / "morph_solv.pdb"
-morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
-correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
+assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
+# make a copy of the tleap generated topology file with a more useful extension
+if (workplace_root / "morph_solv.prmtop").is_file():
+    (workplace_root / "morph_solv.prmtop").unlink() # remove the file
+shutil.copy(workplace_root / "morph_solv.top", workplace_root / "morph_solv.prmtop")
 
 # take care of the ligand-ligand without the protein
 liglig_workplace = workplace_root / 'lig'

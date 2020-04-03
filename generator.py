@@ -1,14 +1,18 @@
-
+import tempfile
 from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
+import sys
 import json
 import numpy as np
 from collections import OrderedDict
 import copy
 import MDAnalysis as mda
+import topology_superimposer
+import shutil
+import subprocess
 
 
-def getSuptop(mol1, mol2, reference_match=None):
+def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None):
     # use mdanalysis to load the files
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2)
@@ -37,7 +41,7 @@ def getSuptop(mol1, mol2, reference_match=None):
         starting_node_pairs = [(startLeft, startRight)]
 
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                     starting_node_pairs=starting_node_pairs)
+                                     starting_node_pairs=starting_node_pairs, force_mismatch=force_mismatch)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
@@ -47,10 +51,10 @@ def save_superimposition_results(filepath, suptop):
     with open(filepath, 'w') as FOUT:
         # use json format, only use atomNames
         data = {
-                'matching': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
-                'appearing': list(map(str, suptop.get_appearing_atoms())),
-                'disappearing': list(map(str, suptop.get_disappearing_atoms()))
-                }
+            'matching': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
+            'appearing': list(map(str, suptop.get_appearing_atoms())),
+            'disappearing': list(map(str, suptop.get_disappearing_atoms()))
+        }
         FOUT.write(json.dumps(data, indent=4))
 
 
@@ -133,7 +137,7 @@ def write_merged(suptop, merged_filename):
         # we are going to assign IDs in the superimposed topology in order to track which atoms have IDs
         # and which don't
 
-        subst_id = 1    # resid basically
+        subst_id = 1  # resid basically
         # write all the atoms that were matched first with their IDs
         # prepare all the atoms, note that we use primarily the left ligand naming
         all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
@@ -315,6 +319,7 @@ def join_frcmod_files(f1, f2, output_filepath):
 
     def write_frcmod(frcmod, filename):
         with open(filename, 'w') as FOUT:
+            FOUT.write('GENERATED .frcmod by joining two .frcmod files' + os.linesep)
             for sname, items in frcmod.items():
                 FOUT.write(f'{sname}' + os.linesep)
                 for item in items:
@@ -364,7 +369,7 @@ def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filen
         elif atom.name in disappearing_atoms:
             atom.tempfactor = -1
 
-    u.atoms.write(new_pdb_filename ) # , file_format='PDB') - fixme?
+    u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):
@@ -399,6 +404,27 @@ def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
     """
     net_charge_set = open(source_script).read().format(net_charge=net_charge)
     open(target_script, 'w').write(net_charge_set)
+
+
+def set_charges_from_ac(mol2_filename, ac_ref_filename):
+    # ! the mol file will be overwritten
+    print('Overwriting the mol2 file with charges from the ac file')
+    # load the charges from the .ac file
+    ac_atoms, _ = topology_superimposer.get_atoms_bonds_from_ac(ac_ref_filename)
+    # load the .mol2 files with MDAnalysis and correct the charges
+    mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+
+    for mol2_atom in mol2.atoms:
+        found_match = False
+        for ac_atom in ac_atoms:
+            if mol2_atom.name == ac_atom.atomName:
+                found_match = True
+                mol2_atom.charge = ac_atom.charge
+                break
+        assert found_match, "Did not an atom in the AC that matches?" + mol2_atom
+
+    # update the mol2 file
+    mol2.atoms.write(mol2_filename)
 
 
 def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
@@ -451,7 +477,7 @@ conskcol  B
     # create the 4 constraint files
     filenames = []
     u = mda.Universe(original_pdb)
-    for i in range(1, 4+1):
+    for i in range(1, 4 + 1):
         next_constraint_filename = location / f'constraint_f{i:d}.pdb'
         create_constraint(u, next_constraint_filename, i)
         filenames.append(next_constraint_filename)
@@ -460,18 +486,136 @@ conskcol  B
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
-    min_namd_initialised = open(os.path.join(from_dir, filename)).read()\
+    min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
         .format(structure_name=structure_name,
                 cell_x=pbc_box[0], cell_y=pbc_box[1], cell_z=pbc_box[2])
     open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
 
 
 def init_namd_file_prod(from_dir, to_dir, filename, structure_name):
-    min_namd_initialised = open(os.path.join(from_dir, filename)).read()\
+    min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
         .format(structure_name=structure_name)
     prod_filename = os.path.join(to_dir, filename)
     open(prod_filename, 'w').write(min_namd_initialised)
     return prod_filename
+
+
+def check_hybrid_frcmod(mol2_file, hybrid_frcmod, tleap_path, atomff_type):
+    """
+    From Agastya: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
+    Check that the output library can be used to create a valid amber topology.
+    Add missing terms with no force to pass the topology creation.
+    Returns the corrected .frcmod content, otherwise throws an exception.
+
+    # fixme - commented out:
+    Also convert to prepc format anc heck with parmchk
+    """
+
+    tmp_dir = tempfile.mkdtemp()
+    # prepare files
+    shutil.copy(mol2_file, tmp_dir)
+    shutil.copy(hybrid_frcmod, tmp_dir)
+    copy_hybrid_frcmod = os.path.join(tmp_dir, os.path.basename(hybrid_frcmod))
+
+    test_system_build_script = '''
+source leaprc.protein.ff14SB
+source leaprc.water.tip3p
+source leaprc.gaff2
+
+frcmod = loadamberparams morph.frcmod
+# loadoff hybrid.lib
+hybrid = loadMol2 morph.mol2
+saveamberprep hybrid test.prepc
+saveamberparm hybrid test.top test.crd
+savepdb hybrid test.pdb
+quit
+'''
+
+    leap_in_filename = 'test.leapin'
+
+    with open(os.path.join(tmp_dir, leap_in_filename), 'w') as FOUT:
+        FOUT.write(test_system_build_script)
+
+    # fixme - temporary solution
+    output = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
+    # output = subprocess.check_output(
+    #     ['/home/dresio/software/amber18install/bin/tleap', '-s', '-f', leap_in_filename],
+    #     stderr=subprocess.STDOUT, cwd=tmp_dir)
+
+    missing_angles = []
+    missing_dihedrals = []
+
+    for line in output.splitlines():
+
+        if "Could not find angle parameter:" in line:
+
+            cols = line.split(':')
+            angle = cols[-1].strip()
+            if angle not in missing_angles:
+                missing_angles.append(angle)
+
+        elif "No torsion terms for" in line:
+            cols = line.split()
+            torsion = cols[-1].strip()
+            if torsion not in missing_dihedrals:
+                missing_dihedrals.append(torsion)
+
+    if missing_angles or missing_dihedrals:
+
+        print('WARNING: Adding default values for missing dihedral to frcmod')
+        #        print('WARNING: Okay unless there are atom type changes in match')
+
+        with open(copy_hybrid_frcmod) as FRC:
+            frcmod_lines = FRC.readlines()
+
+        new_frcmod = open(copy_hybrid_frcmod, 'w')
+
+        for line in frcmod_lines:
+            new_frcmod.write(line)
+
+            if 'ANGLE' in line:
+                for angle in missing_angles:
+                    new_frcmod.write(
+                        '{:<14}0     120.010   same as ca-ca-ha\n'.format(angle))
+
+            if 'DIHE' in line:
+                for angle in missing_dihedrals:
+                    new_frcmod.write(
+                        '{:<14}1    0.00       180.000           2.000      same as X -c2-ca-X\n'.format(angle))
+
+        new_frcmod.close()
+
+        # returncode = subprocess.call(['tleap', '-s', '-f', leap_in_filename])
+        returncode = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
+
+        if not "Errors = 0" in returncode:
+            print('ERROR: Test of the hybrid topology failed')
+            sys.exit(1)
+
+    # if not os.path.exists('test.top'):
+    #
+    #     print('ERROR: Unable to create test.top, running parmchk')
+    #
+    #     if atomff_type == 'gaff':
+    #         at = 1
+    #     else:
+    #         at = 2
+    #
+    #     returncode = subprocess.call(['parmchk2',
+    #                                   '-i', 'test.prepc',
+    #                                   '-f', 'prepc', '-o', 'missing.frcmod', '-s', str(at)])
+    #
+    #     if returncode:
+    #         print('ERROR: Unable to run parmchk on test.prepc')
+    #         sys.exit(1)
+
+    # if os.stat('test.top').st_size == 0:
+    #     subprocess.call(['tleap', '-s', '-f', 'test.leapin'], stderr=subprocess.STDOUT)
+
+    print('\nHybrid topology created correctly')
+    with open(copy_hybrid_frcmod) as FRC:
+        frcmod_with_null_terms = FRC.read()
+    return frcmod_with_null_terms
 
 
 def generate_namd_eq(namd_eq, dst_dir, structure_name='morph_solv'):
@@ -483,7 +627,7 @@ constraints  on
 consexp  2
 # use the same file for the position reference and the B column
 consref  constraint_f{4 - i}.pdb ;#need all positions
-conskfile  constraint_f{4- i}.pdb
+conskfile  constraint_f{4 - i}.pdb
 conskcol  B
         """
         if i == 0:

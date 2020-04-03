@@ -384,6 +384,13 @@ class SuperimposedTopology:
         # is in a pair to which the new pair refers (the same rule that is used currently)
         return bonds
 
+    def get_node(self, atom_id):
+        for node in self.nodes:
+            if node.atomName == atom_id:
+                return node
+
+        return None
+
     # fixme - id_start should be a property of the suptop
     def assign_atoms_ids(self, id_start=1):
         """
@@ -1484,7 +1491,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
             safe = False
             for b1 in n1.bonds:
                 if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
-                    if suptop.contains((b1[0],b2[0])):
+                    if suptop.contains((b1[0], b2[0])):
                         safe = True
                         break
             if not safe:
@@ -1709,7 +1716,8 @@ class Topology:
         return False
 
 
-def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, useCoords=True, starting_node_pairs=None):
+def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, useCoords=True, starting_node_pairs=None,
+                           force_mismatch=None):
     """
     This is a helper function that managed the entire process.
 
@@ -1744,6 +1752,14 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     # becomes two different atoms with different IDs
     if useCharges:
         ensure_charges_match(sup_tops, atol=atol)
+
+    # apply the force mismatch at the end
+    if force_mismatch is not None:
+        for suptop in sup_tops:
+            for an1, an2 in force_mismatch:
+                if suptop.contains_atomNamePair(an1, an2):
+                    n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
+                    suptop.remove_node_pair((n1, n2))
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1
