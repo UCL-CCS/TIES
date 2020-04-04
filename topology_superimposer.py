@@ -248,6 +248,33 @@ class AtomNode:
         return self
 
 
+class AtomPair:
+    """
+    An atom pair for networkx.
+    """
+
+    def __init__(self, left_node, right_node):
+        self.left_node = left_node
+        self.right_node = right_node
+        # generate the hash value for this match
+        self.hash_value = self._gen_hash()
+
+    def _gen_hash(self):
+        m = hashlib.md5()
+        m.update(str(hash(self.left_node)).encode('utf-8'))
+        m.update(str(hash(self.right_node)).encode('utf-8'))
+        return int(m.hexdigest(), 16)
+
+    def __hash__(self):
+        return self.hash_value
+
+    def is_pair(self, old_pair_tuple):
+        if self.left_node is old_pair_tuple[0] and self.right_node is old_pair_tuple[1]:
+            return True
+
+        return False
+
+
 class SuperimposedTopology:
     """
     SuperimposedTopology contains in the minimal case two sets of nodes S1 and S2, which
@@ -288,6 +315,8 @@ class SuperimposedTopology:
         self.removed_due_to_charge = None
         self.unique_atom_count = 0
         self.matched_pairs_bonds = {}
+
+        self.removed_disjointed_atoms = []
 
     def find_pair_with_atom(self, atomName):
         for node1, node2 in self.matched_pairs:
@@ -383,6 +412,70 @@ class SuperimposedTopology:
         # also, rather than checking if it is a circle, we could check if the new linked atom,
         # is in a pair to which the new pair refers (the same rule that is used currently)
         return bonds
+
+    def only_largest_CC_survives(self):
+        """
+        CC - Connected Component.
+
+        Removes any disjoint components. Only the largest CC will be left.
+        In the case of of equal length CCs, an arbitrary is chosen.
+
+        How:
+        Generates the graph where each pair is a single node, connecting the nodes if the bonds exist.
+        Uses then networkx to find CCs.
+        """
+        def lookup_up(pairs, tuple_pair):
+            for pair in pairs:
+                if pair.is_pair(tuple_pair):
+                    return pair
+
+            raise Exception('Did not find the AtomPair')
+
+        G = nx.Graph()
+        atom_pairs = []
+        for pair in self.matched_pairs:
+            ap = AtomPair(pair[0], pair[1])
+            atom_pairs.append(ap)
+            G.add_node(ap)
+
+        # connect the atom pairs
+        for pair_from, pair_list in self.matched_pairs_bonds.items():
+            # lookup the corresponding atom pairs
+            ap_from = lookup_up(atom_pairs, pair_from)
+            for tuple_pair, bond_type in pair_list:
+                ap_to = lookup_up(atom_pairs, tuple_pair)
+                G.add_edge(ap_from, ap_to)
+
+        # check for connected comoponents (CC)
+        remove_ccs = []
+        ccs = list(nx.connected_components(G))
+        if len(ccs) > 1:
+            # there are disjoint fragments, remove the smaller one
+            largest_cc = max([len(cc) for cc in ccs])
+
+            for cc in ccs[::-1]:
+                # remove the cc if it smaller than the largest component
+                if len(cc) < largest_cc:
+                    remove_ccs.append(cc)
+                    ccs.remove(cc)
+
+            if len(ccs) > 1:
+                # there are equally large CCs
+                print("The Connected Componnets are equally large! Picking the first one")
+                for cc in ccs[1:]:
+                    remove_ccs.append(cc)
+                    ccs.remove(cc)
+
+            assert len(ccs) == 1, "At this point there should be left only one main component"
+
+        # remove the smaller ccs
+        for cc in remove_ccs:
+            for atom_pair in cc:
+                atom_tuple = (atom_pair.left_node, atom_pair.right_node)
+                self.remove_node_pair(atom_tuple)
+                self.removed_disjointed_atoms.append(atom_tuple)
+
+        return largest_cc, remove_ccs
 
     def get_node(self, atom_id):
         for node in self.nodes:
@@ -1717,7 +1810,7 @@ class Topology:
 
 
 def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, useCoords=True, starting_node_pairs=None,
-                           force_mismatch=None):
+                           force_mismatch=None, no_disjoint_components=True):
     """
     This is a helper function that managed the entire process.
 
@@ -1737,9 +1830,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
     assert len(sameAtomNames) == 0, sameAtomNames
 
-    sup_tops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
-    # connect the sup_tops to their nodes
-    for suptop in sup_tops:
+    suptops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
+    # connect the sup_tops to their original molecules
+    for suptop in suptops:
         suptop.set_tops(top1_nodes, top2_nodes)
 
     # fixme - you might not need because we are now doing this on the way back
@@ -1751,32 +1844,50 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     # ie if charges are different, the matched pair
     # becomes two different atoms with different IDs
     if useCharges:
-        ensure_charges_match(sup_tops, atol=atol)
+        ensure_charges_match(suptops, atol=atol)
 
     # apply the force mismatch at the end
     if force_mismatch is not None:
-        for suptop in sup_tops:
+        for suptop in suptops:
             for an1, an2 in force_mismatch:
                 if suptop.contains_atomNamePair(an1, an2):
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
+    if no_disjoint_components:
+        # remove the smaller suptop, or one arbitrary if they are equivalent
+        if len(suptops) > 1:
+            max_len = max([len(suptop) for suptop in suptops])
+            for suptop in suptops[::-1]:
+                if len(suptop) < max_len:
+                    suptops.remove(suptop)
+
+            # if there are equal length suptops left, take only the first one
+            if len(suptops) > 1:
+                suptops = [suptops[0]]
+
+        # only one largest suptop is left at this stage
+        suptop = suptops[0]
+        # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
+        # Generate networks from the paired matches and check for strongly connected components
+        suptop.only_largest_CC_survives()
+
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1
-    for suptop in sup_tops:
+    for suptop in suptops:
         start_atom_id = suptop.assign_atoms_ids(start_atom_id)
         # increase the start ID by 1 so that the next sup top assigns them
         start_atom_id += 1
 
     # there might be several best solutions, order them according the RMSDs
-    sup_tops.sort(key=lambda st: st.rmsd())
+    suptops.sort(key=lambda st: st.rmsd())
 
     # fixme - remove the hydrogens without attached heavy atoms
 
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
-    return sup_tops
+    return suptops
 
 
 def calculateRmsd(atomPairs):

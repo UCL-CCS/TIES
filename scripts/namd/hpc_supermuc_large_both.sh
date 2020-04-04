@@ -17,7 +17,7 @@
 #SBATCH --mail-user=bieniekmat@gmail.com
 #SBATCH --no-requeue
 
-#SBATCH --time=10:30:00
+#SBATCH --time=20:30:00
 #SBATCH --nodes=65
 #SBATCH --ntasks-per-node=48
 

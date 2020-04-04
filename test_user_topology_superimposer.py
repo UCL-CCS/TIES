@@ -24,7 +24,7 @@ def test_unconnected_component_removed():
           /     \
      C10-C7       N1
            \   /
-             C8
+             C8 (CHARGE)
              |
              C9
 
@@ -40,7 +40,7 @@ def test_unconnected_component_removed():
           /     \
      C20-C17       N11
            \   /
-             C18
+             C18 (CHARGE)
              |
              C19
     """
@@ -127,3 +127,4 @@ def test_unconnected_component_removed():
     # we have to discriminate against this case somehow
     suptops = superimpose_topologies(top1_list, top2_list)
     assert not suptops[0].contains_atomNamePair('C8', 'C18')
+    assert not suptops[0].contains_atomNamePair('C9', 'C19')
