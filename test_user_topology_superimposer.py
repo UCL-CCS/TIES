@@ -256,3 +256,4 @@ def test_filter_net_charge_too_large():
     assert not suptops[0].contains_atomNamePair('N1', 'N11')
     # this pair should remain as the net charge difference is below 0.1
     assert suptops[0].contains_atomNamePair('C8', 'C18')
+    assert len(suptops[0]) == 9
