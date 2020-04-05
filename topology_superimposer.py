@@ -449,10 +449,9 @@ class SuperimposedTopology:
         # check for connected comoponents (CC)
         remove_ccs = []
         ccs = list(nx.connected_components(G))
+        largest_cc = max([len(cc) for cc in ccs])
         if len(ccs) > 1:
             # there are disjoint fragments, remove the smaller one
-            largest_cc = max([len(cc) for cc in ccs])
-
             for cc in ccs[::-1]:
                 # remove the cc if it smaller than the largest component
                 if len(cc) < largest_cc:
