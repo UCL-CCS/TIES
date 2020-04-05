@@ -630,6 +630,13 @@ class SuperimposedTopology:
             different = set(si_top.matched_pairs).difference(set(self.matched_pairs))
             print(different)
 
+    def get_net_charge(self):
+        """
+        Calculate the net charge difference across
+        the matched pairs.
+        """
+        return sum(n1.charge - n2.charge for n1, n2 in self.matched_pairs)
+
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2
         # remove the pair
@@ -1808,8 +1815,8 @@ class Topology:
         return False
 
 
-def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, useCoords=True, starting_node_pairs=None,
-                           force_mismatch=None, no_disjoint_components=True):
+def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, use_charges=True, use_coords=True, starting_node_pairs=None,
+                           force_mismatch=None, no_disjoint_components=True, net_charge_filter=True, net_charge_value=0.1):
     """
     This is a helper function that managed the entire process.
 
@@ -1842,7 +1849,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
     # becomes two different atoms with different IDs
-    if useCharges:
+    if use_charges:
         ensure_charges_match(suptops, atol=atol)
 
     # apply the force mismatch at the end
@@ -1852,6 +1859,10 @@ def superimpose_topologies(top1_nodes, top2_nodes, atol=0.1, useCharges=True, us
                 if suptop.contains_atomNamePair(an1, an2):
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
+
+    if net_charge_filter:
+        # check if the net charge is below the threshold
+        pass
 
     if no_disjoint_components:
         # remove the smaller suptop, or one arbitrary if they are equivalent
