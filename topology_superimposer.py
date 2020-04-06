@@ -660,7 +660,7 @@ class SuperimposedTopology:
         self.remove_node_pair(worst_match)
         # add to the list of removed because of the net charge
         self._removed_due_to_net_charge.append(worst_match)
-        return largest_difference
+        return np.abs(largest_difference)
 
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2
@@ -1885,8 +1885,25 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
+    if net_charge_filter:
+        # ensure that each found component has net charge < 0.1
+        for suptop in suptops[::-1]:
+            while np.abs(suptop.get_net_charge()) > net_charge_threshold:
+                largest_difference = suptop.remove_worst_charge_match()
+                if largest_difference == 0:
+                    raise Exception("How can there be net charge but no pair can be found that actually is different?")
+
+                # check if there are any atoms left
+                if len(suptop) == 0:
+                    # remove the suptop from the list
+                    suptops.remove(suptop)
+                    break
 
     if no_disjoint_components:
+        # ensure that each suptop represents one CC
+        # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
+        [st.only_largest_CC_survives() for st in suptops]
+
         # remove the smaller suptop, or one arbitrary if they are equivalent
         if len(suptops) > 1:
             max_len = max([len(suptop) for suptop in suptops])
@@ -1898,31 +1915,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if len(suptops) > 1:
                 suptops = [suptops[0]]
 
-        # only one largest suptop is left at this stage
-        suptop = suptops[0]
-        # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
-        # Generate networks from the paired matches and check for strongly connected components
-        suptop.only_largest_CC_survives()
-
-    if net_charge_filter:
-        # check if the net charge is below the threshold
-        net_charge_diff = sum([st.get_net_charge() for st in suptops])
-        while np.abs(net_charge_diff) > net_charge_threshold:
-            worst = max(st.get_worst_match_charge() for st in suptops)
-            # remove the match from the correct suptop
-            for st in suptops:
-                st_worst = st.get_worst_match_charge()
-                if st_worst == worst:
-                    st.remove_worst_charge_match()
-                    break
-
-            # after each removal, update the disjoint component
-            if no_disjoint_components:
-                # at this stage there should be only one suptop
-                suptop = suptops[0]
-                suptop.only_largest_CC_survives()
-
-            net_charge_diff = sum([st.get_net_charge() for st in suptops])
+        assert len(suptops) == 1
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1

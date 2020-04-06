@@ -33,8 +33,7 @@ hpc_submit = 'hpc_surfsara.sh'
 workplace_root = Path('/home/dresio/code/BAC2020/namd_study/tyk2_l1_l10_charges_matched')
 net_charge = 0
 reference_match = ('N1', 'N4')
-force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')]
-force_mismatch_list = None
+force_mismatch_list = None # [('O2', 'O4'), ('N3', 'N6')]
 # rather than using the empirical antechamber -c bcc, copy agastya's values
 use_agastyas_charges = True
 # .ac files location with chares if the above is used:
