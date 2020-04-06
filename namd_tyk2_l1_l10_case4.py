@@ -75,7 +75,7 @@ suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2',
 # save the results of the topology superimposition as a json
 top_sup_joint_meta = workplace_root / 'joint_meta_fep.json'
 save_superimposition_results(top_sup_joint_meta, suptop)
-write_dual_top_pdb(workplace_root / 'left_right.pdb', mda_l1, mda_l2, suptop)
+write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
 # save the merged topologies as a .mol2 file
 top_merged_filename = workplace_root / 'morph.mol2'
 write_merged(suptop, top_merged_filename)
