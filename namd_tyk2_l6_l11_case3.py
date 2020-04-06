@@ -46,7 +46,7 @@ def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
 if not (workplace_root / 'left.pdb').is_file():
     print('File left.pdb not found in', workplace_root)
     sys.exit(1)
-elif not (workplace_root / 'left.pdb').is_file():
+elif not (workplace_root / 'right.pdb').is_file():
     print('File right.pdb not found in', workplace_root)
     sys.exit(1)
 # copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
