@@ -1,7 +1,6 @@
 """
-# would through the lambda directories
-# and schedule each simulation
-# fixme - could check if the simulation is finished/running etc, in that case ignore
+Go to each directory and submit each replica separately
+Walks through the typical lambda_X.XX/repX structures and submits the submit.sh script
 """
 import os
 import sys
@@ -19,7 +18,6 @@ for lambda_dir in os.listdir('.'):
 
         rep_dir = os.path.join(lambda_dir, rep)
         try:
-            # fixme - add a name to each job: lambda + pro + protein name
             # each script is submitted from the correct directory
             output = subprocess.check_output(['sbatch', '--job-name=l%sr%s' % (lambda_dir.split('_')[1], rep[3:]), 'submit.sh'],
                                              cwd=rep_dir)
