@@ -644,3 +644,12 @@ conskcol  B
         open(next_eq_step_filename, 'w').write(reformatted_namd_in)
         eq_namd_filenames.append(next_eq_step_filename)
     return eq_namd_filenames
+
+
+def redistribute_charges(mda):
+    """
+    Calculate the original charges in the matched component.
+    """
+
+
+    return
