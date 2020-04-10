@@ -654,3 +654,133 @@ def test_averaging_charges_imbalance_distribution_multiple():
     np.testing.assert_almost_equal(c19.charge, 0.01)
     np.testing.assert_almost_equal(c18.charge, -0.01)
     np.testing.assert_almost_equal(cl11.charge, -0.01)
+
+
+def test_averaging_charges_imbalance_distribution_2to2():
+    """
+    Charge averaging across more atoms, and charge distribution across more atoms.
+
+    Ligand 1
+    Net Change in matched: 0.01 + -0.03 = -0.02
+    This is matched by 0.02 distributed over Cl1, X8, X9 in L, so 0.00(6) for each
+         C1 - C2 (-0.01e) after avg (0e)
+         /      \
+    Cl1-C3      C4
+          \     /
+          C5 - C6
+          /     \
+     C10-C7      N1 (+0.04e) after avg (0.01e)
+           \   /
+             X8 (0.01e)
+             |
+             X9 (-0.04e)
+
+
+    Ligand 2
+    Net Change in matched: -0.01 + 0.03 = 0.02,
+    this is matched by -0.02 distributed -0.01 on Y18, and on Y19
+         C11 - C12 (+0.01e) after averaging (0.00)
+         /      \
+        C13      C14
+          \     /
+          C15 - C16
+          /     \
+     C20-C17       N11 (-0.02e) after averaging (0.01)
+           \   /
+             Y18 (-0.01e) should be (-0.02e)
+             |
+             Y19 (+0.02e) should be (0.01e)
+    """
+    # construct LIGAND 1
+    c1 = AtomNode(name='C1', type='C', charge=0)
+    c1.set_position(x=1, y=1, z=0)
+    c2 = AtomNode(name='C2', type='C', charge=-0.01)
+    c2.set_position(x=1, y=2, z=0)
+    c1.bindTo(c2, 'bondType1')
+    c3 = AtomNode(name='C3', type='C', charge=0)
+    c3.set_position(x=2, y=2, z=0)
+    c3.bindTo(c1, 'bondType1')
+    cl1 = AtomNode(name='CL1', type='Cl', charge=0)
+    cl1.set_position(x=2, y=1, z=0)
+    cl1.bindTo(c3, 'bondType1')
+    c4 = AtomNode(name='C4', type='C', charge=0)
+    c4.set_position(x=2, y=3, z=0)
+    c4.bindTo(c2, 'bondType1')
+    c5 = AtomNode(name='C5', type='C', charge=0)
+    c5.set_position(x=3, y=1, z=0)
+    c5.bindTo(c3, 'bondType1')
+    c6 = AtomNode(name='C6', type='C', charge=0)
+    c6.set_position(x=3, y=2, z=0)
+    c6.bindTo(c5, 'bondType1')
+    c6.bindTo(c4, 'bondType1')
+    c7 = AtomNode(name='C7', type='C', charge=0)
+    c7.set_position(x=4, y=2, z=0)
+    c7.bindTo(c5, 'bondType1')
+    c10 = AtomNode(name='C10', type='C', charge=0)
+    c10.set_position(x=4, y=1, z=0)
+    c10.bindTo(c7, 'bondType1')
+    n1 = AtomNode(name='N1', type='N', charge=0.04)
+    n1.set_position(x=4, y=3, z=0)
+    n1.bindTo(c6, 'bondType1')
+    c8 = AtomNode(name='C8', type='X', charge=0.01)
+    c8.set_position(x=5, y=1, z=0)
+    c8.bindTo(c7, 'bondType1')
+    c8.bindTo(n1, 'bondType1')
+    c9 = AtomNode(name='C9', type='X', charge=-0.04)
+    c9.set_position(x=6, y=1, z=0)
+    c9.bindTo(c8, 'bondType1')
+    top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
+
+    # construct Ligand 2
+    c11 = AtomNode(name='C11', type='C', charge=0)
+    c11.set_position(x=2, y=1, z=0)
+    c12 = AtomNode(name='C12', type='C', charge=0.01)
+    c12.set_position(x=2, y=2, z=0)
+    c12.bindTo(c11, 'bondType1')
+    c13 = AtomNode(name='C13', type='C', charge=0)
+    c13.set_position(x=3, y=1, z=0)
+    c13.bindTo(c11, 'bondType1')
+    c14 = AtomNode(name='C14', type='C', charge=0)
+    c14.set_position(x=3, y=2, z=0)
+    c14.bindTo(c12, 'bondType1')
+    c15 = AtomNode(name='C15', type='C', charge=0)
+    c15.set_position(x=4, y=1, z=0)
+    c15.bindTo(c13, 'bondType1')
+    c16 = AtomNode(name='C16', type='C', charge=0)
+    c16.set_position(x=4, y=2, z=0)
+    c16.bindTo(c15, 'bondType1')
+    c16.bindTo(c14, 'bondType1')
+    c17 = AtomNode(name='C17', type='C', charge=0)
+    c17.set_position(x=5, y=2, z=0)
+    c17.bindTo(c15, 'bondType1')
+    c20 = AtomNode(name='C20', type='C', charge=0)
+    c20.set_position(x=5, y=1, z=0)
+    c20.bindTo(c17, 'bondType1')
+    n11 = AtomNode(name='N11', type='N', charge=-0.02)
+    n11.set_position(x=5, y=3, z=0)
+    n11.bindTo(c16, 'bondType1')
+    c18 = AtomNode(name='C18', type='Y', charge=-0.01)
+    c18.set_position(x=6, y=1, z=0)
+    c18.bindTo(c17, 'bondType1')
+    c18.bindTo(n11, 'bondType1')
+    c19 = AtomNode(name='C19', type='Y', charge=0.02)
+    c19.set_position(x=7, y=1, z=0)
+    c19.bindTo(c18, 'bondType1')
+    top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
+
+    suptops = superimpose_topologies(top1_list, top2_list)
+    suptop = suptops[0]
+
+    assert not suptop.contains_atomNamePair('C9', 'C19')
+    assert not suptop.contains_atomNamePair('C8', 'C18')
+    # charge averaging
+    np.testing.assert_array_almost_equal([n1.charge, n11.charge], 0.01)
+    np.testing.assert_array_almost_equal([c2.charge, c12.charge], 0)
+    # charge imbalance distributed in L
+    np.testing.assert_almost_equal(c9.charge, -0.04 - -0.02/3)
+    np.testing.assert_almost_equal(c8.charge, 0.01 - -0.02/3)
+    np.testing.assert_almost_equal(cl1.charge, 0 --0.02/3)
+
+    # charge imbalance distributed in R
+    np.testing.assert_almost_equal(c18.charge, -0.02)
+    np.testing.assert_almost_equal(c19.charge, 0.01)
