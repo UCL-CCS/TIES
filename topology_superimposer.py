@@ -1185,10 +1185,10 @@ class SuperimposedTopology:
         """
         whole_left_charge = sum(a.charge for a in atom_listL)
         whole_right_charge = sum(a.charge for a in atom_listR)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=6)
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=6)
         # same integer
-        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge)
+        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=6)
 
         return round(whole_left_charge)
 
