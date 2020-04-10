@@ -516,26 +516,18 @@ def test_averaging_charges_imbalance_distribution_single():
     np.testing.assert_almost_equal(c9.charge, -0.01)
     np.testing.assert_almost_equal(c19.charge,-0.01)
 
+
 def test_averaging_charges_imbalance_distribution_multiple():
     """
     Averages charges in the matched region.
     The mismatched region C9-C19 had charges -0.04 in L and 0.02 in R,
     which balances the matched N1-N11 with 0.04 in L, and -0.02 in R.
     After averaging N1-N11 to 0.01, L has -0.03 imbalance, and R has 0.03 imbalance.
+    This imbalance is corrected in the unmatched area.
 
-    Q: is it possible to have a charge misbalance if the unmatched regions have the same net charges? No.
-    Therefore, it is really the unmatched regions that introduce the imbalance.
+    In L, -0.03 is spread over X8 and X9 and Cl1, and
+    in R, 0.03 is spread over X18 and X19 and Cl11
 
-    In L, We could distribute -0.03 over all atoms in common area. But why we treat the mismatching atoms
-    in such a special way? Why unmatching atoms charges are more important than matched atoms?
-
-
-    So in this case, in L we have to remove the imbalance by spreading -0.03 across just one atom (unmatched area),
-    with a similar situation for R. In R, the 0.03 imbalance has to be spread over a single atom.
-
-
-    Note: if we were able to map mismatching atoms, we would know about C9-C19
-    representing the same area. Would that knowledge affect the charge distribtion?
 
     Ligand 1
 
@@ -547,7 +539,7 @@ def test_averaging_charges_imbalance_distribution_multiple():
           /     \
      C10-C7      N1 (+0.04e)
            \   /
-             C8
+             X8 (0e)
              |
              X9 (-0.04e)
 
@@ -563,7 +555,7 @@ def test_averaging_charges_imbalance_distribution_multiple():
           /     \
      C20-C17       N11 (-0.02e)
            \   /
-             C18
+             Y18 (0e)
              |
              Y19 (+0.02e)
     """
@@ -598,7 +590,7 @@ def test_averaging_charges_imbalance_distribution_multiple():
     n1 = AtomNode(name='N1', type='N', charge=0.04)
     n1.set_position(x=4, y=3, z=0)
     n1.bindTo(c6, 'bondType1')
-    c8 = AtomNode(name='C8', type='C', charge=0)
+    c8 = AtomNode(name='C8', type='X', charge=0)
     c8.set_position(x=5, y=1, z=0)
     c8.bindTo(c7, 'bondType1')
     c8.bindTo(n1, 'bondType1')
@@ -638,7 +630,7 @@ def test_averaging_charges_imbalance_distribution_multiple():
     n11 = AtomNode(name='N11', type='N', charge=-0.02)
     n11.set_position(x=5, y=3, z=0)
     n11.bindTo(c16, 'bondType1')
-    c18 = AtomNode(name='C18', type='C', charge=0)
+    c18 = AtomNode(name='C18', type='Y', charge=0)
     c18.set_position(x=6, y=1, z=0)
     c18.bindTo(c17, 'bondType1')
     c18.bindTo(n11, 'bondType1')
@@ -651,7 +643,14 @@ def test_averaging_charges_imbalance_distribution_multiple():
     suptop = suptops[0]
 
     assert not suptop.contains_atomNamePair('C9', 'C19')
-    # we are averaging the charges of the atoms in the left and right,
-    assert n1.charge == n11.charge == 0.01
-    assert c9.charge == -0.01
-    assert c19.charge == 0.05
+    # charge averaging
+    np.testing.assert_array_almost_equal([n1.charge, n11.charge], 0.01)
+    # charge imbalance distributed in L
+    np.testing.assert_almost_equal(c9.charge, -0.03)
+    np.testing.assert_almost_equal(c8.charge, 0.01)
+    np.testing.assert_almost_equal(cl1.charge, 0.01)
+
+    # charge imbalance distributed in R
+    np.testing.assert_almost_equal(c19.charge, 0.01)
+    np.testing.assert_almost_equal(c18.charge, -0.01)
+    np.testing.assert_almost_equal(cl11.charge, -0.01)

@@ -1224,6 +1224,13 @@ class SuperimposedTopology:
         for atom in R_unmatched:
             atom.charge += r_delta_per_atom
 
+        # carry an additional check that each molecule per se has an integer charge
+        # fixme - this should be extracted and used before running anything
+        whole_left_charge = sum(a.charge for a in self.top1)
+        whole_right_charge = sum(a.charge for a in self.top2)
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
+
 
     def contains_node(self, node):
         # checks if this node was used in this overlay
