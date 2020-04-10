@@ -1176,6 +1176,22 @@ class SuperimposedTopology:
         # check if duplication occured, fixme - temporary
         return merged_pairs
 
+    @staticmethod
+    def Validate_Charges(atom_listL, atom_listR):
+        """
+        Check the original charges:
+        - ensure that the total charge of L and R are integers
+        - ensure that they are equal to the same integer
+        """
+        whole_left_charge = sum(a.charge for a in atom_listL)
+        whole_right_charge = sum(a.charge for a in atom_listR)
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
+        # same integer
+        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge)
+
+        return round(whole_left_charge)
+
     def redistribute_charges(self):
         """
         After the match is made and the user commits to the superimposed topology,
@@ -1189,17 +1205,13 @@ class SuperimposedTopology:
         ie at the end of anything that could modify the atom pairing.
         """
 
-        # the total charge in the matched region
-        left_total = sum(l.charge for l, r in self.matched_pairs)
-        right_total = sum(r.charge for l, r in self.matched_pairs)
-        # fixme ensure that all atoms in the original networks have correct charges (an integer)
-        # fixme rename top1 and top2 to be "original top1 top2 etc"
-        whole_left_charge = sum(a.charge for a in self.top1)
-        whole_right_charge = sum(a.charge for a in self.top2)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
+        SuperimposedTopology.Validate_Charges(self.top1, self.top2)
 
-        # get the average charges between the matched regions
+        # the total charge in the matched region before the changes
+        matched_total_chargeL = sum(l.charge for l, r in self.matched_pairs)
+        matched_total_chargeR = sum(r.charge for l, r in self.matched_pairs)
+
+        # average charges between matched atoms
         l_delta_charge_total = 0
         r_delta_charge_total = 0
         for l, r in self.matched_pairs:
@@ -1210,9 +1222,20 @@ class SuperimposedTopology:
                 # this new charge is made to each molecule
                 l.charge = r.charge = avg_charge
 
+        # fixme should matched_total_chargeL be l_delta_charge_total?
+
         # get the unmatched nodes in L and R
         L_unmatched = self.get_disappearing_atoms()
         R_unmatched = self.get_appearing_atoms()
+
+        if len(L_unmatched) == 0 and l_delta_charge_total != 0:
+            print('----------------------------------------------------------------------------------------------')
+            print('ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: left ligand.')
+            print('----------------------------------------------------------------------------------------------')
+        if len(R_unmatched) == 0 and r_delta_charge_total != 0:
+            print('----------------------------------------------------------------------------------------------')
+            print('ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: right ligand. ')
+            print('----------------------------------------------------------------------------------------------')
 
         # distribute the charges over the unmatched regions
         l_delta_per_atom = float(l_delta_charge_total) / len(L_unmatched)
@@ -1224,13 +1247,8 @@ class SuperimposedTopology:
         for atom in R_unmatched:
             atom.charge += r_delta_per_atom
 
-        # carry an additional check that each molecule per se has an integer charge
-        # fixme - this should be extracted and used before running anything
-        whole_left_charge = sum(a.charge for a in self.top1)
-        whole_right_charge = sum(a.charge for a in self.top2)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
-
+        # note that we are really modifying right now the original nodes.
+        SuperimposedTopology.Validate_Charges(self.top1, self.top2)
 
     def contains_node(self, node):
         # checks if this node was used in this overlay
@@ -1914,6 +1932,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     - what would happen if you have mutation that separates the molecule? what happens when you multiple of them?
     how do you match them together?
     """
+
+    whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
     # ensure that none of the atomName across the two nodes are the same,
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
