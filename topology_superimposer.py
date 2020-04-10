@@ -551,6 +551,7 @@ class SuperimposedTopology:
     def get_disappearing_atoms(self):
         """
         # fixme - should check first if atomName is unique
+        # fixme - update to using the node set
         Return a list of appearing atoms (atomName) which are the
         atoms that are found in the topology, and that
         are not present in the matched_pairs
@@ -1174,6 +1175,55 @@ class SuperimposedTopology:
 
         # check if duplication occured, fixme - temporary
         return merged_pairs
+
+    def redistribute_charges(self):
+        """
+        After the match is made and the user commits to the superimposed topology,
+        the charges can be revised.
+        We calculate the average charges between every match, and check how that affects
+        the rest of the molecule (the unmatched atoms).
+        Then, we distribute the charges to the unmatched atoms to get
+        the net charge as a whole number/integer.
+
+        This function should be called after removing the matches for whatever reason.
+        ie at the end of anything that could modify the atom pairing.
+        """
+
+        # the total charge in the matched region
+        left_total = sum(l.charge for l, r in self.matched_pairs)
+        right_total = sum(r.charge for l, r in self.matched_pairs)
+        # fixme ensure that all atoms in the original networks have correct charges (an integer)
+        # fixme rename top1 and top2 to be "original top1 top2 etc"
+        whole_left_charge = sum(a.charge for a in self.top1)
+        whole_right_charge = sum(a.charge for a in self.top2)
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge))
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge))
+
+        # get the average charges between the matched regions
+        l_delta_charge_total = 0
+        r_delta_charge_total = 0
+        for l, r in self.matched_pairs:
+            if l.charge != r.charge:
+                avg_charge = (l.charge + r.charge) / 2.0
+                l_delta_charge_total += l.charge - avg_charge
+                r_delta_charge_total += r.charge - avg_charge
+                # this new charge is made to each molecule
+                l.charge = r.charge = avg_charge
+
+        # get the unmatched nodes in L and R
+        L_unmatched = self.get_disappearing_atoms()
+        R_unmatched = self.get_appearing_atoms()
+
+        # distribute the charges over the unmatched regions
+        l_delta_per_atom = float(l_delta_charge_total) / len(L_unmatched)
+        r_delta_per_atom = float(r_delta_charge_total) / len(R_unmatched)
+
+        # redistribute that delta q over the atoms in the left and right molecule
+        for atom in L_unmatched:
+            atom.charge += l_delta_per_atom
+        for atom in R_unmatched:
+            atom.charge += r_delta_per_atom
+
 
     def contains_node(self, node):
         # checks if this node was used in this overlay
@@ -1841,7 +1891,8 @@ class Topology:
 
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True, use_coords=True, starting_node_pairs=None,
                            force_mismatch=None, no_disjoint_components=True,
-                           net_charge_filter=True, net_charge_threshold=0.1):
+                           net_charge_filter=True, net_charge_threshold=0.1,
+                           redistribute_charges=True):
     """
     This is a helper function that managed the entire process.
 
@@ -1916,6 +1967,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                 suptops = [suptops[0]]
 
         assert len(suptops) == 1
+
+    #
+    if redistribute_charges:
+        if len(suptops) > 1:
+            raise NotImplementedError('Currently distributing charges works only if there is no disjointed components')
+        suptops[0].redistribute_charges()
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1
