@@ -312,11 +312,12 @@ class SuperimposedTopology:
         self.nodes_added_log = []
 
         self.internal_ids = None
-        self.removed_due_to_charge = None
         self.unique_atom_count = 0
         self.matched_pairs_bonds = {}
 
         # removed because
+        # fixme - make this into a list
+        self.removed_due_to_charge = None
         self._removed_because_disjointed_cc = []
         self._removed_due_to_net_charge = []
 
