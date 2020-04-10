@@ -320,6 +320,29 @@ class SuperimposedTopology:
         self._removed_because_disjointed_cc = []
         self._removed_due_to_net_charge = []
 
+    def is_or_was_matched(self, atomName1, atomName2):
+        """
+        A helper function. For whatever reasons atoms get discarded.
+        E.g. they had a different charge, or were part of the disjointed component, etc.
+        This function simply checks if the most original match was made between the two atoms.
+        It helps with verifying the original matching.
+        """
+        if self.contains_atomNamePair(atomName1, atomName2):
+            return True
+
+        # check if it was unmatched
+        unmatched_lists = [self._removed_because_disjointed_cc,
+                           self._removed_due_to_net_charge,
+                           self.removed_due_to_charge]
+        for unmatched_list in unmatched_lists:
+            for atom1, atom2 in unmatched_list:
+                if atom1.atomName == atomName1 and atom2.atomName == atomName2:
+                    return True
+
+        return False
+
+        pass
+
     def find_pair_with_atom(self, atomName):
         for node1, node2 in self.matched_pairs:
             if node1.atomName == atomName or node2.atomName == atomName:
@@ -1185,10 +1208,10 @@ class SuperimposedTopology:
         """
         whole_left_charge = sum(a.charge for a in atom_listL)
         whole_right_charge = sum(a.charge for a in atom_listR)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=6)
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=6)
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=5)
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=5)
         # same integer
-        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=6)
+        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=5)
 
         return round(whole_left_charge)
 
