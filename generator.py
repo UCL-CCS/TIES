@@ -618,6 +618,48 @@ quit
     return frcmod_with_null_terms
 
 
+def _rename_ligand(atoms, name_counter=None):
+    """
+    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+    the counter keeps track of the last used counter for each name.
+    Empty means that the counting will start from 1.
+    """
+    if name_counter is None:
+        name_counter = {}
+
+    for atom in atoms:
+        atom_letter = atom.atomName[0]
+        last_used_counter = name_counter.get(atom_letter, 0)
+
+        # rename
+        last_used_counter += 1
+        atom.atomName = atom_letter + str(last_used_counter)
+
+        # update the counter
+        name_counter[atom_letter] = last_used_counter
+
+    return name_counter
+
+
+def rename_ligands(L_nodes, R_nodes):
+    # rename the ligand to ensure that no atom has the same name
+    # name atoms using the first letter (C, N, ..) and count them
+
+    # first, ensure that all the atom names are unique
+    L_atom_names = [a.atomName for a in L_nodes]
+    R_atom_names = [a.atomName for a in R_nodes]
+
+    name_counter_L_nodes = _rename_ligand(L_nodes)
+    # each atom name is unique
+    assert len(set(L_atom_names)) == len(L_atom_names)
+
+    _rename_ligand(R_nodes, name_counter=name_counter_L_nodes)
+    # each atom name is unique
+    assert len(set(R_atom_names)) == len(R_atom_names)
+
+    return
+
+
 def generate_namd_eq(namd_eq, dst_dir, structure_name='morph_solv'):
     input_data = open(namd_eq).read()
     eq_namd_filenames = []
