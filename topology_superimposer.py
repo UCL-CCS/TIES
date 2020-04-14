@@ -150,6 +150,7 @@ import itertools
 import sys
 import os
 from io import StringIO
+from functools import reduce
 
 
 class AtomNode:
@@ -376,6 +377,33 @@ class SuperimposedTopology:
         and the apperaing and disappearing atoms separately.
         """
         return self.unique_atom_count
+
+    def getMatchedCOM(self):
+        """
+        Return the centre-of-geometry of the matched regions.
+        Ignore hydrogens.
+        """
+
+
+        return
+
+    def alignLigandsUsingMatched(self):
+        """
+        Align the two ligands using the matched area.
+        fixme - note that the aligning could be using in scoring.
+        Q: is aligning a good idea to deal with the symmetry issue?
+        """
+
+        # translate all atoms to the origin
+        # using Centre-of-geometry of the matched area
+        com =  self.getMatchedCOM()
+
+
+        # check what rotation correctly superimposes the molecules
+        # apply the rotation to all atoms in the system
+
+
+        return
 
     def getDualTopologyBonds(self):
         """
@@ -1209,10 +1237,10 @@ class SuperimposedTopology:
         """
         whole_left_charge = sum(a.charge for a in atom_listL)
         whole_right_charge = sum(a.charge for a in atom_listR)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=5)
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=5)
+        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=2)
+        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=2)
         # same integer
-        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=5)
+        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
 
         return round(whole_left_charge)
 
@@ -1967,6 +1995,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # connect the sup_tops to their original molecules
     for suptop in suptops:
         suptop.set_tops(top1_nodes, top2_nodes)
+
+    # align the 3D coordinates before applaying further changes
+    # use the largest suptop to align the molecules
+    take_largest = lambda x,y: x if len(x) > len(y) else y
+    reduce(take_largest, suptops).alignLigandsUsingMatched()
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
