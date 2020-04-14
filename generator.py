@@ -12,7 +12,8 @@ import shutil
 import subprocess
 
 
-def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None):
+def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
+              no_disjoint_components=None, net_charge_filter=None):
     # use mdanalysis to load the files
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2)
@@ -40,8 +41,12 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None):
     else:
         starting_node_pairs = [(startLeft, startRight)]
 
+    # fixme - simplify to only take the mdanalysis as input
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                     starting_node_pairs=starting_node_pairs, force_mismatch=force_mismatch)
+                                     starting_node_pairs=starting_node_pairs, force_mismatch=force_mismatch,
+                                     no_disjoint_components=no_disjoint_components,
+                                     net_charge_filter=net_charge_filter,
+                                     ligandLmda = mda_l1, ligandRmda = mda_l2)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 

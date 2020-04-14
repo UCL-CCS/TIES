@@ -141,7 +141,7 @@ Suggestions:
 """
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
-import MDAnalysis.analysis.align
+from MDAnalysis.analysis.align import rotation_matrix
 import hashlib
 import numpy as np
 import networkx as nx
@@ -378,30 +378,55 @@ class SuperimposedTopology:
         """
         return self.unique_atom_count
 
-    def getMatchedCOM(self):
-        """
-        Return the centre-of-geometry of the matched regions.
-        Ignore hydrogens.
-        """
-
-
-        return
-
     def alignLigandsUsingMatched(self):
         """
         Align the two ligands using the matched area.
-        fixme - note that the aligning could be using in scoring.
+        fixme -consider the use the aligning/RMSD could be using in scoring of symmetrical suptops.
         Q: is aligning a good idea to deal with the symmetry issue?
+
+        Use MDAnalysis for this.
+        #fixme - in the future, all the work should be carried out on MDAnalysis?
         """
+
+        # extract the IDs and use them to pick the atoms in MDAnalysis
+        matched_l_ids = [l.atomId for l, r in self.matched_pairs]
+        matched_r_ids = [r.atomId for l, r in self.matched_pairs]
+
+        # select the same atoms in MDAnalysis,
+        mda_l = self.mda_ligandL.select_atoms('bynum ' + ' '.join(map(str, matched_l_ids)))
+        mda_r = self.mda_ligandR.select_atoms('bynum ' + ' '.join(map(str, matched_r_ids)))
 
         # translate all atoms to the origin
         # using Centre-of-geometry of the matched area
-        com =  self.getMatchedCOM()
+        self.mda_ligandL.atoms.translate(-mda_l.center_of_geometry())
+        self.mda_ligandR.atoms.translate(-mda_r.center_of_geometry())
 
+        # apply the rotation matrix to all atoms to match the right ligand to the left ligand
+        R, rmsd = rotation_matrix(mda_r.positions, mda_l.positions)
+        self.mda_ligandR.atoms.rotate(R)
 
-        # check what rotation correctly superimposes the molecules
-        # apply the rotation to all atoms in the system
+        # update the atoms with the mapping done via IDs
+        # for the left
+        for mda_a in self.mda_ligandL.atoms:
+            found = False
+            for loaded_a in self.top1:
+                if mda_a.id == loaded_a.atomId:
+                    loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                    found = True
+                    break
+            assert found
+        # and for the right
+        for mda_a in self.mda_ligandR.atoms:
+            found = False
+            for loaded_a in self.top2:
+                if mda_a.id == loaded_a.atomId:
+                    loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                    found = True
+                    break
+            assert found
 
+        # fixme - print the RMSD at the end
+        print("After aligning by the common component, the new RMSD is", rmsd)
 
         return
 
@@ -652,6 +677,10 @@ class SuperimposedTopology:
     def set_tops(self, top1, top2):
         self.top1 = top1
         self.top2 = top2
+
+    def set_mdas(self, ligandLmda, ligandRmda):
+        self.mda_ligandL = ligandLmda
+        self.mda_ligandR = ligandRmda
 
     def print_summary(self):
         print("Topology Pairs ", len(self.matched_pairs), "Mirror Number", len(self.mirrors))
@@ -1969,7 +1998,8 @@ class Topology:
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True, use_coords=True, starting_node_pairs=None,
                            force_mismatch=None, no_disjoint_components=True,
                            net_charge_filter=True, net_charge_threshold=0.1,
-                           redistribute_charges=True):
+                           redistribute_charges=True,
+                           ligandLmda=None, ligandRmda=None):
     """
     This is a helper function that managed the entire process.
 
@@ -1995,6 +2025,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # connect the sup_tops to their original molecules
     for suptop in suptops:
         suptop.set_tops(top1_nodes, top2_nodes)
+        suptop.set_mdas(ligandLmda, ligandRmda)
 
     # align the 3D coordinates before applaying further changes
     # use the largest suptop to align the molecules
