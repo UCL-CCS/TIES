@@ -200,6 +200,13 @@ class AtomNode:
 
         return False
 
+    def isBoundTo(self, other):
+        for atom, bond_type in self.bonds:
+            if atom is other:
+                return True
+
+        return False
+
     def __hash__(self):
         # Compute the hash key once
         if self.hash_value is not None:
@@ -1036,6 +1043,27 @@ class SuperimposedTopology:
 
         return avg_dst
 
+    def enforce_no_partial_rings(self):
+        MAX_CIRCLE_SIZE = 7
+
+        # get circles in the original ligands
+        L_circles, R_circles = self.getOriginalCircles()
+
+        # right now we are filtering out circles that are larger than 7 atoms,
+        L_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, L_circles))
+        R_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, R_circles))
+
+        # find the pairs to each circles
+        # if the corresponding pairs are present, and form a circle on their own,
+        # then leave it matched
+        # otherwise, each pair in these circles should be removed
+        for circle in L_circles:
+            # find all the matched pairs overlapping with this circle
+            for atom in circle:
+                pass
+
+        pass
+
     def get_toppology_similarity_score(self):
         """
         Having the superimposed A(Left) and B(Right), score the match.
@@ -1202,11 +1230,43 @@ class SuperimposedTopology:
         return gl, gr
 
     def getCircles(self):
+        """
+        REturn circles found in the matched pairs.
+        """
         gl, gr = self.getNxGraphs()
         gl_circles = nx.cycle_basis(gl)
         gr_circles = nx.cycle_basis(gr)
         return gl_circles, gr_circles
 
+    def getOriginalCircles(self):
+        """
+        Return the original circles present in the input topologies.
+        """
+        # create a circles
+        L_original = self._getOriginalCircle(self.top1)
+        R_original = self._getOriginalCircle(self.top2)
+
+        L_circles = nx.cycle_basis(L_original)
+        R_circles = nx.cycle_basis(R_original)
+        return L_circles, R_circles
+
+    def _getOriginalCircle(self, atom_list):
+        """Create a networkx circle out of the list
+        atom_list - list of AtomNode
+        """
+        G = nx.Graph()
+        # add each node
+        for atom in atom_list:
+            G.add_node(atom)
+
+        # add all the edges
+        for atom in atom_list:
+            # add the edges from nA
+            for other in atom_list:
+                if atom.isBoundTo(other):
+                    G.add_edge(atom, other)
+
+        return G
 
     def getCircleNumber(self):
         gl_circles, gr_circles = self.getCircles()
@@ -1309,6 +1369,7 @@ class SuperimposedTopology:
         L_unmatched = self.get_disappearing_atoms()
         R_unmatched = self.get_appearing_atoms()
 
+
         if len(L_unmatched) == 0 and l_delta_charge_total != 0:
             print('----------------------------------------------------------------------------------------------')
             print('ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: left ligand.')
@@ -1319,8 +1380,15 @@ class SuperimposedTopology:
             print('----------------------------------------------------------------------------------------------')
 
         # distribute the charges over the unmatched regions
-        l_delta_per_atom = float(l_delta_charge_total) / len(L_unmatched)
-        r_delta_per_atom = float(r_delta_charge_total) / len(R_unmatched)
+        if len(L_unmatched) != 0:
+            l_delta_per_atom = float(l_delta_charge_total) / len(L_unmatched)
+        else:
+            l_delta_per_atom = 0
+
+        if len(R_unmatched) != 0:
+            r_delta_per_atom = float(r_delta_charge_total) / len(R_unmatched)
+        else:
+            r_delta_per_atom = 0
 
         # redistribute that delta q over the atoms in the left and right molecule
         for atom in L_unmatched:
@@ -1999,7 +2067,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            force_mismatch=None, no_disjoint_components=True,
                            net_charge_filter=True, net_charge_threshold=0.1,
                            redistribute_charges=True,
-                           ligandLmda=None, ligandRmda=None):
+                           ligandLmda=None, ligandRmda=None,
+                           align_molecules=True,
+                           partial_rings_allowed=False):
     """
     This is a helper function that managed the entire process.
 
@@ -2029,8 +2099,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
     # align the 3D coordinates before applaying further changes
     # use the largest suptop to align the molecules
-    take_largest = lambda x,y: x if len(x) > len(y) else y
-    reduce(take_largest, suptops).alignLigandsUsingMatched()
+    if align_molecules:
+        take_largest = lambda x,y: x if len(x) > len(y) else y
+        reduce(take_largest, suptops).alignLigandsUsingMatched()
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
@@ -2064,6 +2135,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     # remove the suptop from the list
                     suptops.remove(suptop)
                     break
+
+    if not partial_rings_allowed:
+        # remove partial rings, note this is a cascade problem if there are double rings
+        for suptop in suptops:
+            suptop.enforce_no_partial_rings()
 
     if no_disjoint_components:
         # ensure that each suptop represents one CC
