@@ -185,7 +185,55 @@ def write_merged(suptop, merged_filename):
             bond_counter += 1
 
 
+def parse_frcmod_sections(filename):
+    """
+    Copied from the previous TIES. It's simpler and this approach must be fine then.
+    """
+    frcmod_info = {}
+    section = 'REMARK'
+
+    with open(filename) as F:
+        for line in F:
+            start_line = line[0:9].strip()
+
+            if start_line in ['MASS', 'BOND', 'IMPROPER',
+                              'NONBON', 'ANGLE', 'DIHE']:
+                section = start_line
+                frcmod_info[section] = []
+            elif line.strip() and section != 'REMARK':
+                frcmod_info[section].append(line)
+
+    return frcmod_info
+
+
+def join_frcmod_files2(filename1, filename2, output_filename):
+    """
+    Copied from the previous TIES. It's simpler and this approach must be fine then.
+    """
+    frcmod_info1 = parse_frcmod_sections(filename1)
+    frcmod_info2 = parse_frcmod_sections(filename2)
+
+    with open(output_filename, 'w') as FOUT:
+        FOUT.write('merged frcmod\n')
+
+        for section in ['MASS', 'BOND', 'ANGLE',
+                        'DIHE', 'IMPROPER', 'NONBON']:
+            section_lines = set(frcmod_info1[section] + frcmod_info2[section])
+            FOUT.write('{0:s}\n'.format(section))
+            for line in section_lines:
+                FOUT.write('{0:s}'.format(line))
+            FOUT.write('\n')
+
+        FOUT.write('\n\n')
+
+    return
+
+
 def join_frcmod_files(f1, f2, output_filepath):
+    """
+    This implementation should be used. Switch to join_frcmod_files2.
+    This version might be removed if the simple approach is fine.
+    """
     # fixme - load f1 and f2
 
     def get_section(name, rlines):
