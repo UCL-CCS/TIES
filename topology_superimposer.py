@@ -328,6 +328,7 @@ class SuperimposedTopology:
         self.removed_due_to_charge = None
         self._removed_because_disjointed_cc = []
         self._removed_due_to_net_charge = []
+        self._removed_because_unmatched_rings = []
 
     def is_or_was_matched(self, atomName1, atomName2):
         """
@@ -1043,26 +1044,112 @@ class SuperimposedTopology:
 
         return avg_dst
 
+    def are_matched_sets(self, l_atoms, r_atoms):
+        if len(l_atoms) != len(r_atoms):
+            return False
+
+        for atom in l_atoms:
+            _, matched_r = self.get_pair_with_atom(atom)
+            if matched_r not in r_atoms:
+                return False
+
+        return True
+
     def enforce_no_partial_rings(self):
+        """
+        http://www.alchemistry.org/wiki/Constructing_a_Pathway_of_Intermediate_States
+        It is the openning or closing of the rings that is an issue.
+        This means that if any atom on a ring disappears, it breaks the ring,
+        and therefore the entire ring should be removed and appeared again.
+
+        If any atom is removed, it should check if it affects other rings,
+        therefore cascading removing furhter rings.
+        """
         MAX_CIRCLE_SIZE = 7
 
         # get circles in the original ligands
         L_circles, R_circles = self.getOriginalCircles()
+        L_matched_circles, R_matched_circles = self.getCircles()
 
         # right now we are filtering out circles that are larger than 7 atoms,
         L_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, L_circles))
         R_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, R_circles))
+        L_matched_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, L_matched_circles))
+        R_matched_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, R_matched_circles))
 
-        # find the pairs to each circles
-        # if the corresponding pairs are present, and form a circle on their own,
-        # then leave it matched
-        # otherwise, each pair in these circles should be removed
-        for circle in L_circles:
-            # find all the matched pairs overlapping with this circle
-            for atom in circle:
-                pass
+        # first, see which matched circles eliminate themselves (simply matched circles)
+        correct_circles = []
+        for l_matched_circle in L_matched_circles[::-1]:
+            for r_matched_circle in R_matched_circles[::-1]:
+                if self.are_matched_sets(l_matched_circle, r_matched_circle):
+                    # These two circles fully overlap, so they are fine
+                    L_matched_circles.remove(l_matched_circle)
+                    R_matched_circles.remove(r_matched_circle)
+                    # update the original circles
+                    L_circles.remove(l_matched_circle)
+                    R_circles.remove(r_matched_circle)
+                    correct_circles.append((l_matched_circle, r_matched_circle))
 
-        pass
+        # at this point, we should not have any matched circles, in either R and L
+        # this is because we do not allow one ligand to have a matched circle, while another ligand not
+        assert len(L_matched_circles) == len(R_matched_circles) == 0
+
+        while True:
+            # so now we have to work with the original rings which have not been overlapped,
+            # these most likely means that there are mutations preventing it from overlapping
+            l_removed_pairs = self._remove_unmatched_ring_atoms(L_circles)
+            r_removed_pairs = self._remove_unmatched_ring_atoms(R_circles)
+
+            for l_circle, r_circle in correct_circles:
+                # checked if any removed atom affected any of the correct circles
+                affected_l_circle = any(l_atom in l_circle for l_atom, r_atom in l_removed_pairs)
+                affected_r_circle = any(r_atom in r_circle for l_atom, r_atom in r_removed_pairs)
+                # add the circle to be disassembled
+                if affected_l_circle or affected_r_circle:
+                    L_circles.append(l_circle)
+                    R_circles.append(r_circle)
+
+            if len(l_removed_pairs) == len(r_removed_pairs) == 0:
+                break
+
+    def _remove_unmatched_ring_atoms(self, circles):
+        """
+        A helper function. Removes pairs with the given atoms.
+
+        The removed atoms are classified as unmatched_rings.
+
+        Parameters
+        ----------
+        circles : list
+            A list of iterables. Each atom in a circle, if matched, is removed together with
+            the corresponding atom from the suptop.
+            The user should ensure that the rings/circles are partial
+
+        Returns
+        -------
+        removed : bool
+            True if any atom was removed. False otherwise.
+        """
+        removed_pairs = []
+        for circle in circles:
+            for unmatched_ring_atom in circle:
+                # find if the ring has a match
+                if self.contains_node(unmatched_ring_atom):
+                    # remove the pair from matched
+                    pair = self.get_pair_with_atom(unmatched_ring_atom)
+                    self.remove_node_pair(pair)
+                    self._removed_because_unmatched_rings.append(pair)
+                    removed_pairs.append(pair)
+        return removed_pairs
+
+    def get_pair_with_atom(self, atom):
+        for a1, a2 in self.matched_pairs:
+            if a1 is atom:
+                return (a1, a2)
+            elif a2 is atom:
+                return (a1, a2)
+
+        return None
 
     def get_toppology_similarity_score(self):
         """
@@ -1234,8 +1321,8 @@ class SuperimposedTopology:
         REturn circles found in the matched pairs.
         """
         gl, gr = self.getNxGraphs()
-        gl_circles = nx.cycle_basis(gl)
-        gr_circles = nx.cycle_basis(gr)
+        gl_circles = [set(circle) for circle in nx.cycle_basis(gl)]
+        gr_circles = [set(circle) for circle in nx.cycle_basis(gr)]
         return gl_circles, gr_circles
 
     def getOriginalCircles(self):
@@ -1246,8 +1333,8 @@ class SuperimposedTopology:
         L_original = self._getOriginalCircle(self.top1)
         R_original = self._getOriginalCircle(self.top2)
 
-        L_circles = nx.cycle_basis(L_original)
-        R_circles = nx.cycle_basis(R_original)
+        L_circles = [set(circle) for circle in nx.cycle_basis(L_original)]
+        R_circles = [set(circle) for circle in nx.cycle_basis(R_original)]
         return L_circles, R_circles
 
     def _getOriginalCircle(self, atom_list):
