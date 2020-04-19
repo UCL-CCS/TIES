@@ -2156,7 +2156,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            redistribute_charges=True,
                            ligandLmda=None, ligandRmda=None,
                            align_molecules=True,
-                           partial_rings_allowed=False):
+                           partial_rings_allowed=True):
     """
     This is a helper function that managed the entire process.
 
@@ -2170,6 +2170,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     Other to think about:
     - what would happen if you have mutation that separates the molecule? what happens when you multiple of them?
     how do you match them together?
+
     """
 
     whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
