@@ -151,7 +151,6 @@ import sys
 import os
 from io import StringIO
 from functools import reduce
-from generator import rename_ligands
 
 
 class AtomNode:
@@ -1303,6 +1302,48 @@ class SuperimposedTopology:
 
         return True
 
+    @staticmethod
+    def _rename_ligand(atoms, name_counter=None):
+        """
+        name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+        the counter keeps track of the last used counter for each name.
+        Empty means that the counting will start from 1.
+        """
+        if name_counter is None:
+            name_counter = {}
+
+        for atom in atoms:
+            atom_letter = atom.atomName[0]
+            last_used_counter = name_counter.get(atom_letter, 0)
+
+            # rename
+            last_used_counter += 1
+            atom.atomName = atom_letter + str(last_used_counter)
+
+            # update the counter
+            name_counter[atom_letter] = last_used_counter
+
+        return name_counter
+
+    @staticmethod
+    def rename_ligands(L_nodes, R_nodes):
+        # rename the ligand to ensure that no atom has the same name
+        # name atoms using the first letter (C, N, ..) and count them
+
+        # first, ensure that all the atom names are unique
+        L_atom_names = [a.atomName for a in L_nodes]
+        R_atom_names = [a.atomName for a in R_nodes]
+
+        name_counter_L_nodes = SuperimposedTopology._rename_ligand(L_nodes)
+        # each atom name is unique
+        assert len(set(L_atom_names)) == len(L_atom_names)
+
+        SuperimposedTopology._rename_ligand(R_nodes, name_counter=name_counter_L_nodes)
+        # each atom name is unique
+        assert len(set(R_atom_names)) == len(R_atom_names)
+
+        return
+
     def getNxGraphs(self):
         "maybe at some point this should be created and used internally more? "
         gl = nx.Graph()
@@ -2185,7 +2226,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # ensure that none of the atomName across the two nodes are the same,
     # this is only important when the atoms are found to be different, then the same names should not be used
     # fixme - rename at the end only the ones that are different
-    rename_ligands(top1_nodes, top2_nodes)
+    SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
     assert len(sameAtomNames) == 0, sameAtomNames
 

@@ -13,7 +13,7 @@ import subprocess
 
 
 def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
-              no_disjoint_components=None, net_charge_filter=None):
+              no_disjoint_components=True, net_charge_filter=True):
     # use mdanalysis to load the files
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2)
@@ -474,7 +474,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
                 found_match = True
                 mol2_atom.charge = ac_atom.charge
                 break
-        assert found_match, "Did not an atom in the AC that matches?" + mol2_atom.name
+        assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
@@ -669,48 +669,6 @@ quit
     with open(copy_hybrid_frcmod) as FRC:
         frcmod_with_null_terms = FRC.read()
     return frcmod_with_null_terms
-
-
-def _rename_ligand(atoms, name_counter=None):
-    """
-    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
-    the counter keeps track of the last used counter for each name.
-    Empty means that the counting will start from 1.
-    """
-    if name_counter is None:
-        name_counter = {}
-
-    for atom in atoms:
-        atom_letter = atom.atomName[0]
-        last_used_counter = name_counter.get(atom_letter, 0)
-
-        # rename
-        last_used_counter += 1
-        atom.atomName = atom_letter + str(last_used_counter)
-
-        # update the counter
-        name_counter[atom_letter] = last_used_counter
-
-    return name_counter
-
-
-def rename_ligands(L_nodes, R_nodes):
-    # rename the ligand to ensure that no atom has the same name
-    # name atoms using the first letter (C, N, ..) and count them
-
-    # first, ensure that all the atom names are unique
-    L_atom_names = [a.atomName for a in L_nodes]
-    R_atom_names = [a.atomName for a in R_nodes]
-
-    name_counter_L_nodes = _rename_ligand(L_nodes)
-    # each atom name is unique
-    assert len(set(L_atom_names)) == len(L_atom_names)
-
-    _rename_ligand(R_nodes, name_counter=name_counter_L_nodes)
-    # each atom name is unique
-    assert len(set(R_atom_names)) == len(R_atom_names)
-
-    return
 
 
 def generate_namd_eq(namd_eq, dst_dir, structure_name='morph_solv'):
