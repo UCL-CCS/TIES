@@ -45,7 +45,7 @@ PMEInterpOrder	    4
 PMEGridSpacing     1.0;
 
 # set up constraints
-constraints  on
+constraints  off
 consexp  2
 # use the same file for the position reference and the B column
 consref  constraint_f4.pdb ;#need all positions
