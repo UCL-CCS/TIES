@@ -151,6 +151,7 @@ import sys
 import os
 from io import StringIO
 from functools import reduce
+from generator import rename_ligands
 
 
 class AtomNode:
@@ -389,6 +390,7 @@ class SuperimposedTopology:
     def alignLigandsUsingMatched(self):
         """
         Align the two ligands using the matched area.
+        Note: we assume that the left ligand is docked. The left ligand is the reference here.
         fixme -consider the use the aligning/RMSD could be using in scoring of symmetrical suptops.
         Q: is aligning a good idea to deal with the symmetry issue?
 
@@ -406,12 +408,17 @@ class SuperimposedTopology:
 
         # translate all atoms to the origin
         # using Centre-of-geometry of the matched area
+        left_ligand_original_cog = mda_l.center_of_geometry()
         self.mda_ligandL.atoms.translate(-mda_l.center_of_geometry())
         self.mda_ligandR.atoms.translate(-mda_r.center_of_geometry())
 
         # apply the rotation matrix to all atoms to match the right ligand to the left ligand
         R, rmsd = rotation_matrix(mda_r.positions, mda_l.positions)
         self.mda_ligandR.atoms.rotate(R)
+
+        # return the ligands to the original position of the left ligand
+        self.mda_ligandL.atoms.translate(left_ligand_original_cog)
+        self.mda_ligandR.atoms.translate(left_ligand_original_cog)
 
         # update the atoms with the mapping done via IDs
         # for the left
@@ -2176,6 +2183,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
     # ensure that none of the atomName across the two nodes are the same,
+    # this is only important when the atoms are found to be different, then the same names should not be used
+    # fixme - rename at the end only the ones that are different
+    rename_ligands(top1_nodes, top2_nodes)
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
     assert len(sameAtomNames) == 0, sameAtomNames
 
@@ -2250,7 +2260,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #
     if redistribute_charges:
         if len(suptops) > 1:
-            raise NotImplementedError('Currently distributing charges works only if there is no disjointed components')
+            raise NotImplementedError(
+                'Currently distributing charges works only if there is no disjointed components')
         suptops[0].redistribute_charges()
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
