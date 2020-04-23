@@ -474,7 +474,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
                 found_match = True
                 mol2_atom.charge = ac_atom.charge
                 break
-        assert found_match, "Did not an atom in the AC that matches?" + mol2_atom
+        assert found_match, "Did not an atom in the AC that matches?" + mol2_atom.name
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
