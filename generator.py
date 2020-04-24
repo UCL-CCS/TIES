@@ -470,7 +470,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     for mol2_atom in mol2.atoms:
         found_match = False
         for ac_atom in ac_atoms:
-            if mol2_atom.name == ac_atom.atomName:
+            if mol2_atom.name.upper() == ac_atom.atomName.upper():
                 found_match = True
                 mol2_atom.charge = ac_atom.charge
                 break
