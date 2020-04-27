@@ -1387,17 +1387,13 @@ class SuperimposedTopology:
             atom_number = int(atom.atomName[afterLetters:])
             last_used_counter = name_counter.get(atom_name, 0)
 
-            # rename
-            last_used_counter += 1
-            atom.atomName = atom_name + str(last_used_counter)
-
             # update the counter
-            name_counter[atom_name] = last_used_counter
+            name_counter[atom_name] = max(last_used_counter, atom_number)
 
         return name_counter
 
     @staticmethod
-    def _correct_atom_name_format(atoms):
+    def _is_correct_atom_name_format(atoms):
         # check if the atom format is C15, ie atom name followed by a number
         for atom in atoms:
             afterLetters = [i for i, l in enumerate(atom.atomName) if l.isalpha()][-1] + 1
@@ -1423,7 +1419,7 @@ class SuperimposedTopology:
         # first, ensure that all the atom names are unique
         L_atom_names = [a.atomName for a in L_nodes]
         L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
-        L_correct_format = SuperimposedTopology._correct_atom_name_format(L_nodes)
+        L_correct_format = SuperimposedTopology._is_correct_atom_name_format(L_nodes)
 
         if not L_names_unique or not L_correct_format:
             print('Renaming Left Molecule Atom Names (Because it is needed)')
@@ -1434,7 +1430,7 @@ class SuperimposedTopology:
 
         R_atom_names = [a.atomName for a in R_nodes]
         R_names_unique = len(set(R_atom_names)) == len(R_atom_names)
-        R_correct_format = SuperimposedTopology._correct_atom_name_format(R_nodes)
+        R_correct_format = SuperimposedTopology._is_correct_atom_name_format(R_nodes)
         L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
 
         if not R_names_unique or not R_correct_format or L_R_overlap:
@@ -2326,6 +2322,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     how do you match them together?
 
     """
+
     if not ignore_charges_completely:
         whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
