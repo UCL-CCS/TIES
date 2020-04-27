@@ -22,7 +22,8 @@ import time
 # of atoms found in .pdb
 suptop, mda_l1, mda_l2 = getSuptop('left_q.mol2', 'left_coor.pdb',
                                    ignore_charges_completely=True,
-                                   ignore_bond_types=True)
+                                   ignore_bond_types=True,
+                                   ignore_coords=True)
 assert len(mda_l1.atoms) == len(mda_l2.atoms) == len(suptop)
 # write_dual_top_pdb('morph.pdb', mda_l1, mda_l2, suptop)
 # save the merged topologies as a .mol2 file
