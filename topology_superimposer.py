@@ -152,17 +152,34 @@ import os
 from io import StringIO
 from functools import reduce
 
+general_atom_types = {
+    'C' : {'C', 'CA', 'CB', 'C3'},
+    'CL' : {'CL'},
+    'H' : {'H', 'HA', 'HN', 'H4', 'HC'},
+    'O' : {'O'},
+    'N' : {'N', 'NB'},
+}
+# fixme - change this to a simpler version
 
 class AtomNode:
     counter = 1
-    def __init__(self, name, type, charge=None):
+    def __init__(self, name, type, charge=None, use_general_type=False):
         self.atomId = None
+        # this atom name might change
         self.atomName = name.upper()
+        self.originalAtomName = self.atomName
         self.resname = None
         self.resId = None
         self.charge = charge
         self.type = type.upper()
         self.bonds = set()
+        self.use_general_type = use_general_type
+
+        # save the general type
+        # fixme: simply strip the other info and leave the atom type
+        found = [key for key, names in general_atom_types.items() if self.type in names]
+        assert len(found) == 1, 'Problem with assigning the general type to atom type ' + self.type # can belong only to one table
+        self.gentype = found[0]
 
         self.unique_counter = AtomNode.counter
         AtomNode.counter += 1
@@ -245,6 +262,12 @@ class AtomNode:
         return False
 
     def sameType(self, atom):
+        # fixme - this one or other? some other configuration system?
+        if self.use_general_type:
+            if self.gentype == atom.gentype:
+                return True
+            return False
+
         if self.type == atom.type.upper():
             return True
 
@@ -255,6 +278,15 @@ class AtomNode:
         # it is a shallow copy, as this object is "immutable"
         return self
 
+def are_same_general_type(type1, type2):
+    # check if the two atom types are of the same general type
+    # ie C and CB are both carbons
+    for atom_type in general_atom_types:
+        if type1 in atom_type:
+            if type2 in atom_type:
+                return True
+            return False
+    raise Exception
 
 class AtomPair:
     """
@@ -458,7 +490,8 @@ class SuperimposedTopology:
         for from_pair, bonded_pair_list in self.matched_pairs_bonds.items():
             from_pair_id = self.get_generated_atom_ID(from_pair)
             for bonded_pair, bond_type in bonded_pair_list:
-                assert bond_type[0] == bond_type[1]
+                if not self.ignore_bond_types:
+                    assert bond_type[0] == bond_type[1]
                 # every bonded pair has to be in the topology
                 assert bonded_pair in self.matched_pairs
                 to_pair_id = self.get_generated_atom_ID(bonded_pair)
@@ -1313,34 +1346,96 @@ class SuperimposedTopology:
             name_counter = {}
 
         for atom in atoms:
-            atom_letter = atom.atomName[0]
-            last_used_counter = name_counter.get(atom_letter, 0)
+            # get the first letters that is not a character
+            afterLetters = [i for i, l in enumerate(atom.atomName) if l.isalpha()][-1] + 1
+
+            atom_name = atom.atomName[:afterLetters]
+            last_used_counter = name_counter.get(atom_name, 0)
 
             # rename
             last_used_counter += 1
-            atom.atomName = atom_letter + str(last_used_counter)
+            newAtomName = atom_name + str(last_used_counter)
+            print(f'Renaming {atom.atomName} to {newAtomName}')
+            atom.atomName = newAtomName
 
             # update the counter
-            name_counter[atom_letter] = last_used_counter
+            name_counter[atom_name] = last_used_counter
 
         return name_counter
+
+    @staticmethod
+    def _get_atom_names_counter(atoms):
+        """
+        name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+        the counter keeps track of the last used counter for each name.
+        Ie if there are C1, C2, C3, this will return {'C':3} as the last counter.
+        """
+        name_counter = {}
+
+        for atom in atoms:
+            # get the first letters that is not a character
+            afterLetters = [i for i, l in enumerate(atom.atomName) if l.isalpha()][-1] + 1
+
+            atom_name = atom.atomName[:afterLetters]
+            atom_number = int(atom.atomName[afterLetters:])
+            last_used_counter = name_counter.get(atom_name, 0)
+
+            # rename
+            last_used_counter += 1
+            atom.atomName = atom_name + str(last_used_counter)
+
+            # update the counter
+            name_counter[atom_name] = last_used_counter
+
+        return name_counter
+
+    @staticmethod
+    def _correct_atom_name_format(atoms):
+        # check if the atom format is C15, ie atom name followed by a number
+        for atom in atoms:
+            afterLetters = [i for i, l in enumerate(atom.atomName) if l.isalpha()][-1] + 1
+
+            atom_name = atom.atomName[:afterLetters]
+            if len(atom_name) == 0:
+                return False
+
+            atom_number = atom.atomName[afterLetters:]
+            try:
+                int(atom_number)
+            except:
+                return False
+
+        return True
 
     @staticmethod
     def rename_ligands(L_nodes, R_nodes):
         # rename the ligand to ensure that no atom has the same name
         # name atoms using the first letter (C, N, ..) and count them
+        # keep the names if possible (ie if they are already different)
 
         # first, ensure that all the atom names are unique
         L_atom_names = [a.atomName for a in L_nodes]
+        L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
+        L_correct_format = SuperimposedTopology._correct_atom_name_format(L_nodes)
+
+        if not L_names_unique or not L_correct_format:
+            print('Renaming Left Molecule Atom Names (Because it is needed)')
+            name_counter_L_nodes = SuperimposedTopology._rename_ligand(L_nodes)
+            L_atom_names = [a.atomName for a in L_nodes]
+        else:
+            name_counter_L_nodes = SuperimposedTopology._get_atom_names_counter(L_nodes)
+
         R_atom_names = [a.atomName for a in R_nodes]
+        R_names_unique = len(set(R_atom_names)) == len(R_atom_names)
+        R_correct_format = SuperimposedTopology._correct_atom_name_format(R_nodes)
+        L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
 
-        name_counter_L_nodes = SuperimposedTopology._rename_ligand(L_nodes)
-        # each atom name is unique
-        assert len(set(L_atom_names)) == len(L_atom_names)
-
-        SuperimposedTopology._rename_ligand(R_nodes, name_counter=name_counter_L_nodes)
-        # each atom name is unique
-        assert len(set(R_atom_names)) == len(R_atom_names)
+        if not R_names_unique or not R_correct_format or L_R_overlap:
+            print('Renaming Right Molecule Atom Names (Because it is needed)')
+            SuperimposedTopology._rename_ligand(R_nodes, name_counter=name_counter_L_nodes)
+        # each atom name is unique, fixme - this check does not apply anymore
+        # ie it is fine for a molecule to use general type
+        #assert len(set(R_atom_names)) == len(R_atom_names)
 
         return
 
@@ -2010,16 +2105,18 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None):
     n2_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n2, n2.bonds))
 
     # sort for the itertools.groupby
-    n1_bonds_no_parent_srt = sorted(n1_bonds_no_parent, key=lambda b: b[0].type)
-    n2_bonds_no_parent_srt = sorted(n2_bonds_no_parent, key=lambda b: b[0].type)
+    n1_bonds_no_parent_srt = sorted(n1_bonds_no_parent, key=lambda b: b[0].gentype)
+    n2_bonds_no_parent_srt = sorted(n2_bonds_no_parent, key=lambda b: b[0].gentype)
 
     # so first we have to group with groupby
     combinations = []
     for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent_srt,
-                                               key=lambda bonded: bonded[0].type):
+                                               key=lambda bonded: bonded[0].gentype):
         for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent_srt,
-                                                   key=lambda bonded: bonded[0].type):
+                                                   key=lambda bonded: bonded[0].gentype):
             # the types will only match once
+            # fixme - note that it always uses a general type here,
+            # also, the group is not done correctly atm
             if n1_type != n2_type:
                 continue
 
@@ -2204,7 +2301,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            redistribute_charges=True,
                            ligandLmda=None, ligandRmda=None,
                            align_molecules=True,
-                           partial_rings_allowed=True):
+                           partial_rings_allowed=True,
+                           ignore_charges_completely=False,
+                           ignore_bond_types=False):
     """
     This is a helper function that managed the entire process.
 
@@ -2220,8 +2319,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     how do you match them together?
 
     """
-
-    whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
+    if not ignore_charges_completely:
+        whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
     # ensure that none of the atomName across the two nodes are the same,
     # this is only important when the atoms are found to be different, then the same names should not be used
@@ -2230,7 +2329,19 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
     assert len(sameAtomNames) == 0, sameAtomNames
 
+    # prealign the 3D coordinates before applaying further changes
+    # todo
+    # if align_molecules:
+    #     take_largest = lambda x, y: x if len(x) > len(y) else y
+    #     reduce(take_largest, suptops).alignLigandsUsingMatched()
+
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=starting_node_pairs)
+
+    # ignore bond types
+    for st in suptops:
+        # fixme - do proper
+        st.ignore_bond_types = ignore_bond_types
+
     # connect the sup_tops to their original molecules
     for suptop in suptops:
         suptop.set_tops(top1_nodes, top2_nodes)
@@ -2250,7 +2361,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
     # becomes two different atoms with different IDs
-    if use_charges:
+    if use_charges and not ignore_charges_completely:
         ensure_charges_match(suptops, atol=pair_charge_atol)
 
     # apply the force mismatch at the end
@@ -2261,7 +2372,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
-    if net_charge_filter:
+    if net_charge_filter and not ignore_charges_completely:
         # ensure that each found component has net charge < 0.1
         for suptop in suptops[::-1]:
             while np.abs(suptop.get_net_charge()) > net_charge_threshold:
@@ -2299,7 +2410,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         assert len(suptops) == 1
 
     #
-    if redistribute_charges:
+    if redistribute_charges and not ignore_charges_completely:
         if len(suptops) > 1:
             raise NotImplementedError(
                 'Currently distributing charges works only if there is no disjointed components')
@@ -2550,6 +2661,9 @@ def _superimpose_topologies(top1_nodes, top2_nodes, starting_node_pairs=None):
 
     for node1, node2 in starting_node_pairs:
         # fixme - optimisation - reduce the number of starting nX and nY pairs
+
+        # if node1.get_id() != 10 or node2.get_id() != 25:
+        #     continue
 
         # with the given starting two nodes, generate the maximum common component
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None))
@@ -2872,7 +2986,10 @@ def load_mol2_wrapper(filename):
     # redirect the errors
     original = sys.stderr
     sys.stderr = mda_stderr = StringIO()
-    u = mda.Universe(filename)
+    try:
+        u = mda.Universe(filename)
+    except Exception as E:
+        print(E)
     sys.stderr = original
 
     # remove the warnings about mass
@@ -2887,7 +3004,7 @@ def load_mol2_wrapper(filename):
     return u
 
 
-def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
+def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
     """
     Use MDAnalysis to load the .mol2 files.
 
@@ -2919,8 +3036,13 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename):
     def createAtoms(mda_atoms):
         atoms = []
         for mda_atom in mda_atoms:
-            atom = AtomNode(name=mda_atom.name, type=mda_atom.type)
-            atom.set_charge(mda_atom.charge)
+            atom = AtomNode(name=mda_atom.name, type=mda_atom.type, use_general_type=use_general_type)
+            try:
+                atom.set_charge(mda_atom.charge)
+            except AttributeError as Att:
+                # fixme - expand on the message
+                print('Missing charge attribute, setting to 0')
+                atom.set_charge(0)
             atom.set_id(mda_atom.id)
             atom.set_position(mda_atom.position[0], mda_atom.position[1], mda_atom.position[2])
             atom.set_resname(mda_atom.resname)

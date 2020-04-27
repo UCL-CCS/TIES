@@ -13,10 +13,14 @@ import subprocess
 
 
 def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
-              no_disjoint_components=True, net_charge_filter=True):
+              no_disjoint_components=True, net_charge_filter=True,
+              ignore_charges_completely=False,
+              use_general_type=True,
+              ignore_bond_types=False):
     # use mdanalysis to load the files
+    # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
-        get_atoms_bonds_from_mol2(mol1, mol2)
+        get_atoms_bonds_from_mol2(mol1, mol2, use_general_type=use_general_type)
 
     # assign
     # fixme - Ideally I would reuse the mdanalysis data for this
@@ -43,10 +47,13 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
 
     # fixme - simplify to only take the mdanalysis as input
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                     starting_node_pairs=starting_node_pairs, force_mismatch=force_mismatch,
+                                     starting_node_pairs=starting_node_pairs,
+                                     force_mismatch=force_mismatch,
                                      no_disjoint_components=no_disjoint_components,
                                      net_charge_filter=net_charge_filter,
-                                     ligandLmda = mda_l1, ligandRmda = mda_l2)
+                                     ligandLmda=mda_l1, ligandRmda=mda_l2,
+                                     ignore_charges_completely=ignore_charges_completely,
+                                     ignore_bond_types=ignore_bond_types)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
@@ -110,7 +117,7 @@ def write_dual_top_pdb(filepath, mda_l1, mda_l2, suptop):
                 FOUT.write(line)
 
 
-def write_merged(suptop, merged_filename):
+def write_merged(suptop, merged_filename, use_left_charges=True, use_left_coords=True):
     # recreate the mol2 file that is merged and contains the correct atoms from both
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
     with open(merged_filename, 'w') as FOUT:
@@ -142,10 +149,20 @@ def write_merged(suptop, merged_filename):
         # we are going to assign IDs in the superimposed topology in order to track which atoms have IDs
         # and which don't
 
+        # fixme - for writing, modify things to achieve the desired output
+        # note - we are modifying in place our atoms
+        for left, right in suptop.matched_pairs:
+            print(f'Aligned {left.originalAtomName} id {left.atomId} with {right.originalAtomName} id {right.atomId}')
+            if not use_left_charges:
+                left.charge = right.charge
+            if not use_left_coords:
+                left.position = right.position
+
         subst_id = 1  # resid basically
         # write all the atoms that were matched first with their IDs
         # prepare all the atoms, note that we use primarily the left ligand naming
         all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
+        unmatched_atoms = suptop.get_unmatched_atoms()
         # reorder the list according to the ID
         all_atoms.sort(key=lambda atom: suptop.get_generated_atom_ID(atom))
 
