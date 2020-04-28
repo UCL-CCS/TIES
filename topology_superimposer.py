@@ -152,12 +152,13 @@ import os
 from io import StringIO
 from functools import reduce
 
+# fixme: change to CA:C dictionary
 general_atom_types = {
     'C' : {'C', 'CA', 'CB', 'C3'},
     'CL' : {'CL'},
     'H' : {'H', 'HA', 'HN', 'H4', 'HC'},
     'O' : {'O'},
-    'N' : {'N', 'NB'},
+    'N' : {'N', 'NB', 'NS'},
 }
 # fixme - change this to a simpler version
 
