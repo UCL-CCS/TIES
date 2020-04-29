@@ -42,7 +42,7 @@ script_dir = code_root / PurePosixPath('scripts')
 namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
 
-#
+# fixme - replace with the python API
 antechamber_sqm_script_name = 'assign_charge_parameters.sh'
 assign_charges_antechamber_script_filename = 'assign_charge_parameters_antechamber.sh'
 assign_charges_parmchk2_script_filename = 'assign_charge_parameters_parmchk2.sh'
