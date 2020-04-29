@@ -1,5 +1,5 @@
 import tempfile
-from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
+from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
 import os
 import sys
 import json
@@ -17,7 +17,9 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
               ignore_charges_completely=False,
               use_general_type=True,
               ignore_bond_types=False,
-              ignore_coords=False):
+              ignore_coords=False,
+              left_coords_are_ref=True,
+              align_molecules=True):
     # use mdanalysis to load the files
     # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
@@ -55,7 +57,9 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
                                      ligandLmda=mda_l1, ligandRmda=mda_l2,
                                      ignore_charges_completely=ignore_charges_completely,
                                      ignore_bond_types=ignore_bond_types,
-                                     ignore_coords=ignore_coords)
+                                     ignore_coords=ignore_coords,
+                                     left_coords_are_ref=left_coords_are_ref,
+                                     align_molecules=align_molecules)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
@@ -494,6 +498,42 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
                 mol2_atom.charge = ac_atom.charge
                 break
         assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+
+    # update the mol2 file
+    mol2.atoms.write(mol2_filename)
+
+
+def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, by_index=True):
+    # mol2_filename will be overwritten!
+    print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
+    # load the charges from the .ac file
+    ref_mol2 = topology_superimposer.load_mol2_wrapper(mol2_ref_filename)
+    # load the .mol2 files with MDAnalysis and correct the charges
+    mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+
+    if by_atom_name and by_index:
+        raise ValueError('Cannot have both. They are exclusive')
+    elif not by_atom_name and not by_index:
+        raise ValueError('Either option has to be selected.')
+
+    if by_atom_name:
+        for mol2_atom in mol2.atoms:
+            found_match = False
+            for ref_atom in ref_mol2.atoms:
+                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                    found_match = True
+                    mol2_atom.charge = ref_atom.charge
+                    break
+            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+    elif by_index:
+        for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
+                atype = general_atom_types2[mol2_atom.type.upper()]
+                reftype = general_atom_types2[ref_atom.type.upper()]
+                if atype != reftype:
+                    raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
+
+                mol2_atom.charge = ref_atom.charge
+
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)

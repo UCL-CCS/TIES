@@ -156,11 +156,19 @@ from functools import reduce
 general_atom_types = {
     'C' : {'C', 'CA', 'CB', 'C3'},
     'CL' : {'CL'},
-    'H' : {'H', 'HA', 'HN', 'H4', 'HC'},
-    'O' : {'O'},
+    'H' : {'H', 'HA', 'HN', 'H4', 'HC', 'H1', 'HO'},
+    'O' : {'O', 'OH'},
     'N' : {'N', 'NB', 'NS'},
 }
 # fixme - change this to a simpler version
+general_atom_types2 = {
+    # fixme look up amberforcefield atom types and fill this in
+    'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C',
+    'CL': 'CL',
+    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HO':'H',
+    'O': 'O', 'OH':'O',
+    'N': 'N', 'NB':'N', 'NS':'N',
+}
 
 class AtomNode:
     counter = 1
@@ -440,23 +448,36 @@ class SuperimposedTopology:
         # select the same atoms in MDAnalysis,
         # select separately to keep the order correct
         selection_ids_l = ['bynum ' + str(id) for id in matched_l_ids]
-        mda_l = self.mda_ligandL.select_atoms(*selection_ids_l)
+        mda_l_matched = self.mda_ligandL.select_atoms(*selection_ids_l)
         selection_ids_r = ['bynum ' + str(id) for id in matched_r_ids]
-        mda_r = self.mda_ligandR.select_atoms(*selection_ids_r)
+        mda_r_matched = self.mda_ligandR.select_atoms(*selection_ids_r)
 
-        # translate all atoms to the origin
+        # translate all atoms to the origin of the matched subcomponent
         # using Centre-of-geometry of the matched area
-        left_ligand_original_cog = mda_l.center_of_geometry()
-        self.mda_ligandL.atoms.translate(-mda_l.center_of_geometry())
-        self.mda_ligandR.atoms.translate(-mda_r.center_of_geometry())
+        left_ligand_original_cog = mda_l_matched.center_of_geometry()
+        self.mda_ligandL.atoms.translate(-left_ligand_original_cog)
+        right_ligand_original_cog = mda_r_matched.center_of_geometry()
+        self.mda_ligandR.atoms.translate(-right_ligand_original_cog)
 
-        # apply the rotation matrix to all atoms to match the right ligand to the left ligand
-        R, rmsd = rotation_matrix(mda_r.positions, mda_l.positions)
-        self.mda_ligandR.atoms.rotate(R)
+        # set the right ligand as reference/mobile
+        if self.left_coords_are_ref:
+            ref = mda_l_matched
+            mob = mda_r_matched
+            mob_ligand = self.mda_ligandR
+            ref_cog = left_ligand_original_cog
+        else:
+            ref = mda_r_matched
+            mob = mda_l_matched
+            mob_ligand = self.mda_ligandL
+            ref_cog = right_ligand_original_cog
 
-        # return the ligands to the original position of the left ligand
-        self.mda_ligandL.atoms.translate(left_ligand_original_cog)
-        self.mda_ligandR.atoms.translate(left_ligand_original_cog)
+        # apply the rotation matrix to all atoms to match the mobile ligand to the ref ligand
+        R, rmsd = rotation_matrix(mob.positions, ref.positions)
+        mob_ligand.atoms.rotate(R)
+
+        # the new cog is that of the ref
+        self.mda_ligandL.atoms.translate(ref_cog)
+        self.mda_ligandR.atoms.translate(ref_cog)
 
         # update the atoms with the mapping done via IDs
         # for the left
@@ -1694,6 +1715,15 @@ class SuperimposedTopology:
 
         return True
 
+    def contains_same_atoms_symmetric(self, other_sup_top):
+        """
+        The atoms can be paired differently, but they are the same.
+        """
+        if len(self.nodes.symmetric_difference(other_sup_top.nodes)) == 0:
+            return True
+
+        return False
+
     def has_in_contrast_to(self, sup_top):
         return set(self.matched_pairs).difference(set(sup_top.matched_pairs))
 
@@ -1811,20 +1841,10 @@ class SuperimposedTopology:
         if len(self.matched_pairs) != len(other_sup_top.matched_pairs):
             return False
 
-        for nodeA, nodeB in self.matched_pairs:
-            # find each node in the other sup top
-            nodeA_found = False
-            nodeB_found = False
-            for node1, node2 in other_sup_top.matched_pairs:
-                if nodeA == node1:
-                    nodeA_found = True
-                if nodeB == node2:
-                    nodeB_found = True
+        if self.contains_same_atoms_symmetric(other_sup_top):
+            return True
 
-            if not (nodeA_found and nodeB_found):
-                return False
-
-        return True
+        return False
 
     def add_mirror_suptop(self, suptop):
         assert len(self.matched_pairs) == len(suptop.matched_pairs)
@@ -2307,7 +2327,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            partial_rings_allowed=True,
                            ignore_charges_completely=False,
                            ignore_bond_types=False,
-                           ignore_coords=False):
+                           ignore_coords=False,
+                           left_coords_are_ref=True):
     """
     This is a helper function that managed the entire process.
 
@@ -2341,7 +2362,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     reduce(take_largest, suptops).alignLigandsUsingMatched()
 
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligandLmda, ligandRmda, starting_node_pairs=starting_node_pairs,
-                                      ignore_coords=ignore_coords)
+                                      ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref)
 
     # ignore bond types
     for st in suptops:
@@ -2437,6 +2458,15 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
+    # carry out a check. Each
+    for st in suptops:
+        main_rmsd = st.alignLigandsUsingMatched()
+        for mirror in st.mirrors:
+            mirror_rmsd = mirror.alignLigandsUsingMatched()
+            if mirror_rmsd < main_rmsd:
+                print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
+        st.alignLigandsUsingMatched()
+
     return suptops
 
 
@@ -2449,6 +2479,9 @@ def calculateRmsd(atomPairs):
 
 
 def extractBestSuptop(suptops, ignore_coords):
+    # fixme - ignore coords currently does not work
+    if ignore_coords:
+        raise NotImplementedError('Ignoring coords during superimposition is currently not possible')
     # multiple different paths to traverse the topologies were found
     # this means some kind of symmetry in the topologies
     # For example, in the below drawn case (starting from C1-C11) there are two
@@ -2471,27 +2504,7 @@ def extractBestSuptop(suptops, ignore_coords):
 
     candidates = copy.copy(suptops)
 
-    # compare every two suptops to each other
-    # calculate the rmsd only for the found differences, rather than using
-    # the .rmsd of the entire topology, which can cover up some problems
-    # for st1, st2 in itertools.combinations(suptops, 2):
-    #     selfHasNotSuptop, suptopHasNotSelf = st1.report_differences(st2)
-    #     selfRMSD = calculateRmsd(selfHasNotSuptop)
-    #     otherRMSD = calculateRmsd(suptopHasNotSelf)
-    #     # naively remove the worse canddiate
-    #     if selfRMSD < otherRMSD:
-    #         try:
-    #             candidates.remove(st2)
-    #         except Exception:
-    #             pass
-    #     else:
-    #         try:
-    #             candidates.remove(st1)
-    #         except Exception:
-    #             pass
-    # assert len(candidates) == 1
-
-    # align each and check
+    # align the subcomponent and check
     rmsds = []
     for suptop in candidates:
         rmsd = suptop.alignLigandsUsingMatched()
@@ -2650,7 +2663,10 @@ def removeCandidatesSubgraphs(candidate_suptop, suptops):
     return removed_subgraphs
 
 
-def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes, starting_node_pairs=None, ignore_coords=False):
+def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes,
+                            starting_node_pairs=None,
+                            ignore_coords=False,
+                            left_coords_are_ref=True):
     """
     Superimpose two molecules.
     """
@@ -2677,15 +2693,14 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes, star
 
         # with the given starting two nodes, generate the maximum common component
         suptop = SuperimposedTopology(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes)
+        # fixme turn into a property
+        suptop.left_coords_are_ref = left_coords_are_ref
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
                                     suptop=suptop,
                                     ignore_coords=ignore_coords)
         if candidate_suptop is None or len(candidate_suptop) == 0:
             # there is no overlap, ignore this case
             continue
-
-        # link the suptop to their respective ligands (of no major consequence right now)
-        candidate_suptop.set_tops(top1_nodes, top2_nodes)
 
         # check if the maximal possible solution was found
         # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
