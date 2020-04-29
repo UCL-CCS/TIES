@@ -153,8 +153,9 @@ from io import StringIO
 from functools import reduce
 
 # fixme: change to CA:C dictionary
+# fixme delete this for now
 general_atom_types = {
-    'C' : {'C', 'CA', 'CB', 'C3'},
+    'C' : {'C', 'CA', 'CB', 'C3', 'CX'},
     'CL' : {'CL'},
     'H' : {'H', 'HA', 'HN', 'H4', 'HC', 'H1', 'HO'},
     'O' : {'O', 'OH'},
@@ -162,12 +163,21 @@ general_atom_types = {
 }
 # fixme - change this to a simpler version
 general_atom_types2 = {
-    # fixme look up amberforcefield atom types and fill this in
-    'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C',
+    # taken from http://ambermd.org/antechamber/gaff.html#atomtype
+    'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
+    'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
+    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H',
+    'HO':'H', 'HS':'H', 'HP':'H',  'H2':'H', 'H3': 'H',  'H5':'H',
+    'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
+    'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
+    'O': 'O', 'OH':'O', 'OS':'O',
+    'N': 'N', 'NB':'N', 'NS':'N', 'N1':'N', 'N2':'N', 'N3':'N',
+    'N4':'N', 'NA':'N', 'NH':'N', 'NO':'N', 'NC': 'N',  'ND':'N',
+    'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S', 'SX': 'S', 'SY': 'S',
     'CL': 'CL',
-    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HO':'H',
-    'O': 'O', 'OH':'O',
-    'N': 'N', 'NB':'N', 'NS':'N',
+    'F': 'F',
+    'BR': 'BR',
+    'I': 'I',
 }
 
 class AtomNode:
@@ -185,10 +195,7 @@ class AtomNode:
         self.use_general_type = use_general_type
 
         # save the general type
-        # fixme: simply strip the other info and leave the atom type
-        found = [key for key, names in general_atom_types.items() if self.type in names]
-        assert len(found) == 1, 'Problem with assigning the general type to atom type ' + self.type # can belong only to one table
-        self.gentype = found[0]
+        self.gentype = general_atom_types2[self.type]
 
         self.unique_counter = AtomNode.counter
         AtomNode.counter += 1
