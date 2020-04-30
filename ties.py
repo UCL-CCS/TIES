@@ -106,12 +106,14 @@ morph_solv = workplace_root / "morph_solv.pdb"
 morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
 
 # check if the .frcmod were generated
+# fixme - move checking to the part that generates it? ie that should confirm that files are legit
 left_frcmod = workplace_root / 'left.frcmod'
 right_frcmod = workplace_root / 'right.frcmod'
 if not left_frcmod.is_file():
-    # fixme provide error messages
+    print(f'ERROR: The generation of the {left_frcmod} failed. File not found. ')
     sys.exit(5)
 elif not right_frcmod.is_file():
+    print(f'ERROR: The generation of the {right_frcmod} failed. File not found. ')
     sys.exit(5)
 
 # generate the joint .frcmod file
