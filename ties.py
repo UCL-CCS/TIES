@@ -15,6 +15,7 @@ from pathlib import Path, PurePosixPath
 hpc_submit = 'hpc_surfsara_single_core_ligands.sh'
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
+protein_filename = 'protein.pdb'
 net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')]
 # force_mismatch_list = None
@@ -23,19 +24,22 @@ use_agastyas_charges = True
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 
-
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
 print('Working Directory: ', workplace_root)
 # set the path to the scripts
 code_root = Path(os.path.dirname(__file__))
 
-# todo - check if there is left.pdb and right.pdb
+
+# check if the input files are in the directory
 if not (workplace_root / left_ligand).is_file():
-    print('File left.pdb not found in', workplace_root)
+    print(f'File {left_ligand} not found in {workplace_root}')
     sys.exit(1)
 elif not (workplace_root / right_ligand).is_file():
-    print('File right.pdb not found in', workplace_root)
+    print(f'File {right_ligand} not found in {workplace_root}')
+    sys.exit(1)
+elif not (workplace_root / protein_filename).is_file():
+    print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
 # copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
 script_dir = code_root / PurePosixPath('scripts')
@@ -197,7 +201,7 @@ if not complex_workplace.is_dir():
 
 # prepare the simulation files
 # copy the complex .pdb
-shutil.copy(workplace_root / 'protein.pdb', complex_workplace)
+shutil.copy(workplace_root / protein_filename, complex_workplace)
 # todo - ensure the protein protonation is correct
 # todo - call antechamber?
 
