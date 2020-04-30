@@ -229,6 +229,21 @@ def parse_frcmod_sections(filename):
     return frcmod_info
 
 
+def _merge_frcmod_section(ref_lines, other_lines):
+    """
+    A helper function for merging lines in .frcmod files.
+    Note that the order has to be kept. This is because some lines need to follow other lines.
+    In this case, we exclude lines that are present in ref_lines.
+    fixme - since there are duplicate lines, we need to check the duplicates and their presence,
+    """
+    merged_section = copy.copy(ref_lines)
+    for line in other_lines:
+        if line not in ref_lines:
+            merged_section.append(line)
+
+    return merged_section
+
+
 def join_frcmod_files2(filename1, filename2, output_filename):
     """
     Copied from the previous TIES. It's simpler and this approach must be fine then.
@@ -241,7 +256,7 @@ def join_frcmod_files2(filename1, filename2, output_filename):
 
         for section in ['MASS', 'BOND', 'ANGLE',
                         'DIHE', 'IMPROPER', 'NONBON']:
-            section_lines = set(frcmod_info1[section] + frcmod_info2[section])
+            section_lines = _merge_frcmod_section(frcmod_info1[section], frcmod_info2[section])
             FOUT.write('{0:s}\n'.format(section))
             for line in section_lines:
                 FOUT.write('{0:s}'.format(line))
