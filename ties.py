@@ -23,6 +23,7 @@ use_agastyas_charges = False
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 
+
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
 print('Working Directory: ', workplace_root)
@@ -46,43 +47,33 @@ namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
 
 # fixme - replace with the python API
-antechamber_sqm_script_name = 'assign_charge_parameters.sh'
-assign_charges_antechamber_script_filename = 'assign_charge_parameters_antechamber.sh'
-assign_charges_parmchk2_script_filename = 'assign_charge_parameters_parmchk2.sh'
+assign_charges_antechamber_script = 'assign_charge_parameters_antechamber.sh'
+check_charges_parmchk2_script = 'call_parmchk2.sh'
 
-if not use_agastyas_charges:
-    prepare_antechamber_parmchk2(ambertools_script_dir / antechamber_sqm_script_name,
-                            workplace_root / antechamber_sqm_script_name, net_charge=net_charge)
-    # execute the script (the script has to source amber.sh)
-    # do not do this if there is a .frcmod files
-    if not (workplace_root / 'left.frcmod').is_file():
-        # fixme - add checks for other files
-        output = subprocess.check_output(['sh', workplace_root / antechamber_sqm_script_name, left_ligand, right_ligand])
-        # todo - CHECK IF THE RESULTS ARE CORRECT
-elif use_agastyas_charges:
-    # fixme - create a file that explains that you copied the charges
+# prepare the BCC charges creator that creates the left.mol2 and right.mol2 files
+prepare_antechamber_parmchk2(ambertools_script_dir / assign_charges_antechamber_script,
+                             workplace_root / assign_charges_antechamber_script, net_charge=net_charge)
+if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.mol2').is_file():
+    try:
+        output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script,
+                                          left_ligand, right_ligand])
+    except Exception as E:
+        print('Ambertools antechamber could not generate at least one of the .mol2 files')
+        print(E)
+        raise E
 
-    #
-    prepare_antechamber_parmchk2(ambertools_script_dir/assign_charges_antechamber_script_filename,
-                                 workplace_root/assign_charges_antechamber_script_filename, net_charge=net_charge)
-
-    # create the .mol2 files
-    if not (workplace_root / 'left.frcmod').is_file():
-        try:
-            output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script_filename,
-                                              left_ligand, right_ligand])
-        except Exception as E:
-            print(E.output)
-            raise E
-
-    # take the .mol2 file and correct the charges to reflect Agastya's
+if use_agastyas_charges:
+    print('Copying REST charges from left_q.mol2 and right_q.mol2')
+    # take the .mol2 file and correct the charges to reflect Agastya's RESP
     set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges)
     set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges)
 
-    # copy and execute parmchk2 to generate the .frcmod
-    shutil.copy(ambertools_script_dir/assign_charges_parmchk2_script_filename, workplace_root)
-    if not (workplace_root / 'left.frcmod').is_file():
-        subprocess.check_output(['sh', workplace_root/assign_charges_parmchk2_script_filename, 'left', 'right'])
+# copy and use parmchk2 to generate the .frcmod
+shutil.copy(ambertools_script_dir / check_charges_parmchk2_script, workplace_root)
+subprocess.check_output(['sh', workplace_root / check_charges_parmchk2_script, 'left', 'right'])
+if not (workplace_root / 'left.frcmod').is_file() or \
+        not (workplace_root / 'right.frcmod').is_file():
+    raise Exception('Ambertools antechamber could not generate at least one of the .frcmod files')
 
 
 # load the files (.mol2) and superimpose the two topologies
@@ -133,7 +124,7 @@ try:
     output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
     assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
 except subprocess.CalledProcessError as E:
-    print('Error occured when running tleap script to solvate ligand: ', E.output)
+    print('Error occured when running tleap script to solvate ligand: ', E)
     sys.exit(2)
 # make a copy of the tleap generated topology file with a more useful extension
 if (workplace_root / "morph_solv.prmtop").is_file():
@@ -226,7 +217,7 @@ shutil.copy(ambertools_script_dir / 'run_tleap_complex.sh', complex_workplace)
 try:
     output = subprocess.check_output(['sh', "run_tleap_complex.sh"], cwd=complex_workplace)
 except Exception as ex:
-    print(ex.output)
+    print(ex)
     raise ex
 assert 'Errors = 0' in str(output)
 
