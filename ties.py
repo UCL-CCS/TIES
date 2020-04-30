@@ -73,7 +73,7 @@ elif use_agastyas_charges:
             output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script_filename,
                                               left_ligand, right_ligand])
         except Exception as E:
-            print(E)
+            print(E.output)
             raise E
 
     # take the .mol2 file and correct the charges to reflect Agastya's
@@ -126,8 +126,12 @@ with open(merged_frc_filename, 'w') as FOUT:
 shutil.copy(ambertools_script_dir / "run_tleap.sh", workplace_root)
 shutil.copy(ambertools_script_dir / "leap.in", workplace_root)
 # solvate using AmberTools, copy leap.in and use tleap
-output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
-assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
+try:
+    output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
+    assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
+except subprocess.CalledProcessError as E:
+    print('Error occured when running tleap on the ligand: ', E.output)
+    sys.exit(2)
 # make a copy of the tleap generated topology file with a more useful extension
 if (workplace_root / "morph_solv.prmtop").is_file():
     (workplace_root / "morph_solv.prmtop").unlink() # remove the file
