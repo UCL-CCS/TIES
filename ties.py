@@ -17,10 +17,9 @@ left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
 net_charge = 0
-# force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')]
-# force_mismatch_list = None
+# force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = True
+use_agastyas_charges = False
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 
@@ -110,6 +109,7 @@ morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
 left_frcmod = workplace_root / 'left.frcmod'
 right_frcmod = workplace_root / 'right.frcmod'
 if not left_frcmod.is_file():
+    # fixme provide error messages
     sys.exit(5)
 elif not right_frcmod.is_file():
     sys.exit(5)
@@ -117,6 +117,7 @@ elif not right_frcmod.is_file():
 # generate the joint .frcmod file
 merged_frc_filename = workplace_root / 'morph.frcmod'
 join_frcmod_files2(left_frcmod, right_frcmod, merged_frc_filename)
+
 # fixme
 updated_frcmod = check_hybrid_frcmod(top_merged_filename, merged_frc_filename, '/home/dresio/software/amber18install/bin/tleap', 'gaff')
 with open(merged_frc_filename, 'w') as FOUT:
@@ -130,7 +131,7 @@ try:
     output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
     assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
 except subprocess.CalledProcessError as E:
-    print('Error occured when running tleap on the ligand: ', E.output)
+    print('Error occured when running tleap script to solvate ligand: ', E.output)
     sys.exit(2)
 # make a copy of the tleap generated topology file with a more useful extension
 if (workplace_root / "morph_solv.prmtop").is_file():
