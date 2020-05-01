@@ -256,7 +256,7 @@ def join_frcmod_files2(filename1, filename2, output_filename):
 
         for section in ['MASS', 'BOND', 'ANGLE',
                         'DIHE', 'IMPROPER', 'NONBON']:
-            section_lines = _merge_frcmod_section(frcmod_info1[section], frcmod_info2[section])
+            section_lines = frcmod_info1[section] + frcmod_info2[section]
             FOUT.write('{0:s}\n'.format(section))
             for line in section_lines:
                 FOUT.write('{0:s}'.format(line))
