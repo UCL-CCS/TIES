@@ -22,6 +22,8 @@ net_charge = 0
 use_agastyas_charges = False
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
+# the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
+reassign_left_coor_final = True
 
 
 # set the working directory to the one where the script is called
@@ -67,6 +69,11 @@ if use_agastyas_charges:
     # take the .mol2 file and correct the charges to reflect Agastya's RESP
     set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges)
     set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges)
+
+if reassign_left_coor_final:
+    print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
+    set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand)
+    set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand)
 
 # copy and use parmchk2 to generate the .frcmod
 shutil.copy(ambertools_script_dir / check_charges_parmchk2_script, workplace_root)

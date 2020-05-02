@@ -844,7 +844,9 @@ class SuperimposedTopology:
 
         # make sure any
         for bound_pair, bond_type in bound_pairs:
-            assert bond_type[0] == bond_type[1]
+            if bond_type[0] != bond_type[1]:
+                # fixme - this requires more attention
+                log('While removing a pair noticed that it has a different bond type. ')
             # remove their binding to the removed pair
             bound_pair_bonds = self.matched_pairs_bonds[bound_pair]
             bound_pair_bonds.remove((node_pair, bond_type))
