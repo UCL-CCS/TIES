@@ -2355,7 +2355,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            ignore_charges_completely=False,
                            ignore_bond_types=False,
                            ignore_coords=False,
-                           left_coords_are_ref=True):
+                           left_coords_are_ref=True,
+                           use_only_gentype=False):
     """
     This is a helper function that managed the entire process.
 
@@ -2415,8 +2416,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
     # ensure the actual atom types is correct (general atom type can be used to match atoms)
     # fixme - this is going to be another stage
-    for st in suptops:
-        st.matched_atom_types_are_the_same()
+    if not use_only_gentype:
+        for st in suptops:
+            st.matched_atom_types_are_the_same()
 
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair

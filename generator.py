@@ -19,7 +19,8 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
               ignore_bond_types=False,
               ignore_coords=False,
               left_coords_are_ref=True,
-              align_molecules=True):
+              align_molecules=True,
+              use_only_gentype=False):
     # use mdanalysis to load the files
     # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
@@ -59,7 +60,8 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
                                      ignore_bond_types=ignore_bond_types,
                                      ignore_coords=ignore_coords,
                                      left_coords_are_ref=left_coords_are_ref,
-                                     align_molecules=align_molecules)
+                                     align_molecules=align_molecules,
+                                     use_only_gentype=use_only_gentype)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
