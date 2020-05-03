@@ -82,6 +82,9 @@ if not (workplace_root / 'left.frcmod').is_file() or \
         not (workplace_root / 'right.frcmod').is_file():
     raise Exception('Ambertools antechamber could not generate at least one of the .frcmod files')
 
+# rename the molecule to ensure there is no overlaps
+# todo
+# topology_superimposer.SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
 
 # load the files (.mol2) and superimpose the two topologies
 # fixme - superimpose the molecules or stop relaying on RMSD info

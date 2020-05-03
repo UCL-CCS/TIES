@@ -277,13 +277,19 @@ class AtomNode:
 
         return False
 
-    def sameType(self, atom):
+    def sameGenType(self, atom):
         # fixme - this one or other? some other configuration system?
         if self.use_general_type:
             if self.gentype == atom.gentype:
                 return True
             return False
 
+        if self.type == atom.type.upper():
+            return True
+
+        return False
+
+    def sameExactType(self, atom):
         if self.type == atom.type.upper():
             return True
 
@@ -796,6 +802,18 @@ class SuperimposedTopology:
             # print only the mismatching pairs
             different = set(si_top.matched_pairs).difference(set(self.matched_pairs))
             print(different)
+
+    def matched_atom_types_are_the_same(self):
+        # in order to get the best superimposition, the algorithm will rely on the
+        # general atom type. Ie CA and CD might be matched together to maximise
+        # the size of the superimposition.
+        # This function removes atom types that are not exactly the same.
+        for a1, a2 in self.matched_pairs[::-1]:
+            if not a1.sameExactType(a2):
+                # remove this pair now. It served its purpose to get the best superimposition.
+                # but the atoms "might" have been mutated.
+                self.remove_node_pair((a1, a2))
+                print(f'Removed earlier matched general type:{a1}-{a2}')
 
     def get_net_charge(self):
         """
@@ -1313,7 +1331,7 @@ class SuperimposedTopology:
             self.remove_node_pair((node1, node2))
 
             removed_pairs.append((node1, node2))
-            log('Removed due to the charge incompatibility: ', node1.atomName, node2.atomName)
+            print('Removed due to the charge incompatibility: ', node1.atomName, node2.atomName)
         # keep track of the removed atoms due to the charge
         if not self.removed_due_to_charge is None:
             raise Exception('the charges have already been refined, should not be called twice')
@@ -2072,7 +2090,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
 
     # if the two nodes are "the same"
     # fixme - remove the charges from here, you're not using them anyway for now
-    if not n1.sameType(n2):
+    if not n1.sameGenType(n2):
         # these two atoms have a different type, so return None
         return None
    
@@ -2360,6 +2378,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # ensure that none of the atomName across the two nodes are the same,
     # this is only important when the atoms are found to be different, then the same names should not be used
     # fixme - rename at the end only the ones that are different
+    # fixme - move this funcion out of here, ideally this function would be used to save the .mol2
     SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
     assert len(sameAtomNames) == 0, sameAtomNames
@@ -2394,13 +2413,22 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
 
+    # ensure the actual atom types is correct (general atom type can be used to match atoms)
+    # fixme - this is going to be another stage
+    for st in suptops:
+        st.matched_atom_types_are_the_same()
+
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
     # becomes two different atoms with different IDs
     if use_charges and not ignore_charges_completely:
-        ensure_charges_match(suptops, atol=pair_charge_atol)
+        for sup_top in suptops:
+            sup_top.refineAgainstCharges(atol=pair_charge_atol)
+            if sup_top.removed_due_to_charge:
+                print(f'Removed pairs due to charges {sup_top.removed_due_to_charge}')
 
     # apply the force mismatch at the end
+    #  this is an interactive feature
     if force_mismatch is not None:
         for suptop in suptops:
             for an1, an2 in force_mismatch:
@@ -2421,11 +2449,18 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     # remove the suptop from the list
                     suptops.remove(suptop)
                     break
+            print (f'Removed pairs due to net charge: {suptop._removed_due_to_net_charge}')
 
     if not partial_rings_allowed:
         # remove partial rings, note this is a cascade problem if there are double rings
         for suptop in suptops:
             suptop.enforce_no_partial_rings()
+            print(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+
+    # remove the suptops that are empty
+    for st in suptops[::-1]:
+        if len(st) == 0:
+            suptops.remove(st)
 
     if no_disjoint_components:
         # ensure that each suptop represents one CC
@@ -2777,11 +2812,6 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes,
 
     # fixme - return other info
     return suptops
-
-
-def ensure_charges_match(sup_tops_no_charges, atol=0):
-    for sup_top in sup_tops_no_charges:
-        sup_top.refineAgainstCharges(atol=atol)
 
 
 def resolve_sup_top_multiple_match(sup_tops):
