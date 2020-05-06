@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -J t2rl5l16
+#BSUB -J mrl32l38
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
@@ -10,7 +10,7 @@
 #BSUB -W 55:00
 #BSUB -x
 
-ROOT_WORK=$HCBASE/resp/tyk2_l5_l16
+ROOT_WORK=$HCBASE/resp/mcl1_l32_l38
 cd $ROOT_WORK
 NP=32 # cores per simulation
 HOSTS_PER_SIM=1 # numer of hosts per simulation
@@ -47,7 +47,6 @@ echo "Simulations: ${SIMS[@]}"
 
 
 # get unique hosts
-#LSB_HOSTS="sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6b135.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx sqg6e4.bullx"
 HOSTS=()
 for host in ${LSB_HOSTS};
 do
