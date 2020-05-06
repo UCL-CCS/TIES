@@ -1,20 +1,20 @@
 #!/bin/bash
-#BSUB -J stef
+#BSUB -J t2rl5l16
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
 # 64 cpu * 65 nodes
 # this should be ptile * number of nodes,
-#BSUB -n 8320       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
+#BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 00:50
+#BSUB -W 55:00
 #BSUB -x
 
-ROOT_WORK=$HCBASE/tyk2_l5_l16
+ROOT_WORK=$HCBASE/resp/tyk2_l5_l16
 cd $ROOT_WORK
-NP=128 # cores per simulation
-HOSTS_PER_SIM=4 # numer of hosts per simulation
-LIG_TIMEOUT=$(( 60 * 60 * 10 )) # time out of the ligand simulations: 10 hours
+NP=32 # cores per simulation
+HOSTS_PER_SIM=1 # numer of hosts per simulation
+LIG_TIMEOUT=$(( 60 * 60 * 15 )) # time out of the ligand simulations
 
 
 #Load modules
