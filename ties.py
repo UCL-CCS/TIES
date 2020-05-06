@@ -12,18 +12,18 @@ from pathlib import Path, PurePosixPath
 
 
 # fixme - turn into a function and give it the hpc submit
-hpc_submit = 'hpc_surfsara_single_core_ligands.sh'
+hpc_submit = 'hpc_hartree_hsp.sh'
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
 net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = False
+use_agastyas_charges = True
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
-reassign_left_coor_final = True
+use_original_coor = True
 
 
 # set the working directory to the one where the script is called
@@ -70,7 +70,7 @@ if use_agastyas_charges:
     set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges)
     set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges)
 
-if reassign_left_coor_final:
+if use_original_coor:
     print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
     set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand)
     set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand)
