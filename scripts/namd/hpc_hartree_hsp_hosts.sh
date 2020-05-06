@@ -5,7 +5,7 @@
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
 # 64 cpu * 65 nodes
 # this should be ptile * number of nodes,
-#BSUB -n 128       ##### for 64 cores, total nodes requested 2
+#BSUB -n 256       ##### for 64 cores, total nodes requested 2
 #BSUB -q compbiomed
 #BSUB -W 00:50
 #BSUB -x
@@ -13,8 +13,9 @@
 ROOT_WORK=$HCBASE/tyk2_l5_l16
 cd $ROOT_WORK
 # cores per simulation
-NP=64
-HOSTS_PER_SIM=2 # numer of hosts per simulation
+NP=128
+HOSTS_PER_SIM=4 # numer of hosts per simulation
+LIG_TIMEOUT=$(( 60 * 60 * 10 )) # time out of the ligand simulations: 10 hours
 
 
 #Load modules
@@ -80,21 +81,32 @@ for sim_no in $(seq 1 $SIM_NO); do
 	# get the next simulation
 	SIM=("${SIMS[0]}")
 	echo "Run the next $SIM"
-	# remove it from the list
-	SIMS=("${SIMS[@]:1}")
-	echo "Still left to run: ${SIMS[@]}"
+	SIMS=("${SIMS[@]:1}") # remove it from the list
 
-	cd $ROOT_WORK/complex/$SIM
 	# run the next simulation
+	export I_MPI_PIN=yes
     (
-    	export I_MPI_PIN=yes &&
-    	#mpiexec -n $NP -host $host namd2 +pemap 1-31 +commap 0 min.namd > min.log &&
-    	mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step1.namd > eq_step1.log &&
-	    # mpiexec -n $NP -host $host namd2 +pemap 1-31 +commap 0 eq_step2.namd > eq_step2.log &&
-	    # mpiexec -n $NP -host $host namd2 +pemap 1-31 +commap 0 eq_step3.namd > eq_step3.log &&
-	    # mpiexec -n $NP -host $host namd2 +pemap 1-31 +commap 0 eq_step4.namd > eq_step4.log &&
-	    # mpiexec -n $NP -host $host namd2 +pemap 1-31 +commap 0 prod.namd > prod.log &&
-	    echo "Finished running COMPLEX/$SIM"
+    	cd $ROOT_WORK/lig/$SIM &&
+	    # first is the ligand part with the timeout
+	    ( timeout $LIG_TIMEOUT mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 min.namd > min.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step1.namd > eq_step1.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step2.namd > eq_step2.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step3.namd > eq_step3.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step4.namd > eq_step4.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 prod.namd > prod.log &&
+        echo "Finished running lig/$SIM"
+        ) ;
+        (
+        # then the complex part, no timeout
+        cd $ROOT_WORK/complex/$SIM &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 min.namd > min.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step1.namd > eq_step1.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step2.namd > eq_step2.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step3.namd > eq_step3.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 eq_step4.namd > eq_step4.log &&
+        mpiexec -genv I_MPI_PIN_DOMAIN=auto:compact -n $NP -hosts $HOSTGROUP namd2 +pemap 1-31 +commap 0 prod.namd > prod.log &&
+        echo "Finished running complex/$SIM"
+        )
     ) &
 done
 
