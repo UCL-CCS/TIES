@@ -1,16 +1,16 @@
 #!/bin/bash
 # define an array job
-#BSUB -J ADRP_Rep[1-65]
+#BSUB -J mbl32l38[1-65]
 #BSUB -o std.%J.%I.o
 #BSUB -e std.%J.%I.e
 #BSUB -R "span[ptile=32]"
-#BSUB -n 32
+#BSUB -n 128
 #BSUB -q compbiomed
-#BSUB -W 23:45
+#BSUB -W 30:00
 #BSUB -x
 
-SYSTEM=$HCBASE/tyk2_l5_l16
-NP=32
+SYSTEM=$HCBASE/bcc/mcl1_l32_l38
+NP=128
 
 #Load modules
 source /etc/profile.d/modules.sh
@@ -23,7 +23,6 @@ then
 else # job has ben forwarded to remote queue
     job_id=$LSB_REMOTEJID; array_id=$LSB_REMOTEINDEX
 fi
-
 
 # 13 lambdas: 0 to 12
 lambda_index=$(( ($array_id - 1) / 5 ))
