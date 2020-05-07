@@ -1,5 +1,9 @@
 """
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
+
+# todo - things that have not been done:
+- protonation
+- complex/ligand docking
 """
 from generator import *
 import topology_superimposer
@@ -19,7 +23,7 @@ protein_filename = 'protein.pdb'
 net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = True
+use_agastyas_charges = False
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
@@ -43,7 +47,8 @@ elif not (workplace_root / right_ligand).is_file():
 elif not (workplace_root / protein_filename).is_file():
     print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
-# copy the ambertools.sh for 1) creating .mol2 - antechamber, 2) optimising the structure with sqm
+
+# copy ambertools scripts to create .mol2 with antechamber (and sqm)
 script_dir = code_root / PurePosixPath('scripts')
 namd_script_dir = script_dir / 'namd'
 ambertools_script_dir = script_dir / 'ambertools'
@@ -52,7 +57,7 @@ ambertools_script_dir = script_dir / 'ambertools'
 assign_charges_antechamber_script = 'assign_charge_parameters_antechamber.sh'
 check_charges_parmchk2_script = 'call_parmchk2.sh'
 
-# prepare the BCC charges creator that creates the left.mol2 and right.mol2 files
+# antechamber creates the left.mol2 and right.mol2 files and assigns BCC charges
 prepare_antechamber_parmchk2(ambertools_script_dir / assign_charges_antechamber_script,
                              workplace_root / assign_charges_antechamber_script, net_charge=net_charge)
 if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.mol2').is_file():
@@ -75,74 +80,69 @@ if use_original_coor:
     set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand)
     set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand)
 
-# copy and use parmchk2 to generate the .frcmod
+# fixme rename the molecule to ensure there is no overlaps, to will simplify debugging
+# todo
+# topology_superimposer.SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
+
+# superimpose the two topologies
+suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
+
+# save the superimposition results
+left_right_matching_json = workplace_root / 'joint_meta_fep.json'
+save_superimposition_results(left_right_matching_json, suptop)
+# hybrid .pdb
+write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
+# hybrid .mol2
+hybrid_mol2 = workplace_root / 'morph.mol2'
+write_merged(suptop, hybrid_mol2)
+
+# use parmchk2 to generate the .frcmod
 shutil.copy(ambertools_script_dir / check_charges_parmchk2_script, workplace_root)
 subprocess.check_output(['sh', workplace_root / check_charges_parmchk2_script, 'left', 'right'])
 if not (workplace_root / 'left.frcmod').is_file() or \
         not (workplace_root / 'right.frcmod').is_file():
-    raise Exception('Ambertools antechamber could not generate at least one of the .frcmod files')
+    raise Exception('Ambertools sqm did not generate at least one of the .frcmod files')
 
-# rename the molecule to ensure there is no overlaps
-# todo
-# topology_superimposer.SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
-
-# load the files (.mol2) and superimpose the two topologies
-# fixme - superimpose the molecules or stop relaying on RMSD info
-# fixme - call any of the tools you have (antechamber, parmchk2)
-suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
-
-# save the results of the topology superimposition as a json
-top_sup_joint_meta = workplace_root / 'joint_meta_fep.json'
-save_superimposition_results(top_sup_joint_meta, suptop)
-write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
-# save the merged topologies as a .mol2 file
-top_merged_filename = workplace_root / 'morph.mol2'
-write_merged(suptop, top_merged_filename)
-
-# write a copy of the morph.pdb - fixme
-# correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
-
-# this generates the "merged_solvated.pdb" which does not have .fep information in the .pdb tempfactor columns
-morph_solv = workplace_root / "morph_solv.pdb"
-morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
-
-# check if the .frcmod were generated
-# fixme - move checking to the part that generates it? ie that should confirm that files are legit
+# are .frcmod files generated?
 left_frcmod = workplace_root / 'left.frcmod'
 right_frcmod = workplace_root / 'right.frcmod'
-if not left_frcmod.is_file():
-    print(f'ERROR: The generation of the {left_frcmod} failed. File not found. ')
-    sys.exit(5)
-elif not right_frcmod.is_file():
-    print(f'ERROR: The generation of the {right_frcmod} failed. File not found. ')
-    sys.exit(5)
+if not left_frcmod.is_file() or not right_frcmod.is_file():
+    raise Exception(f'ERROR: Ambertools sqm generation of at least one of the .frcmod files failed. File not found. '
+          f'Please check antechamber log for more details. ')
 
-# generate the joint .frcmod file
-merged_frc_filename = workplace_root / 'morph.frcmod'
-join_frcmod_files2(left_frcmod, right_frcmod, merged_frc_filename)
+# join the .frcmod files
+hybrid_frcmod = workplace_root / 'morph.frcmod'
+join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
 
-# fixme
-updated_frcmod = check_hybrid_frcmod(top_merged_filename, merged_frc_filename, '/home/dresio/software/amber18install/bin/tleap', 'gaff')
-with open(merged_frc_filename, 'w') as FOUT:
+# the hybrid .frcmod might not contains "new terms" between the appearing/disappearing atoms.
+# In that case, insert fake terms
+# fixme - clean up this part: remove the direct call to tleap?
+updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, '/home/dresio/software/amber18install/bin/tleap', 'gaff')
+with open(hybrid_frcmod, 'w') as FOUT:
     FOUT.write(updated_frcmod)
 
+# ------------------   LIGAND ----------------------
+
+# move this to LIG
 # copy the solvate script for tleap
 shutil.copy(ambertools_script_dir / "run_tleap.sh", workplace_root)
 shutil.copy(ambertools_script_dir / "leap.in", workplace_root)
-# solvate using AmberTools, copy leap.in and use tleap
+
 try:
+    # solvate using AmberTools, copy leap.in and use tleap
     output = subprocess.check_output(['sh', workplace_root / "run_tleap.sh"])
     assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
+    # this file should have been generated by tleap
+    morph_solv = workplace_root / "morph_solv.pdb"
+    if not morph_solv.is_file():
+        raise Exception(f'During the solvation in {workplace_root}, tleap did not generate the {morph_solv} file')
 except subprocess.CalledProcessError as E:
     print('Error occured when running tleap script to solvate ligand: ', E)
     sys.exit(2)
-# make a copy of the tleap generated topology file with a more useful extension
-if (workplace_root / "morph_solv.prmtop").is_file():
-    (workplace_root / "morph_solv.prmtop").unlink() # remove the file
-shutil.copy(workplace_root / "morph_solv.top", workplace_root / "morph_solv.prmtop")
 
-# this is applied to the solvated version
-correct_fep_tempfactor(top_sup_joint_meta, morph_solv, morph_solv_fep)
+# create "fep" .pdb with the information about which atoms appear and which disappear (B column)
+morph_solv_fep = workplace_root / "morph_solv_fep.pdb"
+correct_fep_tempfactor(left_right_matching_json, morph_solv, morph_solv_fep)
 
 # take care of the ligand-ligand without the protein
 liglig_workplace = workplace_root / 'lig'
@@ -201,93 +201,102 @@ shutil.copy(script_dir /"check_namd_outputs.py", liglig_workplace)
 ##########################################################
 # ------------------ complex-complex --------------
 
-# fixme - use tleap to merge+solvate, decide on the charges?
+def prepare_inputs(workplace_root, directory='complex', protein=None,
+                   hybrid_top=None, hybrid_frc=None,
+                   left_right_mapping=None,
+                   namd_script_loc=None,
+                   submit_script=None,
+                   scripts_loc=None):
+    # fixme - use tleap to merge+solvate, decide on the charges?
 
-complex_workplace = workplace_root / 'complex'
-if not complex_workplace.is_dir():
-    complex_workplace.mkdir()
+    # fixme rename
+    dest_dir = workplace_root / directory
+    if not dest_dir.is_dir():
+        dest_dir.mkdir()
 
-# prepare the simulation files
-# copy the complex .pdb
-shutil.copy(workplace_root / protein_filename, complex_workplace)
-# todo - ensure the protein protonation is correct
-# todo - call antechamber?
+    # copy the protein complex .pdb
+    shutil.copy(workplace_root / protein, dest_dir)
 
-# copy the ligand (the morphed ligand), and its .frcmod
-shutil.copy(top_merged_filename, complex_workplace)
-shutil.copy(merged_frc_filename, complex_workplace)
+    # copy the hybrid ligand (topology and .frcmod)
+    shutil.copy(hybrid_top, dest_dir)
+    shutil.copy(hybrid_frc, dest_dir)
 
-# todo - dock with the ligand to create a complex
-# copy the protein tleap input file (ambertools)
-shutil.copy(ambertools_script_dir / 'leap_complex.in', complex_workplace)
-shutil.copy(ambertools_script_dir / 'run_tleap_complex.sh', complex_workplace)
+    # copy the protein tleap input file (ambertools)
+    shutil.copy(ambertools_script_dir / 'leap_complex.in', dest_dir / 'leap.in')
+    shutil.copy(ambertools_script_dir / 'run_tleap.sh', dest_dir)
 
-# solvate the complex (tleap, ambertools)
-#      rn tleap also combines complex+ligand, and generates amberparm
-try:
-    output = subprocess.check_output(['sh', "run_tleap_complex.sh"], cwd=complex_workplace)
-except Exception as ex:
-    print(ex)
-    raise ex
-assert 'Errors = 0' in str(output)
+    try:
+        # tleap: combine ligand+complex, solvate, generate amberparm
+        output = subprocess.check_output(['sh', "run_tleap.sh"], cwd=dest_dir)
+    except Exception as ex:
+        print(ex)
+        raise ex
+    assert 'Errors = 0' in str(output)
 
-# tleap generates these
-complex_solvated = complex_workplace / 'morph_solv.pdb'
+    # tleap generated:
+    complex_solvated = dest_dir / 'morph_solv.pdb'
 
-# update the complex to create complex.fep file
-# generate the merged .fep file
-complex_solvated_fep = complex_workplace / 'morph_solv_fep.pdb'
-correct_fep_tempfactor(top_sup_joint_meta, complex_solvated, complex_solvated_fep)
+    # generate the merged .fep file
+    complex_solvated_fep = dest_dir / 'morph_solv_fep.pdb'
+    correct_fep_tempfactor(left_right_mapping, complex_solvated, complex_solvated_fep)
 
-# fixme - ensure that the _fep is only applied to the ligand, not the protein,
-# fixme - check that the protein does not have the same resname
+    # fixme - check that the protein does not have the same resname?
 
-# get the PBC data from MDAnalysis
-solv_box_complex_pbc = get_PBC_coords(complex_solvated)
+    # extract PBC dimensions with MDAnalysis
+    solv_box_complex_pbc = get_PBC_coords(complex_solvated)
 
-# copy the NAMD input files to the main directory first
-# prepare the namd minmisation
-init_namd_file_min(namd_script_dir, complex_workplace, "min.namd",
-                           structure_name='morph_solv', pbc_box=solv_box_complex_pbc)
-eq_namd_filenames = generate_namd_eq(namd_script_dir / "eq.namd", complex_workplace)
-init_namd_file_prod(namd_script_dir, complex_workplace, "prod.namd", structure_name='morph_solv')
+    # prepare NAMD input files for min+eq+prod
+    init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
+                       structure_name='morph_solv', pbc_box=solv_box_complex_pbc)
+    eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
+    init_namd_file_prod(namd_script_loc, dest_dir, "prod.namd", structure_name='morph_solv')
 
-# generate the 4 different constrain .pdb files files, which use b column
-constraint_files = create_4_constraint_files(complex_solvated, complex_workplace)
+    # generate 4 different constraint .pdb files (it uses B column)
+    constraint_files = create_4_constraint_files(complex_solvated, dest_dir)
 
-# Generate the directory structure for all the lambdas, and copy the files
-for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-    lambda_path = complex_workplace / f'lambda_{lambda_step:.2f}'
-    if not os.path.exists(lambda_path):
-        os.makedirs(lambda_path)
+    # Generate the directory structure for all the lambdas, and copy the files
+    for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
+        lambda_path = dest_dir / f'lambda_{lambda_step:.2f}'
+        if not os.path.exists(lambda_path):
+            os.makedirs(lambda_path)
 
-    # for each lambda create 5 replicas
-    for replica_no in range(1, 5 + 1):
-        replica_dir = lambda_path / f'rep{replica_no}'
-        if not os.path.exists(replica_dir):
-            os.makedirs(replica_dir)
+        # for each lambda create 5 replicas
+        for replica_no in range(1, 5 + 1):
+            replica_dir = lambda_path / f'rep{replica_no}'
+            if not os.path.exists(replica_dir):
+                os.makedirs(replica_dir)
 
-        # set the lambda value for the directory
-        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+            # set the lambda value for the directory,
+            # this file is used by NAMD tcl scripts
+            open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
-        # copy all the necessary files
-        shutil.copy(complex_solvated, replica_dir)
-        shutil.copy(complex_solvated_fep, replica_dir)
-        # copy the ambertools generated topology
-        shutil.copy(complex_workplace / "morph_solv.top", replica_dir)
-        # copy the .pdb files with constraints in the B column
-        [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
+            # copy the necessary files
+            shutil.copy(complex_solvated, replica_dir)
+            shutil.copy(complex_solvated_fep, replica_dir)
+            # copy ambertools-generated topology
+            shutil.copy(dest_dir / "morph_solv.top", replica_dir)
+            # copy the .pdb files with constraints in the B column
+            [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
 
-        # copy the NAMD protocol files
-        shutil.copy(complex_workplace / "min.namd", replica_dir)
-        [shutil.copy(eq, replica_dir) for eq in eq_namd_filenames]
-        shutil.copy(complex_workplace / "prod.namd", replica_dir)
+            # copy the NAMD protocol files
+            shutil.copy(dest_dir / "min.namd", replica_dir)
+            [shutil.copy(eq, replica_dir) for eq in eq_namd_filenames]
+            shutil.copy(dest_dir / "prod.namd", replica_dir)
 
-        # copy the surfsara submit script - fixme - make this general
-        shutil.copy(namd_script_dir / hpc_submit, replica_dir / 'submit.sh')
+            # copy the surfsara submit script - fixme - make this general
+            if submit_script is not None:
+                shutil.copy(namd_script_loc / hpc_submit, replica_dir / 'submit.sh')
 
-# copy the scheduler to the main directory
-shutil.copy(script_dir / "schedule_separately.py", complex_workplace)
-shutil.copy(script_dir / "check_namd_outputs.py", complex_workplace)
+    # copy handy scripts to the main directory
+    shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)
+    shutil.copy(scripts_loc / "check_namd_outputs.py", dest_dir)
+    shutil.copy(namd_script_loc / "extract_energies.py", dest_dir)
 
 
+prepare_inputs(workplace_root, directory='complex',
+               protein=protein_filename,
+               hybrid_top=hybrid_mol2,
+               hybrid_frc=hybrid_frcmod,
+               left_right_mapping=left_right_matching_json,
+               namd_script_loc=namd_script_dir,
+               scripts_loc=script_dir)
