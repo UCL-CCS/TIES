@@ -1,9 +1,5 @@
 """
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
-
-# todo - things that have not been done:
-- protonation
-- complex/ligand docking
 """
 from generator import *
 import topology_superimposer
@@ -23,7 +19,7 @@ protein_filename = 'protein.pdb'
 net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = False
+use_agastyas_charges = True
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
@@ -126,7 +122,7 @@ with open(hybrid_frcmod, 'w') as FOUT:
 # move this to LIG
 # copy the solvate script for tleap
 shutil.copy(ambertools_script_dir / "run_tleap.sh", workplace_root)
-shutil.copy(ambertools_script_dir / "leap.in", workplace_root)
+shutil.copy(ambertools_script_dir / "leap_ligand.in", workplace_root / 'leap.in')
 
 try:
     # solvate using AmberTools, copy leap.in and use tleap
@@ -202,11 +198,12 @@ shutil.copy(script_dir /"check_namd_outputs.py", liglig_workplace)
 # ------------------ complex-complex --------------
 
 def prepare_inputs(workplace_root, directory='complex', protein=None,
-                   hybrid_top=None, hybrid_frc=None,
+                   hybrid_mol2=None, hybrid_frc=None,
                    left_right_mapping=None,
                    namd_script_loc=None,
                    submit_script=None,
-                   scripts_loc=None):
+                   scripts_loc=None,
+                   tleap_in=None):
     # fixme - use tleap to merge+solvate, decide on the charges?
 
     # fixme rename
@@ -215,14 +212,15 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
         dest_dir.mkdir()
 
     # copy the protein complex .pdb
-    shutil.copy(workplace_root / protein, dest_dir)
+    if protein is not None:
+        shutil.copy(workplace_root / protein, dest_dir)
 
     # copy the hybrid ligand (topology and .frcmod)
-    shutil.copy(hybrid_top, dest_dir)
+    shutil.copy(hybrid_mol2, dest_dir)
     shutil.copy(hybrid_frc, dest_dir)
 
     # copy the protein tleap input file (ambertools)
-    shutil.copy(ambertools_script_dir / 'leap_complex.in', dest_dir / 'leap.in')
+    shutil.copy(ambertools_script_dir / tleap_in, dest_dir / 'leap.in')
     shutil.copy(ambertools_script_dir / 'run_tleap.sh', dest_dir)
 
     try:
@@ -292,11 +290,21 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     shutil.copy(scripts_loc / "check_namd_outputs.py", dest_dir)
     shutil.copy(namd_script_loc / "extract_energies.py", dest_dir)
 
+# prepare_inputs(workplace_root, directory='lig',
+#                protein=None,
+#                hybrid_mol2=hybrid_mol2,
+#                hybrid_frc=hybrid_frcmod,
+#                left_right_mapping=left_right_matching_json,
+#                namd_script_loc=namd_script_dir,
+#                scripts_loc=script_dir,
+#                tleap_in='leap_ligand.in')
 
 prepare_inputs(workplace_root, directory='complex',
                protein=protein_filename,
-               hybrid_top=hybrid_mol2,
+               hybrid_mol2=hybrid_mol2,
                hybrid_frc=hybrid_frcmod,
                left_right_mapping=left_right_matching_json,
                namd_script_loc=namd_script_dir,
-               scripts_loc=script_dir)
+               scripts_loc=script_dir,
+               tleap_in='leap_complex.in')
+
