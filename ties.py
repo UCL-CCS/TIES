@@ -290,10 +290,4 @@ for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
 shutil.copy(script_dir / "schedule_separately.py", complex_workplace)
 shutil.copy(script_dir / "check_namd_outputs.py", complex_workplace)
 
-# fixme States show the progress of the simulation.
-
-# use the preprepared pdb complex with the ligand
-# solvate the preprepared pdb complex with the ligand
-# generate all the merged files
-
 
