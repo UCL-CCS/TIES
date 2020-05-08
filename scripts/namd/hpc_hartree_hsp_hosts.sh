@@ -1,21 +1,21 @@
 #!/bin/bash
-#BSUB -J mrl32l38
+#BSUB -J trl5l16
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
-# 64 cpu * 65 nodes
 # this should be ptile * number of nodes,
 #BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 55:00
+#BSUB -W 35:00
 #BSUB -x
 
-ROOT_WORK=$HCBASE/resp/mcl1_l32_l38
+ROOT_WORK=$HCBASE/resp/tyk2_l5_l16
 cd $ROOT_WORK
 NP=32 # cores per simulation
 HOSTS_PER_SIM=1 # numer of hosts per simulation
 LIG_TIMEOUT=$(( 60 * 60 * 15 )) # time out of the ligand simulations
 
+env > last_used_env
 
 #Load modules
 source /etc/profile.d/modules.sh
@@ -24,13 +24,20 @@ module load namd-gcc/2.12
 # generate all the simulations you want to run:
 declare -a lambdas=(0.00 0.05 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 0.95 1.00)
 declare -a replicas=(1 2 3 4 5)
-# declare -a lambdas=(0.50) # testing
+# declare -a lambdas=(0.60) # testing
 # declare -a replicas=(1 2) # testing
 echo "Number lambdas: ${#lambdas[@]}"
 echo "Number replicas: ${#replicas[@]}"
 
+if [ -z $LSB_REMOTEJID ] # runs in local queue
+then
+    GRANTED_HOSTS=$LSB_HOSTS
+else # job has ben forwarded to remote queue
+    GRANTED_HOSTS=$LSB_MCPU_HOSTS
+fi
+
 # print the number of threads
-IFS=' ' read -r -a HOSTS_ARR <<< "${LSB_HOSTS}"
+IFS=' ' read -r -a HOSTS_ARR <<< "${GRANTED_HOSTS}"
 echo "Number of hyper thread cores: ${#HOSTS_ARR[@]}"
 
 # get simulations
@@ -48,7 +55,7 @@ echo "Simulations: ${SIMS[@]}"
 
 # get unique hosts
 HOSTS=()
-for host in ${LSB_HOSTS};
+for host in ${GRANTED_HOSTS};
 do
 	# ignore the host if it's in the list already
 	if [[ "${HOSTS[@]}" =~ "${host}" ]]; then
