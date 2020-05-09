@@ -1,20 +1,21 @@
 #!/bin/bash
-#BSUB -J trl5l16
+#BSUB -J mrl32l42
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
 # this should be ptile * number of nodes,
-#BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
+#BSUB -n 4160       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 35:00
+#BSUB -W 20:00
 #BSUB -x
 
-ROOT_WORK=$HCBASE/resp/tyk2_l5_l16
+ROOT_WORK=$HCBASE/resp/mcl1_l32_l42
 cd $ROOT_WORK
-NP=32 # cores per simulation
-HOSTS_PER_SIM=1 # numer of hosts per simulation
-LIG_TIMEOUT=$(( 60 * 60 * 15 )) # time out of the ligand simulations
+NP=64 # cores per simulation
+HOSTS_PER_SIM=2 # numer of hosts per simulation
+LIG_TIMEOUT=$(( 60 * 60 * 7 )) # time out of the ligand simulations
 
+echo "Time start" `date`
 env > last_used_env
 
 #Load modules
@@ -119,3 +120,4 @@ done
 echo "END: Sim that were not scheduled: ${SIMS[@]}"
 
 wait
+echo "Time End" `date`
