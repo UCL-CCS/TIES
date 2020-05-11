@@ -348,6 +348,11 @@ class SuperimposedTopology:
     def __init__(self, topology1=None, topology2=None, mdaL=None, mdaR=None):
         self.mda_ligandL = mdaL
         self.mda_ligandR = mdaR
+
+        self.can_use_mda = True
+        if self.mda_ligandL is None or self.mda_ligandR is None:
+            print("Cannot use MDAnalysis aligning. Will be superimposing the molecule without aligning.")
+            self.can_use_mda = False
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
         """
@@ -452,6 +457,10 @@ class SuperimposedTopology:
         Use MDAnalysis for this.
         #fixme - in the future, all the work should be carried out on MDAnalysis?
         """
+        if not self.can_use_mda:
+            # cannot use MDA for aligning the ligands.
+            # Simply return the rmsd of the current setting instead
+            return self.rmsd()
 
         # extract the IDs and use them to pick the atoms in MDAnalysis
         # note that the order matters
@@ -2715,7 +2724,7 @@ def removeCandidatesSubgraphs(candidate_suptop, suptops):
     return removed_subgraphs
 
 
-def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes,
+def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=None,
                             starting_node_pairs=None,
                             ignore_coords=False,
                             left_coords_are_ref=True,

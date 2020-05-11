@@ -2,8 +2,7 @@
 These tests focus on the generator (preprocessing of the input before applying superimpose_topologies
 """
 
-from topology_superimposer import superimpose_topologies, AtomNode
-from generator import rename_ligands
+from topology_superimposer import superimpose_topologies, AtomNode, SuperimposedTopology
 
 
 def test_same_atomNames_renamed():
@@ -122,7 +121,8 @@ def test_same_atomNames_renamed():
 
     # we have to discriminate against this case somehow
     # suptops = superimpose_topologies(top1_list, top2_list)
-    rename_ligands(top1_list, top2_list)
+
+    SuperimposedTopology.rename_ligands(top1_list, top2_list)
     same_names = []
     for n1 in top1_list:
         for n2 in top2_list:
