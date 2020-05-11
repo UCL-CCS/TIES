@@ -19,7 +19,7 @@ protein_filename = 'protein.pdb'
 net_charge = -1
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = True
+use_agastyas_charges = False
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2

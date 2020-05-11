@@ -2065,7 +2065,7 @@ def solve_one_combination(one_atom_spieces, ignore_coords):
     raise Exception('not implemented')
 
 
-def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coords=False):
+def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coords=False, useGenType=True):
     """
     n1 should be from one graph, and n2 should be from another.
 
@@ -2090,7 +2090,10 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
 
     # if the two nodes are "the same"
     # fixme - remove the charges from here, you're not using them anyway for now
-    if not n1.sameGenType(n2):
+    if useGenType and not n1.sameGenType(n2):
+        # these two atoms have a different type, so return None
+        return None
+    elif not useGenType and not n1.sameExactType(n2):
         # these two atoms have a different type, so return None
         return None
    
@@ -2194,7 +2197,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
                                               parent_n1=n1, parent_n2=n2,
                                               bond_types=(btype1, btype2),
                                               suptop=copy.copy(suptop),
-                                              ignore_coords=ignore_coords)
+                                              ignore_coords=ignore_coords,
+                                              useGenType=useGenType)
                     # if they were different type, etc, ignore
                     if bond_solutions is None:
                         continue
@@ -2356,6 +2360,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            ignore_bond_types=False,
                            ignore_coords=False,
                            left_coords_are_ref=True,
+                           use_general_type=True,
                            use_only_gentype=False):
     """
     This is a helper function that managed the entire process.
@@ -2391,7 +2396,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     reduce(take_largest, suptops).alignLigandsUsingMatched()
 
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligandLmda, ligandRmda, starting_node_pairs=starting_node_pairs,
-                                      ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref)
+                                      ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref,
+                                      use_general_type=use_general_type)
 
     # ignore bond types
     for st in suptops:
@@ -2712,7 +2718,8 @@ def removeCandidatesSubgraphs(candidate_suptop, suptops):
 def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes,
                             starting_node_pairs=None,
                             ignore_coords=False,
-                            left_coords_are_ref=True):
+                            left_coords_are_ref=True,
+                            use_general_type=True):
     """
     Superimpose two molecules.
     """
@@ -2743,7 +2750,8 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes,
         suptop.left_coords_are_ref = left_coords_are_ref
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
                                     suptop=suptop,
-                                    ignore_coords=ignore_coords)
+                                    ignore_coords=ignore_coords,
+                                    useGenType=use_general_type)
         if candidate_suptop is None or len(candidate_suptop) == 0:
             # there is no overlap, ignore this case
             continue

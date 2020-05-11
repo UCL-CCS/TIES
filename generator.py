@@ -61,6 +61,7 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
                                      ignore_coords=ignore_coords,
                                      left_coords_are_ref=left_coords_are_ref,
                                      align_molecules=align_molecules,
+                                     use_general_type=use_general_type,
                                      use_only_gentype=use_only_gentype)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
