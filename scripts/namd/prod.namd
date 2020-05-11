@@ -11,7 +11,7 @@ set inputname      eq_out_4;
 bincoordinates     $inputname.coor;    # coordinates from last run (binary)
 binvelocities      $inputname.vel;     # velocities from last run (binary)
 extendedSystem     $inputname.xsc;     # cell dimensions from last run
-restartfreq        500000;              # 500 steps = every 1ps
+restartfreq        50000;              # 500 steps = every 1ps
 dcdfreq            10000;
 binaryoutput       yes;
 binaryrestart      yes;
