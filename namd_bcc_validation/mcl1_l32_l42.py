@@ -82,8 +82,7 @@ elif use_agastyas_charges:
 # load the files (.mol2) and superimpose the two topologies
 # fixme - superimpose the molecules or stop relaying on RMSD info
 # fixme - call any of the tools you have (antechamber, parmchk2)
-suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
-                                   no_disjoint_components=False, net_charge_filter=False)
+suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
 # save the results of the topology superimposition as a json
 top_sup_joint_meta = workplace_root / 'joint_meta_fep.json'
