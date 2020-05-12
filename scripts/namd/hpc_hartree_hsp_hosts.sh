@@ -1,23 +1,24 @@
 #!/bin/bash
-#BSUB -J tbl1l3
+#BSUB -J trl1l6
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
 # this should be ptile * number of nodes,
 #BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 30:00
+#BSUB -W 20:00
 #BSUB -x
 
 """
 This script is a simpler variation of the other one that has fewer dependancies.
 """
 
-ROOT_WORK=$HCBASE/bcc/tyk2_l1_l3
+ROOT_WORK=$HCBASE/resp/tyk2_l1_l6
 cd $ROOT_WORK
 NP=32 # cores per simulation
 HOSTS_PER_SIM=1 # numer of hosts per simulation
 LIG_TIMEOUT=$(( 60 * 60 * 8 )) # time out of the ligand simulations
+LIG_TIMEOUT=1
 
 echo "Time start" `date`
 env > last_used_env
@@ -105,23 +106,23 @@ for sim_no in $(seq 1 $SIM_NO); do
 	    # first is the ligand part with the timeout
 	    ( cd $ROOT_WORK/lig/$SIM &&
 	    timeout $LIG_TIMEOUT echo "Ligand simulation start" &&
-	    if grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
-        if grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
+	    if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
+        if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
         echo "Finished running lig/$SIM"
         ) ;
         (
         # then the complex part, no timeout
         cd $ROOT_WORK/complex/$SIM &&
-        if grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
-        if grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
-        if grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
+        if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
+        if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
         echo "Finished running complex/$SIM"
         )
     ) &
