@@ -351,7 +351,6 @@ class SuperimposedTopology:
 
         self.can_use_mda = True
         if self.mda_ligandL is None or self.mda_ligandR is None:
-            print("Cannot use MDAnalysis aligning. Will be superimposing the molecule without aligning.")
             self.can_use_mda = False
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
@@ -448,6 +447,7 @@ class SuperimposedTopology:
         return self.unique_atom_count
 
     def alignLigandsUsingMatched(self):
+        return self.rmsd()
         """
         Align the two ligands using the matched area.
         Note: we assume that the left ligand is docked. The left ligand is the reference here.
@@ -2390,13 +2390,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if not ignore_charges_completely:
         whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
-    # ensure that none of the atomName across the two nodes are the same,
-    # this is only important when the atoms are found to be different, then the same names should not be used
-    # fixme - rename at the end only the ones that are different
-    # fixme - move this funcion out of here, ideally this function would be used to save the .mol2
-    SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
+    # ensure that none of the atom names across the two molecules are the different
     sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
-    assert len(sameAtomNames) == 0, sameAtomNames
+    assert len(sameAtomNames) == 0, f"The molecules have the same atom names. This is now allowed. They are: {sameAtomNames}"
 
     # prealign the 3D coordinates before applaying further changes
     # todo
