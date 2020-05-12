@@ -1,16 +1,16 @@
 #!/bin/bash
 # define an array job
-#BSUB -J mbl32l38[1-65]
+#BSUB -J trl1l3[1-65]
 #BSUB -o std.%J.%I.o
 #BSUB -e std.%J.%I.e
 #BSUB -R "span[ptile=32]"
-#BSUB -n 128
+#BSUB -n 64
 #BSUB -q compbiomed
-#BSUB -W 30:00
+#BSUB -W 25:00
 #BSUB -x
 
-SYSTEM=$HCBASE/bcc/mcl1_l32_l38
-NP=128
+SYSTEM=$HCBASE/resp/tyk2_l1_l3
+NP=64
 
 #Load modules
 source /etc/profile.d/modules.sh
@@ -30,12 +30,15 @@ lambda_index=$(( ($array_id - 1) / 5 ))
 replica=$(( $array_id - $lambda_index * 5 ))
 echo "lambda $lambda_index"
 echo "replica $replica"
+env > out%J_env_$array_id
 
 # look up the lambda in a list
 declare -a lambdas=(0.00 0.05 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 0.95 1.00)
 # declare -a replicas=(1 2 3 4 5)
 lambda=${lambdas[$lambda_index]}
 echo "lambda $lambda"
+
+cmd_mpinamd="mpiexec -n $NP namd2 +pemap 1-31 +commap 0"
 
 # check the ligand first
 cd $SYSTEM/lig
@@ -44,37 +47,44 @@ cd lambda_$lambda/rep$replica
 if test -f min.log && grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log; then
     echo "LIG MIN ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 min.namd > min.log
+    echo "LIG MIN"
+	${cmd_mpinamd} min.namd > min.log
 fi
 # eq1
 if test -f eq_step1.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log; then
     echo "LIG EQ1 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step1.namd > eq_step1.log
+    echo "LIG EQ1"
+	${cmd_mpinamd} eq_step1.namd > eq_step1.log
 fi
 # eq2
 if test -f eq_step2.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log; then
     echo "LIG EQ2 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step2.namd > eq_step2.log
+    echo "LIG EQ2"
+	${cmd_mpinamd} eq_step2.namd > eq_step2.log
 fi
 # eq3
 if test -f eq_step3.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log; then
     echo "LIG EQ3 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step3.namd > eq_step3.log
+    echo "LIG EQ3"
+	${cmd_mpinamd} eq_step3.namd > eq_step3.log
 fi
 # eq4
 if test -f eq_step4.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log; then
     echo "LIG EQ4 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step4.namd > eq_step4.log
+    echo "LIG EQ4"
+	${cmd_mpinamd} eq_step4.namd > eq_step4.log
 fi
+
 # prod
 if test -f prod.log && grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log; then
     echo "LIG PROD ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 prod.namd > prod.log
+    echo "LIG PROD"
+	${cmd_mpinamd} prod.namd > prod.log
 fi
 
 # check the ligand first
@@ -84,35 +94,41 @@ cd lambda_$lambda/rep$replica
 if test -f min.log && grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log; then
     echo "COMPLEX MIN ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 min.namd > min.log
+    echo "COMPLEX MIN"
+	${cmd_mpinamd} min.namd > min.log
 fi
 # eq1
 if test -f eq_step1.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log; then
     echo "COMPLEX EQ1 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step1.namd > eq_step1.log
+    echo "COMPLEX EQ1"
+	${cmd_mpinamd} eq_step1.namd > eq_step1.log
 fi
 # eq2
 if test -f eq_step2.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log; then
     echo "COMPLEX EQ2 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step2.namd > eq_step2.log
+    echo "COMPLEX EQ2"
+	${cmd_mpinamd} eq_step2.namd > eq_step2.log
 fi
 # eq3
 if test -f eq_step3.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log; then
     echo "COMPLEX EQ3 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step3.namd > eq_step3.log
+    echo "COMPLEX EQ3"
+	${cmd_mpinamd} eq_step3.namd > eq_step3.log
 fi
 # eq4
 if test -f eq_step4.log && grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log; then
     echo "COMPLEX EQ4 ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 eq_step4.namd > eq_step4.log
+    echo "COMPLEX EQ4"
+	${cmd_mpinamd} eq_step4.namd > eq_step4.log
 fi
 # prod
 if test -f prod.log && grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log; then
     echo "COMPLEX PROD ALREADY DONE"
 else
-	mpiexec -n $NP namd2 +pemap 1-31 +commap 0 prod.namd > prod.log
+    echo "COMPLEX PROD"
+	${cmd_mpinamd} prod.namd > prod.log
 fi
