@@ -7,6 +7,7 @@ import os
 import sys
 import subprocess
 
+finished_sims = []
 for lambda_dir in os.listdir('.'):
     if not lambda_dir.startswith('lambda_'):
         continue
@@ -25,6 +26,11 @@ for lambda_dir in os.listdir('.'):
                 print('Eq not finished: %s' % rep_dir)
             if not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
                 print('Prod not finished: %s' % rep_dir)
+            else:
+                finished_sims.append(os.path.join(rep_dir, 'prod.log'))
         except Exception as e:
             print('Some files were not even created:', rep_dir)
             print(e)
+
+print('Total number of finished simulations: ', len(finished_sims))
+print('Which are: ', finished_sims)
