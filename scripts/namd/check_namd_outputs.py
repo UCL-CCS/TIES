@@ -2,6 +2,7 @@
 # would through the lambda directories
 # and schedule each simulation
 # fixme - could check if the simulation is finished/running etc, in that case ignore
+# fixme - should check how far the simulation got?
 """
 import os
 import sys

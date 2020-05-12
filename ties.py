@@ -26,12 +26,12 @@ right_charges = 'right_q.mol2'
 use_original_coor = True
 
 
+
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
 print('Working Directory: ', workplace_root)
 # set the path to the scripts
 code_root = Path(os.path.dirname(__file__))
-
 
 # check if the input files are in the directory
 if not (workplace_root / left_ligand).is_file():
@@ -58,6 +58,7 @@ prepare_antechamber_parmchk2(ambertools_script_dir / assign_charges_antechamber_
                              workplace_root / assign_charges_antechamber_script, net_charge=net_charge)
 if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.mol2').is_file():
     try:
+        print('Generating BCC charges with ambertool')
         output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script,
                                           left_ligand, right_ligand])
     except Exception as E:
@@ -67,18 +68,23 @@ if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.
 
 if use_agastyas_charges:
     print('Copying REST charges from left_q.mol2 and right_q.mol2')
+    # make a copy of the files before modifying them
+    shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_RESP.mol2')
+    shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_RESP.mol2')
     # take the .mol2 file and correct the charges to reflect Agastya's RESP
     set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges)
     set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges)
 
 if use_original_coor:
     print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
+    # copy the files before applying the coordinates
+    shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
+    shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
     set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand)
     set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand)
 
-# fixme rename the molecule to ensure there is no overlaps, to will simplify debugging
-# todo
-# topology_superimposer.SuperimposedTopology.rename_ligands(top1_nodes, top2_nodes)
+# rename the atom names to ensure they are unique across the two molecules
+ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
 # superimpose the two topologies
 suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
@@ -173,7 +179,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
                        structure_name='morph_solv', pbc_box=solv_box_complex_pbc)
     eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
-    init_namd_file_prod(namd_script_loc, dest_dir, "prod.namd", structure_name='morph_solv')
+    shutil.copy(namd_script_loc / "prod.namd", dest_dir)
 
     # generate 4 different constraint .pdb files (it uses B column)
     constraint_files = create_4_constraint_files(complex_solvated, dest_dir)

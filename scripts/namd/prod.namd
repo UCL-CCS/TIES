@@ -1,6 +1,6 @@
 amber on
-coordinates        {structure_name}.pdb
-parmfile           {structure_name}.top
+coordinates        morph_solv.pdb
+parmfile           morph_solv.top
 
 set temp           300;
 set outputname     prod;               # base name for output from this run
@@ -8,9 +8,13 @@ set outputname     prod;               # base name for output from this run
                                        # in the format of first-dyn.coor and first-dyn.vel
 outputName         $outputname
 set inputname      eq_out_4;
-bincoordinates     $inputname.coor;    # coordinates from last run (binary)
-binvelocities      $inputname.vel;     # velocities from last run (binary)
-extendedSystem     $inputname.xsc;     # cell dimensions from last run
+# do not set these if this is an extension script
+set xsc_filename "prod.restart.xsc"
+if { [file exists $xsc_filename] == 0} {
+    bincoordinates     $inputname.coor;    # coordinates from last run (binary)
+    binvelocities      $inputname.vel;     # velocities from last run (binary)
+    extendedSystem     $inputname.xsc;     # cell dimensions from last run
+}
 restartfreq        50000;              # 500 steps = every 1ps
 dcdfreq            10000;
 binaryoutput       yes;
@@ -46,12 +50,12 @@ switchdist          10.0;              # cutoff - 2.
                                        # correspondence in charmm:
                                        # (cutnb,ctofnb,ctonnb = pairlistdist,cutoff,switchdist)
 pairlistdist        13.5;              # stores the all the pairs with in the distance it should be larger
-                                       # than cutoff( + 2.) 
+                                       # than cutoff( + 2.)
 stepspercycle       10;                # 20 redo pairlists every ten steps
-pairlistsPerCycle    2;                # 2 is the default 
+pairlistsPerCycle    2;                # 2 is the default
                                        # cycle represents the number of steps between atom reassignments
                                        # this means every 20/2=10 steps the pairlist will be updated
-                          
+
 # Integrator Parameters
 timestep            2.0;               # fs/step
 rigidBonds          all;               # Bound constraint all bonds involving H are fixed in length
@@ -69,11 +73,11 @@ PMEGridSpacing       1;
 # Constant Pressure Control (variable volume)
 useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
                                        # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
-useFlexibleCell        no;             # yes for anisotropic system like membrane 
+useFlexibleCell        no;             # yes for anisotropic system like membrane
 
 langevinPiston          on;            # Nose-Hoover Langevin piston pressure control
-langevinPistonTarget  1.01325;         # target pressure in bar 1atm = 1.01325bar 
-langevinPistonPeriod  50.0;            # oscillation period in fs. correspond to pgamma T=50fs=0.05ps 
+langevinPistonTarget  1.01325;         # target pressure in bar 1atm = 1.01325bar
+langevinPistonPeriod  50.0;            # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
                                        # f=1/T=20.0(pgamma)
 langevinPistonDecay   25.0;            # oscillation decay time. smaller value correspons to larger random
                                        # forces and increased coupling to the Langevin temp bath.
@@ -89,9 +93,12 @@ langevinHydrogen       off;            # don't couple bath to hydrogens
 # run Alchemistry
 alch            on
 alchType        ti
-alchFile        {structure_name}_fep.pdb
+alchFile        morph_solv_fep.pdb
 alchCol         B
-alchOutFile     $outputname.alch
+# do not set if it this is an extension script
+if { [file exists $xsc_filename] == 0} {
+    alchOutFile     $outputname.alch
+}
 alchOutFreq     1000
 
 alchVdwShiftCoeff       5
@@ -105,6 +112,56 @@ set lambda_value [read $lambda_f]
 puts "Lambda value is $lambda_value"
 close $lambda_f
 
-firsttimestep       0
+set total_sim_time 3000000  ; # total time 6ns
+
+# check if this is a restart, if so, continue form the last point
+set xsc_filename "prod.restart.xsc"
+if { [file exists $xsc_filename] == 1} {
+	puts "The production simulation was run before"
+	puts "Restarting the simulation"
+
+	# read the xsc file
+	set restart_xsc [open $xsc_filename r]
+	set xsc_content [read $restart_xsc]
+	close $restart_xsc
+
+	# split on new line
+	set lines [split $xsc_content "\n"] ;
+	foreach line $lines {
+		# ignore comment lines starting with "#"
+		if {[string match "#*" $line]} {
+			continue
+		}
+		if {[string trim $line] == ""} {
+		    continue
+		}
+		# extract the timestep of the restart
+		regexp {^([0-9]*)} $line timestep
+		puts "Previous simulation finished at timestep: $timestep"
+		if {$total_sim_time != $timestep} {
+			puts "Extension needed"
+			set run_time [expr {$total_sim_time - $timestep}]
+			puts "Will run additionall $run_time timesteps"
+
+			binCoordinates prod.restart.coor ;# coordinates from last run (binary)
+			binVelocities prod.restart.vel ;# velocities from last run (binary)
+			extendedSystem prod.restart.xsc ;# cell dimensions from last run
+			firsttimestep   $timestep
+			# do not overwrite the existing file
+			alchOutFile     ${outputname}_$timestep.alch
+		} else {
+			puts "Simulation was finished previosly"
+			puts "Aborting"
+			exit
+		}
+	}
+} else {
+	puts "No restart file found."
+	puts "A new production simulation will be start."
+	set run_time $total_sim_time
+	puts "Will run $run_time timesteps"
+	firsttimestep       0
+}
+
 alchLambda          $lambda_value
-run                 3000000;             # 6 ns
+run                 $run_time;             # 6 ns
