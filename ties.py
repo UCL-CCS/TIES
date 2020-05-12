@@ -213,7 +213,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
     # copy handy scripts to the main directory
     shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)
-    shutil.copy(scripts_loc / "check_namd_outputs.py", dest_dir)
+    shutil.copy(namd_script_loc / "check_namd_outputs.py", dest_dir)
     shutil.copy(namd_script_loc / "extract_energies.py", dest_dir)
 
 ##########################################################
