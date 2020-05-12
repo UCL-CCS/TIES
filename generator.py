@@ -9,7 +9,6 @@ import copy
 import MDAnalysis as mda
 import topology_superimposer
 import shutil
-import subprocess
 
 
 def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
@@ -65,6 +64,123 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
                                      use_only_gentype=use_only_gentype)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
+
+
+def ensureUniqueAtomNames(left_mol2, right_mol2):
+    """
+    Ensure that each has a name that is unique to both files.
+
+    # rename the ligand to ensure that no atom has the same name
+    # name atoms using the first letter (C, N, ..) and count them
+    # keep the names if possible (ie if they are already different)
+    """
+    # load both ligands
+    left = topology_superimposer.load_mol2_wrapper(left_mol2)
+    right = topology_superimposer.load_mol2_wrapper(right_mol2)
+
+    # first, ensure that all the atom names are unique
+    L_atom_names = [a.name for a in left.atoms]
+    L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
+    L_correct_format = is_correct_atom_name_format(L_atom_names)
+
+    if not L_names_unique or not L_correct_format:
+        print('Renaming Left Molecule Atom Names (Because it is needed)')
+        name_counter_L_nodes = rename_ligand(left.atoms)
+        L_atom_names = [a.name for a in left.atoms]
+    else:
+        name_counter_L_nodes = get_atom_names_counter(left.atoms)
+
+    R_atom_names = [a.name for a in right.atoms]
+    R_names_unique = len(set(R_atom_names)) == len(R_atom_names)
+    R_correct_format = is_correct_atom_name_format(R_atom_names)
+    L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
+
+    if not R_names_unique or not R_correct_format or L_R_overlap:
+        print('Renaming Right Molecule Atom Names (Because it is needed)')
+        rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
+    # each atom name is unique, fixme - this check does not apply anymore
+    # ie it is fine for a molecule to use general type
+    # assert len(set(R_atom_names)) == len(R_atom_names)
+
+    # make a copy of the original files
+    shutil.copy(left_mol2, str(left_mol2) + '_before_atomNameChange.mol2')
+    shutil.copy(right_mol2, str(right_mol2) + '_before_atomNameChange.mol2')
+
+    # overwrite the files
+    left.atoms.write(left_mol2)
+    right.atoms.write(right_mol2)
+
+
+def is_correct_atom_name_format(names):
+    """
+    check if the atom format is like "C15", ie atom type followed by a number
+    input atoms: MDAnalysis atoms
+    """
+    for name in names:
+        afterLetters = [i for i, l in enumerate(name) if l.isalpha()][-1] + 1
+
+        atom_name = name[:afterLetters]
+        if len(atom_name) == 0:
+            return False
+
+        atom_number = name[afterLetters:]
+        try:
+            int(atom_number)
+        except:
+            return False
+
+    return True
+
+
+def rename_ligand(atoms, name_counter=None):
+    """
+    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+    the counter keeps track of the last used counter for each name.
+    Empty means that the counting will start from 1.
+    input atoms: mdanalysis atoms
+    """
+    if name_counter is None:
+        name_counter = {}
+
+    for atom in atoms:
+        # get the first letters that is not a character
+        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+
+        atom_name = atom.name[:afterLetters]
+        last_used_counter = name_counter.get(atom_name, 0)
+
+        # rename
+        last_used_counter += 1
+        newAtomName = atom_name + str(last_used_counter)
+        print(f'Renaming {atom.name} to {newAtomName}')
+        atom.name = newAtomName
+
+        # update the counter
+        name_counter[atom_name] = last_used_counter
+
+    return name_counter
+
+
+def get_atom_names_counter(atoms):
+    """
+    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+    the counter keeps track of the last used counter for each name.
+    Ie if there are C1, C2, C3, this will return {'C':3} as the last counter.
+    """
+    name_counter = {}
+
+    for atom in atoms:
+        # get the first letters that is not a character
+        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+
+        atom_name = atom.name[:afterLetters]
+        atom_number = int(atom.name[afterLetters:])
+        last_used_counter = name_counter.get(atom_name, 0)
+
+        # update the counter
+        name_counter[atom_name] = max(last_used_counter, atom_number)
+
+    return name_counter
 
 
 def save_superimposition_results(filepath, suptop):
@@ -655,14 +771,6 @@ def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
         .format(structure_name=structure_name,
                 cell_x=pbc_box[0], cell_y=pbc_box[1], cell_z=pbc_box[2])
     open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
-
-
-def init_namd_file_prod(from_dir, to_dir, filename, structure_name):
-    min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
-        .format(structure_name=structure_name)
-    prod_filename = os.path.join(to_dir, filename)
-    open(prod_filename, 'w').write(min_namd_initialised)
-    return prod_filename
 
 
 def check_hybrid_frcmod(mol2_file, hybrid_frcmod, tleap_path, atomff_type):
