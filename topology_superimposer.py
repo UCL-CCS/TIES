@@ -352,6 +352,7 @@ class SuperimposedTopology:
         self.can_use_mda = True
         if self.mda_ligandL is None or self.mda_ligandR is None:
             self.can_use_mda = False
+
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
         """
@@ -389,6 +390,33 @@ class SuperimposedTopology:
         self._removed_because_disjointed_cc = []
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
+
+        # save the cycles in the left and right molecules
+        if self.top1 is not None and self.top2 is not None:
+            self._init_nonoverlapping_cycles()
+
+    def _init_nonoverlapping_cycles(self):
+        """
+        Compile the cycles separately for the left and right molecule.
+        Then, across the cycles, remove the nodes that join rings (double rings).
+        """
+        lcycles, rcycles = self.getOriginalCircles()
+        # remove any nodes that are shared between two cycles
+        for c1, c2 in itertools.combinations(lcycles, r=2):
+            common = c1.intersection(c2)
+            for atom in common:
+                c1.remove(atom)
+                c2.remove(atom)
+
+        # same for rcycles
+        for c1, c2 in itertools.combinations(rcycles, r=2):
+            common = c1.intersection(c2)
+            for atom in common:
+                c1.remove(atom)
+                c2.remove(atom)
+
+        self._nonoverlapping_lcycles = lcycles
+        self._nonoverlapping_rcycles = rcycles
 
     def is_or_was_matched(self, atomName1, atomName2):
         """
@@ -1571,6 +1599,49 @@ class SuperimposedTopology:
 
         return False
 
+    def cycle_spans_multiple_cycles(self):
+        # This filter checks whether a newly created suptop cycle spans multiple cycles
+        # this is one of the filters (#106)
+        # fixme - should this be applied whenever we work with more than 1 cycle?
+        # it checks whether any cycles in the left molecule,
+        # is paired with more than one cycle in the right molecule
+        """
+        What is the circle is shared?
+        We are using cycles which excluded atoms that join different rings.
+        fixme - could this lead to a special case?
+        """
+
+        for lcycle in self._nonoverlapping_lcycles:
+            overlap_counter = 0
+            for rcycle in self._nonoverlapping_rcycles:
+                # check if the cycles overlap
+                if self._cycles_overlap(lcycle, rcycle):
+                    overlap_counter += 1
+
+            if overlap_counter > 1:
+                return True
+
+        for rcycle in self._nonoverlapping_rcycles:
+            overlap_counter = 0
+            for lcycle in self._nonoverlapping_lcycles:
+                # check if the cycles overlap
+                if self._cycles_overlap(lcycle, rcycle):
+                    overlap_counter += 1
+
+            if overlap_counter > 1:
+                return True
+
+        return False
+
+    def _cycles_overlap(self, lcycle, rcycle):
+        # check if any nodes are paired across the two cycles
+        # any to any pairing
+        for l, r in itertools.product(lcycle, rcycle):
+            if self.contains((l, r)):
+                return True
+
+        return False
+
     def merge(self, suptop):
         """
         Absorb the other suptop by adding all the node pairs that are not present
@@ -2074,23 +2145,16 @@ def solve_one_combination(one_atom_spieces, ignore_coords):
     raise Exception('not implemented')
 
 
-def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coords=False, useGenType=True):
+def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=False, useGenType=True):
     """
-    n1 should be from one graph, and n2 should be from another.
+    Jointly and recurvisely traverse the molecule while building up the suptop.
 
     If n1 and n2 are the same, we will be traversing through both graphs, marking the jointly travelled areas.
-    RETURN: Returns a list of topologies (ie solutions)
 
-    Recursively traverse the graphs of n1 and of n2 at the same time.
+    Return the topology of the common substructure between the two molecules.
 
-    fixme: return should keep track of symmetries
-    - while returning the current system has to make sense of the different returning journies, this means
-    that symmetry might show up here. For example, the same ring can be traversed in two different ways,
-    therefore, we should be possible to continue returning and forming the different "variants".
-    Currently, only one way is chosen, despite several different candidates.
-    One way to store them it to make the entire different topologies, in a way that makes sense,
-    right now we return with only one of the "symmetries", while others are being discovered
-    when searching through the other node pairs.
+    *n1 from the left molecule,
+    *n2 from the right molecule
     """
 
     # if either of the nodes has already been matched, ignore
@@ -2098,7 +2162,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
         return None
 
     # if the two nodes are "the same"
-    # fixme - remove the charges from here, you're not using them anyway for now
     if useGenType and not n1.sameGenType(n2):
         # these two atoms have a different type, so return None
         return None
@@ -2107,11 +2170,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
         return None
    
     # Check for cycles
+    # if a new cycle is created by adding this node,
+    # then the cycle should be present in both, left and right ligand
     safe = True
     # if n1 is linked with node in suptop other than parent
+    a_new_cycle_is_present = False
     for b1 in n1.bonds:
         if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
             safe = False # n1 forms cycle, now need to check n2
+            a_new_cycle_is_present = True
             for b2 in n2.bonds:
                 if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
                     # b2 forms cycle, now need to check it's the same in both
@@ -2128,6 +2195,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
     for b2 in n2.bonds:
         if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
             safe = False
+            a_new_cycle_is_present = True
             for b1 in n1.bonds:
                 if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
                     if suptop.contains((b1[0], b2[0])):
@@ -2136,6 +2204,12 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop=None, ignore_coord
             if not safe:
                 break
     if not safe:
+        return None
+
+    # check if the cycle spans multiple cycles present in the left and right molecule,
+    # fixme - this is going to be slow?
+    if suptop.cycle_spans_multiple_cycles():
+        print('Found a multiple cycle')
         return None
 
     log("Adding ", (n1, n2), "in", suptop.matched_pairs)
