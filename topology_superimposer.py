@@ -2207,9 +2207,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         return None
 
     # check if the cycle spans multiple cycles present in the left and right molecule,
-    # fixme - this is going to be slow?
     if suptop.cycle_spans_multiple_cycles():
-        print('Found a multiple cycle')
+        log('Found a cycle spanning multiple cycles')
         return None
 
     log("Adding ", (n1, n2), "in", suptop.matched_pairs)
