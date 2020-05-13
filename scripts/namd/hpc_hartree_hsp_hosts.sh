@@ -6,19 +6,14 @@
 # this should be ptile * number of nodes,
 #BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 20:00
+#BSUB -W 32:00
 #BSUB -x
 
-"""
-This script is a simpler variation of the other one that has fewer dependancies.
-"""
-
-ROOT_WORK=$HCBASE/resp/tyk2_l1_l6
+ROOT_WORK=$HCBASE/bcc/tyk2_l1_l15
 cd $ROOT_WORK
 NP=32 # cores per simulation
 HOSTS_PER_SIM=1 # numer of hosts per simulation
-LIG_TIMEOUT=$(( 60 * 60 * 8 )) # time out of the ligand simulations
-LIG_TIMEOUT=1
+LIG_TIMEOUT=$(( 60 * 60 * 11 )) # time out of the ligand simulations
 
 echo "Time start" `date`
 env > last_used_env
