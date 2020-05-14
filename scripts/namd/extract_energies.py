@@ -21,9 +21,26 @@ from itertools import accumulate
 # from pymbar import timeseries
 from collections import OrderedDict
 from scipy import interpolate
+import glob
 
 
 eq_steps = 500 # steps, 500 steps translates to 1 ns
+
+def merge_prod_files(files, output_merged_filename):
+    # find the original prod.alch file first
+    orig_prod = list(filter(lambda f:f.endswith('prod.alch'), files))[0]
+    other_prods =  list(filter(lambda f:not f.endswith('prod.alch'), files))
+
+    # take the prod.alch as teh reference, from every other remove the comments #
+    lines = open(orig_prod).readlines()
+    for other_prod in other_prods:
+
+        next_lines = open(other_prod).readlines()
+        # remove the comments
+        data = filter(lambda l: not l.startswith('#'), next_lines)
+        lines.extend(data)
+    # save the results
+    open(output_merged_filename, 'w').writelines(lines)
 
 def extract_energies(location):
     """
@@ -54,11 +71,21 @@ def extract_energies(location):
             if not rep.is_dir():
                 continue
 
-            # prod_alch = rep / 'prod_merged.alch'
-            prod_alch = rep / 'prod.alch'
-            if not prod_alch.is_file():
+            # check if there are multiple .alch files, this means the restart was used and needs to be accounted for,
+            # you could merge the results in that case and use them instead
+            prod_files = glob.glob(rep/"prod*.alch")
+            if len(prod_files) == 0:
                 print("A missing file: ", prod_alch)
                 continue
+            elif len(prod_files) == 1:
+                prod_alch = rep / 'prod.alch'
+                assert prod_alch.is_file()
+            elif len(prod_files) > 1:
+                # merge the files into a single file
+                merged_prod = rep / 'prod_merged.alch'
+                merge_prod_files(prod_files, merged_prod)
+                # use the merged .alch instead
+                prod_alch = merged_prod
 
             # partition1 is appearing
             # partition2 is disappearing
