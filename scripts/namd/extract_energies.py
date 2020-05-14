@@ -107,12 +107,19 @@ def extract_energies(location):
                 this_replica_total = np.mean(energies_datapoints[eq_steps:, 2]) - np.mean(energies_datapoints[eq_steps:, 5]) + \
                                      np.mean(energies_datapoints[eq_steps:, 1]) - np.mean(energies_datapoints[eq_steps:, 4])
                 data['total_average'][dir_lambda_val].append(this_replica_total)
+                # ---------------------------------------------
 
                 # add to the right dataset
+                # add all values of VDW since they are appearing/disappearing throughout the lambda window
                 data['avdw'][app_vdw_lambda].append(energies_datapoints[eq_steps:, 2])
                 data['dvdw'][dis_vdw_lambda].append(energies_datapoints[eq_steps:, 5])
+
+                # the appearing electrostatics being to appear around midway through the simulation,
+                # we keep the very first lambda 0, not the previous states
                 data['aele'][app_ele_lambda].append(energies_datapoints[eq_steps:, 1])
-                # add part2/dele only the first time
+
+                # add part2/dele only the first time.
+                # this means that ocne dele disappears, than any changes to dV/dl later are due to something else
                 if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
                     ignore_dele_lambda = True
                 if not ignore_dele_lambda:
