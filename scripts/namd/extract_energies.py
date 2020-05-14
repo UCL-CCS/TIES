@@ -20,6 +20,7 @@ from itertools import accumulate
 from collections import OrderedDict
 from scipy import interpolate
 import glob
+import time
 
 
 def merge_prod_files(files, output_merged_filename):
@@ -216,7 +217,8 @@ def get_replicas_stats(dataset, sample_reps):
         for rep in replicas:
             merged_replicas.extend(rep)
 
-            # if sampling is turned on, a sample of the data points will be taken
+        if sample_reps:
+            merged_replicas = np.random.choice(merged_replicas, size=len(merged_replicas), replace=True)
 
         # record the observables
         meta['merged_mean'][lambda_val] = np.mean(merged_replicas)
@@ -275,16 +277,7 @@ def bootstrap_replica_averages(data):
     data['sigma_sum'] = sigma_sum
 
 
-def bootstrapped_ddG(ligand_data, complex_data):
-    """
-    Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
-    Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
-    we sample the different dV/dL. Then we recreate the means.
-    """
-    pass
-
-
-def analyse(data, location, calc_aga_err=False, bs_sample_reps=False):
+def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
     """
     Process the timeseries from each replica
     """
@@ -296,32 +289,34 @@ def analyse(data, location, calc_aga_err=False, bs_sample_reps=False):
     stats = {}
     for interaction_type, dataset in data.items():
         if interaction_type in ['avdw', 'dvdw', 'aele', 'dele']:
-            stats[interaction_type] = get_replicas_stats(dataset, sample_reps=False)
-
+            stats[interaction_type] = get_replicas_stats(dataset, sample_reps=sample_reps)
 
     # plot the average of the entire datasets now
     # sort all lambdas from 0 to 1
-    plt.figure()
+
     avdw_before_sort = list(stats['avdw']['merged_mean'].items())
     avdw_means = np.array(sorted(avdw_before_sort, key=lambda x: x[0])).T
-    plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
 
     dvdw_before_sort = list(stats['dvdw']['merged_mean'].items())
     dvdw_means = np.array(sorted(dvdw_before_sort, key=lambda x: x[0])).T
-    plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
 
     aele_before_sort = list(stats['aele']['merged_mean'].items())
     aele_means = np.array(sorted(aele_before_sort, key=lambda x: x[0])).T
-    plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
 
     dele_before_sort = list(stats['dele']['merged_mean'].items())
     dele_means = np.array(sorted(dele_before_sort, key=lambda x: x[0])).T
-    plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
-    plt.title(location)
-    plt.legend()
-    # plt.show()
-    plt.savefig(location + '.png')
-    plt.cla()
+
+    if plot:
+        plt.figure()
+        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
+        plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
+        plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
+        plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
+        plt.title(location)
+        plt.legend()
+        # plt.show()
+        plt.savefig(location + '_dvdl.png')
+        plt.cla()
 
     # integrate over the means from each replica
     avdw_int = get_int(avdw_means[0], avdw_means[1])
@@ -337,23 +332,55 @@ Part 2(disapp)  {dele_int:7.4f}   |  {dvdw_int:7.4f}  | {dele_int + dvdw_int:7.4
 ---------------------------------------------------------
 Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {aele_int + avdw_int - dvdw_int - dele_int:7.4f}
 ---------------------------------------------------------"""
-    print(out)
+    if verbose:
+        print(out)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
     return aele_int, avdw_int, dvdw_int, dele_int, data
 
 
+def bootstrapped_ddG(ligand_data, complex_data):
+    """
+    Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
+    Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
+    we sample the different dV/dL. Then we recreate the means.
+    """
+    # do bootstrapping to find out error for each component
+    # we want to know where the difference comes from
+    # fixme - try bootstrapping to understand the error in aele, dele etc
+    bootstrapped_ddGs = []
+    for i in range(10 * 1000):  # fixme
+        laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=False,
+                                                                       verbose=False, sample_reps=True,
+                                                                       plot=False)
+        lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
+        caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex',
+                                                                           calc_aga_err=False,
+                                                                           verbose=False, sample_reps=True,
+                                                                           plot=False)
+        complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
+
+        bootstrapped_ddGs.append(complex_delta - lig_delta)
+
+    # return the standard error
+    return bootstrapped_ddGs
+
+t_start = time.time()
 choderas_cut = False
 calc_aga_err = True
-
 lig_all = extract_energies('lig', choderas_cut=choderas_cut)
-laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=calc_aga_err)
+laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=calc_aga_err, verbose=True)
 lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
 complex_all = extract_energies('complex', choderas_cut=choderas_cut)
-caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', calc_aga_err=calc_aga_err)
+caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', calc_aga_err=calc_aga_err, verbose=True)
 complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
-# print("Delta ligand", lig_delta)
-# print("Delta complex", complex_delta)
+# Give the overall results
 print("Delta Delta: ", complex_delta - lig_delta)
 print ("Agastya Error", complex_data['sigma_sum'] + lig_data['sigma_sum'])
+
+# now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
+se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data)
+print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
+print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
+print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
