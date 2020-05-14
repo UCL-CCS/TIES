@@ -1,13 +1,11 @@
 """
-# get from each lambda/replica the energies, sum the average vdw and avg ele
-# todo - upgrade to pathlib
+Calculate the ddG
 
-Note that the previous way to calculate error also takes place here.
-It is described here. The gist:
-- average all energies in a single replica to a single value
-** if each energy contrib has 2500 datapoints, then that's 10k datapoints / 2500 time.
--
-Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
+In addition, this script contains error calculation.
+In one case, it carries out the error calculation as in the
+paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
+Furthermore, additional energy is calculated by sampling
+the dv/dl and creating a distribution of ddG to estimate its error
 """
 import os
 import numpy as np
@@ -23,8 +21,6 @@ from collections import OrderedDict
 from scipy import interpolate
 import glob
 
-
-eq_steps = 500 # steps, 500 steps translates to 1 ns
 
 def merge_prod_files(files, output_merged_filename):
     # find the original prod.alch file first
@@ -42,10 +38,14 @@ def merge_prod_files(files, output_merged_filename):
     # save the results
     open(output_merged_filename, 'w').writelines(lines)
 
-def extract_energies(location):
+
+def extract_energies(location, choderas_cut=False, eq_steps=500):
     """
-    @location - referes to the main locations where the lambda directories reside
+    @location - referes to the main locations where the lambda directories reside.
+    @eq_steps = 500 to be discarded as EQ stage.
+    @choderas_cut - use Chodera's script to determine which part is the EQ part
     """
+    print('Extracting energies from', location)
 
     # take only the lambda directories
     lambda_dirs = filter(lambda d: d.is_dir(), Path(location).glob(r'lambda_[0-1].[0-9]*'))
@@ -129,41 +129,58 @@ def extract_energies(location):
                     if app_ele_lambda == 0:
                         data['aele'][app_ele_lambda] = []
 
+                # fixme - this should be moved to the stage where at which the data is read
+                # fixme
+                if choderas_cut:
+                    # use Chodera equilibration cutoff to decie which part of the production time
+                    # should be discarded
+                    print('Choderas cut turned on')
+                    avdw_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 2])
+                    dvdw_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 5])
+                    aele_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 1])
+                    dele_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 4])
+                else:
+                    print('Using EQ cutoff to discard this many first steps:', eq_steps)
+                    avdw_dvdl = energies_datapoints[eq_steps:, 2]
+                    dvdw_dvdl = energies_datapoints[eq_steps:, 5]
+                    aele_dvdl = energies_datapoints[eq_steps:, 1]
+                    dele_dvdl = energies_datapoints[eq_steps:, 4]
 
                 # --------------------------------------------------------------------------
                 # to make it consitent with the previous calculataions, take data points from all
                 # we always use the VDW energies
-                this_replica_total = np.mean(energies_datapoints[eq_steps:, 2]) - np.mean(energies_datapoints[eq_steps:, 5])
+                this_replica_total = np.mean(avdw_dvdl) - np.mean(dvdw_dvdl)
                 # we want to to take the dele values up until 0.6 (inclusive) where for the first time it's 0
                 # and aele has its first 0 at 0.4 value
+
                 if dir_lambda_val < 0.4:
                     # take only the dele
-                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 4])
+                    this_replica_total += np.mean(dele_dvdl)
                 elif dir_lambda_val >= 0.4 and dir_lambda_val <= 0.6:
                     # take the difference of both
-                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 1]) - np.mean(energies_datapoints[eq_steps:, 4])
+                    this_replica_total += np.mean(aele_dvdl) - np.mean(dele_dvdl)
                 else:
                     # take only the aele value
-                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 1])
+                    this_replica_total += np.mean(aele_dvdl)
 
                 data['total_average'][dir_lambda_val].append(this_replica_total)
                 # ---------------------------------------------
 
                 # add to the right dataset
                 # add all values of VDW since they are appearing/disappearing throughout the lambda window
-                data['avdw'][app_vdw_lambda].append(energies_datapoints[eq_steps:, 2])
-                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[eq_steps:, 5])
+                data['avdw'][app_vdw_lambda].append(avdw_dvdl)
+                data['dvdw'][dis_vdw_lambda].append(dvdw_dvdl)
 
                 # the appearing electrostatics being to appear around midway through the simulation,
                 # we keep the very first lambda 0, not the previous states
-                data['aele'][app_ele_lambda].append(energies_datapoints[eq_steps:, 1])
+                data['aele'][app_ele_lambda].append(aele_dvdl)
 
                 # add part2/dele only the first time.
                 # this means that ocne dele disappears, than any changes to dV/dl later are due to something else
                 if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
                     ignore_dele_lambda = True
                 if not ignore_dele_lambda:
-                    data['dele'][dis_ele_lambda].append(energies_datapoints[eq_steps:, 4])
+                    data['dele'][dis_ele_lambda].append(dele_dvdl)
 
             fresh_lambda = False
 
@@ -185,7 +202,7 @@ def autocorr(x):
     return result[int(result.size / 2):]
 
 
-def get_replicas_stats(dataset, choderas_cut=False):
+def get_replicas_stats(dataset, sample_reps):
     meta = {
         'merged_mean': {},
         'merged_sem': {},
@@ -195,10 +212,9 @@ def get_replicas_stats(dataset, choderas_cut=False):
         # extract all the data points
         merged_replicas = []
         for rep in replicas:
-            if choderas_cut:
-                merged_replicas.extend(choder_get_eqpart(rep))
-            else:
-                merged_replicas.extend(rep)
+            merged_replicas.extend(rep)
+
+            # if sampling is turned on, a sample of the data points will be taken
 
         # record the observables
         meta['merged_mean'][lambda_val] = np.mean(merged_replicas)
@@ -231,11 +247,13 @@ def bootstrap_replica_averages(data):
     Reproducing the way the error was calculated before.
     To do this, we have to extract for each replica the "derivative mean".
     This means that we clump all the derivatives together.
+    In other words, if we have 5 replicas per lambda, we have only 5 values per lambda.
     Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
     Here we bootstrap the data, and create 10k means for each of the lambda window.
+    In this case, we sample the actual means.
+    Then at the end we take the SD.
+    So we end up with the bootstrapped SD of means of means.
     """
-
-    # fixme - so this is incorrect, but also the only way it is relevant to the past?
     bootstrapped_sem = OrderedDict()
     for lambda_val, tot_mean in data['total_average'].items():
         # for each lambda value, sample the means
@@ -244,8 +262,6 @@ def bootstrap_replica_averages(data):
         for i in range(10 * 1000):
             means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
         bootstrapped_sem[lambda_val] = np.std(means)
-        # it should be the STD, but have you found it in his code?
-        # bootstrapped_sem[lambda_val] = np.std(means)
 
     # multiply by each
     k = list(bootstrapped_sem.keys())
@@ -257,20 +273,28 @@ def bootstrap_replica_averages(data):
     data['sigma_sum'] = sigma_sum
 
 
-def analyse(data, location, choderas_cut=False):
+def bootstrapped_ddG(ligand_data, complex_data):
+    """
+    Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
+    Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
+    we sample the different dV/dL. Then we recreate the means.
+    """
+    pass
+
+
+def analyse(data, location, calc_aga_err=False, bs_sample_reps=False):
     """
     Process the timeseries from each replica
     """
-    if choderas_cut:
-        print('Choderas cut turned on')
 
-    bootstrap_replica_averages(data)
+    if calc_aga_err:
+        bootstrap_replica_averages(data)
 
     # apply to each dataset
     stats = {}
     for interaction_type, dataset in data.items():
         if interaction_type in ['avdw', 'dvdw', 'aele', 'dele']:
-            stats[interaction_type] = get_replicas_stats(dataset, choderas_cut=choderas_cut)
+            stats[interaction_type] = get_replicas_stats(dataset, bs_sample_reps=bs_sample_reps)
 
 
     # plot the average of the entire datasets now
@@ -317,11 +341,11 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
     return aele_int, avdw_int, dvdw_int, dele_int, data
 
 choderas_cut = False
-lig_all = extract_energies('lig')
-laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
+lig_all = extract_energies('lig', choderas_cut=choderas_cut)
+laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig')
 lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
-complex_all = extract_energies('complex')
-caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+complex_all = extract_energies('complex', choderas_cut=choderas_cut)
+caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex')
 complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # print("Delta ligand", lig_delta)
