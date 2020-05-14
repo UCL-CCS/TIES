@@ -46,6 +46,10 @@ def extract_energies(location, choderas_cut=False, eq_steps=500):
     @choderas_cut - use Chodera's script to determine which part is the EQ part
     """
     print('Extracting energies from', location)
+    if choderas_cut:
+        print('Choderas cut turned on: it will be used to decide how much of the initial rep should be discarded')
+    else:
+        print('Using EQ cutoff to discard this many first steps:', eq_steps)
 
     # take only the lambda directories
     lambda_dirs = filter(lambda d: d.is_dir(), Path(location).glob(r'lambda_[0-1].[0-9]*'))
@@ -73,9 +77,9 @@ def extract_energies(location, choderas_cut=False, eq_steps=500):
 
             # check if there are multiple .alch files, this means the restart was used and needs to be accounted for,
             # you could merge the results in that case and use them instead
-            prod_files = glob.glob(rep/"prod*.alch")
+            prod_files = glob.glob(str(rep) + os.sep + "prod*.alch")
             if len(prod_files) == 0:
-                print("A missing file: ", prod_alch)
+                print("A missing energy file: prod.alch in %s" % rep)
                 continue
             elif len(prod_files) == 1:
                 prod_alch = rep / 'prod.alch'
@@ -134,13 +138,11 @@ def extract_energies(location, choderas_cut=False, eq_steps=500):
                 if choderas_cut:
                     # use Chodera equilibration cutoff to decie which part of the production time
                     # should be discarded
-                    print('Choderas cut turned on')
                     avdw_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 2])
                     dvdw_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 5])
                     aele_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 1])
                     dele_dvdl = choder_get_eqpart(energies_datapoints[eq_steps:, 4])
                 else:
-                    print('Using EQ cutoff to discard this many first steps:', eq_steps)
                     avdw_dvdl = energies_datapoints[eq_steps:, 2]
                     dvdw_dvdl = energies_datapoints[eq_steps:, 5]
                     aele_dvdl = energies_datapoints[eq_steps:, 1]
@@ -294,7 +296,7 @@ def analyse(data, location, calc_aga_err=False, bs_sample_reps=False):
     stats = {}
     for interaction_type, dataset in data.items():
         if interaction_type in ['avdw', 'dvdw', 'aele', 'dele']:
-            stats[interaction_type] = get_replicas_stats(dataset, bs_sample_reps=bs_sample_reps)
+            stats[interaction_type] = get_replicas_stats(dataset, sample_reps=False)
 
 
     # plot the average of the entire datasets now
@@ -340,12 +342,15 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
     return aele_int, avdw_int, dvdw_int, dele_int, data
 
+
 choderas_cut = False
+calc_aga_err = True
+
 lig_all = extract_energies('lig', choderas_cut=choderas_cut)
-laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig')
+laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=calc_aga_err)
 lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
 complex_all = extract_energies('complex', choderas_cut=choderas_cut)
-caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex')
+caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', calc_aga_err=calc_aga_err)
 complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # print("Delta ligand", lig_delta)
