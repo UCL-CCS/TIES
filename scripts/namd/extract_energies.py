@@ -103,9 +103,22 @@ def extract_energies(location):
                         data['aele'][app_ele_lambda] = []
 
 
+                # --------------------------------------------------------------------------
                 # to make it consitent with the previous calculataions, take data points from all
-                this_replica_total = np.mean(energies_datapoints[eq_steps:, 2]) - np.mean(energies_datapoints[eq_steps:, 5]) + \
-                                     np.mean(energies_datapoints[eq_steps:, 1]) - np.mean(energies_datapoints[eq_steps:, 4])
+                # we always use the VDW energies
+                this_replica_total = np.mean(energies_datapoints[eq_steps:, 2]) - np.mean(energies_datapoints[eq_steps:, 5])
+                # we want to to take the dele values up until 0.6 (inclusive) where for the first time it's 0
+                # and aele has its first 0 at 0.4 value
+                if dir_lambda_val < 0.4:
+                    # take only the dele
+                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 4])
+                elif dir_lambda_val >= 0.4 and dir_lambda_val <= 0.6:
+                    # take the difference of both
+                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 1]) - np.mean(energies_datapoints[eq_steps:, 4])
+                else:
+                    # take only the aele value
+                    this_replica_total += np.mean(energies_datapoints[eq_steps:, 1])
+
                 data['total_average'][dir_lambda_val].append(this_replica_total)
                 # ---------------------------------------------
 
