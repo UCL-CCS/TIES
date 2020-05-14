@@ -475,7 +475,7 @@ class SuperimposedTopology:
         return self.unique_atom_count
 
     def alignLigandsUsingMatched(self):
-        return self.rmsd()
+        # return self.rmsd()
         """
         Align the two ligands using the matched area.
         Note: we assume that the left ligand is docked. The left ligand is the reference here.
