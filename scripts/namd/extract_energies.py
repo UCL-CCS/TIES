@@ -1,6 +1,13 @@
 """
 # get from each lambda/replica the energies, sum the average vdw and avg ele
 # todo - upgrade to pathlib
+
+Note that the previous way to calculate error also takes place here.
+It is described here. The gist:
+- average all energies in a single replica to a single value
+** if each energy contrib has 2500 datapoints, then that's 10k datapoints / 2500 time.
+-
+Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
 """
 import os
 import numpy as np
@@ -9,12 +16,14 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from pathlib import Path
 from scipy.stats import sem
-import pandas as pd
+# import pandas as pd
 from itertools import accumulate
-from pymbar import timeseries
+# from pymbar import timeseries
 from collections import OrderedDict
 from scipy import interpolate
 
+
+eq_steps = 500 # steps, 500 steps translates to 1 ns
 
 def extract_energies(location):
     """
@@ -29,16 +38,23 @@ def extract_energies(location):
     # different datasets, add bonded information for the future. It is not used now.
     data = {
         'dvdw': OrderedDict(), 'dele': OrderedDict(), 'dbon': OrderedDict(),
-        'avdw': OrderedDict(), 'aele': OrderedDict(), 'abon': OrderedDict()
+        'avdw': OrderedDict(), 'aele': OrderedDict(), 'abon': OrderedDict(),
+
+        # this is for backward compatiblity with the previous error quantification
+        'total_average': {}
     }
 
     for lambda_dir in lambda_dirs:
+        dir_lambda_val = float(str(lambda_dir).split('_')[1])
+        data['total_average'][dir_lambda_val] = []
+
         fresh_lambda = True
         ignore_dele_lambda = False
         for rep in lambda_dir.glob('rep[0-9]*'):
             if not rep.is_dir():
                 continue
 
+            # prod_alch = rep / 'prod_merged.alch'
             prod_alch = rep / 'prod.alch'
             if not prod_alch.is_file():
                 print("A missing file: ", prod_alch)
@@ -86,15 +102,21 @@ def extract_energies(location):
                     if app_ele_lambda == 0:
                         data['aele'][app_ele_lambda] = []
 
+
+                # to make it consitent with the previous calculataions, take data points from all
+                this_replica_total = np.mean(energies_datapoints[eq_steps:, 2]) - np.mean(energies_datapoints[eq_steps:, 5]) + \
+                                     np.mean(energies_datapoints[eq_steps:, 1]) - np.mean(energies_datapoints[eq_steps:, 4])
+                data['total_average'][dir_lambda_val].append(this_replica_total)
+
                 # add to the right dataset
-                data['avdw'][app_vdw_lambda].append(energies_datapoints[:, 2])
-                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[:, 5])
-                data['aele'][app_ele_lambda].append(energies_datapoints[:, 1])
+                data['avdw'][app_vdw_lambda].append(energies_datapoints[eq_steps:, 2])
+                data['dvdw'][dis_vdw_lambda].append(energies_datapoints[eq_steps:, 5])
+                data['aele'][app_ele_lambda].append(energies_datapoints[eq_steps:, 1])
                 # add part2/dele only the first time
                 if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
                     ignore_dele_lambda = True
                 if not ignore_dele_lambda:
-                    data['dele'][dis_ele_lambda].append(energies_datapoints[:, 4])
+                    data['dele'][dis_ele_lambda].append(energies_datapoints[eq_steps:, 4])
 
             fresh_lambda = False
 
@@ -105,6 +127,7 @@ def choder_get_eqpart(datapoints):
     """
     Extracts the equilibriated part
     """
+    from pymbar import timeseries
     [t0, g, Neff_max] = timeseries.detectEquilibration(datapoints)
     # print('Chodera: t0 is', t0)
     return datapoints[t0:]
@@ -156,6 +179,35 @@ def get_int(xs, ys, interp=True):
     # the xs (or lambdas) should be in a growing order
     return np.trapz(ys, x=xs)
 
+def bootstrap_replica_averages(data):
+    """
+    Reproducing the way the error was calculated before.
+    To do this, we have to extract for each replica the "derivative mean".
+    This means that we clump all the derivatives together.
+    Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
+    Here we bootstrap the data, and create 10k means for each of the lambda window.
+    """
+
+    # fixme - so this is incorrect, but also the only way it is relevant to the past?
+    bootstrapped_sem = OrderedDict()
+    for lambda_val, tot_mean in data['total_average'].items():
+        # for each lambda value, sample the means
+        means = []
+        # create 10 thousand of means
+        for i in range(10 * 1000):
+            means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
+        bootstrapped_sem[lambda_val] = np.std(means)
+        # it should be the STD, but have you found it in his code?
+        # bootstrapped_sem[lambda_val] = np.std(means)
+
+    # multiply by each
+    k = list(bootstrapped_sem.keys())
+    sigma_sum = 0
+    for lambda_from, lambda_to, bsem in zip(k, k[1:], bootstrapped_sem.values()):
+        assert lambda_from < lambda_to
+        sigma_sum += (lambda_to - lambda_from)**2 * bsem**2
+
+    data['sigma_sum'] = sigma_sum
 
 
 def analyse(data, location, choderas_cut=False):
@@ -165,10 +217,14 @@ def analyse(data, location, choderas_cut=False):
     if choderas_cut:
         print('Choderas cut turned on')
 
+    bootstrap_replica_averages(data)
+
     # apply to each dataset
     stats = {}
     for interaction_type, dataset in data.items():
-        stats[interaction_type] = get_replicas_stats(dataset, choderas_cut=choderas_cut)
+        if interaction_type in ['avdw', 'dvdw', 'aele', 'dele']:
+            stats[interaction_type] = get_replicas_stats(dataset, choderas_cut=choderas_cut)
+
 
     # plot the average of the entire datasets now
     # sort all lambdas from 0 to 1
@@ -211,16 +267,17 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
     print(out)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
-    return aele_int, avdw_int, dvdw_int, dele_int
+    return aele_int, avdw_int, dvdw_int, dele_int, data
 
 choderas_cut = False
 lig_all = extract_energies('lig')
-laele_int, lavdw_int, ldvdw_int, ldele_int = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
+laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', choderas_cut=choderas_cut)
 lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
 complex_all = extract_energies('complex')
-caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
+caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', choderas_cut=choderas_cut)
 complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # print("Delta ligand", lig_delta)
 # print("Delta complex", complex_delta)
 print("Delta Delta: ", complex_delta - lig_delta)
+print ("Agastya Error", complex_data['sigma_sum'] + lig_data['sigma_sum'])
