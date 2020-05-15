@@ -1,3 +1,4 @@
+# http://ambermd.org/namd/namd_amber.html
 amber on
 coordinates        morph_solv.pdb
 parmfile           morph_solv.top
@@ -60,7 +61,7 @@ pairlistsPerCycle    2;                # 2 is the default
 timestep            2.0;               # fs/step
 rigidBonds          all;               # Bound constraint all bonds involving H are fixed in length
 nonbondedFreq       1;                 # nonbonded forces every step
-fullElectFrequency  2;                 # PME every step
+fullElectFrequency  1;                 # PME every step
 
 wrapWater           on;                # wrap water to central cell
 wrapAll             on;                # wrap other molecules too
