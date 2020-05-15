@@ -25,7 +25,7 @@ for lambda_dir in os.listdir('.'):
         try:
             if not 'End of program' in open(os.path.join(rep_dir, 'eq_step4.log')).read():
                 print('Eq not finished: %s' % rep_dir)
-            if not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
+            elif not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
                 print('Prod not finished: %s' % rep_dir)
             else:
                 finished_sims.append(os.path.join(rep_dir, 'prod.log'))
