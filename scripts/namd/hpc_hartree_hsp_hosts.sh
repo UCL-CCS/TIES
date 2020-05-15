@@ -114,9 +114,9 @@ for sim_no in $(seq 1 $SIM_NO); do
         cd $ROOT_WORK/complex/$SIM &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
-        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
-        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
-        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
+        if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
         echo "Finished running complex/$SIM"
         )
