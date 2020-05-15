@@ -5,7 +5,9 @@ source leaprc.gaff2
 
 loadamberparams morph.frcmod
 lig = loadMol2 morph.mol2
-solvatebox lig TIP3PBOX 14
+# https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
+# https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
+solvateoct lig TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
 addIons lig Na+ 0
 addIons lig Cl- 0

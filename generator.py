@@ -605,6 +605,29 @@ def get_PBC_coords(pdb_file):
     return (x, y, z)
 
 
+def extract_PBC_oct_from_tleap_log(leap_log):
+    """
+    http://ambermd.org/namd/namd_amber.html
+    Return the 9 numbers for the truncated octahedron unit cell in namd
+    cellBasisVector1  d         0.0            0.0
+    cellBasisVector2  (-1/3)*d (2/3)sqrt(2)*d  0.0
+    cellBasisVector3  (-1/3)*d (-1/3)sqrt(2)*d (-1/3)sqrt(6)*d
+    """
+    leapl_log_lines = open(leap_log).readlines()
+    line_to_extract = "Total bounding box for atom centers:"
+    line_of_interest = list(filter(lambda l: line_to_extract in l, leapl_log_lines))
+    d1, d2, d3 = line_of_interest[-1].split(line_to_extract)[1].split()
+    d1, d2, d3 = float(d1), float(d2), float(d3)
+    assert d1 == d2 == d3
+    # scale the d since after minimisation the system turns out to be much smaller
+    d = d1 * 0.8
+    return {
+        'cbv1': d, 'cbv2': 0, 'cbv3': 0,
+        'cbv4': (-1/3.0)*d, 'cbv5': (2/3.0)*np.sqrt(2)*d, 'cbv6': 0,
+        'cbv7': (-1/3.0)*d, 'cbv8': (-1/3.0)*np.sqrt(2)*d, 'cbv9': (-1/3)*np.sqrt(6)*d,
+    }
+
+
 def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
     """
     Prepare the ambertools scripts.
@@ -768,8 +791,7 @@ conskcol  B
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
     min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
-        .format(structure_name=structure_name,
-                cell_x=pbc_box[0], cell_y=pbc_box[1], cell_z=pbc_box[2])
+        .format(structure_name=structure_name, **pbc_box)
     open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
 
 

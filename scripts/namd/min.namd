@@ -35,9 +35,9 @@ OutputEnergies      10000
 set wrapnearst off
 
 # ...
-cellBasisVector1	 {cell_x}  0.000  0.000
-cellBasisVector2	 0.000  {cell_y}  0.000
-cellBasisVector3	 0.000  0.000 {cell_z}
+cellBasisVector1	 {cbv1}  {cbv2}  {cbv3}
+cellBasisVector2	 {cbv4}  {cbv5}  {cbv6}
+cellBasisVector3	 {cbv7}  {cbv8}  {cbv9}
 cellOrigin		 0.000  0.000  0.000
 
 PME                 yes

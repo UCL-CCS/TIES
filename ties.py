@@ -12,7 +12,7 @@ from pathlib import Path, PurePosixPath
 
 
 # fixme - turn into a function and give it the hpc submit
-hpc_submit = 'hpc_hartree_hsp.sh'
+hpc_submit = None #  "hpc_hartree_hsp.sh"
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
@@ -172,12 +172,12 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
     # fixme - check that the protein does not have the same resname?
 
-    # extract PBC dimensions with MDAnalysis
-    solv_box_complex_pbc = get_PBC_coords(complex_solvated)
+    # calculate PBC for an octahedron
+    solv_oct_boc = extract_PBC_oct_from_tleap_log(dest_dir / "leap.log")
 
     # prepare NAMD input files for min+eq+prod
     init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
-                       structure_name='morph_solv', pbc_box=solv_box_complex_pbc)
+                       structure_name='morph_solv', pbc_box=solv_oct_boc)
     eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
     shutil.copy(namd_script_loc / "prod.namd", dest_dir)
 
@@ -215,7 +215,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
             # copy the surfsara submit script - fixme - make this general
             if submit_script is not None:
-                shutil.copy(namd_script_loc / hpc_submit, replica_dir / 'submit.sh')
+                shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
     # copy handy scripts to the main directory
     shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)

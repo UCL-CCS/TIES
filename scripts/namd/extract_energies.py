@@ -349,7 +349,7 @@ def bootstrapped_ddG(ligand_data, complex_data):
     # we want to know where the difference comes from
     # fixme - try bootstrapping to understand the error in aele, dele etc
     bootstrapped_ddGs = []
-    for i in range(10 * 1000):  # fixme
+    for i in range(5 * 1000):  # fixme
         laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=False,
                                                                        verbose=False, sample_reps=True,
                                                                        plot=False)
@@ -384,3 +384,18 @@ se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data)
 print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
 print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
 print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
+
+"""
+Bootstrapping performance upgrade:
+use the new numpy and select as my times as you want:
+
+x = array([[1.        , 1.11111111, 1.22222222, 1.33333333, 1.44444444,
+        1.55555556, 1.66666667, 1.77777778, 1.88888889, 2.        ],
+       [2.        , 2.11111111, 2.22222222, 2.33333333, 2.44444444,
+        2.55555556, 2.66666667, 2.77777778, 2.88888889, 3.        ]])
+rng.choice(x, size=10, replace=True, axis=1)
+rng = np.random.default_rng()
+
+in other words, we can apply straight away 5 k and generate all the data in one go and avoid calling so many functions
+then, ideally we would call the integral on all of them as well
+"""
