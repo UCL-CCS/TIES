@@ -339,7 +339,7 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
     return aele_int, avdw_int, dvdw_int, dele_int, data
 
 
-def bootstrapped_ddG(ligand_data, complex_data):
+def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
     """
     Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
     Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
@@ -349,7 +349,7 @@ def bootstrapped_ddG(ligand_data, complex_data):
     # we want to know where the difference comes from
     # fixme - try bootstrapping to understand the error in aele, dele etc
     bootstrapped_ddGs = []
-    for i in range(5 * 1000):  # fixme
+    for i in range(bootstrap_size_k * 1000):  # fixme
         laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=False,
                                                                        verbose=False, sample_reps=True,
                                                                        plot=False)
@@ -380,7 +380,7 @@ print("Delta Delta: ", complex_delta - lig_delta)
 print ("Agastya Error", complex_data['sigma_sum'] + lig_data['sigma_sum'])
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
-se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data)
+se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
 print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
 print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
 print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
