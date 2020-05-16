@@ -108,11 +108,17 @@ for sim_no in $(seq 1 $SIM_NO); do
 	    ( cd $ROOT_WORK/lig/$SIM &&
 	    timeout $LIG_TIMEOUT echo "Ligand Directory Time" &&
 	    if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
+	    echo "MIN FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
+        echo "EQ1 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
+        echo "EQ2 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
+        echo "EQ3 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
+        echo "EQ4 FINISHED" `date` &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
+        echo "PROD FINISHED" `date` &&
         echo "Finished running lig/$SIM"
         ) ;
         (
@@ -120,16 +126,23 @@ for sim_no in $(seq 1 $SIM_NO); do
         cd $ROOT_WORK/complex/$SIM &&
         echo "Complex Directory Time" &
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
+        echo "MIN FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
+        echo "EQ1 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
+        echo "EQ2 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step3.log ; then ${cmd_mpinamd} eq_step3.namd > eq_step3.log ; fi &&
+        echo "EQ3 FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step4.log ; then ${cmd_mpinamd} eq_step4.namd > eq_step4.log ; fi &&
+        echo "EQ4 FINISHED" `date` &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000" prod.log ; then ${cmd_mpinamd} prod.namd > prod.log ; fi &&
+        echo "PROD FINISHED" `date` &&
         echo "Finished running complex/$SIM"
         )
     ) &
 done
 
+echo "Scheduling done: " `date`
 echo "END: Sim that were not scheduled: ${SIMS[@]}"
 
 wait
