@@ -3,7 +3,6 @@ Load two ligands, run the topology superimposer, and then using the results, gen
 """
 from generator import *
 import topology_superimposer
-
 import os
 import shutil
 import sys
@@ -16,23 +15,49 @@ hpc_submit = None #  "hpc_hartree_hsp.sh"
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
-net_charge = -1
+net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 # rather than using the empirical antechamber -c bcc, copy agastya's values
-use_agastyas_charges = False
+use_agastyas_charges = True
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
 use_original_coor = True
 
+# ambertools forcefiled
+amber_forcefield = "leaprc.protein.ff14SB"
+amber_forcefield = "leaprc.ff99SBildn" # used by Agastya before
+atom_type = 'gaff' # fixme - check?
+if net_charge is not None:
+    charge_type = 'bcc' # 'AM1-BCC'
+else:
+    # ignore the charges,
+    charge_type = 'dc' #'Delete Charge'
+amber_ligand_ff = "leaprc.gaff2" # fixme - check
 
 
+# ------------------ Software Configuration
+source_antechamber = "source ~/software/amber18install/amber.sh"
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
 print('Working Directory: ', workplace_root)
 # set the path to the scripts
 code_root = Path(os.path.dirname(__file__))
+# conf ambertools
+ambertools_bin = PurePosixPath("/home/dresio/software/amber18install/bin/")
 
+# fixme - check antechamber before actually doing any work
+antechamber_path = ambertools_bin / "antechamber"
+parmchk2_path = ambertools_bin / "parmchk2"
+tleap_path = ambertools_bin / "tleap"
+
+# directory with scripts/input files
+script_dir = code_root / PurePosixPath('scripts')
+namd_script_dir = script_dir / 'namd'
+ambertools_script_dir = script_dir / 'ambertools'
+
+
+# ------------------------------------- Start TIES
 # check if the input files are in the directory
 if not (workplace_root / left_ligand).is_file():
     print(f'File {left_ligand} not found in {workplace_root}')
@@ -44,27 +69,36 @@ elif not (workplace_root / protein_filename).is_file():
     print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
 
-# copy ambertools scripts to create .mol2 with antechamber (and sqm)
-script_dir = code_root / PurePosixPath('scripts')
-namd_script_dir = script_dir / 'namd'
-ambertools_script_dir = script_dir / 'ambertools'
 
 # fixme - replace with the python API
-assign_charges_antechamber_script = 'assign_charge_parameters_antechamber.sh'
-check_charges_parmchk2_script = 'call_parmchk2.sh'
 
-# antechamber creates the left.mol2 and right.mol2 files and assigns BCC charges
-prepare_antechamber_parmchk2(ambertools_script_dir / assign_charges_antechamber_script,
-                             workplace_root / assign_charges_antechamber_script, net_charge=net_charge)
+# subprocess options for calling ambertools
+subprocess_kwargs = {
+    "check" : True, "text" : True,
+    "cwd" : workplace_root,
+    "stdout" : sys.stdout, #subprocess.PIPE,
+    "stderr" : sys.stderr, #subprocess.PIPE,
+    "timeout" : 60 * 10 # 10 minute timeout
+}
+
+# prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
 if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.mol2').is_file():
-    try:
-        print('Generating BCC charges with ambertool')
-        output = subprocess.check_output(['sh', workplace_root / assign_charges_antechamber_script,
-                                          left_ligand, right_ligand])
-    except Exception as E:
-        print('Ambertools antechamber could not generate at least one of the .mol2 files')
-        print(E)
-        raise E
+    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
+    subprocess.run([antechamber_path, '-i', left_ligand, '-fi', 'pdb',
+                                        '-o', 'left.mol2', '-fo', 'mol2',
+                                        '-c', charge_type, '-at', atom_type,
+                                        '-nc', str(net_charge)],
+                               **subprocess_kwargs)
+
+# prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+if not (workplace_root / 'right.mol2').is_file():
+    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
+    subprocess.run([antechamber_path, '-i', right_ligand, '-fi', 'pdb',
+                                '-o', 'right.mol2', '-fo', 'mol2',
+                                '-c', charge_type, '-at', atom_type,
+                                '-nc', str(net_charge)],
+                               **subprocess_kwargs)
+
 
 if use_agastyas_charges:
     print('Copying REST charges from left_q.mol2 and right_q.mol2')
@@ -98,28 +132,101 @@ write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
 hybrid_mol2 = workplace_root / 'morph.mol2'
 write_merged(suptop, hybrid_mol2)
 
-# use parmchk2 to generate the .frcmod
-shutil.copy(ambertools_script_dir / check_charges_parmchk2_script, workplace_root)
-subprocess.check_output(['sh', workplace_root / check_charges_parmchk2_script, 'left', 'right'])
-if not (workplace_root / 'left.frcmod').is_file() or \
-        not (workplace_root / 'right.frcmod').is_file():
-    raise Exception('Ambertools sqm did not generate at least one of the .frcmod files')
-
-# are .frcmod files generated?
-left_frcmod = workplace_root / 'left.frcmod'
-right_frcmod = workplace_root / 'right.frcmod'
-if not left_frcmod.is_file() or not right_frcmod.is_file():
-    raise Exception(f'ERROR: Ambertools sqm generation of at least one of the .frcmod files failed. File not found. '
-          f'Please check antechamber log for more details. ')
+# generate the functional forms
+print('Ambertools parmchk2 generating .frcmod')
+left_chk2 = subprocess.run([str(parmchk2_path), '-i', 'left.mol2', '-o', 'left.frcmod',
+                             '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
+right_chk2 = subprocess.run([parmchk2_path, '-i', 'right.mol2', '-o', 'right.frcmod',
+                             '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
 
 # join the .frcmod files
+left_frcmod = workplace_root / 'left.frcmod'
+right_frcmod = workplace_root / 'right.frcmod'
 hybrid_frcmod = workplace_root / 'morph.frcmod'
 join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
+
+def check_hybrid_frcmod(mol2_file, hybrid_frcmod, tleap_path, atomff_type):
+    """
+    Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
+    Check that the output library can be used to create a valid amber topology.
+    Add missing terms with no force to pass the topology creation.
+    Returns the corrected .frcmod content, otherwise throws an exception.
+    """
+    # prepare files
+    tmp_dir = tempfile.mkdtemp()
+    shutil.copy(mol2_file, tmp_dir)
+    shutil.copy(hybrid_frcmod, tmp_dir)
+    copy_hybrid_frcmod = os.path.join(tmp_dir, os.path.basename(hybrid_frcmod))
+    test_system_build_script = '''
+source leaprc.protein.ff14SB
+source leaprc.water.tip3p
+source leaprc.gaff
+
+frcmod = loadamberparams morph.frcmod
+hybrid = loadMol2 morph.mol2
+saveamberprep hybrid test.prepc
+saveamberparm hybrid test.top test.crd
+savepdb hybrid test.pdb
+quit
+'''
+    # prepare the input file
+    leap_in_filename = 'test.leapin'
+    with open(os.path.join(tmp_dir, leap_in_filename), 'w') as FOUT:
+        FOUT.write(test_system_build_script)
+
+    # fixme - temporary solution
+    output = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
+
+    missing_angles = []
+    missing_dihedrals = []
+    for line in output.splitlines():
+        if "Could not find angle parameter:" in line:
+            cols = line.split(':')
+            angle = cols[-1].strip()
+            if angle not in missing_angles:
+                missing_angles.append(angle)
+        elif "No torsion terms for" in line:
+            cols = line.split()
+            torsion = cols[-1].strip()
+            if torsion not in missing_dihedrals:
+                missing_dihedrals.append(torsion)
+
+    if missing_angles or missing_dihedrals:
+        raise Exception('hybrid frcmod')
+        print('WARNING: Adding default values for missing dihedral to frcmod')
+        with open(copy_hybrid_frcmod) as FRC:
+            frcmod_lines = FRC.readlines()
+
+        new_frcmod = open(copy_hybrid_frcmod, 'w')
+        for line in frcmod_lines:
+            new_frcmod.write(line)
+            if 'ANGLE' in line:
+                for angle in missing_angles:
+                    new_frcmod.write(
+                        '{:<14}0     120.010   same as ca-ca-ha\n'.format(angle))
+            if 'DIHE' in line:
+                for angle in missing_dihedrals:
+                    new_frcmod.write(
+                        '{:<14}1    0.00       180.000           2.000      same as X -c2-ca-X\n'.format(angle))
+
+        new_frcmod.close()
+        # returncode = subprocess.call(['tleap', '-s', '-f', leap_in_filename])
+        returncode = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
+
+        if not "Errors = 0" in returncode:
+            print('ERROR: Test of the hybrid topology failed')
+            sys.exit(1)
+
+    print('\nHybrid topology created correctly')
+    with open(copy_hybrid_frcmod) as FRC:
+        frcmod_with_null_terms = FRC.read()
+    return frcmod_with_null_terms
+
 
 # the hybrid .frcmod might not contains "new terms" between the appearing/disappearing atoms.
 # In that case, insert fake terms
 # fixme - clean up this part: remove the direct call to tleap?
-updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, '/home/dresio/software/amber18install/bin/tleap', 'gaff')
+updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, tleap_path, atom_type)
 with open(hybrid_frcmod, 'w') as FOUT:
     FOUT.write(updated_frcmod)
 
@@ -130,10 +237,9 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
                    namd_script_loc=None,
                    submit_script=None,
                    scripts_loc=None,
-                   tleap_in=None):
-    # fixme - use tleap to merge+solvate, decide on the charges?
+                   tleap_in=None,
+                   protein_ff=None):
 
-    # fixme rename
     dest_dir = workplace_root / directory
     if not dest_dir.is_dir():
         dest_dir.mkdir()
@@ -147,28 +253,17 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     shutil.copy(hybrid_frc, dest_dir)
 
     # copy the protein tleap input file (ambertools)
-    shutil.copy(ambertools_script_dir / tleap_in, dest_dir / 'leap.in')
-    shutil.copy(ambertools_script_dir / 'run_tleap.sh', dest_dir)
+    leap_in_conf = open(ambertools_script_dir / tleap_in).read()
+    open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
 
-    try:
-        # tleap: combine ligand+complex, solvate, generate amberparm
-        output = subprocess.check_output(['sh', "run_tleap.sh"], cwd=dest_dir)
-        assert "Errors = 0;" in str(output), "Errors when running tleap: " + str(output)
-        # this file should have been generated by tleap
-        morph_solv = dest_dir / "morph_solv.pdb"
-        if not morph_solv.is_file():
-            raise Exception(f'During the solvation in {dest_dir}, tleap did not generate the {morph_solv} file')
-    except Exception as E:
-        print('Error occured when running tleap script to solvate ligand: ', E)
-        raise E
-    assert 'Errors = 0' in str(output)
-
-    # tleap generated:
-    complex_solvated = dest_dir / 'morph_solv.pdb'
+    # ambertools tleap: combine ligand+complex, solvate, generate amberparm
+    subprocess_kwargs['cwd'] = dest_dir
+    subprocess.run([tleap_path, '-s', '-f', 'leap.in'], **subprocess_kwargs)
+    hybrid_solv = dest_dir / 'morph_solv.pdb' # generated
 
     # generate the merged .fep file
     complex_solvated_fep = dest_dir / 'morph_solv_fep.pdb'
-    correct_fep_tempfactor(left_right_mapping, complex_solvated, complex_solvated_fep)
+    correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep)
 
     # fixme - check that the protein does not have the same resname?
 
@@ -182,7 +277,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     shutil.copy(namd_script_loc / "prod.namd", dest_dir)
 
     # generate 4 different constraint .pdb files (it uses B column)
-    constraint_files = create_4_constraint_files(complex_solvated, dest_dir)
+    constraint_files = create_4_constraint_files(hybrid_solv, dest_dir)
 
     # Generate the directory structure for all the lambdas, and copy the files
     for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
@@ -201,7 +296,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
             open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
             # copy the necessary files
-            shutil.copy(complex_solvated, replica_dir)
+            shutil.copy(hybrid_solv, replica_dir)
             shutil.copy(complex_solvated_fep, replica_dir)
             # copy ambertools-generated topology
             shutil.copy(dest_dir / "morph_solv.top", replica_dir)
@@ -232,7 +327,8 @@ prepare_inputs(workplace_root, directory='lig',
                left_right_mapping=left_right_matching_json,
                namd_script_loc=namd_script_dir,
                scripts_loc=script_dir,
-               tleap_in='leap_ligand.in')
+               tleap_in='leap_ligand.in',
+               protein_ff=amber_forcefield)
 
 ##########################################################
 # ------------------ complex-complex --------------
@@ -244,5 +340,6 @@ prepare_inputs(workplace_root, directory='complex',
                left_right_mapping=left_right_matching_json,
                namd_script_loc=namd_script_dir,
                scripts_loc=script_dir,
-               tleap_in='leap_complex.in')
+               tleap_in='leap_complex.in',
+               protein_ff=amber_forcefield)
 

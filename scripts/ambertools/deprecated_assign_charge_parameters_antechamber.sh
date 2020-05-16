@@ -1,7 +1,6 @@
-source ~/software/amber18install/amber.sh
-# Just the first stage of providing the charges and .mol2 file
+{source_antechamber}
 
-# todo - check if these are files with the right extension etc
+# files left.pdb and right.pdb
 LEFT=$1
 RIGHT=$2
 

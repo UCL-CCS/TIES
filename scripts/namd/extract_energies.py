@@ -380,10 +380,10 @@ print("Delta Delta: ", complex_delta - lig_delta)
 print ("Agastya Error", complex_data['sigma_sum'] + lig_data['sigma_sum'])
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
-se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
-print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
-print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
-print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
+# se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
+# print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
+# print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
+# print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
 
 """
 Bootstrapping performance upgrade:
