@@ -106,7 +106,7 @@ for sim_no in $(seq 1 $SIM_NO); do
 
 	    # first is the ligand part with the timeout
 	    ( cd $ROOT_WORK/lig/$SIM &&
-	    timeout $LIG_TIMEOUT echo "Ligand simulation start" &&
+	    timeout $LIG_TIMEOUT echo "Ligand Directory Time" &&
 	    if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
@@ -118,6 +118,7 @@ for sim_no in $(seq 1 $SIM_NO); do
         (
         # then the complex part, no timeout
         cd $ROOT_WORK/complex/$SIM &&
+        echo "Complex Directory Time" &
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step2.log ; then ${cmd_mpinamd} eq_step2.namd > eq_step2.log ; fi &&
