@@ -72,6 +72,7 @@ do
 	fi
 	# add a new host
     HOSTS+=($host)
+    echo "Adding new host: $host"
 done
 echo "All hosts: ${HOSTS[@]}"
 
