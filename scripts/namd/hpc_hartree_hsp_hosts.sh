@@ -62,7 +62,7 @@ for host in ${GRANTED_HOSTS};
 do
     # ignore a host that is a number
     re='^[0-9]+$'
-    if ! [[ $host =~ $re ]] ; then
+    if [[ $host =~ $re ]] ; then
        continue
     fi
 
