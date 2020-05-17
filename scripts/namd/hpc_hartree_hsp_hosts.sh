@@ -124,7 +124,7 @@ for sim_no in $(seq 1 $SIM_NO); do
         (
         # then the complex part, no timeout
         cd $ROOT_WORK/complex/$SIM &&
-        echo "Complex Directory Time" &
+        echo "Complex Directory Time" &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&
         echo "MIN FINISHED" `date` &&
         if ! grep -q "WRITING EXTENDED SYSTEM TO OUTPUT FILE AT STEP 100000" eq_step1.log ; then ${cmd_mpinamd} eq_step1.namd > eq_step1.log ; fi &&
