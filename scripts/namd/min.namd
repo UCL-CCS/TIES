@@ -71,11 +71,17 @@ langevinPistonDecay   25.0;            # oscillation decay time. smaller value c
                                        # forces and increased coupling to the Langevin temp bath.
                                        # Equall or smaller than piston period
 binaryoutput          yes;
-# alchemical
-# source          fep.tcl
+
+## alchemical
+
+# read which lambda we are working on
+set lambda_f [open "lambda" r]
+set lambda_value [read $lambda_f]
+puts "Lambda value is $lambda_value"
+close $lambda_f
+
 alch            on
 alchType        ti
-#alchLambda2	0
 alchFile        {structure_name}_fep.pdb
 alchCol         B
 alchOutFile     $outputname.alch
@@ -86,12 +92,6 @@ alchVdwShiftCoeff       5
 alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
-
-# read which lambda we are working on
-set lambda_f [open "lambda" r]
-set lambda_value [read $lambda_f]
-puts "Lambda value is $lambda_value"
-close $lambda_f
 
 alchLambda       $lambda_value
 minimize 5000 ;     # minimise with the given number of steps
