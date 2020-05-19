@@ -76,14 +76,12 @@ useGroupPressure       yes;            # use a hydrogen-group based pseudo-molec
                                        # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
 useFlexibleCell        no;             # yes for anisotropic system like membrane
 
-langevinPiston          on;            # Nose-Hoover Langevin piston pressure control
-langevinPistonTarget  1.01325;         # target pressure in bar 1atm = 1.01325bar
-langevinPistonPeriod  50.0;            # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
-                                       # f=1/T=20.0(pgamma)
-langevinPistonDecay   25.0;            # oscillation decay time. smaller value correspons to larger random
-                                       # forces and increased coupling to the Langevin temp bath.
-                                       # Equall or smaller than piston period
-langevinPistonTemp   $temp;            # coupled to heat bath
+# Barostat used in the previous study
+BerendsenPressure                       on
+BerendsenPressureTarget                 1.0
+BerendsenPressureCompressibility        4.57e-5
+BerendsenPressureRelaxationTime         100
+BerendsenPressureFreq                   2
 
 # Constant Temperature Control
 langevin                on;            # langevin dynamics
