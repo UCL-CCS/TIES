@@ -660,7 +660,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     mol2.atoms.write(mol2_filename)
 
 
-def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, by_index=True):
+def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):
     # mol2_filename will be overwritten!
     print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
     # load the ref charges
@@ -673,14 +673,28 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     elif not by_atom_name and not by_index:
         raise ValueError('Either option has to be selected.')
 
+    # save the sum of charges before
+    ref_sum_q =  sum(a.charge for a in ref_mol2.atoms)
+
     if by_atom_name:
         for mol2_atom in mol2.atoms:
             found_match = False
             for ref_atom in ref_mol2.atoms:
-                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                if mol2_atom.name.upper() == ref_atom.name.upper():
+                    if found_match == True:
+                        raise Exception('AtomNames are not unique or do not match')
                     found_match = True
                     mol2_atom.charge = ref_atom.charge
-                    break
+            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+    elif by_general_atom_type:
+        for mol2_atom in mol2.atoms:
+            found_match = False
+            for ref_atom in ref_mol2.atoms:
+                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                    if found_match == True:
+                        raise Exception('AtomNames are not unique or do not match')
+                    found_match = True
+                    mol2_atom.charge = ref_atom.charge
             assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
     elif by_index:
         for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
@@ -691,12 +705,12 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
 
                 mol2_atom.charge = ref_atom.charge
 
-
+    assert ref_sum_q == sum(a.charge for a in mol2.atoms)
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
 
 
-def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=True):
+def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=False):
     # mol2_filename will be overwritten!
     print(f'Overwriting {mol2_filename} mol2 file with coordinates from {coor_ref_filename} file')
     # load the ref coordinates
@@ -729,6 +743,81 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
+
+
+def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_filename, left_right_pairs_filename):
+    """
+    Set coordinates but use atom names provided by the user.
+
+    Example of the left_right_pairs_filename content:
+    # flip the first ring
+    # move the first c and its h
+    C32 C18
+    H34 C19
+    # second pair
+    C33 C17
+    # the actual matching pair
+    C31 C16
+    H28 H11
+    # the second matching pair
+    C30 C15
+    H29 H12
+    #
+    C35 C14
+    # flip the other ring with itself
+    C39 C36
+    C36 C39
+    H33 H30
+    H30 H33
+    C37 C38
+    C38 C37
+    H31 H32
+    H32 H31
+    """
+    # fixme - check if the names are unique
+
+    # parse "left_right_pairs_filename
+    # format per line: leftatom_name right_atom_name
+    lines = open(left_right_pairs_filename).read().split(os.linesep)
+    left_right_pairs = (l.split() for l in lines if not l.strip().startswith('#'))
+
+    # load the ref coordinates
+    ref_mol2 = topology_superimposer.load_mol2_wrapper(coor_ref_filename)
+    # load the .mol2 files with MDAnalysis and correct the charges
+    static_mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    # this is being modified
+    mod_mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+
+
+    for pair in left_right_pairs:
+        print('find pair', pair)
+        new_pos = False
+        for mol2_atom in static_mol2.atoms:
+            # check if we are assigning from another molecule
+            for ref_atom in ref_mol2.atoms:
+                if mol2_atom.name.upper() == pair[0] and ref_atom.name.upper() == pair[1]:
+                    new_pos = ref_atom.position
+            # check if we are trying to assing coords from the same molecule
+            for another_atom in static_mol2.atoms:
+                if mol2_atom.name.upper() == pair[0] and another_atom.name.upper() == pair[1]:
+                    new_pos = another_atom.position
+
+        if new_pos is False:
+            raise Exception("Could not find this pair: " + str(pair))
+
+        # assign the position to the right atom
+        # find pair[0]
+        found = False
+        for atom in mod_mol2.atoms:
+            if atom.name.upper() == pair[0]:
+                atom.position = new_pos
+                found = True
+                break
+        assert found
+
+
+    # update the mol2 file
+    mod_mol2.atoms.write(output_filename)
 
 
 def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
