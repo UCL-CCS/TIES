@@ -2,7 +2,6 @@
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
 from generator import *
-import topology_superimposer
 import os
 import shutil
 import sys
@@ -17,7 +16,7 @@ right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
 net_charge = 0
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
-# rather than using the empirical antechamber -c bcc, copy agastya's values
+
 use_agastyas_charges = True
 left_charges = 'left_q.mol2'
 right_charges = 'right_q.mol2'
@@ -25,28 +24,25 @@ right_charges = 'right_q.mol2'
 use_original_coor = True
 
 # ambertools forcefiled
-amber_forcefield = "leaprc.protein.ff14SB"
-amber_forcefield = "leaprc.ff99SBildn" # used by Agastya before
+amber_forcefield = "leaprc.ff99SBildn" # used by Agastya before, latest is: "leaprc.protein.ff14SB"
 atom_type = 'gaff' # fixme - check?
-if net_charge is not None:
-    charge_type = 'bcc' # 'AM1-BCC'
-else:
+if use_agastyas_charges:
     # ignore the charges,
-    charge_type = 'dc' #'Delete Charge'
-amber_ligand_ff = "leaprc.gaff2" # fixme - check
+    charge_type = 'dc'  # 'Delete Charge'
+else:
+    charge_type = 'bcc'  # 'AM1-BCC'
+# amber_ligand_ff = "leaprc.gaff" # fixme - check
 
 
 # ------------------ Software Configuration
-source_antechamber = "source ~/software/amber18install/amber.sh"
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
 print('Working Directory: ', workplace_root)
 # set the path to the scripts
 code_root = Path(os.path.dirname(__file__))
+
 # conf ambertools
 ambertools_bin = PurePosixPath("/home/dresio/software/amber18install/bin/")
-
-# fixme - check antechamber before actually doing any work
 antechamber_path = ambertools_bin / "antechamber"
 parmchk2_path = ambertools_bin / "parmchk2"
 tleap_path = ambertools_bin / "tleap"
@@ -68,9 +64,6 @@ elif not (workplace_root / right_ligand).is_file():
 elif not (workplace_root / protein_filename).is_file():
     print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
-
-
-# fixme - replace with the python API
 
 # subprocess options for calling ambertools
 subprocess_kwargs = {
@@ -106,16 +99,16 @@ if use_agastyas_charges:
     shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_RESP.mol2')
     shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_RESP.mol2')
     # take the .mol2 file and correct the charges to reflect Agastya's RESP
-    set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges)
-    set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges)
+    set_charges_from_mol2(workplace_root / 'left.mol2', workplace_root / left_charges, by_atom_name=True)
+    set_charges_from_mol2(workplace_root / 'right.mol2', workplace_root / right_charges, by_atom_name=True)
 
 if use_original_coor:
     print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
     # copy the files before applying the coordinates
     shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
     shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
-    set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand)
-    set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand)
+    set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_atom_name=True)
+    set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_atom_name=True)
 
 # rename the atom names to ensure they are unique across the two molecules
 ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
@@ -192,7 +185,7 @@ quit
                 missing_dihedrals.append(torsion)
 
     if missing_angles or missing_dihedrals:
-        raise Exception('hybrid frcmod')
+        raise Exception('hybrid frcmod missing dihedrals or angles')
         print('WARNING: Adding default values for missing dihedral to frcmod')
         with open(copy_hybrid_frcmod) as FRC:
             frcmod_lines = FRC.readlines()

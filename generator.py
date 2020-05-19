@@ -710,7 +710,10 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     mol2.atoms.write(mol2_filename)
 
 
-def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=False):
+def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):
+    """
+    fixme - add additional checks that check before and after averages to ensure that the copying was done right
+    """
     # mol2_filename will be overwritten!
     print(f'Overwriting {mol2_filename} mol2 file with coordinates from {coor_ref_filename} file')
     # load the ref coordinates
@@ -718,16 +721,27 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
     # load the .mol2 files with MDAnalysis and correct the charges
     mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
 
+    ref_pos_sum = np.sum(ref_mol2.atoms.positions)
+
     if by_atom_name and by_index:
         raise ValueError('Cannot have both. They are exclusive')
     elif not by_atom_name and not by_index:
         raise ValueError('Either option has to be selected.')
 
-    if by_atom_name:
+    if by_general_atom_type:
         for mol2_atom in mol2.atoms:
             found_match = False
             for ref_atom in ref_mol2.atoms:
                 if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                    found_match = True
+                    mol2_atom.position = ref_atom.position
+                    break
+            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+    if by_atom_name:
+        for mol2_atom in mol2.atoms:
+            found_match = False
+            for ref_atom in ref_mol2.atoms:
+                if mol2_atom.name.upper() == ref_atom.name.upper():
                     found_match = True
                     mol2_atom.position = ref_atom.position
                     break
@@ -740,6 +754,9 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
                     raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
 
                 mol2_atom.position = ref_atom.position
+
+    if ref_pos_sum != np.sum(mol2.atoms.positions):
+        raise Exception('Copying of the coordinates did not work correctly')
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
