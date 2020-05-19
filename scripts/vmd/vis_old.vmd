@@ -1,0 +1,43 @@
+set fname [glob final_l\[0-9\]*.pdb]
+set iname [glob init_l\[0-9\]*.pdb]
+puts "The final filename $fname"
+puts "The init filename $iname"
+
+axes location Off
+mol new $fname type {pdb} first 0 last -1 step 1 waitfor 1
+mol new $iname type {pdb} first 0 last -1 step 1 waitfor 1
+
+mol modstyle 0 0 Licorice 0.100000 12.000000 12.000000
+mol modstyle 0 1 Licorice 0.100000 12.000000 12.000000
+
+
+set fp [open "appearing_atoms.txt" r]
+set appatoms [read $fp]
+close $fp
+puts "app atoms: $appatoms"
+set fp [open "disappearing_atoms.txt" r]
+set disatoms [read $fp]
+close $fp
+puts "dis atoms: $disatoms"
+
+# create a new rep, disatoms
+mol color Name
+mol representation Licorice 0.100000 12.000000 12.000000
+mol selection all
+mol material Opaque
+mol addrep 1
+mol modstyle 1 1 CPK 0.800000 0.300000 12.000000 12.000000
+mol modselect 1 1 name $disatoms
+mol modcolor 1 1 ColorID 1
+mol modmaterial 1 1 Transparent
+
+# disapp
+mol color Name
+mol representation Licorice 0.100000 12.000000 12.000000
+mol selection all
+mol material Opaque
+mol addrep 0
+mol modstyle 1 0 CPK 0.800000 0.300000 12.000000 12.000000
+mol modselect 1 0 name $appatoms
+mol modcolor 1 0 ColorID 0
+mol modmaterial 1 0 Transparent
