@@ -40,7 +40,7 @@ def merge_prod_files(files, output_merged_filename):
     open(output_merged_filename, 'w').writelines(lines)
 
 
-def extract_energies(location, choderas_cut=False, eq_steps=500):
+def extract_energies(location, choderas_cut=False, eq_steps=1000):
     """
     @location - referes to the main locations where the lambda directories reside.
     @eq_steps = 500 to be discarded as EQ stage.
