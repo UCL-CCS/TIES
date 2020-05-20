@@ -29,8 +29,11 @@ atom_type = 'gaff' # fixme - check?
 if use_agastyas_charges:
     # ignore the charges,
     charge_type = 'dc'  # 'Delete Charge'
+    # use berendsen
+    namd_prod = "prod_2017.namd"
 else:
     charge_type = 'bcc'  # 'AM1-BCC'
+    namd_prod = "prod.namd"
 # amber_ligand_ff = "leaprc.gaff" # fixme - check
 
 
@@ -185,7 +188,7 @@ quit
                 missing_dihedrals.append(torsion)
 
     if missing_angles or missing_dihedrals:
-        raise Exception('hybrid frcmod missing dihedrals or angles')
+        # raise Exception('hybrid frcmod missing dihedrals or angles')
         print('WARNING: Adding default values for missing dihedral to frcmod')
         with open(copy_hybrid_frcmod) as FRC:
             frcmod_lines = FRC.readlines()
@@ -267,7 +270,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
                        structure_name='morph_solv', pbc_box=solv_oct_boc)
     eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
-    shutil.copy(namd_script_loc / "prod.namd", dest_dir)
+    shutil.copy(namd_script_loc / namd_prod, dest_dir / 'prod.namd')
 
     # generate 4 different constraint .pdb files (it uses B column)
     constraint_files = create_4_constraint_files(hybrid_solv, dest_dir)
@@ -299,7 +302,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
             # copy the NAMD protocol files
             shutil.copy(dest_dir / "min.namd", replica_dir)
             [shutil.copy(eq, replica_dir) for eq in eq_namd_filenames]
-            shutil.copy(dest_dir / "prod.namd", replica_dir)
+            shutil.copy(dest_dir / 'prod.namd', replica_dir / 'prod.namd')
 
             # copy the surfsara submit script - fixme - make this general
             if submit_script is not None:

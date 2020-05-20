@@ -2449,7 +2449,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            ignore_coords=False,
                            left_coords_are_ref=True,
                            use_general_type=True,
-                           use_only_gentype=False):
+                           use_only_gentype=False,
+                           check_atom_names_unique=True):
     """
     This is a helper function that managed the entire process.
 
@@ -2470,8 +2471,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         whole_charge = SuperimposedTopology.Validate_Charges(top1_nodes, top2_nodes)
 
     # ensure that none of the atom names across the two molecules are the different
-    sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
-    assert len(sameAtomNames) == 0, f"The molecules have the same atom names. This is now allowed. They are: {sameAtomNames}"
+    if check_atom_names_unique:
+        sameAtomNames = {a.atomName for a in top1_nodes}.intersection({a.atomName for a in top2_nodes})
+        assert len(sameAtomNames) == 0, f"The molecules have the same atom names. This is now allowed. They are: {sameAtomNames}"
 
     # prealign the 3D coordinates before applaying further changes
     # todo
@@ -2595,13 +2597,14 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
     # carry out a check. Each
-    for st in suptops:
-        main_rmsd = st.alignLigandsUsingMatched()
-        for mirror in st.mirrors:
-            mirror_rmsd = mirror.alignLigandsUsingMatched()
-            if mirror_rmsd < main_rmsd:
-                print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-        st.alignLigandsUsingMatched()
+    if align_molecules:
+        for st in suptops:
+            main_rmsd = st.alignLigandsUsingMatched()
+            for mirror in st.mirrors:
+                mirror_rmsd = mirror.alignLigandsUsingMatched()
+                if mirror_rmsd < main_rmsd:
+                    print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
+            st.alignLigandsUsingMatched()
 
     return suptops
 
