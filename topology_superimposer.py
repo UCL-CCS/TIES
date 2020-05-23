@@ -475,7 +475,6 @@ class SuperimposedTopology:
         return self.unique_atom_count
 
     def alignLigandsUsingMatched(self):
-        # return self.rmsd()
         """
         Align the two ligands using the matched area.
         Note: we assume that the left ligand is docked. The left ligand is the reference here.
@@ -488,12 +487,19 @@ class SuperimposedTopology:
         if not self.can_use_mda:
             # cannot use MDA for aligning the ligands.
             # Simply return the rmsd of the current setting instead
+            print('Will not use mda positions for aligning. Simply taking .rmsd()')
             return self.rmsd()
 
         # extract the IDs and use them to pick the atoms in MDAnalysis
         # note that the order matters
         matched_l_ids = [l.atomId for l, r in self.matched_pairs]
         matched_r_ids = [r.atomId for l, r in self.matched_pairs]
+
+        # save the original positions (deep copy)
+        original_left_pos = np.empty_like(self.mda_ligandL.atoms.positions)
+        np.copyto(dst=original_left_pos, src=self.mda_ligandL.atoms.positions)
+        original_right_pos = np.empty_like(self.mda_ligandR.atoms.positions)
+        np.copyto(dst=original_right_pos, src=self.mda_ligandR.atoms.positions)
 
         # select the same atoms in MDAnalysis,
         # select separately to keep the order correct
@@ -548,6 +554,10 @@ class SuperimposedTopology:
                     found = True
                     break
             assert found
+
+        # put back original pos
+        self.mda_ligandL.atoms.positions = original_left_pos
+        self.mda_ligandR.atoms.positions = original_right_pos
 
         if rmsd == None:
             #fixme ? why does it return None?
