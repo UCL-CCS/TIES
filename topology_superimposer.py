@@ -528,8 +528,12 @@ class SuperimposedTopology:
             ref_cog = right_ligand_original_cog
 
         # apply the rotation matrix to all atoms to match the mobile ligand to the ref ligand
-        R, rmsd = rotation_matrix(mob.positions, ref.positions)
-        mob_ligand.atoms.rotate(R)
+        # if they are already superimposed, set rmsd to 0
+        if np.all(mob.positions == ref.positions):
+            rmsd = 0
+        else:
+            R, rmsd = rotation_matrix(mob.positions, ref.positions)
+            mob_ligand.atoms.rotate(R)
 
         # the new cog is that of the ref
         self.mda_ligandL.atoms.translate(ref_cog)
