@@ -245,6 +245,7 @@ def write_dual_top_pdb(filepath, mda_l1, mda_l2, suptop):
 
 
 def write_merged(suptop, merged_filename, use_left_charges=True, use_left_coords=True):
+    # fixme - make this as a method of suptop as well
     # recreate the mol2 file that is merged and contains the correct atoms from both
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
     with open(merged_filename, 'w') as FOUT:
@@ -687,7 +688,7 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
                         raise Exception('AtomNames are not unique or do not match')
                     found_match = True
                     mol2_atom.charge = ref_atom.charge
-            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+            assert found_match, "Could not find the following atom: " + mol2_atom.name
     elif by_general_atom_type:
         for mol2_atom in mol2.atoms:
             found_match = False

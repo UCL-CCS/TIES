@@ -30,11 +30,12 @@ if use_agastyas_charges:
     # ignore the charges,
     charge_type = 'dc'  # 'Delete Charge'
     # use berendsen
-    namd_prod = "prod_2017.namd"
 else:
     charge_type = 'bcc'  # 'AM1-BCC'
-    namd_prod = "prod.namd"
+
 # amber_ligand_ff = "leaprc.gaff" # fixme - check
+namd_prod = "prod.namd"
+namd_prod = "prod_2017.namd"    # only different because uses Berendsen
 
 
 # ------------------ Software Configuration
@@ -226,6 +227,9 @@ updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, tleap_path, ato
 with open(hybrid_frcmod, 'w') as FOUT:
     FOUT.write(updated_frcmod)
 
+shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
+shutil.copy(namd_script_dir / "calc_ddG.py", workplace_root)
+
 # ---------------------
 def prepare_inputs(workplace_root, directory='complex', protein=None,
                    hybrid_mol2=None, hybrid_frc=None,
@@ -310,8 +314,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
     # copy handy scripts to the main directory
     shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)
-    shutil.copy(namd_script_loc / "check_namd_outputs.py", dest_dir)
-    shutil.copy(namd_script_loc / "extract_energies.py", dest_dir)
+
 
 ##########################################################
 # ------------------   LIGAND ----------------------

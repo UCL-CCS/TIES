@@ -1,37 +1,31 @@
 """
-# would through the lambda directories
-# and schedule each simulation
-# fixme - could check if the simulation is finished/running etc, in that case ignore
-# fixme - should check how far the simulation got?
+Check if the NAMD simulations finished for ligand and complex
 """
 import os
-import sys
-import subprocess
 
-finished_sims = []
-for lambda_dir in os.listdir('.'):
-    if not lambda_dir.startswith('lambda_'):
-        continue
-
-    # go into the replicas
-    for rep in os.listdir(lambda_dir):
-        # for each replica, go in and schedule the simulation
-        if not rep.startswith('rep'):
+def check(dirname):
+    finished_sims = []
+    for lambda_dir in os.listdir(dirname):
+        if not lambda_dir.startswith('lambda_'):
             continue
 
-        rep_dir = os.path.join(lambda_dir, rep)
-        # lambda_0.00/rep3/eq.log:[Partition 0][Node 0] End of program
-        # lambda_0.00/rep3/prod.log:[Partition 0][Node 0] End of program
-        try:
-            if not 'End of program' in open(os.path.join(rep_dir, 'eq_step4.log')).read():
-                print('Eq not finished: %s' % rep_dir)
-            elif not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
-                print('Prod not finished: %s' % rep_dir)
-            else:
-                finished_sims.append(os.path.join(rep_dir, 'prod.log'))
-        except Exception as e:
-            print('Some files were not even created:', rep_dir)
-            print(e)
+        # go into the replicas
+        for rep in os.listdir(os.path.join(dirname, lambda_dir)):
+            # for each replica, go in and schedule the simulation
+            if not rep.startswith('rep'):
+                continue
 
-print('Total number of finished simulations: ', len(finished_sims))
-print('Which are: ', finished_sims)
+            rep_dir = os.path.join(dirname, lambda_dir, rep)
+            try:
+                if not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
+                    print('Prod not finished: %s' % rep_dir)
+                else:
+                    finished_sims.append(os.path.join(rep_dir, 'prod.log'))
+            except Exception as e:
+                print('prod.log files not found: %s' % rep_dir)
+
+    print('Total number of finished simulations: ', len(finished_sims))
+    print('Which are: ', finished_sims)
+
+check('lig')
+check('complex')
