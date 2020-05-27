@@ -149,6 +149,10 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                     aele_dvdl = energies_datapoints[eq_steps:, 1]
                     dele_dvdl = energies_datapoints[eq_steps:, 4]
 
+                if not all([len(avdw_dvdl), len(dvdw_dvdl), len(aele_dvdl), len(dele_dvdl)]):
+                    print('Not enough points. Ignoring ', lambda_dir, ' Replica', rep)
+                    continue
+
                 # --------------------------------------------------------------------------
                 # to make it consitent with the previous calculataions, take data points from all
                 # we always use the VDW energies
@@ -262,19 +266,14 @@ def bootstrap_replica_averages(data):
     for lambda_val, tot_mean in data['total_average'].items():
         # for each lambda value, sample the means
         means = []
-        # create 10 thousand of means
+        # create 10 thousand of means (of means)
         for i in range(10 * 1000):
             means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
         bootstrapped_sem[lambda_val] = np.std(means)
 
-    # multiply by each
-    k = list(bootstrapped_sem.keys())
-    sigma_sum = 0
-    for lambda_from, lambda_to, bsem in zip(k, k[1:], bootstrapped_sem.values()):
-        assert lambda_from < lambda_to
-        sigma_sum += (lambda_to - lambda_from)**2 * bsem**2
-
-    data['sigma_sum'] = sigma_sum
+    # integrate the error with trapz
+    sigma_int = np.trapz(y=list(bootstrapped_sem.values()), x=list(bootstrapped_sem.keys()))
+    data['sigma_int'] = sigma_int
 
 
 def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
@@ -377,7 +376,7 @@ complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # Give the overall results
 print("Delta Delta: ", complex_delta - lig_delta)
-print ("Agastya Error", complex_data['sigma_sum'] + lig_data['sigma_sum'])
+print ("Agastya Error", complex_data['sigma_int'] + lig_data['sigma_int'])
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
 # se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
