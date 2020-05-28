@@ -264,6 +264,36 @@ def bootstrap_replica_averages(data):
     """
     bootstrapped_sem = OrderedDict()
     for lambda_val, tot_mean in data['total_average'].items():
+        print('tot avg',lambda_val)
+        # for each lambda value, sample the means
+        means = []
+        # create 10 thousand of means (of means)
+        for i in range(10 * 1000):
+            means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
+        bootstrapped_sem[lambda_val] = np.var(means)
+
+    # multiply by each
+    k = list(bootstrapped_sem.keys())
+    sigma_sum = 0
+    for lambda_from, lambda_to, bsem in zip(k, k[1:], bootstrapped_sem.values()):
+        assert lambda_from < lambda_to
+        sigma_sum += (lambda_to - lambda_from) ** 2 * bsem ** 2
+
+    # note that for some reason, at the end sqrt was taken of the value
+    data['sigma_2017'] = np.sqrt(sigma_sum)
+
+
+def bootstrap_replica_averages_improved(data):
+    """
+    This is a variation that is more likely to show the actual values. We simply integrate over variances at each point.
+    Note that the variance at each point is not an optimal strategy: we will have very different variance
+    coming from Coulomb and VDW. So what happens when we naively add their points together?
+    In this case it might not matter because we take a single point which is a "distribution".
+    Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
+    """
+    bootstrapped_sem = OrderedDict()
+    for lambda_val, tot_mean in data['total_average'].items():
+        print('tot avg',lambda_val)
         # for each lambda value, sample the means
         means = []
         # create 10 thousand of means (of means)
@@ -376,7 +406,7 @@ complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # Give the overall results
 print("Delta Delta: ", complex_delta - lig_delta)
-print ("Agastya Error", complex_data['sigma_int'] + lig_data['sigma_int'])
+print ("Agastya Error", complex_data['sigma_2017'] + lig_data['sigma_2017'])
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
 # se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
