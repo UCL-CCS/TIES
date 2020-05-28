@@ -269,7 +269,7 @@ def bootstrap_replica_averages(data):
         # create 10 thousand of means (of means)
         for i in range(10 * 1000):
             means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
-        bootstrapped_sem[lambda_val] = np.std(means)
+        bootstrapped_sem[lambda_val] = np.var(means)
 
     # integrate the error with trapz
     sigma_int = np.trapz(y=list(bootstrapped_sem.values()), x=list(bootstrapped_sem.keys()))
