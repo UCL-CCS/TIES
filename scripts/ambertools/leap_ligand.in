@@ -4,13 +4,13 @@ source leaprc.water.tip3p
 source leaprc.gaff
 
 loadamberparams morph.frcmod
-lig = loadMol2 morph.mol2
+sys = loadMol2 morph.mol2
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
-solvateoct lig TIP3PBOX 14
+solvateoct sys TIP3PBOX 14
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
-addIons lig Na+ 0
-addIons lig Cl- 0
-savepdb lig morph_solv.pdb
-saveamberparm lig morph_solv.top morph_solv.crd
+{NaIons}
+{ClIons}
+savepdb sys morph_solv.pdb
+saveamberparm sys morph_solv.top morph_solv.crd
 quit

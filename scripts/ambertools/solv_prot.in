@@ -1,0 +1,15 @@
+# solvation script to solvate the protein by itself to find out how many ions it needs
+source {protein_ff}
+source leaprc.water.tip3p
+source leaprc.gaff
+
+protein = LoadPdb protein.pdb
+# https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
+# https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
+solvateoct protein TIP3PBOX 14
+
+addIons protein Na+ 0
+addIons protein Cl- 0
+
+savepdb protein prot_solv.pdb
+quit

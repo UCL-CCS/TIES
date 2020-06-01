@@ -7,6 +7,7 @@ import shutil
 import sys
 import subprocess
 from pathlib import Path, PurePosixPath
+import math
 
 
 # fixme - turn into a function and give it the hpc submit
@@ -14,7 +15,7 @@ hpc_submit = None #  "hpc_hartree_hsp.sh"
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
-net_charge = 0
+net_charge = -1
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 
 use_agastyas_charges = True
@@ -238,7 +239,8 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
                    submit_script=None,
                    scripts_loc=None,
                    tleap_in=None,
-                   protein_ff=None):
+                   protein_ff=None,
+                   net_charge=None):
 
     dest_dir = workplace_root / directory
     if not dest_dir.is_dir():
@@ -252,14 +254,112 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     shutil.copy(hybrid_mol2, dest_dir)
     shutil.copy(hybrid_frc, dest_dir)
 
+    # determine the number of ions to neutralise the ligand charge
+    if net_charge == 0:
+        Cl_num = Na_num = 0
+    elif net_charge < 0:
+        Na_num = math.fabs(net_charge)
+        Cl_num = 0
+    elif net_charge > 0:
+        Cl_num = net_charge
+        Na_num = 0
+    # change the ion number depending on the protein and its charge
+    # to do this, solvate it separately to find out how many atoms are being added
+    if protein is not None:
+        solv_prot_alone = dest_dir / 'auxiliary_solv_protein_to_find_ions_num'
+        if not solv_prot_alone.is_dir():
+            solv_prot_alone.mkdir()
+
+        # copy the protein
+        shutil.copy(workplace_root / protein, dest_dir / solv_prot_alone)
+
+        # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
+        # fixme - consider moving out of the complex
+        leap_in_conf = open(ambertools_script_dir / 'solv_prot.in').read()
+        open(dest_dir / solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
+        subprocess_kwargs['cwd'] = solv_prot_alone
+        subprocess.run([tleap_path, '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
+        # read the file to see how many ions were added
+        u=mda.Universe(dest_dir / solv_prot_alone / 'prot_solv.pdb')
+        protein_cl = len(u.select_atoms('name Cl-'))
+        protein_na = len(u.select_atoms('name Na+'))
+
+        # update the overall ion numbers
+        if Cl_num == 0 and Na_num == 0 and protein_cl == 0 and protein_na == 0:
+            # both, protein and ligand are neutral
+            pass
+        if protein_cl == 0 and protein_na == 0:
+            # protein is neutral, no effect on the ions
+            pass
+        elif Cl_num == 0 and Na_num == 0:
+            # ligand is neutral, but not the protein, adapt protein ions
+            Cl_num = protein_cl
+            Na_num = protein_na
+        elif protein_cl > 0:
+            # protein has Cl ions
+            if Cl_num > 0:
+                # both are positive, add Cl together
+                Cl_num += protein_cl
+            elif Na_num > 0:
+                # ligand has Na ions
+                if protein_cl == Na_num:
+                    # protein and ligand neutrilise each other
+                    protein_cl = Na_num = 0
+                elif protein_cl > Na_num:
+                    # there is more protein Cl than ligand Na ions TODO
+                    # remove Na ions, decrease the number of Cl
+                    Cl_num = protein_cl - Na_num
+                    Na_num = 0
+                elif protein_cl < Na_num:
+                    # there is more ligand Na ions than protein Cl ions
+                    # remove Cl ions, decrease the number of Na ions
+                    Na_num = Na_num - protein_cl
+                    Cl_num = 0
+        elif protein_na > 0:
+            # protein has Na ions
+            if Na_num > 0:
+                # both are negative, add Na together
+                Na_num += protein_na
+            elif Cl_num > 0:
+                # ligand is negative, protein is positive
+                if protein_na == Cl_num:
+                    # protein and ligand neutrilise each other
+                    protein_na = Cl_num = 0
+                elif protein_na > Cl_num:
+                    # there is more Na,
+                    # decrease Na and remove Cl
+                    protein_na = protein_na - Cl_num
+                    Cl_num = 0
+                elif protein_na < Cl_num:
+                    # there is more Cl
+                    # decrease Cl and remove Na
+                    Cl_num = Cl_num - protein_na
+                    protein_na = 0
+
     # copy the protein tleap input file (ambertools)
+    #
+    # addIons lig Cl-
+    # addIons complex Na+
+    # addIons complex Cl-
     leap_in_conf = open(ambertools_script_dir / tleap_in).read()
-    open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
+    if Na_num == 0:
+        tleap_Na_ions = ''
+    elif Na_num > 0:
+        tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
+    if Cl_num == 0:
+        tleap_Cl_ions = ''
+    elif Cl_num > 0:
+        tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+    open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+                                                              NaIons=tleap_Na_ions,
+                                                              ClIons=tleap_Cl_ions))
 
     # ambertools tleap: combine ligand+complex, solvate, generate amberparm
     subprocess_kwargs['cwd'] = dest_dir
     subprocess.run([tleap_path, '-s', '-f', 'leap.in'], **subprocess_kwargs)
     hybrid_solv = dest_dir / 'morph_solv.pdb' # generated
+    # check if the solvation is correct
+
 
     # generate the merged .fep file
     complex_solvated_fep = dest_dir / 'morph_solv_fep.pdb'
@@ -327,7 +427,8 @@ prepare_inputs(workplace_root, directory='lig',
                namd_script_loc=namd_script_dir,
                scripts_loc=script_dir,
                tleap_in='leap_ligand.in',
-               protein_ff=amber_forcefield)
+               protein_ff=amber_forcefield,
+               net_charge=net_charge)
 
 ##########################################################
 # ------------------ complex-complex --------------
@@ -340,5 +441,6 @@ prepare_inputs(workplace_root, directory='complex',
                namd_script_loc=namd_script_dir,
                scripts_loc=script_dir,
                tleap_in='leap_complex.in',
-               protein_ff=amber_forcefield)
+               protein_ff=amber_forcefield,
+               net_charge=net_charge)
 
