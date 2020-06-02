@@ -1,7 +1,7 @@
 # http://ambermd.org/namd/namd_amber.html
 amber on
-coordinates        morph_solv.pdb
-parmfile           morph_solv.top
+coordinates        sys_solv.pdb
+parmfile           sys_solv.top
 
 set temp           300;
 set outputname     prod;               # base name for output from this run

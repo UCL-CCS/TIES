@@ -25,6 +25,7 @@ right_charges = 'right_q.mol2'
 use_original_coor = True
 
 # ambertools forcefiled
+# amber_forcefield = "leaprc.protein.ff14SB"
 amber_forcefield = "leaprc.ff99SBildn" # used by Agastya before, latest is: "leaprc.protein.ff14SB"
 atom_type = 'gaff' # fixme - check?
 if use_agastyas_charges:
@@ -35,8 +36,8 @@ else:
     charge_type = 'bcc'  # 'AM1-BCC'
 
 # amber_ligand_ff = "leaprc.gaff" # fixme - check
-namd_prod = "prod.namd"
 namd_prod = "prod_2017.namd"    # only different because uses Berendsen
+# namd_prod = "prod.namd"
 
 
 # ------------------ Software Configuration
@@ -114,6 +115,8 @@ if use_original_coor:
     shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
     set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_atom_name=True)
     set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_atom_name=True)
+    # set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_index=True)
+    # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
 
 # rename the atom names to ensure they are unique across the two molecules
 ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
@@ -337,10 +340,8 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
                     protein_na = 0
 
     # copy the protein tleap input file (ambertools)
-    #
-    # addIons lig Cl-
-    # addIons complex Na+
-    # addIons complex Cl-
+    # set the number of ions manually
+    assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
     leap_in_conf = open(ambertools_script_dir / tleap_in).read()
     if Na_num == 0:
         tleap_Na_ions = ''
@@ -357,12 +358,12 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     # ambertools tleap: combine ligand+complex, solvate, generate amberparm
     subprocess_kwargs['cwd'] = dest_dir
     subprocess.run([tleap_path, '-s', '-f', 'leap.in'], **subprocess_kwargs)
-    hybrid_solv = dest_dir / 'morph_solv.pdb' # generated
+    hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
     # check if the solvation is correct
 
 
     # generate the merged .fep file
-    complex_solvated_fep = dest_dir / 'morph_solv_fep.pdb'
+    complex_solvated_fep = dest_dir / 'sys_solv_fep.pdb'
     correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep)
 
     # fixme - check that the protein does not have the same resname?
@@ -372,7 +373,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
     # prepare NAMD input files for min+eq+prod
     init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
-                       structure_name='morph_solv', pbc_box=solv_oct_boc)
+                       structure_name='sys_solv', pbc_box=solv_oct_boc)
     eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
     shutil.copy(namd_script_loc / namd_prod, dest_dir / 'prod.namd')
 
@@ -399,7 +400,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
             shutil.copy(hybrid_solv, replica_dir)
             shutil.copy(complex_solvated_fep, replica_dir)
             # copy ambertools-generated topology
-            shutil.copy(dest_dir / "morph_solv.top", replica_dir)
+            shutil.copy(dest_dir / "sys_solv.top", replica_dir)
             # copy the .pdb files with constraints in the B column
             [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
 

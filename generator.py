@@ -904,7 +904,7 @@ def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
     open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
 
 
-def generate_namd_eq(namd_eq, dst_dir, structure_name='morph_solv'):
+def generate_namd_eq(namd_eq, dst_dir, structure_name='sys_solv'):
     input_data = open(namd_eq).read()
     eq_namd_filenames = []
     for i in range(4):
