@@ -92,7 +92,7 @@ langevinHydrogen       off;            # don't couple bath to hydrogens
 # run Alchemistry
 alch            on
 alchType        ti
-alchFile        morph_solv_fep.pdb
+alchFile        sys_solv_fep.pdb
 alchCol         B
 # do not set if it this is an extension script
 if { [file exists $xsc_filename] == 0} {
