@@ -38,6 +38,8 @@ else:
 # amber_ligand_ff = "leaprc.gaff" # fixme - check
 namd_prod = "prod_2017.namd"    # only different because uses Berendsen
 # namd_prod = "prod.namd"
+align_molecules = False
+
 
 
 # ------------------ Software Configuration
@@ -122,7 +124,8 @@ if use_original_coor:
 ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
 # superimpose the two topologies
-suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
+suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
+                                   align_molecules=False)
 
 # save the superimposition results
 left_right_matching_json = workplace_root / 'joint_meta_fep.json'
@@ -232,7 +235,7 @@ with open(hybrid_frcmod, 'w') as FOUT:
     FOUT.write(updated_frcmod)
 
 shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
-shutil.copy(namd_script_dir / "calc_ddG.py", workplace_root)
+shutil.copy(namd_script_dir / "ddg.py", workplace_root)
 
 # ---------------------
 def prepare_inputs(workplace_root, directory='complex', protein=None,
@@ -273,15 +276,17 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
         if not solv_prot_alone.is_dir():
             solv_prot_alone.mkdir()
 
-        # copy the protein
-        shutil.copy(workplace_root / protein, dest_dir / solv_prot_alone)
+            # fixme - simplify
+            # copy the protein
+            shutil.copy(workplace_root / protein, dest_dir / solv_prot_alone)
 
-        # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
-        # fixme - consider moving out of the complex
-        leap_in_conf = open(ambertools_script_dir / 'solv_prot.in').read()
-        open(dest_dir / solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
-        subprocess_kwargs['cwd'] = solv_prot_alone
-        subprocess.run([tleap_path, '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
+            # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
+            # fixme - consider moving out of the complex
+            leap_in_conf = open(ambertools_script_dir / 'solv_prot.in').read()
+            open(dest_dir / solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
+            subprocess_kwargs['cwd'] = solv_prot_alone
+            subprocess.run([tleap_path, '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
+
         # read the file to see how many ions were added
         u=mda.Universe(dest_dir / solv_prot_alone / 'prot_solv.pdb')
         protein_cl = len(u.select_atoms('name Cl-'))
@@ -433,6 +438,9 @@ prepare_inputs(workplace_root, directory='lig',
 
 ##########################################################
 # ------------------ complex-complex --------------
+
+# calculate the charges before
+# fixme
 
 prepare_inputs(workplace_root, directory='complex',
                protein=protein_filename,
