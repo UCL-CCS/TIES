@@ -191,6 +191,9 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
 
             fresh_lambda = False
 
+        # replicas were iterated, check if they each have at least 3 replicas out of 5 done
+        # fixme / todo
+
     return data
 
 
@@ -264,7 +267,6 @@ def bootstrap_replica_averages(data):
     """
     bootstrapped_sem = OrderedDict()
     for lambda_val, tot_mean in data['total_average'].items():
-        print('tot avg',lambda_val)
         # for each lambda value, sample the means
         means = []
         # create 10 thousand of means (of means)
@@ -293,7 +295,6 @@ def bootstrap_replica_averages_improved(data):
     """
     bootstrapped_sem = OrderedDict()
     for lambda_val, tot_mean in data['total_average'].items():
-        print('tot avg',lambda_val)
         # for each lambda value, sample the means
         means = []
         # create 10 thousand of means (of means)
