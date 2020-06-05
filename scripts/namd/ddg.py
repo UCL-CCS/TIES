@@ -253,7 +253,7 @@ def get_int(xs, ys, interp=True):
     # the xs (or lambdas) should be in a growing order
     return np.trapz(ys, x=xs)
 
-def bootstrap_replica_averages(data):
+def bootstrap_replica_averages_err2017(data):
     """
     Reproducing the way the error was calculated before.
     To do this, we have to extract for each replica the "derivative mean".
@@ -313,7 +313,7 @@ def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True,
     """
 
     if calc_aga_err:
-        bootstrap_replica_averages(data)
+        bootstrap_replica_averages_err2017(data)
 
     # apply to each dataset
     stats = {}
