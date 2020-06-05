@@ -272,14 +272,14 @@ def bootstrap_replica_averages(data):
         # create 10 thousand of means (of means)
         for i in range(10 * 1000):
             means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
-        bootstrapped_sem[lambda_val] = np.var(means)
+        bootstrapped_sem[lambda_val] = np.std(means)
 
     # multiply by each
     k = list(bootstrapped_sem.keys())
     sigma_sum = 0
-    for lambda_from, lambda_to, bsem in zip(k, k[1:], bootstrapped_sem.values()):
+    for lambda_from, lambda_to, boot_point in zip(k, k[1:], bootstrapped_sem.values()):
         assert lambda_from < lambda_to
-        sigma_sum += (lambda_to - lambda_from) ** 2 * bsem ** 2
+        sigma_sum += (lambda_to - lambda_from) ** 2 * boot_point ** 2
 
     # note that for some reason, at the end sqrt was taken of the value
     data['sigma_2017'] = np.sqrt(sigma_sum)
