@@ -1382,7 +1382,6 @@ class SuperimposedTopology:
             self.remove_node_pair((node1, node2))
 
             removed_pairs.append((node1, node2))
-            print('Removed due to the charge incompatibility: ', node1.atomName, node2.atomName)
         # keep track of the removed atoms due to the charge
         if not self.removed_due_to_charge is None:
             raise Exception('the charges have already been refined, should not be called twice')
@@ -2499,6 +2498,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                                       ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type)
 
+    print('Original suptops: ')
+    for st in suptops:
+        print('Original suptop len %d' % len(st))
+        st.print_summary()
+
     # ignore bond types
     for st in suptops:
         # fixme - do proper
@@ -2533,7 +2537,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
             if sup_top.removed_due_to_charge:
-                print(f'Removed pairs due to charges {sup_top.removed_due_to_charge}')
+                print(f'Removed due to charge incompatibility: {sup_top.removed_due_to_charge}')
 
     # apply the force mismatch at the end
     #  this is an interactive feature
