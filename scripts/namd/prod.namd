@@ -102,7 +102,7 @@ if { [file exists $xsc_filename] == 0} {
 }
 alchOutFreq     1000
 
-alchVdwShiftCoeff       5
+alchVdwShiftCoeff       5       ;# Enable soft-core vdW potential,
 alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
