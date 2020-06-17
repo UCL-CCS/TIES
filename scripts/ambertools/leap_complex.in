@@ -2,6 +2,8 @@
 source {protein_ff}
 source leaprc.water.tip3p
 source leaprc.gaff
+# for phosphorylated residues
+source leaprc.phosaa10
 
 loadamberparams morph.frcmod
 # fixme merged here refers to the morphed ligands, ie merged ligands lambda 0 and lambda 13
