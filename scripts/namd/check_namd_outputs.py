@@ -17,7 +17,8 @@ def check(dirname):
 
             rep_dir = os.path.join(dirname, lambda_dir, rep)
             try:
-                if not 'End of program' in open(os.path.join(rep_dir, 'prod.log')).read():
+                content = open(os.path.join(rep_dir, 'prod.log')).read()
+                if not ('End of program' in content or 'WRITING VELOCITIES TO OUTPUT FILE AT STEP 3000000' in content):
                     print('Prod not finished: %s' % rep_dir)
                 else:
                     finished_sims.append(os.path.join(rep_dir, 'prod.log'))
