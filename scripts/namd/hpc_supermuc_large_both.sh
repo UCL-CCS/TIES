@@ -6,7 +6,7 @@
 # https://doku.lrz.de/display/PUBLIC/NAMD
 # https://doku.lrz.de/display/PUBLIC/Job+farming+with+SLURM
 
-#SBATCH --job-name="namd"
+#SBATCH --job-name="TIESnamd"
 #Output and error (also --output, --error):
 #SBATCH -o ./%x.%j.out
 #SBATCH -e ./%x.%j.err
@@ -44,8 +44,8 @@ function schedule_system() {
 	LIG_PATH="lig/lambda_$lambda/rep$replica"
 	COMPLEX_PATH="complex/lambda_$lambda/rep$replica"
 	# We use timeout to ensure that each NAMD ligand process is terminated in case it gets stuck
-    # 60 seconds * 60 minutes * 4 hours = 4 hours timeout for the ligand
-    local LIG_TIMEOUT=$(( 60 * 60 * 4 ))
+    # e.g. 60 seconds * 60 minutes * 4 hours = 4 hours timeout for the ligand
+    local LIG_TIMEOUT=$(( 60 * 60 * 6 ))
 
     # move to the correct ligand directory
     cd $BASE_DIR
