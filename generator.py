@@ -764,6 +764,50 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
 
+def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):
+    """
+    This is a quick fix function for now
+    """
+    ref_pos_sum = np.sum(ref.atoms.positions)
+
+    if by_atom_name and by_index:
+        raise ValueError('Cannot have both. They are exclusive')
+    elif not by_atom_name and not by_index:
+        raise ValueError('Either option has to be selected.')
+
+    if by_general_atom_type:
+        for mol2_atom in target.atoms:
+            found_match = False
+            for ref_atom in ref.atoms:
+                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                    found_match = True
+                    mol2_atom.position = ref_atom.position
+                    break
+            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+    if by_atom_name:
+        for mol2_atom in target.atoms:
+            found_match = False
+            for ref_atom in ref.atoms:
+                if mol2_atom.name.upper() == ref_atom.name.upper():
+                    found_match = True
+                    mol2_atom.position = ref_atom.position
+                    break
+            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+    elif by_index:
+        for mol2_atom, ref_atom in zip(target.atoms, ref.atoms):
+                atype = general_atom_types2[mol2_atom.type.upper()]
+                reftype = general_atom_types2[ref_atom.type.upper()]
+                if atype != reftype:
+                    raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
+
+                mol2_atom.position = ref_atom.position
+
+    if ref_pos_sum != np.sum(target.atoms.positions):
+        raise Exception('Copying of the coordinates did not work correctly')
+
+    # update the mol2 file
+    target.atoms.write(output_filename)
+
 
 def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_filename, left_right_pairs_filename):
     """
