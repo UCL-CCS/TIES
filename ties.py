@@ -368,7 +368,6 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
     # check if the solvation is correct
 
-
     # generate the merged .fep file
     complex_solvated_fep = dest_dir / 'sys_solv_fep.pdb'
     correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep)
@@ -404,12 +403,14 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
             open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
             # copy the necessary files
-            shutil.copy(hybrid_solv, replica_dir)
-            shutil.copy(complex_solvated_fep, replica_dir)
+            prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
+            prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
             # copy ambertools-generated topology
-            shutil.copy(dest_dir / "sys_solv.top", replica_dir)
+            prepareFile(os.path.relpath(dest_dir / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
             # copy the .pdb files with constraints in the B column
-            [shutil.copy(constraint_file, replica_dir) for constraint_file in constraint_files]
+            for constraint_file in constraint_files:
+                prepareFile(os.path.relpath(constraint_file, replica_dir),
+                            replica_dir / os.path.basename(constraint_file))
 
             # copy the NAMD protocol files
             shutil.copy(dest_dir / "min.namd", replica_dir)

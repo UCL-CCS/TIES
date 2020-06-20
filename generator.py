@@ -809,6 +809,24 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
     target.atoms.write(output_filename)
 
 
+def prepareFile(src, dst, symbolic=True):
+    """
+    Either copies or sets up a relative link between the files.
+    This allows for a quick switch in how the directory structure is organised.
+    Using relative links means that the entire TIES ligand or TIES complex
+    has to be moved together.
+    However, one might want to be able to send a single replica anywhere and
+    execute it independantly (suitable for BOINC).
+
+    @type: 'sym' or 'copy'
+    """
+    if symbolic:
+        os.symlink(src, dst)
+    else:
+        shutil.copy(src, dst)
+
+
+
 def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_filename, left_right_pairs_filename):
     """
     Set coordinates but use atom names provided by the user.
