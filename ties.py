@@ -29,6 +29,8 @@ use_original_coor = True
 amber_forcefield = "leaprc.ff99SBildn" # used by Agastya before, latest is: "leaprc.protein.ff14SB"
 atom_type = 'gaff' # fixme - check?
 if use_agastyas_charges:
+    left_charges = 'left_q.mol2'
+    right_charges = 'right_q.mol2'
     # ignore the charges,
     charge_type = 'dc'  # 'Delete Charge'
     # use berendsen
@@ -125,7 +127,7 @@ ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2
 
 # superimpose the two topologies
 suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
-                                   align_molecules=False)
+                                   align_molecules=align_molecules)
 
 # save the superimposition results
 left_right_matching_json = workplace_root / 'joint_meta_fep.json'
