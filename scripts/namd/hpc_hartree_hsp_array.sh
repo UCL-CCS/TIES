@@ -1,15 +1,19 @@
 #!/bin/bash
 # define an array job
-#BSUB -J trl1l3[1-65]
+#BSUB -J thb_4_10[1-65]
 #BSUB -o std.%J.%I.o
 #BSUB -e std.%J.%I.e
 #BSUB -R "span[ptile=32]"
 #BSUB -n 64
 #BSUB -q compbiomed
-#BSUB -W 25:00
+##BSUB -q scafellpikeSKL # can be used a litte, 10x4, try 65x1 (does not work). Seems to allow only for 10 at a time.
+##BSUB -q scafellpikeKNL # can be used a little, 12x4, try 65x1, but the performance is terrible - it does not really work
+##BSUB -q universeScafellPike - cannot be used
+##BSUB -q scafellpikeI - cannot be used
+#BSUB -W 30:00
 #BSUB -x
 
-SYSTEM=$HCBASE/resp/tyk2_l1_l3
+SYSTEM=$HCBASE/bcc_ff/thrombin/l4_l10/
 NP=64
 
 #Load modules

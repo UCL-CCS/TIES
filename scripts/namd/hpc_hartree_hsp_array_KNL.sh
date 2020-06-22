@@ -1,15 +1,16 @@
 #!/bin/bash
 # define an array job
-#BSUB -J tb_15_16_knl[1-65]
+A='test'
+#BSUB -J thr_7_3_knl%A[1-65]
 #BSUB -o std.%J.%I.o
 #BSUB -e std.%J.%I.e
 #BSUB -R "span[ptile=8]"
 #BSUB -n 128
 #BSUB -q scafellpikeKNL # can be used a little, 12x4, try 65x1, but the performance is terrible - it does not really work
-#BSUB -W 35:00
+#BSUB -W 25:00
 #BSUB -x
 
-SYSTEM=$HCBASE/bcc_ff/tyk2_l15_l16
+SYSTEM=$HCBASE/bcc_ff/thrombin/l7_l3
 
 #Load modules
 source /etc/profile.d/modules.sh

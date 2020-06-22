@@ -1,19 +1,21 @@
 #!/bin/bash
-#BSUB -J trl1l6
+#BSUB -J omr_3_5
 #BSUB -o std.%J.o
 #BSUB -e std.%J.e
 #BSUB -R "span[ptile=32]" ###### 32 cores per node
 # this should be ptile * number of nodes,
 #BSUB -n 2080       ##### for 64 cores, total nodes requested 2, 8320 is 128*65
 #BSUB -q compbiomed
-#BSUB -W 32:00
+##BSUB -q scafellpikeSKL
+#BSUB -W 23:00
 #BSUB -x
 
-ROOT_WORK=$HCBASE/bcc/tyk2_l1_l15
+ROOT_WORK=$HCBASE/ff14sb/resp/mcl1_l3_l5
 cd $ROOT_WORK
 NP=32 # cores per simulation
 HOSTS_PER_SIM=1 # numer of hosts per simulation
-LIG_TIMEOUT=$(( 60 * 60 * 11 )) # time out of the ligand simulations
+LIG_TIMEOUT=$(( 60 * 60 * 8 )) # time out of the ligand simulations
+
 
 echo "Time start" `date`
 env > last_used_env
@@ -75,6 +77,7 @@ do
     echo "Adding new host: $host"
 done
 echo "All hosts: ${HOSTS[@]}"
+# fixme - add checks that hosts have been extracted, throw an error otherwise
 
 
 # schedule all simulations
@@ -123,7 +126,6 @@ for sim_no in $(seq 1 $SIM_NO); do
         echo "Finished running lig/$SIM"
         ) ;
         (
-        # then the complex part, no timeout
         cd $ROOT_WORK/complex/$SIM &&
         echo "Complex Directory Time" &&
         if ! grep -q "WRITING VELOCITIES TO OUTPUT FILE" min.log ; then ${cmd_mpinamd} min.namd > min.log ; fi &&

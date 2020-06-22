@@ -84,7 +84,7 @@ function schedule_system() {
 declare -a lambdas=(0.00 0.05 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 0.95 1.00)
 declare -a replicas=(1 2 3 4 5)
 
-declare -a transformations=(l1_l2 l3_l7 l3_l23)
+declare -a transformations=(l11_l23 l6_l14 l8_l14 l4_l22)
 #declare -a transformations=(.)
 for base in "${transformations[@]}"; do
     for lambda in "${lambdas[@]}"; do
