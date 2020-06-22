@@ -18,7 +18,7 @@
 #SBATCH --no-requeue
 
 #SBATCH --time=20:30:00
-#SBATCH --nodes=130
+#SBATCH --nodes=195
 #SBATCH --ntasks-per-node=48
 
 #SBATCH --export=NONE
@@ -52,31 +52,30 @@ function schedule_system() {
     # e.g. 60 seconds * 60 minutes * 4 hours = 4 hours timeout for the ligand
     local LIG_TIMEOUT=$(( 60 * 60 * 6 ))
 
-
-
     # move to the correct ligand directory
     cd $THIS_BASE
     cd $LIG_PATH
+    cmd_srun_namd="srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2"
 	(
 
 	    # first is the ligand part with the timeout
-	    ( timeout $LIG_TIMEOUT srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 min.namd > min.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step1.namd > eq_step1.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step2.namd > eq_step2.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step3.namd > eq_step3.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step4.namd > eq_step4.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 prod.namd > prod.log &&
+	    ( timeout $LIG_TIMEOUT ${cmd_srun_namd} min.namd > min.log &&
+        ${cmd_srun_namd} eq_step1.namd > eq_step1.log &&
+        ${cmd_srun_namd} eq_step2.namd > eq_step2.log &&
+        ${cmd_srun_namd} eq_step3.namd > eq_step3.log &&
+        ${cmd_srun_namd} eq_step4.namd > eq_step4.log &&
+        ${cmd_srun_namd} prod.namd > prod.log &&
         echo "Finished ligand: lambda $lambda replica $replica"
         ) ;
         (
         # then the complex part, no timeout
         cd $THIS_BASE && cd $COMPLEX_PATH &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 min.namd > min.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step1.namd > eq_step1.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step2.namd > eq_step2.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step3.namd > eq_step3.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 eq_step4.namd > eq_step4.log &&
-        srun -N $NODES_PER_JOB -n $TASKS_PER_JOB namd2 prod.namd > prod.log &&
+        ${cmd_srun_namd} min.namd > min.log &&
+        ${cmd_srun_namd} eq_step1.namd > eq_step1.log &&
+        ${cmd_srun_namd} eq_step2.namd > eq_step2.log &&
+        ${cmd_srun_namd} eq_step3.namd > eq_step3.log &&
+        ${cmd_srun_namd} eq_step4.namd > eq_step4.log &&
+        ${cmd_srun_namd} prod.namd > prod.log &&
         echo "Finished complex: lambda $lambda replica $replica"
         )
     ) &
@@ -85,7 +84,8 @@ function schedule_system() {
 declare -a lambdas=(0.00 0.05 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 0.95 1.00)
 declare -a replicas=(1 2 3 4 5)
 
-declare -a transformations=(l10_l12  l13_l20)
+declare -a transformations=(l1_l2 l3_l7 l3_l23)
+#declare -a transformations=(.)
 for base in "${transformations[@]}"; do
     for lambda in "${lambdas[@]}"; do
         for replica in "${replicas[@]}"; do
