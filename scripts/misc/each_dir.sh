@@ -1,5 +1,7 @@
 script=$1
 
+# execute the script in each dir
+
 for D in */; 
 do
     cd $D
