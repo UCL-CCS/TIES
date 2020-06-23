@@ -23,6 +23,9 @@ import glob
 import time
 
 
+analysis_dir = 'analysis'
+
+
 def merge_prod_files(files, output_merged_filename):
     # find the original prod.alch file first
     orig_prod = list(filter(lambda f:f.endswith('prod.alch'), files))[0]
@@ -213,10 +216,17 @@ def autocorr(x):
 
 
 def get_replicas_stats(dataset, sample_reps):
+    """
+    To do: obtains stats for each replica separately, as well as for all of them together merged,
+    todo
+    """
     meta = {
+        # combined
         'merged_mean': {},
         'merged_sem': {},
         'merged_std': {},
+        # for each replica
+        # 'rep_means': [],
     }
     for lambda_val, replicas in dataset.items():
         # extract all the data points
@@ -224,6 +234,7 @@ def get_replicas_stats(dataset, sample_reps):
         for rep in replicas:
             merged_replicas.extend(rep)
 
+        # this should not be here, create a separate function that carries this out
         if sample_reps:
             merged_replicas = np.random.choice(merged_replicas, size=len(merged_replicas), replace=True)
 
@@ -307,7 +318,7 @@ def bootstrap_replica_averages_improved(data):
     data['sigma_int'] = sigma_int
 
 
-def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
+def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
     """
     Process the timeseries from each replica
     """
@@ -337,15 +348,33 @@ def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True,
     dele_means = np.array(sorted(dele_before_sort, key=lambda x: x[0])).T
 
     if plot:
-        plt.figure()
-        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7)
-        plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7)
-        plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7)
-        plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7)
-        plt.title(location)
+        # This is the main summary graph that merges all the replicas
+        # Plot the lines that are integrated, together with their overall standard deviation
+        plt.figure(figsize=(10, 8) ) #, dpi=80) facecolor='w', edgecolor='k')
+        plt.axhline(color='grey', linestyle='dotted')
+        # todo draw standard deviation instead
+        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7, color='blue')
+        plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7, color='blue')
+        plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7, color='red')
+        plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7, color='red')
+        plt.title(system_conf)
         plt.legend()
         # plt.show()
-        plt.savefig(location + '_dvdl.png')
+        plt.savefig(os.path.join(analysis_dir, system_conf + '_dvdl.png'))
+        plt.cla()
+
+        # In this part we create more detailed plots for energy contribution
+        # ie appearing and disappearing vdw are separated
+        # Then, we draw boxplots to show where the mean is coming from
+        plt.figure(figsize=(8, 10))  # , dpi=80) facecolor='w', edgecolor='k')
+        for lam, reps in data['avdw'].items():
+            # plot the boxplots
+            plt.boxplot(reps[0], positions=[lam, ], widths=0.03, sym='.', showfliers=False) # showfliers=False
+        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=1)
+        plt.title(system_conf)
+        plt.legend()
+        # plt.show()
+        plt.savefig(os.path.join(analysis_dir, system_conf + '_avdw_dvdl.png'))
         plt.cla()
 
     # integrate over the means from each replica
@@ -354,7 +383,7 @@ def analyse(data, location, calc_aga_err=False, sample_reps=False, verbose=True,
     aele_int = get_int(aele_means[0], aele_means[1])
     dele_int = get_int(dele_means[0], dele_means[1])
 
-    out = f"""-------------------------{location:^10s}----------------------
+    out = f"""-------------------------{system_conf:^10s}----------------------
                   Elec         vdW       Subtotal
 ---------------------------------------------------------
 Part 1(app)     {aele_int:7.4f}  |  {avdw_int:7.4f}  | {aele_int + avdw_int:7.4f}     
@@ -395,6 +424,10 @@ def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
     # return the standard error
     return bootstrapped_ddGs
 
+# make a directory for the analysis
+if not os.path.isdir(analysis_dir):
+    os.mkdir(analysis_dir)
+
 t_start = time.time()
 choderas_cut = False
 calc_aga_err = True
@@ -410,10 +443,10 @@ print("Delta Delta: ", complex_delta - lig_delta)
 print ("Agastya Error", complex_data['sigma_2017'] + lig_data['sigma_2017'])
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
-# se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
-# print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
-# print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
-# print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
+se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
+print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
+print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
+print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
 
 """
 Bootstrapping performance upgrade:
