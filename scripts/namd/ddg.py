@@ -366,16 +366,46 @@ def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=Tr
         # In this part we create more detailed plots for energy contribution
         # ie appearing and disappearing vdw are separated
         # Then, we draw boxplots to show where the mean is coming from
-        plt.figure(figsize=(8, 10))  # , dpi=80) facecolor='w', edgecolor='k')
-        for lam, reps in data['avdw'].items():
-            # plot the boxplots
-            plt.boxplot(reps[0], positions=[lam, ], widths=0.03, sym='.', showfliers=False) # showfliers=False
-        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=1)
-        plt.title(system_conf)
-        plt.legend()
-        # plt.show()
-        plt.savefig(os.path.join(analysis_dir, system_conf + '_avdw_dvdl.png'))
-        plt.cla()
+        def plot_single_component(means, data, label, file_suffix):
+            """
+            Plots a single component (for example appearing VDW).
+            Shows the error bars for each replica.
+            """
+            plt.figure(figsize=(8, 10))  # , dpi=80) facecolor='w', edgecolor='k')
+            plt.rcParams.update({'font.size': 15})
+
+            if system_conf == 'lig':
+                plt.title('Ligand')
+            elif system_conf == 'complex':
+                plt.title('Complex')
+
+            for lam, reps in data.items():
+                # plot the dv/dl boxplots
+                # stagger lambdas so that replicas do not overlap
+                staggered_lambdas = np.linspace(lam-0.025, lam+0.025, len(reps))
+                for new_lambda, rep in zip(staggered_lambdas, reps):
+                    plt.boxplot(rep, positions=[new_lambda, ],
+                                widths=staggered_lambdas[1] - staggered_lambdas[0],
+                                sym='.', showfliers=False) # showfliers=False
+
+            # plot the global mean values
+            plt.plot(means[0], means[1], label=label, linestyle='-', alpha=1)
+
+            plt.ylabel('$\\rm \\left\\langle \\frac{dU}{d\\lambda} \\right\\rangle $')
+            plt.xlabel('$\\rm \\lambda$')
+            plt.xticks(means[0], [f"{m:.2f}" for m in means[0]], rotation=45)
+            plt.xlim([-0.05, 1.05])
+            plt.legend()
+            # plt.show()
+            plt.tight_layout()
+            plt.savefig(os.path.join(analysis_dir, system_conf + file_suffix))
+            plt.cla()
+
+        plot_single_component(avdw_means, data['avdw'], 'Appearing VdW means', '_avdw_dvdl.png')
+        plot_single_component(dvdw_means, data['dvdw'], 'Disappearing VdW means', '_dvdw_dvdl.png')
+        plot_single_component(aele_means, data['aele'], 'Appearing q means', '_aele_dvdl.png')
+        plot_single_component(dele_means, data['dele'], 'Disappearing q', '_dele_dvdl.png')
+
 
     # integrate over the means from each replica
     avdw_int = get_int(avdw_means[0], avdw_means[1])
@@ -439,14 +469,14 @@ caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 
 complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 
 # Give the overall results
-print("Delta Delta: ", complex_delta - lig_delta)
-print ("Agastya Error", complex_data['sigma_2017'] + lig_data['sigma_2017'])
+print(f"Delta Delta: {complex_delta - lig_delta:.4f}")
+print (f"Agastya Error {complex_data['sigma_2017'] + lig_data['sigma_2017']:.4f}")
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
-se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
-print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
-print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
-print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
+# se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
+# print('The bootstrapped mean of ddG is', np.mean(se_bootstrapped_ddG))
+# print('The bootstrapped standard error of ddG is', np.std(se_bootstrapped_ddG))
+# print(os.linesep + os.linesep + 'Altogether analysis time(s)', time.time() - t_start)
 
 """
 Bootstrapping performance upgrade:
