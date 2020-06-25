@@ -1,14 +1,15 @@
-import tempfile
-from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
 import os
-import sys
 import json
-import numpy as np
 from collections import OrderedDict
 import copy
-import MDAnalysis as mda
-import topology_superimposer
 import shutil
+import subprocess
+
+import MDAnalysis as mda
+import numpy as np
+
+import topology_superimposer
+from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
 
 
 def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
@@ -807,6 +808,39 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
 
     # update the mol2 file
     target.atoms.write(output_filename)
+
+
+def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input_file, subprocess_kwargs, prot_ff):
+    """
+    Use automatic ambertools solvation of a single component to determine what is the next charge of the system.
+    This should be replaced with pka/propka or something akin.
+    Note that this is unsuitable for the hybrid ligand: ambertools does not understand a hybrid ligand
+    and might assign the wront net charge.
+    """
+    solv_prot_alone = working_dir / 'auxiliary_solv_protein_to_find_net_charge'
+    if not solv_prot_alone.is_dir():
+        solv_prot_alone.mkdir()
+
+    # copy the protein
+    shutil.copy(working_dir / protein_file, solv_prot_alone)
+
+    # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
+    # fixme - consider moving out of the complex
+    leap_in_conf = open(leap_input_file).read()
+    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff))
+    subprocess_kwargs['cwd'] = solv_prot_alone
+    subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
+
+    # read the file to see how many ions were added
+    u = mda.Universe(solv_prot_alone / 'prot_solv.pdb')
+    cl = len(u.select_atoms('name Cl-'))
+    na = len(u.select_atoms('name Na+'))
+    if cl > na:
+        return cl-na
+    elif cl < na:
+        return -(na-cl)
+
+    return 0
 
 
 def prepareFile(src, dst, symbolic=True):

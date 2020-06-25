@@ -166,7 +166,7 @@ general_atom_types2 = {
     # taken from http://ambermd.org/antechamber/gaff.html#atomtype
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H',
+    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HX': 'H',
     'HO':'H', 'HS':'H', 'HP':'H',  'H2':'H', 'H3': 'H',  'H5':'H',
     'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
     'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
@@ -176,8 +176,9 @@ general_atom_types2 = {
     'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S', 'SX': 'S', 'SY': 'S',
     'CL': 'CL',
     'F': 'F',
-    'BR': 'BR',
+    'BR': 'BR', 'B': 'BR',
     'I': 'I',
+    'S': 'S',
 }
 
 class AtomNode:
@@ -474,7 +475,8 @@ class SuperimposedTopology:
         """
         return self.unique_atom_count
 
-    def alignLigandsUsingMatched(self):
+    def alignLigandsUsingMatched(self, overwrite_original=False):
+        # return self.rmsd()
         """
         Align the two ligands using the matched area.
         Note: we assume that the left ligand is docked. The left ligand is the reference here.
@@ -541,23 +543,24 @@ class SuperimposedTopology:
 
         # update the atoms with the mapping done via IDs
         # for the left
-        for mda_a in self.mda_ligandL.atoms:
-            found = False
-            for loaded_a in self.top1:
-                if mda_a.id == loaded_a.atomId:
-                    loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
-                    found = True
-                    break
-            assert found
-        # and for the right
-        for mda_a in self.mda_ligandR.atoms:
-            found = False
-            for loaded_a in self.top2:
-                if mda_a.id == loaded_a.atomId:
-                    loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
-                    found = True
-                    break
-            assert found
+        if overwrite_original:
+            for mda_a in self.mda_ligandL.atoms:
+                found = False
+                for loaded_a in self.top1:
+                    if mda_a.id == loaded_a.atomId:
+                        loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                        found = True
+                        break
+                assert found
+            # and for the right
+            for mda_a in self.mda_ligandR.atoms:
+                found = False
+                for loaded_a in self.top2:
+                    if mda_a.id == loaded_a.atomId:
+                        loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                        found = True
+                        break
+                assert found
 
         # put back original pos
         self.mda_ligandL.atoms.positions = original_left_pos
@@ -2579,6 +2582,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
         [st.only_largest_CC_survives() for st in suptops]
 
+        for st in suptops:
+            print('Removed disjoint components: ', st._removed_because_disjointed_cc)
+
         # remove the smaller suptop, or one arbitrary if they are equivalent
         if len(suptops) > 1:
             max_len = max([len(suptop) for suptop in suptops])
@@ -2622,7 +2628,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                 mirror_rmsd = mirror.alignLigandsUsingMatched()
                 if mirror_rmsd < main_rmsd:
                     print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-            st.alignLigandsUsingMatched()
+            st.alignLigandsUsingMatched(overwrite_original=True)
 
     return suptops
 

@@ -1,13 +1,15 @@
 """
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
-from generator import *
 import os
 import shutil
 import sys
+import tempfile
 import subprocess
 from pathlib import Path, PurePosixPath
 import math
+
+from generator import *
 
 
 # fixme - turn into a function and give it the hpc submit
@@ -19,8 +21,6 @@ net_charge = -1
 # force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
 
 use_agastyas_charges = True
-left_charges = 'left_q.mol2'
-right_charges = 'right_q.mol2'
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
 use_original_coor = True
 
@@ -43,7 +43,6 @@ namd_prod = "prod_2017.namd"    # only different because uses Berendsen
 align_molecules = False
 
 
-
 # ------------------ Software Configuration
 # set the working directory to the one where the script is called
 workplace_root = Path(os.getcwd())
@@ -53,9 +52,6 @@ code_root = Path(os.path.dirname(__file__))
 
 # conf ambertools
 ambertools_bin = PurePosixPath("/home/dresio/software/amber18install/bin/")
-antechamber_path = ambertools_bin / "antechamber"
-parmchk2_path = ambertools_bin / "parmchk2"
-tleap_path = ambertools_bin / "tleap"
 
 # directory with scripts/input files
 script_dir = code_root / PurePosixPath('scripts')
@@ -87,7 +83,7 @@ subprocess_kwargs = {
 # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
 if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.mol2').is_file():
     print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-    subprocess.run([antechamber_path, '-i', left_ligand, '-fi', 'pdb',
+    subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', 'pdb',
                                         '-o', 'left.mol2', '-fo', 'mol2',
                                         '-c', charge_type, '-at', atom_type,
                                         '-nc', str(net_charge)],
@@ -96,7 +92,7 @@ if not (workplace_root / 'left.mol2').is_file() or not (workplace_root / 'right.
 # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
 if not (workplace_root / 'right.mol2').is_file():
     print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-    subprocess.run([antechamber_path, '-i', right_ligand, '-fi', 'pdb',
+    subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', 'pdb',
                                 '-o', 'right.mol2', '-fo', 'mol2',
                                 '-c', charge_type, '-at', atom_type,
                                 '-nc', str(net_charge)],
@@ -140,9 +136,9 @@ write_merged(suptop, hybrid_mol2)
 
 # generate the functional forms
 print('Ambertools parmchk2 generating .frcmod')
-left_chk2 = subprocess.run([str(parmchk2_path), '-i', 'left.mol2', '-o', 'left.frcmod',
+left_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'left.mol2', '-o', 'left.frcmod',
                              '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
-right_chk2 = subprocess.run([parmchk2_path, '-i', 'right.mol2', '-o', 'right.frcmod',
+right_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'right.mol2', '-o', 'right.frcmod',
                              '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
 
 # join the .frcmod files
@@ -232,7 +228,7 @@ quit
 # the hybrid .frcmod might not contains "new terms" between the appearing/disappearing atoms.
 # In that case, insert fake terms
 # fixme - clean up this part: remove the direct call to tleap?
-updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, tleap_path, atom_type)
+updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, ambertools_bin / 'tleap', atom_type)
 with open(hybrid_frcmod, 'w') as FOUT:
     FOUT.write(updated_frcmod)
 
@@ -240,6 +236,7 @@ shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
 shutil.copy(namd_script_dir / "ddg.py", workplace_root)
 
 # ---------------------
+
 def prepare_inputs(workplace_root, directory='complex', protein=None,
                    hybrid_mol2=None, hybrid_frc=None,
                    left_right_mapping=None,
@@ -263,88 +260,14 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
     shutil.copy(hybrid_frc, dest_dir)
 
     # determine the number of ions to neutralise the ligand charge
-    if net_charge == 0:
-        Cl_num = Na_num = 0
-    elif net_charge < 0:
+    if net_charge < 0:
         Na_num = math.fabs(net_charge)
         Cl_num = 0
     elif net_charge > 0:
         Cl_num = net_charge
         Na_num = 0
-    # change the ion number depending on the protein and its charge
-    # to do this, solvate it separately to find out how many atoms are being added
-    if protein is not None:
-        solv_prot_alone = dest_dir / 'auxiliary_solv_protein_to_find_ions_num'
-        if not solv_prot_alone.is_dir():
-            solv_prot_alone.mkdir()
-
-            # fixme - simplify
-            # copy the protein
-            shutil.copy(workplace_root / protein, dest_dir / solv_prot_alone)
-
-            # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
-            # fixme - consider moving out of the complex
-            leap_in_conf = open(ambertools_script_dir / 'solv_prot.in').read()
-            open(dest_dir / solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff))
-            subprocess_kwargs['cwd'] = solv_prot_alone
-            subprocess.run([tleap_path, '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
-
-        # read the file to see how many ions were added
-        u=mda.Universe(dest_dir / solv_prot_alone / 'prot_solv.pdb')
-        protein_cl = len(u.select_atoms('name Cl-'))
-        protein_na = len(u.select_atoms('name Na+'))
-
-        # update the overall ion numbers
-        if Cl_num == 0 and Na_num == 0 and protein_cl == 0 and protein_na == 0:
-            # both, protein and ligand are neutral
-            pass
-        if protein_cl == 0 and protein_na == 0:
-            # protein is neutral, no effect on the ions
-            pass
-        elif Cl_num == 0 and Na_num == 0:
-            # ligand is neutral, but not the protein, adapt protein ions
-            Cl_num = protein_cl
-            Na_num = protein_na
-        elif protein_cl > 0:
-            # protein has Cl ions
-            if Cl_num > 0:
-                # both are positive, add Cl together
-                Cl_num += protein_cl
-            elif Na_num > 0:
-                # ligand has Na ions
-                if protein_cl == Na_num:
-                    # protein and ligand neutrilise each other
-                    protein_cl = Na_num = 0
-                elif protein_cl > Na_num:
-                    # there is more protein Cl than ligand Na ions TODO
-                    # remove Na ions, decrease the number of Cl
-                    Cl_num = protein_cl - Na_num
-                    Na_num = 0
-                elif protein_cl < Na_num:
-                    # there is more ligand Na ions than protein Cl ions
-                    # remove Cl ions, decrease the number of Na ions
-                    Na_num = Na_num - protein_cl
-                    Cl_num = 0
-        elif protein_na > 0:
-            # protein has Na ions
-            if Na_num > 0:
-                # both are negative, add Na together
-                Na_num += protein_na
-            elif Cl_num > 0:
-                # ligand is negative, protein is positive
-                if protein_na == Cl_num:
-                    # protein and ligand neutrilise each other
-                    protein_na = Cl_num = 0
-                elif protein_na > Cl_num:
-                    # there is more Na,
-                    # decrease Na and remove Cl
-                    protein_na = protein_na - Cl_num
-                    Cl_num = 0
-                elif protein_na < Cl_num:
-                    # there is more Cl
-                    # decrease Cl and remove Na
-                    Cl_num = Cl_num - protein_na
-                    protein_na = 0
+    else:
+        Cl_num = Na_num = 0
 
     # copy the protein tleap input file (ambertools)
     # set the number of ions manually
@@ -364,7 +287,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
     # ambertools tleap: combine ligand+complex, solvate, generate amberparm
     subprocess_kwargs['cwd'] = dest_dir
-    subprocess.run([tleap_path, '-s', '-f', 'leap.in'], **subprocess_kwargs)
+    subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'], **subprocess_kwargs)
     hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
     # check if the solvation is correct
 
@@ -426,7 +349,7 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
 
 
 ##########################################################
-# ------------------   LIGAND ----------------------
+# ------------------   Ligand ----------------------
 
 prepare_inputs(workplace_root, directory='lig',
                protein=None,
@@ -440,10 +363,12 @@ prepare_inputs(workplace_root, directory='lig',
                net_charge=net_charge)
 
 ##########################################################
-# ------------------ complex-complex --------------
+# ------------------ Complex  --------------
 
-# calculate the charges before
-# fixme
+# calculate the charges of the protein (using ambertools)
+protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
+                       ambertools_bin, ambertools_script_dir / 'solv_prot.in',
+                       subprocess_kwargs, amber_forcefield)
 
 prepare_inputs(workplace_root, directory='complex',
                protein=protein_filename,
@@ -454,5 +379,5 @@ prepare_inputs(workplace_root, directory='complex',
                scripts_loc=script_dir,
                tleap_in='leap_complex.in',
                protein_ff=amber_forcefield,
-               net_charge=net_charge)
+               net_charge=net_charge + protein_net_charge)
 
