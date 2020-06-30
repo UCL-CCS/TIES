@@ -6,8 +6,9 @@ import shutil
 import sys
 import tempfile
 import subprocess
-from pathlib import Path, PurePosixPath
 import math
+import argparse
+from pathlib import Path, PurePosixPath
 
 from generator import *
 
@@ -17,8 +18,11 @@ hpc_submit = None #  "hpc_hartree_hsp.sh"
 left_ligand = 'left_coor.pdb'
 right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
-net_charge = -1
-# force_mismatch_list = [('O2', 'O4'), ('N3', 'N6')] # None
+net_charge = -2
+# pair_q_atol = 0.101 # in electrons
+pair_q_atol = 0.101 # in electrons
+manually_matched = None # ['C2', 'C3']
+force_mismatch = None # [('C9', 'C60')]
 
 use_agastyas_charges = True
 # the coordinates change slightly after antechamber, reassign the coordinates to the .mol2
@@ -40,7 +44,38 @@ else:
 # amber_ligand_ff = "leaprc.gaff" # fixme - check
 namd_prod = "prod_2017.namd"    # only different because uses Berendsen
 # namd_prod = "prod.namd"
+# namd_prod = "prod_2017_manual.namd"    # only different because uses Berendsen
 align_molecules = False
+ignore_protein = False
+
+# First interface
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='TIES 20')
+    parser.add_argument('action', metavar='command', type=str,
+                        help='Action to be performed. E.g. "ties rename .." ')
+    parser.add_argument('-l', '--left-ligand', metavar='Left_Ligand_File', dest='left_ligand',
+                        type=str, required=False,
+                        help='The left ligand filename')
+    parser.add_argument('-r', '--right_ligand', metavar='Right_Ligand_File', dest='right_ligand',
+                        type=str, required=False,
+                        help='The right ligand filename')
+
+    args = parser.parse_args()
+
+    if args.action == 'rename':
+        if args.left_ligand is None or args.right_ligand is None:
+            print('Please supply files for renaming with -l and -r')
+            sys.exit()
+        usr_ll = args.left_ligand
+        usr_rl = args.right_ligand
+        print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
+        renameAtomNamesUnique(usr_ll, usr_rl)
+        sys.exit()
+
+    if args.action == 'create':
+        print('Main protocol will be used')
+    else:
+        sys.exit()
 
 
 # ------------------ Software Configuration
@@ -67,7 +102,7 @@ if not (workplace_root / left_ligand).is_file():
 elif not (workplace_root / right_ligand).is_file():
     print(f'File {right_ligand} not found in {workplace_root}')
     sys.exit(1)
-elif not (workplace_root / protein_filename).is_file():
+elif not ignore_protein and not (workplace_root / protein_filename).is_file():
     print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
 
@@ -119,11 +154,13 @@ if use_original_coor:
     # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
 
 # rename the atom names to ensure they are unique across the two molecules
-ensureUniqueAtomNames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
+renameAtomNamesUnique(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
 # superimpose the two topologies
 suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
-                                   align_molecules=align_molecules)
+                                   align_molecules=align_molecules,
+                                   pair_charge_atol=pair_q_atol,
+                                   manual_match=manually_matched, force_mismatch=force_mismatch)
 
 # save the superimposition results
 left_right_matching_json = workplace_root / 'joint_meta_fep.json'
@@ -154,6 +191,7 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod, tleap_path, atomff_type):
     Add missing terms with no force to pass the topology creation.
     Returns the corrected .frcmod content, otherwise throws an exception.
     """
+    print('Checking if dummy angle etc terms are need by attemtping the generation of a .top file with ambertools')
     # prepare files
     tmp_dir = tempfile.mkdtemp()
     shutil.copy(mol2_file, tmp_dir)
@@ -195,7 +233,7 @@ quit
 
     if missing_angles or missing_dihedrals:
         # raise Exception('hybrid frcmod missing dihedrals or angles')
-        print('WARNING: Adding default values for missing dihedral to frcmod')
+        print('WARNING: Adding default values for missing dihedral or angle to frcmod')
         with open(copy_hybrid_frcmod) as FRC:
             frcmod_lines = FRC.readlines()
 
@@ -204,12 +242,12 @@ quit
             new_frcmod.write(line)
             if 'ANGLE' in line:
                 for angle in missing_angles:
-                    new_frcmod.write(
-                        '{:<14}0     120.010   same as ca-ca-ha\n'.format(angle))
+                    missing_angle = f'{angle:<14}0     120.010   same as ca-ca-ha \t\t Dummy angle to generate .top\n'
+                    new_frcmod.write(missing_angle)
             if 'DIHE' in line:
-                for angle in missing_dihedrals:
-                    new_frcmod.write(
-                        '{:<14}1    0.00       180.000           2.000      same as X -c2-ca-X\n'.format(angle))
+                for dihedral in missing_dihedrals:
+                    missing_dihedral = f'{dihedral:<14}1    0.00       180.000           2.000      same as X -c2-ca-X\t\t Dummy angle to generate .top\n'
+                    new_frcmod.write(missing_dihedral)
 
         new_frcmod.close()
         # returncode = subprocess.call(['tleap', '-s', '-f', leap_in_filename])

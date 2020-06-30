@@ -55,6 +55,8 @@ def get_dsts(top_path, sims):
     print('Top: ', top_path)
     dsts_for_lambda = []
     for lambda_val, replicas in sorted(sims.items()):
+        # if lambda_val != 0.4:
+        #     continue
         # load
         u = mda.Universe(os.path.join(top_path, "sys_solv.top") , *replicas)
         print(f'Lambda {lambda_val}, Frames {u.trajectory.n_frames}')

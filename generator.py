@@ -12,7 +12,7 @@ import topology_superimposer
 from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
 
 
-def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
+def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
               no_disjoint_components=True, net_charge_filter=True,
               ignore_charges_completely=False,
               use_general_type=True,
@@ -21,18 +21,20 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
               left_coords_are_ref=True,
               align_molecules=True,
               use_only_gentype=False,
-              check_atom_names_unique=True):
+              check_atom_names_unique=True,
+              pair_charge_atol=0.1):
     # use mdanalysis to load the files
     # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2, use_general_type=use_general_type)
+    # fixme - manual match should be improved here and allow for a sensible format.
 
     # assign
     # fixme - Ideally I would reuse the mdanalysis data for this
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
-        if reference_match is not None and atomNode.atomName == reference_match[0]:
+        if manual_match is not None and atomNode.atomName == manual_match[0]:
             startLeft = atomNode
     for nfrom, nto, btype in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
@@ -40,12 +42,12 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
-        if reference_match is not None and atomNode.atomName == reference_match[1]:
+        if manual_match is not None and atomNode.atomName == manual_match[1]:
             startRight = atomNode
     for nfrom, nto, btype in rightlig_bonds:
         ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
 
-    if reference_match is None:
+    if manual_match is None:
         starting_node_pairs = None
     else:
         starting_node_pairs = [(startLeft, startRight)]
@@ -56,6 +58,7 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
                                      force_mismatch=force_mismatch,
                                      no_disjoint_components=no_disjoint_components,
                                      net_charge_filter=net_charge_filter,
+                                     pair_charge_atol=pair_charge_atol,
                                      ligandLmda=mda_l1, ligandRmda=mda_l2,
                                      ignore_charges_completely=ignore_charges_completely,
                                      ignore_bond_types=ignore_bond_types,
@@ -69,7 +72,7 @@ def getSuptop(mol1, mol2, reference_match=None, force_mismatch=None,
     return suptops[0], mda_l1, mda_l2
 
 
-def ensureUniqueAtomNames(left_mol2, right_mol2):
+def renameAtomNamesUnique(left_mol2, right_mol2):
     """
     Ensure that each has a name that is unique to both files.
 
@@ -86,10 +89,12 @@ def ensureUniqueAtomNames(left_mol2, right_mol2):
     L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
     L_correct_format = is_correct_atom_name_format(L_atom_names)
 
+    left_renamed = False
     if not L_names_unique or not L_correct_format:
-        print('Renaming Left Molecule Atom Names (Because it is needed)')
+        print(f'Renaming left molecule ({left_mol2}) atom names because they are not unique')
         name_counter_L_nodes = rename_ligand(left.atoms)
         L_atom_names = [a.name for a in left.atoms]
+        left_renamed = True
     else:
         name_counter_L_nodes = get_atom_names_counter(left.atoms)
 
@@ -98,20 +103,27 @@ def ensureUniqueAtomNames(left_mol2, right_mol2):
     R_correct_format = is_correct_atom_name_format(R_atom_names)
     L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
 
+    right_renamed = False
     if not R_names_unique or not R_correct_format or L_R_overlap:
-        print('Renaming Right Molecule Atom Names (Because it is needed)')
+        print(f'Renaming right molecule ({right_mol2}) atom names because they are not unique')
         rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
+        right_renamed = True
     # each atom name is unique, fixme - this check does not apply anymore
     # ie it is fine for a molecule to use general type
     # assert len(set(R_atom_names)) == len(R_atom_names)
 
     # make a copy of the original files
-    shutil.copy(left_mol2, str(left_mol2) + '_before_atomNameChange.mol2')
-    shutil.copy(right_mol2, str(right_mol2) + '_before_atomNameChange.mol2')
+    if left_renamed:
+        l_filename, l_extension = os.path.splitext(left_mol2)
+        shutil.copy(left_mol2, l_filename + '_before_atomNameChange' + l_extension)
+        # overwrite the file
+        left.atoms.write(left_mol2)
 
-    # overwrite the files
-    left.atoms.write(left_mol2)
-    right.atoms.write(right_mol2)
+    if right_renamed:
+        r_filename, r_extension = os.path.splitext(right_mol2)
+        shutil.copy(right_mol2, r_filename + '_before_atomNameChange' + r_extension)
+        # overwrite the file
+        right.atoms.write(right_mol2)
 
 
 def is_correct_atom_name_format(names):
