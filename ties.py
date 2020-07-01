@@ -298,11 +298,12 @@ def prepare_inputs(workplace_root, directory='complex', protein=None,
                             replica_dir / os.path.basename(constraint_file))
 
             # copy the NAMD protocol files
-            shutil.copy(dest_dir / "min.namd", replica_dir)
-            [shutil.copy(eq, replica_dir) for eq in eq_namd_filenames]
-            shutil.copy(dest_dir / 'prod.namd', replica_dir / 'prod.namd')
+            prepareFile(os.path.relpath(dest_dir / 'min.namd', replica_dir), replica_dir / 'min.namd')
+            [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
+                        for eq in eq_namd_filenames]
+            prepareFile(os.path.relpath(dest_dir / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
 
-            # copy the surfsara submit script - fixme - make this general
+            # copy a submit script
             if submit_script is not None:
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
