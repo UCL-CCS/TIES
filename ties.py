@@ -20,7 +20,7 @@ right_ligand = 'right_coor.pdb'
 protein_filename = 'protein.pdb'
 net_charge = -2
 # pair_q_atol = 0.101 # in electrons
-pair_q_atol = 0.101 # in electrons
+pair_q_atol = 0.131 # in electrons
 manually_matched = None # ['C2', 'C3']
 force_mismatch = None # [('C9', 'C60')]
 
@@ -59,10 +59,37 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--right_ligand', metavar='Right_Ligand_File', dest='right_ligand',
                         type=str, required=False,
                         help='The right ligand filename')
+    # protein location
+    # net charge (for bcc)
+    # cwd
 
     args = parser.parse_args()
 
+    # ------------------ Software Configuration
+    # set the working directory to the one where the script is called
+    workplace_root = Path(os.getcwd())
+    print('Working Directory: ', workplace_root)
+    # set the path to the scripts
+    code_root = Path(os.path.dirname(__file__))
+
+    # conf ambertools
+    # todo - check if $AMBERHOME is set
+    ambertools_bin = PurePosixPath("/home/dresio/software/amber18install/bin/")
+    # directory with scripts/input files
+    script_dir = code_root / PurePosixPath('scripts')
+    namd_script_dir = script_dir / 'namd'
+    ambertools_script_dir = script_dir / 'ambertools'
+
+    # check if the input files are in the directory
+    if not (workplace_root / left_ligand).is_file():
+        print(f'File {left_ligand} not found in {workplace_root}')
+        sys.exit(1)
+    elif not (workplace_root / right_ligand).is_file():
+        print(f'File {right_ligand} not found in {workplace_root}')
+        sys.exit(1)
+
     if args.action == 'rename':
+        # check if ligand files are fine
         if args.left_ligand is None or args.right_ligand is None:
             print('Please supply files for renaming with -l and -r')
             sys.exit()
@@ -78,31 +105,8 @@ if __name__ == '__main__':
         sys.exit()
 
 
-# ------------------ Software Configuration
-# set the working directory to the one where the script is called
-workplace_root = Path(os.getcwd())
-print('Working Directory: ', workplace_root)
-# set the path to the scripts
-code_root = Path(os.path.dirname(__file__))
-
-# conf ambertools
-ambertools_bin = PurePosixPath("/home/dresio/software/amber18install/bin/")
-
-# directory with scripts/input files
-script_dir = code_root / PurePosixPath('scripts')
-namd_script_dir = script_dir / 'namd'
-ambertools_script_dir = script_dir / 'ambertools'
-
-
 # ------------------------------------- Start TIES
-# check if the input files are in the directory
-if not (workplace_root / left_ligand).is_file():
-    print(f'File {left_ligand} not found in {workplace_root}')
-    sys.exit(1)
-elif not (workplace_root / right_ligand).is_file():
-    print(f'File {right_ligand} not found in {workplace_root}')
-    sys.exit(1)
-elif not ignore_protein and not (workplace_root / protein_filename).is_file():
+if not ignore_protein and not (workplace_root / protein_filename).is_file():
     print(f'File {protein_filename} not found in {workplace_root}')
     sys.exit(1)
 
@@ -184,91 +188,11 @@ right_frcmod = workplace_root / 'right.frcmod'
 hybrid_frcmod = workplace_root / 'morph.frcmod'
 join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
 
-def check_hybrid_frcmod(mol2_file, hybrid_frcmod, tleap_path, atomff_type):
-    """
-    Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
-    Check that the output library can be used to create a valid amber topology.
-    Add missing terms with no force to pass the topology creation.
-    Returns the corrected .frcmod content, otherwise throws an exception.
-    """
-    print('Checking if dummy angle etc terms are need by attemtping the generation of a .top file with ambertools')
-    # prepare files
-    tmp_dir = tempfile.mkdtemp()
-    shutil.copy(mol2_file, tmp_dir)
-    shutil.copy(hybrid_frcmod, tmp_dir)
-    copy_hybrid_frcmod = os.path.join(tmp_dir, os.path.basename(hybrid_frcmod))
-    test_system_build_script = '''
-source leaprc.protein.ff14SB
-source leaprc.water.tip3p
-source leaprc.gaff
-
-frcmod = loadamberparams morph.frcmod
-hybrid = loadMol2 morph.mol2
-saveamberprep hybrid test.prepc
-saveamberparm hybrid test.top test.crd
-savepdb hybrid test.pdb
-quit
-'''
-    # prepare the input file
-    leap_in_filename = 'test.leapin'
-    with open(os.path.join(tmp_dir, leap_in_filename), 'w') as FOUT:
-        FOUT.write(test_system_build_script)
-
-    # fixme - temporary solution
-    output = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
-
-    missing_angles = []
-    missing_dihedrals = []
-    for line in output.splitlines():
-        if "Could not find angle parameter:" in line:
-            cols = line.split(':')
-            angle = cols[-1].strip()
-            if angle not in missing_angles:
-                missing_angles.append(angle)
-        elif "No torsion terms for" in line:
-            cols = line.split()
-            torsion = cols[-1].strip()
-            if torsion not in missing_dihedrals:
-                missing_dihedrals.append(torsion)
-
-    if missing_angles or missing_dihedrals:
-        # raise Exception('hybrid frcmod missing dihedrals or angles')
-        print('WARNING: Adding default values for missing dihedral or angle to frcmod')
-        with open(copy_hybrid_frcmod) as FRC:
-            frcmod_lines = FRC.readlines()
-
-        new_frcmod = open(copy_hybrid_frcmod, 'w')
-        for line in frcmod_lines:
-            new_frcmod.write(line)
-            if 'ANGLE' in line:
-                for angle in missing_angles:
-                    missing_angle = f'{angle:<14}0     120.010   same as ca-ca-ha \t\t Dummy angle to generate .top\n'
-                    new_frcmod.write(missing_angle)
-            if 'DIHE' in line:
-                for dihedral in missing_dihedrals:
-                    missing_dihedral = f'{dihedral:<14}1    0.00       180.000           2.000      same as X -c2-ca-X\t\t Dummy angle to generate .top\n'
-                    new_frcmod.write(missing_dihedral)
-
-        new_frcmod.close()
-        # returncode = subprocess.call(['tleap', '-s', '-f', leap_in_filename])
-        returncode = os.popen(f'cd {tmp_dir} && {tleap_path} -s -f {leap_in_filename}').read()
-
-        if not "Errors = 0" in returncode:
-            print('ERROR: Test of the hybrid topology failed')
-            sys.exit(1)
-
-    print('\nHybrid topology created correctly')
-    with open(copy_hybrid_frcmod) as FRC:
-        frcmod_with_null_terms = FRC.read()
-    return frcmod_with_null_terms
-
-
-# the hybrid .frcmod might not contains "new terms" between the appearing/disappearing atoms.
-# In that case, insert fake terms
-# fixme - clean up this part: remove the direct call to tleap?
-updated_frcmod = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, ambertools_bin / 'tleap', atom_type)
+# if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
+updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield,
+                                             ambertools_bin, ambertools_script_dir, cwd=workplace_root)
 with open(hybrid_frcmod, 'w') as FOUT:
-    FOUT.write(updated_frcmod)
+    FOUT.write(updated_frcmod_content)
 
 shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
 shutil.copy(namd_script_dir / "ddg.py", workplace_root)

@@ -1,9 +1,10 @@
 import os
 import json
-from collections import OrderedDict
 import copy
 import shutil
 import subprocess
+from collections import OrderedDict
+from pathlib import Path
 
 import MDAnalysis as mda
 import numpy as np
@@ -124,6 +125,81 @@ def renameAtomNamesUnique(left_mol2, right_mol2):
         shutil.copy(right_mol2, r_filename + '_before_atomNameChange' + r_extension)
         # overwrite the file
         right.atoms.write(right_mol2)
+
+
+def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
+                        ambertools_bin, ambertools_script_dir,
+                        cwd, test_dir_name='ambertools_frcmod_test'):
+    """
+    Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
+    Check that the output library can be used to create a valid amber topology.
+    Add missing terms with no force to pass the topology creation.
+    Returns the corrected .frcmod content, otherwise throws an exception.
+    """
+    # prepare directory
+    test_dir = Path(test_dir_name)
+    os.mkdir(test_dir)
+    cwd = os.path.join(cwd, test_dir)
+
+    # prepare files
+    shutil.copy(mol2_file, test_dir)
+    shutil.copy(hybrid_frcmod, test_dir)
+    modified_hybrid_frcmod = os.path.join(test_dir, os.path.basename(hybrid_frcmod))
+
+    # prepare tleap input
+    leap_in_test = 'leap_test_morph.in'
+    leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
+    open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff))
+
+    # attempt generating the .top
+    tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
+        cwd=cwd, text=True, timeout=60*10, capture_output=True, check=True)
+
+    if not 'Errors = 0' in tleap_process.stdout:
+        # extract the missing angles/dihedrals
+        missing_angles = []
+        missing_dihedrals = []
+        for line in tleap_process.stdout.splitlines():
+            if "Could not find angle parameter:" in line:
+                cols = line.split(':')
+                angle = cols[-1].strip()
+                if angle not in missing_angles:
+                    missing_angles.append(angle)
+            elif "No torsion terms for" in line:
+                cols = line.split()
+                torsion = cols[-1].strip()
+                if torsion not in missing_dihedrals:
+                    missing_dihedrals.append(torsion)
+
+        if missing_angles or missing_dihedrals:
+            print('WARNING: Adding dummy dihedrals/angles to frcmod to generate .top')
+            frcmod_lines = open(modified_hybrid_frcmod).readlines()
+            # overwriting the .frcmod with dummy angles/dihedrals
+            with open(modified_hybrid_frcmod, 'w') as NEW_FRCMOD:
+                for line in frcmod_lines:
+                    NEW_FRCMOD.write(line)
+                    if 'ANGLE' in line:
+                        for angle in missing_angles:
+                            dummy_angle = f'{angle:<14}0  120.010  \t\t# Dummy angle\n'
+                            NEW_FRCMOD.write(dummy_angle)
+                            print(f'Added dummy angle: "{dummy_angle}"')
+                    if 'DIHE' in line:
+                        for dihedral in missing_dihedrals:
+                            dummy_dihedral = f'{dihedral:<14}1  0.00  180.000  2.000   \t\t# Dummy dihedrals\n'
+                            NEW_FRCMOD.write(dummy_dihedral)
+                            print(f'Added dummy dihedral: "{dummy_dihedral}"')
+
+            # verify that adding the dummy angles/dihedrals worked
+            tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
+                                           cwd=cwd, text=True, timeout=60 * 10, capture_output=True, check=True)
+
+            if not "Errors = 0" in tleap_process.stdout:
+                raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
+
+    print('\nTest hybrid topology creation: OK.')
+    frcmod_with_dummy_terms = open(modified_hybrid_frcmod).read()
+    return frcmod_with_dummy_terms
+
 
 
 def is_correct_atom_name_format(names):
