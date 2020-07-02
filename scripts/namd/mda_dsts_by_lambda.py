@@ -51,30 +51,6 @@ def get_sims(dirname):
 
     return finished_sims
 
-def get_wat_around(top_path, sims):
-    print('Top: ', top_path)
-    dsts_for_lambda = []
-    for lambda_val, replicas in sorted(sims.items()):
-        # if lambda_val != 0.4:
-        #     continue
-        # load
-        u = mda.Universe(os.path.join(top_path, "sys_solv.top") , *replicas)
-        print(f'Lambda {lambda_val}, Frames {u.trajectory.n_frames}')
-
-        # C7 and C59  / CL8 BR1
-        cl8 = u.select_atoms('type OW and around 7 (name CL8 BR1)')
-        # check their distance over time
-        dsts = []
-        for ts in u.trajectory:
-            dsts.append(len(cl8))
-
-        dsts_for_lambda.append(dsts)
-
-    flat = []
-    [flat.extend(one_d) for one_d in dsts_for_lambda]
-
-    return flat
-
 def get_dsts(top_path, sims):
     print('Top: ', top_path)
     dsts_for_lambda = []
@@ -96,34 +72,47 @@ def get_dsts(top_path, sims):
 
         dsts_for_lambda.append(dsts)
 
-    flat = []
-    [flat.extend(one_d) for one_d in dsts_for_lambda]
+    # flat = []
+    # [flat.extend(one_d) for one_d in dsts_for_lambda]
 
-    return flat
+    return dsts_for_lambda
 
 
 good_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.131_hsp/lig'
 good_sims = get_sims(good_lig)
-good_dsts = get_wat_around(good_lig, good_sims)
+good_dsts = get_dsts(good_lig, good_sims)
 
 bad_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.101_hsp/lig'
 bad_sims = get_sims(bad_lig)
-bad_dsts = get_wat_around(bad_lig, bad_sims)
+bad_dsts = get_dsts(bad_lig, bad_sims)
+
+lambdas = sorted(good_sims.keys())
 
 # nocross_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.101_no_cross_angdi_hsp/lig'
 # nocross_sims = get_sims(nocross_lig)
 # nocross_dsts = get_dsts(nocross_lig, nocross_sims)
 
-bin_from = min(min(bad_dsts), min(good_dsts))
-bin_to = max(max(bad_dsts), max(good_dsts))
-bins = np.linspace(bin_from, bin_to, 20)
-# bins=20
-plt.hist(good_dsts, label='0.131', bins=bins, alpha=0.8)
-plt.hist(bad_dsts, label='0.101', bins=bins, alpha=0.8)
-# plt.hist(nocross_flat, label='no cross 0.101', bins=bins, alpha=0.8)
-plt.title('7A from Cl/BR')
-plt.ylabel('Freq')
-plt.xlabel('# water')
+counter = 1
+plt.figure(figsize=(15,10))
+plt.rcParams.update({'font.size': 6})
+
+for lam, gdst, bdst in zip(lambdas, good_dsts, bad_dsts):
+    plt.subplot(3, 5, counter)
+
+    bin_from = min(min(bdst), min(gdst))
+    bin_to = max(max(bdst), max(gdst))
+    bin_to = 7
+    bins = np.linspace(bin_from, bin_to, 20)
+    # bins=20
+    plt.hist(gdst, label='0.131', bins=bins, alpha=0.8)
+    plt.hist(bdst, label='0.101', bins=bins, alpha=0.8)
+    # plt.hist(nocross_flat, label='no cross 0.101', bins=bins, alpha=0.8)
+    plt.title(f'C9 to Na+ Lambda {lam}')
+    plt.ylabel('Freq')
+    plt.xlabel('A')
+
+    counter += 1
+
 plt.legend()
 plt.show()
 
