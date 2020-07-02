@@ -2504,7 +2504,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     print('Original suptops: ')
     for st in suptops:
         print('Original suptop len %d' % len(st))
-        st.print_summary()
+        # st.print_summary()
 
     # ignore bond types
     for st in suptops:

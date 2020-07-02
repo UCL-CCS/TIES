@@ -3,6 +3,7 @@ import json
 import copy
 import shutil
 import subprocess
+import math
 from collections import OrderedDict
 from pathlib import Path
 
@@ -23,12 +24,19 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
               align_molecules=True,
               use_only_gentype=False,
               check_atom_names_unique=True,
-              pair_charge_atol=0.1):
+              pair_charge_atol=0.1,
+              net_charge_threshold=0.1):
     # use mdanalysis to load the files
     # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
         get_atoms_bonds_from_mol2(mol1, mol2, use_general_type=use_general_type)
     # fixme - manual match should be improved here and allow for a sensible format.
+
+    # empty lists count as None
+    if not manual_match:
+        manual_match = None
+    if not force_mismatch:
+        force_mismatch = None
 
     # assign
     # fixme - Ideally I would reuse the mdanalysis data for this
@@ -68,7 +76,8 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
                                      align_molecules=align_molecules,
                                      use_general_type=use_general_type,
                                      use_only_gentype=use_only_gentype,
-                                     check_atom_names_unique=check_atom_names_unique)
+                                     check_atom_names_unique=check_atom_names_unique,
+                                     net_charge_threshold=net_charge_threshold)
     assert len(suptops) == 1
     return suptops[0], mda_l1, mda_l2
 
@@ -127,6 +136,124 @@ def renameAtomNamesUnique(left_mol2, right_mol2):
         right.atoms.write(right_mol2)
 
 
+def prepare_inputs(workplace_root, directory='complex',
+                   protein=None,
+                   hybrid_mol2=None, hybrid_frc=None,
+                   left_right_mapping=None,
+                   namd_script_loc=None,
+                   submit_script=None,
+                   scripts_loc=None,
+                   tleap_in=None,
+                   protein_ff=None,
+                   net_charge=None,
+                   ambertools_script_dir=None,
+                   subprocess_kwargs=None,
+                   ambertools_bin=None,
+                   namd_prod=None,):
+
+    dest_dir = workplace_root / directory
+    if not dest_dir.is_dir():
+        dest_dir.mkdir()
+
+    # copy the protein complex .pdb
+    if protein is not None:
+        shutil.copy(workplace_root / protein, dest_dir)
+
+    # copy the hybrid ligand (topology and .frcmod)
+    shutil.copy(hybrid_mol2, dest_dir)
+    shutil.copy(hybrid_frc, dest_dir)
+
+    # determine the number of ions to neutralise the ligand charge
+    if net_charge < 0:
+        Na_num = math.fabs(net_charge)
+        Cl_num = 0
+    elif net_charge > 0:
+        Cl_num = net_charge
+        Na_num = 0
+    else:
+        Cl_num = Na_num = 0
+
+    # copy the protein tleap input file (ambertools)
+    # set the number of ions manually
+    assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
+    leap_in_conf = open(ambertools_script_dir / tleap_in).read()
+    if Na_num == 0:
+        tleap_Na_ions = ''
+    elif Na_num > 0:
+        tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
+    if Cl_num == 0:
+        tleap_Cl_ions = ''
+    elif Cl_num > 0:
+        tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+    open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+                                                              NaIons=tleap_Na_ions,
+                                                              ClIons=tleap_Cl_ions))
+
+    # ambertools tleap: combine ligand+complex, solvate, generate amberparm
+    subprocess_kwargs['cwd'] = dest_dir
+    subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'], **subprocess_kwargs)
+    hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
+    # check if the solvation is correct
+
+    # generate the merged .fep file
+    complex_solvated_fep = dest_dir / 'sys_solv_fep.pdb'
+    correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep)
+
+    # fixme - check that the protein does not have the same resname?
+
+    # calculate PBC for an octahedron
+    solv_oct_boc = extract_PBC_oct_from_tleap_log(dest_dir / "leap.log")
+
+    # prepare NAMD input files for min+eq+prod
+    init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
+                       structure_name='sys_solv', pbc_box=solv_oct_boc)
+    eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
+    shutil.copy(namd_script_loc / namd_prod, dest_dir / 'prod.namd')
+
+    # generate 4 different constraint .pdb files (it uses B column)
+    constraint_files = create_4_constraint_files(hybrid_solv, dest_dir)
+
+    # Generate the directory structure for all the lambdas, and copy the files
+    for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
+        lambda_path = dest_dir / f'lambda_{lambda_step:.2f}'
+        if not os.path.exists(lambda_path):
+            os.makedirs(lambda_path)
+
+        # for each lambda create 5 replicas
+        for replica_no in range(1, 5 + 1):
+            replica_dir = lambda_path / f'rep{replica_no}'
+            if not os.path.exists(replica_dir):
+                os.makedirs(replica_dir)
+
+            # set the lambda value for the directory,
+            # this file is used by NAMD tcl scripts
+            open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+
+            # copy the necessary files
+            prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
+            prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
+            # copy ambertools-generated topology
+            prepareFile(os.path.relpath(dest_dir / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
+            # copy the .pdb files with constraints in the B column
+            for constraint_file in constraint_files:
+                prepareFile(os.path.relpath(constraint_file, replica_dir),
+                            replica_dir / os.path.basename(constraint_file))
+
+            # copy the NAMD protocol files
+            prepareFile(os.path.relpath(dest_dir / 'min.namd', replica_dir), replica_dir / 'min.namd')
+            [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
+                        for eq in eq_namd_filenames]
+            prepareFile(os.path.relpath(dest_dir / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
+
+            # copy a submit script
+            if submit_script is not None:
+                shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
+
+    # copy handy scripts to the main directory
+    shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)
+
+
+
 def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
                         ambertools_bin, ambertools_script_dir,
                         cwd, test_dir_name='ambertools_frcmod_test'):
@@ -138,7 +265,8 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
     """
     # prepare directory
     test_dir = Path(test_dir_name)
-    os.mkdir(test_dir)
+    if not test_dir.is_dir():
+        os.mkdir(test_dir)
     cwd = os.path.join(cwd, test_dir)
 
     # prepare files
@@ -828,7 +956,7 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
                     found_match = True
                     mol2_atom.position = ref_atom.position
                     break
-            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+            assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
     if by_atom_name:
         for mol2_atom in mol2.atoms:
             found_match = False
@@ -837,7 +965,7 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
                     found_match = True
                     mol2_atom.position = ref_atom.position
                     break
-            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+            assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
     elif by_index:
         for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
                 atype = general_atom_types2[mol2_atom.type.upper()]
@@ -943,8 +1071,13 @@ def prepareFile(src, dst, symbolic=True):
     @type: 'sym' or 'copy'
     """
     if symbolic:
+        # note that deleting all the files is intrusive, todo
+        if os.path.isfile(dst):
+            os.remove(dst)
         os.symlink(src, dst)
     else:
+        if os.path.isfile(dst):
+            os.remove(dst)
         shutil.copy(src, dst)
 
 
