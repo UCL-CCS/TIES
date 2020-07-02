@@ -12,6 +12,7 @@ from pathlib import Path
 from collections import OrderedDict
 import glob
 import time
+import pickle as pkl
 
 import numpy as np
 import matplotlib
@@ -472,6 +473,11 @@ complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 # Give the overall results
 print(f"Delta Delta: {complex_delta - lig_delta:.4f}")
 print (f"Agastya Error {complex_data['sigma_2017'] + lig_data['sigma_2017']:.4f}")
+
+# pickle lig and complex data
+with open('analysis/lig.pkl', 'wb') as FLIG, open('analysis/complex.pkl', 'wb') as FCOMPLEX:
+    pkl.dump(lig_all, FLIG)
+    pkl.dump(complex_all, FCOMPLEX)
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
 # se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
