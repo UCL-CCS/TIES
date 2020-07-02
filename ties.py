@@ -1,13 +1,12 @@
+#!/usr/bin/env python3
 """
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
 import os
 import shutil
 import sys
-import tempfile
 import subprocess
 import csv
-import math
 import argparse
 from pathlib import Path, PurePosixPath
 
@@ -217,8 +216,15 @@ if __name__ == '__main__':
     namd_script_dir = script_dir / 'namd'
     ambertools_script_dir = script_dir / 'ambertools'
 else:
-    # this file should not be imported
-    raise Exception('I am not for importing. So don\'t try to import me again! Use my command line interface. ')
+    print('Please use directly via ties.py file', __file__)
+    ties_dir = Path(__file__).parent.absolute()
+    print('You can export a path:', ties_dir)
+    print('For example: ')
+    print('\n')
+    print(f'export PATH=$PATH:{ties_dir}')
+    print('\n')
+    print('ties.py is currently only the command line interface and is cannot be imported in python.')
+    sys.exit()
 
 
 # subprocess options for calling ambertools
