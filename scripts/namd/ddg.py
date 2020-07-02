@@ -116,7 +116,7 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                 assert partition1.startswith('#PARTITION 1')
                 assert partition2.startswith('#PARTITION 2')
                 app_vdw_lambda = float(partition1.split('VDW')[1].split('ELEC')[0])
-                assert app_vdw_lambda == float(str(lambda_dir).split('_')[1])
+                assert app_vdw_lambda == float(str(lambda_dir).split('_')[1]), lambda_dir
                 dis_vdw_lambda = float(partition2.split('VDW')[1].split('ELEC')[0])
                 assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
                 app_ele_lambda = float(partition1.split('ELEC')[1])
