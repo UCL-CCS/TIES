@@ -14,7 +14,7 @@
 # remember to be in cds alias
 module load namd
 
-TASKS_PER_JOB=56 # 1 reserved for comm?
+TASKS_PER_JOB=55 # 1 reserved for comm
 BASE_DIR=`pwd`
 
 function schedule_system() {

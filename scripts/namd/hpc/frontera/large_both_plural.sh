@@ -3,10 +3,10 @@
 #SBATCH -J namd
 #SBATCH -o log_%j.o
 #SBATCH -e log_%j.e       # Name of stderr error file
-#SBATCH -N 130  # Total # of nodes (must be 1 for serial)
-#SBATCH -n 130  # Total # of mpi tasks (should be 1 for serial), 56 MPI jobs per node?
+#SBATCH -N 325  # Total # of nodes (must be 1 for serial)
+#SBATCH -n 325  # Total # of mpi tasks (should be 1 for serial), 56 MPI jobs per node?
 #SBATCH -p normal # normal, development
-#SBATCH -t 25:00:00
+#SBATCH -t 20:00:00
 #SBATCH --mail-type=all
 #SBATCH --mail-user=bieniekmat@gmail.com
 
@@ -69,8 +69,8 @@ function schedule_system() {
 declare -a lambdas=(0.00 0.05 0.10 0.20 0.30 0.40 0.50 0.60 0.70 0.80 0.90 0.95 1.00)
 declare -a replicas=(1 2 3 4 5)
 
-#declare -a transformations=(l39_l42 l16_l34 l12_l35 l18_l39 l17_l9)
-declare -a transformations=(l32_l38_2nd l6_l41)
+#declare -a transformations=()
+declare -a transformations=(l1_l8  l1_l9  l3_l5  l4_l10  l5_l6)
 #declare -a transformations=(.)
 
 counter=0
