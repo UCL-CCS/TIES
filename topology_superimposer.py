@@ -139,18 +139,21 @@ Suggestions:
  ie are these two atoms matching? Maybe the whole superimpositon should not decided about that,
  but rather, the local environment
 """
-import MDAnalysis as mda
-from MDAnalysis.analysis.distances import distance_array
-from MDAnalysis.analysis.align import rotation_matrix
 import hashlib
-import numpy as np
-import networkx as nx
 import copy
 import itertools
 import sys
 import os
+import warnings
 from io import StringIO
 from functools import reduce
+
+import numpy as np
+import networkx as nx
+
+import MDAnalysis as mda
+from MDAnalysis.analysis.distances import distance_array
+from MDAnalysis.analysis.align import rotation_matrix
 
 # fixme: change to CA:C dictionary
 # fixme delete this for now
@@ -3165,30 +3168,13 @@ def get_atoms_bonds_from_ac(ac_file):
 
 
 def load_mol2_wrapper(filename):
-    """
-    Load a .mol2 file with MDAnalysis but
-    capture the error output which are
-    warnings and ignore it.
-    It is polluting the space.
-    """
-    # redirect the errors
-    original = sys.stderr
-    sys.stderr = mda_stderr = StringIO()
-    try:
-        u = mda.Universe(filename)
-    except Exception as E:
-        print(E)
-    sys.stderr = original
-
-    # remove the warnings about mass
-    for line in mda_stderr.getvalue().split(os.linesep):
-        if 'UserWarning: Failed to guess the mass for the following atom types' in line:
-            continue
-        if 'warn("Failed to guess the mass for the following atom types' in line:
-            continue
-
-        print(line, file=sys.stderr)
-
+    # Load a .mol2 file
+    # fixme - fuse with the .pdb loading, no distinction needed
+    # ignore the .mol2 warnings about the mass
+    warnings.filterwarnings(action='ignore', category=UserWarning,
+                            message='Failed to guess the mass for the following atom types: '  # warning to ignore
+                            )
+    u = mda.Universe(filename)
     return u
 
 
