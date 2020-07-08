@@ -11,6 +11,10 @@ To install ties:
 
 `python install . # will be tied to the github`
 
+Export the path to the ties repository:
+
+`export PATH=$PATH:\path\to\this\git\root_dir`
+
 To get help use: 
 
 `ties.py -h`
