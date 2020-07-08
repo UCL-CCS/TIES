@@ -12,8 +12,7 @@ from pathlib import Path, PurePosixPath
 
 from ties.generator import *
 
-# if the file is called through the binary setuptools entry point, or directly
-if __name__ == 'ties.ties' or __name__ == '__main__':
+def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
                         help='Action to be performed. E.g. "ties rename .." ')
@@ -215,138 +214,131 @@ if __name__ == 'ties.ties' or __name__ == '__main__':
     script_dir = code_root / PurePosixPath('scripts')
     namd_script_dir = script_dir / 'namd'
     ambertools_script_dir = script_dir / 'ambertools'
-else:
-    print('__name__', __name__)
-    print('Please use directly via ties.py file', __file__)
-    ties_dir = Path(__file__).parent.absolute()
-    print('You can export a path:', ties_dir)
-    print('For example: ')
-    print('\n')
-    print(f'export PATH=$PATH:{ties_dir}')
-    print('\n')
-    print('ties.py is currently only the command line interface and is cannot be imported in python.')
-    sys.exit()
 
 
-# subprocess options for calling ambertools
-subprocess_kwargs = {
-    "check" : True, "text" : True,
-    "cwd" : workplace_root,
-    "stdout" : sys.stdout, #subprocess.PIPE,
-    "stderr" : sys.stderr, #subprocess.PIPE,
-    "timeout" : 60 * 10 # 10 minute timeout
-}
 
-# prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-if not (workplace_root / 'left.mol2').is_file():
-    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-    # fixme - does not throw errors? try to make it throw an error
-    subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', 'pdb',
-                                        '-o', 'left.mol2', '-fo', 'mol2',
-                                        '-c', charge_type, '-at', atom_type,
-                                        '-nc', str(net_charge), '-dr', antechamber_dr],
-                               **subprocess_kwargs)
+    # subprocess options for calling ambertools
+    subprocess_kwargs = {
+        "check" : True, "text" : True,
+        "cwd" : workplace_root,
+        "stdout" : sys.stdout, #subprocess.PIPE,
+        "stderr" : sys.stderr, #subprocess.PIPE,
+        "timeout" : 60 * 10 # 10 minute timeout
+    }
 
-# prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-if not (workplace_root / 'right.mol2').is_file():
-    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-    subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', 'pdb',
-                                '-o', 'right.mol2', '-fo', 'mol2',
-                                '-c', charge_type, '-at', atom_type,
-                                '-nc', str(net_charge), '-dr', antechamber_dr], # FIXME - revisit the doctor
-                               **subprocess_kwargs)
+    # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+    if not (workplace_root / 'left.mol2').is_file():
+        print('Ambertools antechamber stage: converting to .mol2 and generating charges')
+        # fixme - does not throw errors? try to make it throw an error
+        subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', 'pdb',
+                                            '-o', 'left.mol2', '-fo', 'mol2',
+                                            '-c', charge_type, '-at', atom_type,
+                                            '-nc', str(net_charge), '-dr', antechamber_dr],
+                                   **subprocess_kwargs)
 
-if use_original_coor:
-    print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
-    # copy the files before applying the coordinates
-    shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
-    shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
-    set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_atom_name=True)
-    set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_atom_name=True)
-    # set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_index=True)
-    # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
+    # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+    if not (workplace_root / 'right.mol2').is_file():
+        print('Ambertools antechamber stage: converting to .mol2 and generating charges')
+        subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', 'pdb',
+                                    '-o', 'right.mol2', '-fo', 'mol2',
+                                    '-c', charge_type, '-at', atom_type,
+                                    '-nc', str(net_charge), '-dr', antechamber_dr], # FIXME - revisit the doctor
+                                   **subprocess_kwargs)
 
-# rename the atom names to ensure they are unique across the two molecules
-renameAtomNamesUnique(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
+    if use_original_coor:
+        print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
+        # copy the files before applying the coordinates
+        shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
+        shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
+        set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_atom_name=True)
+        set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_atom_name=True)
+        # set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_index=True)
+        # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
 
-# superimpose the two topologies
-suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
-                                   align_molecules=align_molecules,
-                                   pair_charge_atol=atom_pair_q_atol,
-                                   manual_match=manually_matched, force_mismatch=force_mismatch,
-                                   net_charge_threshold=net_charge_threshold)
+    # rename the atom names to ensure they are unique across the two molecules
+    renameAtomNamesUnique(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
-# save the superimposition results
-left_right_matching_json = workplace_root / 'joint_meta_fep.json'
-save_superimposition_results(left_right_matching_json, suptop)
-# hybrid .pdb
-write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
-# hybrid .mol2
-hybrid_mol2 = workplace_root / 'morph.mol2'
-write_merged(suptop, hybrid_mol2)
+    # superimpose the two topologies
+    suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
+                                       align_molecules=align_molecules,
+                                       pair_charge_atol=atom_pair_q_atol,
+                                       manual_match=manually_matched, force_mismatch=force_mismatch,
+                                       net_charge_threshold=net_charge_threshold)
 
-# generate the functional forms
-print('Ambertools parmchk2 generating .frcmod')
-left_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'left.mol2', '-o', 'left.frcmod',
-                             '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
-right_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'right.mol2', '-o', 'right.frcmod',
-                             '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
+    # save the superimposition results
+    left_right_matching_json = workplace_root / 'joint_meta_fep.json'
+    save_superimposition_results(left_right_matching_json, suptop)
+    # hybrid .pdb
+    write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
+    # hybrid .mol2
+    hybrid_mol2 = workplace_root / 'morph.mol2'
+    write_merged(suptop, hybrid_mol2)
 
-# join the .frcmod files
-left_frcmod = workplace_root / 'left.frcmod'
-right_frcmod = workplace_root / 'right.frcmod'
-hybrid_frcmod = workplace_root / 'morph.frcmod'
-join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
+    # generate the functional forms
+    print('Ambertools parmchk2 generating .frcmod')
+    left_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'left.mol2', '-o', 'left.frcmod',
+                                 '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
+    right_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'right.mol2', '-o', 'right.frcmod',
+                                 '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
 
-# if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
-updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield,
-                                             ambertools_bin, ambertools_script_dir, cwd=workplace_root)
-with open(hybrid_frcmod, 'w') as FOUT:
-    FOUT.write(updated_frcmod_content)
+    # join the .frcmod files
+    left_frcmod = workplace_root / 'left.frcmod'
+    right_frcmod = workplace_root / 'right.frcmod'
+    hybrid_frcmod = workplace_root / 'morph.frcmod'
+    join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
 
-# prepare
-shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
-shutil.copy(namd_script_dir / "ddg.py", workplace_root)
+    # if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
+    updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield,
+                                                 ambertools_bin, ambertools_script_dir, cwd=workplace_root)
+    with open(hybrid_frcmod, 'w') as FOUT:
+        FOUT.write(updated_frcmod_content)
+
+    # prepare
+    shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
+    shutil.copy(namd_script_dir / "ddg.py", workplace_root)
 
 
-##########################################################
-# ------------------   Ligand ----------------------------
-prepare_inputs(workplace_root, directory='lig',
-               protein=None,
-               hybrid_mol2=hybrid_mol2,
-               hybrid_frc=hybrid_frcmod,
-               left_right_mapping=left_right_matching_json,
-               namd_script_loc=namd_script_dir,
-               scripts_loc=script_dir,
-               tleap_in='leap_ligand.in',
-               protein_ff=amber_forcefield,
-               net_charge=net_charge,
-               ambertools_script_dir=ambertools_script_dir,
-               subprocess_kwargs=subprocess_kwargs,
-               ambertools_bin=ambertools_bin,
-               namd_prod=namd_prod
-               )
+    ##########################################################
+    # ------------------   Ligand ----------------------------
+    prepare_inputs(workplace_root, directory='lig',
+                   protein=None,
+                   hybrid_mol2=hybrid_mol2,
+                   hybrid_frc=hybrid_frcmod,
+                   left_right_mapping=left_right_matching_json,
+                   namd_script_loc=namd_script_dir,
+                   scripts_loc=script_dir,
+                   tleap_in='leap_ligand.in',
+                   protein_ff=amber_forcefield,
+                   net_charge=net_charge,
+                   ambertools_script_dir=ambertools_script_dir,
+                   subprocess_kwargs=subprocess_kwargs,
+                   ambertools_bin=ambertools_bin,
+                   namd_prod=namd_prod
+                   )
 
-##########################################################
-# ------------------ Complex  ----------------------------
-# calculate the charges of the protein (using ambertools)
-protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
-                       ambertools_bin, ambertools_script_dir / 'solv_prot.in',
-                       subprocess_kwargs, amber_forcefield)
+    ##########################################################
+    # ------------------ Complex  ----------------------------
+    # calculate the charges of the protein (using ambertools)
+    protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
+                           ambertools_bin, ambertools_script_dir / 'solv_prot.in',
+                           subprocess_kwargs, amber_forcefield)
 
-prepare_inputs(workplace_root, directory='complex',
-               protein=protein_filename,
-               hybrid_mol2=hybrid_mol2,
-               hybrid_frc=hybrid_frcmod,
-               left_right_mapping=left_right_matching_json,
-               namd_script_loc=namd_script_dir,
-               scripts_loc=script_dir,
-               tleap_in='leap_complex.in',
-               protein_ff=amber_forcefield,
-               net_charge=net_charge + protein_net_charge,
-               ambertools_script_dir=ambertools_script_dir,
-               subprocess_kwargs=subprocess_kwargs,
-               ambertools_bin=ambertools_bin,
-               namd_prod=namd_prod)
+    prepare_inputs(workplace_root, directory='complex',
+                   protein=protein_filename,
+                   hybrid_mol2=hybrid_mol2,
+                   hybrid_frc=hybrid_frcmod,
+                   left_right_mapping=left_right_matching_json,
+                   namd_script_loc=namd_script_dir,
+                   scripts_loc=script_dir,
+                   tleap_in='leap_complex.in',
+                   protein_ff=amber_forcefield,
+                   net_charge=net_charge + protein_net_charge,
+                   ambertools_script_dir=ambertools_script_dir,
+                   subprocess_kwargs=subprocess_kwargs,
+                   ambertools_bin=ambertools_bin,
+                   namd_prod=namd_prod)
 
-print('TIES 20 Finished')
+    print('TIES 20 Finished')
+
+if __name__ == '__main__':
+    command_line_script()
