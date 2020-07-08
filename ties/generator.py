@@ -10,8 +10,8 @@ from pathlib import Path
 import MDAnalysis as mda
 import numpy as np
 
-import topology_superimposer
-from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
+import ties.topology_superimposer
+from ties.topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
 
 
 def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,

@@ -6,7 +6,7 @@ frcmod file format: http://ambermd.org/FileFormats.php#frcmod
 """
 from os import path
 import MDAnalysis as mda
-from topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
+from ties.topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
 import os
 import json
 

@@ -10,10 +10,10 @@ import csv
 import argparse
 from pathlib import Path, PurePosixPath
 
-from generator import *
+from ties.generator import *
 
-
-if __name__ == '__main__':
+# if the file is called through the binary setuptools entry point, or directly
+if __name__ == 'ties.ties' or __name__ == '__main__':
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
                         help='Action to be performed. E.g. "ties rename .." ')
@@ -216,6 +216,7 @@ if __name__ == '__main__':
     namd_script_dir = script_dir / 'namd'
     ambertools_script_dir = script_dir / 'ambertools'
 else:
+    print('__name__', __name__)
     print('Please use directly via ties.py file', __file__)
     ties_dir = Path(__file__).parent.absolute()
     print('You can export a path:', ties_dir)
