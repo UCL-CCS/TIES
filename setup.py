@@ -1,12 +1,4 @@
 from setuptools import setup, find_packages
-from setuptools.command.develop import develop
-from setuptools.command.install import install
-
-class PostInstallCommand(install):
-    def run(self):
-        install.run(self)
-        # importing ties prints a message about how to use it
-        import ties
 
 setup(
     name='ties',
@@ -18,8 +10,5 @@ setup(
     author_email='bieniekmat@gmail.com',
     install_requires=['numpy', 'mdanalysis', 'cython', 'setuptools', 'matplotlib', 'networkx'],
     packages=find_packages(),
-    include_package_data=True,
-    cmdclass={
-        'install': PostInstallCommand,
-    },
+    include_package_data=True
 )
