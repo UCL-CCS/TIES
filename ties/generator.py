@@ -249,10 +249,6 @@ def prepare_inputs(workplace_root, directory='complex',
             if submit_script is not None:
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
-    # copy handy scripts to the main directory
-    shutil.copy(scripts_loc / "schedule_separately.py", dest_dir)
-
-
 
 def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
                         ambertools_bin, ambertools_script_dir,
