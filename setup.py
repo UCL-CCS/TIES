@@ -11,8 +11,6 @@ setup(
     install_requires=['numpy', 'mdanalysis', 'cython', 'setuptools', 'matplotlib', 'networkx'],
     packages=find_packages(),
     include_package_data=True,
-
-    py_modules=['ties'],
     entry_points={
         'console_scripts': [
             'ties = ties:ties'
