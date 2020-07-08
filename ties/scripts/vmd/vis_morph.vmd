@@ -295,8 +295,8 @@ display aodirect 0.300000
 display dof off
 display dof_fnumber 64.000000
 display dof_focaldist 0.700000
-mol new morph_solv.top type parm7 first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
-mol addfile morph_solv_fep.pdb type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
+mol new sys_solv.top type parm7 first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
+mol addfile sys_solv_fep.pdb type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
 mol delrep 0 top
 mol representation CPK 0.800000 0.300000 12.000000 12.000000
 mol color Beta
@@ -366,7 +366,7 @@ mol clipplane center 5 1 top {0.0 0.0 0.0}
 mol clipplane color  5 1 top {0.5 0.5 0.5 }
 mol clipplane normal 5 1 top {0.0 0.0 1.0}
 mol clipplane status 5 1 top {0}
-mol rename top morph_solv.top
+mol rename top sys_solv.top
 set viewpoints([molinfo top]) {{{1 0 0 -0.0233002} {0 1 0 -0.1425} {0 0 1 0.115479} {0 0 0 1}} {{-0.187423 0.729127 -0.658177 0} {-0.980092 -0.0943147 0.174611 0} {0.0652364 0.677814 0.732305 0} {0 0 0 1}} {{0.101804 0 0 0} {0 0.101804 0 0} {0 0 0.101804 0} {0 0 0 1}} {{1 0 0 -0.64} {0 1 0 0.05} {0 0 1 -2.95} {0 0 0 1}}}
 lappend viewplist [molinfo top]
 set topmol [molinfo top]
@@ -526,7 +526,7 @@ color scale colors WBlk {1.0 1.0 1.0} {0.5 0.5 0.5} {0.0 0.0 0.0}
     {color Segname {} blue}
     {color Conformation {all} blue}
     {color Molecule {0} blue}
-    {color Molecule {morph_solv.top} blue}
+    {color Molecule {sys_solv.top} blue}
     {color Structure {3_10_Helix} blue}
     {color Surface {Grasp} gray}
     {color Labels {Springs} orange}

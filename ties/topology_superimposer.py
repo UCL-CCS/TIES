@@ -166,7 +166,8 @@ general_atom_types = {
 }
 # fixme - change this to a simpler version
 general_atom_types2 = {
-    # taken from http://ambermd.org/antechamber/gaff.html#atomtype
+    # Source http://ambermd.org/antechamber/gaff.html#atomtype
+    # However, some general atom types were added separately
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
     'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HX': 'H',
