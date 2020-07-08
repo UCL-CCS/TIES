@@ -1,0 +1,3 @@
+include ties/scripts/ambertools/*in
+include ties/scripts/namd/*namd
+include ties/scripts/vmd/*vmd
