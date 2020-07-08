@@ -108,6 +108,7 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
             # 8 is BOND2
             # 10 is ELECT2
             # 12 is VDW2
+            print(prod_alch)
             energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[2, 4, 6, 8, 10, 12])
 
             # load metadata from the file

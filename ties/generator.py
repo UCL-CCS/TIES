@@ -10,8 +10,8 @@ from pathlib import Path
 import MDAnalysis as mda
 import numpy as np
 
-import ties.topology_superimposer
-from ties.topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, general_atom_types2
+from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
+    superimpose_topologies, general_atom_types2, load_mol2_wrapper, get_atoms_bonds_from_ac
 
 
 def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
@@ -91,8 +91,8 @@ def renameAtomNamesUnique(left_mol2, right_mol2):
     # keep the names if possible (ie if they are already different)
     """
     # load both ligands
-    left = topology_superimposer.load_mol2_wrapper(left_mol2)
-    right = topology_superimposer.load_mol2_wrapper(right_mol2)
+    left = load_mol2_wrapper(left_mol2)
+    right = load_mol2_wrapper(right_mol2)
 
     # first, ensure that all the atom names are unique
     L_atom_names = [a.name for a in left.atoms]
@@ -863,9 +863,9 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     # ! the mol file will be overwritten
     print('Overwriting the mol2 file with charges from the ac file')
     # load the charges from the .ac file
-    ac_atoms, _ = topology_superimposer.get_atoms_bonds_from_ac(ac_ref_filename)
+    ac_atoms, _ = get_atoms_bonds_from_ac(ac_ref_filename)
     # load the .mol2 files with MDAnalysis and correct the charges
-    mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    mol2 = load_mol2_wrapper(mol2_filename)
 
     for mol2_atom in mol2.atoms:
         found_match = False
@@ -884,9 +884,9 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     # mol2_filename will be overwritten!
     print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
     # load the ref charges
-    ref_mol2 = topology_superimposer.load_mol2_wrapper(mol2_ref_filename)
+    ref_mol2 = load_mol2_wrapper(mol2_ref_filename)
     # load the .mol2 files with MDAnalysis and correct the charges
-    mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    mol2 = load_mol2_wrapper(mol2_filename)
 
     if by_atom_name and by_index:
         raise ValueError('Cannot have both. They are exclusive')
@@ -937,9 +937,9 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
     # mol2_filename will be overwritten!
     print(f'Overwriting {mol2_filename} mol2 file with coordinates from {coor_ref_filename} file')
     # load the ref coordinates
-    ref_mol2 = topology_superimposer.load_mol2_wrapper(coor_ref_filename)
+    ref_mol2 = load_mol2_wrapper(coor_ref_filename)
     # load the .mol2 files with MDAnalysis and correct the charges
-    mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    mol2 = load_mol2_wrapper(mol2_filename)
 
     ref_pos_sum = np.sum(ref_mol2.atoms.positions)
 
@@ -1119,11 +1119,11 @@ def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_fi
     left_right_pairs = (l.split() for l in lines if not l.strip().startswith('#'))
 
     # load the ref coordinates
-    ref_mol2 = topology_superimposer.load_mol2_wrapper(coor_ref_filename)
+    ref_mol2 = load_mol2_wrapper(coor_ref_filename)
     # load the .mol2 files with MDAnalysis and correct the charges
-    static_mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    static_mol2 = load_mol2_wrapper(mol2_filename)
     # this is being modified
-    mod_mol2 = topology_superimposer.load_mol2_wrapper(mol2_filename)
+    mod_mol2 = load_mol2_wrapper(mol2_filename)
 
 
     for pair in left_right_pairs:

@@ -13,7 +13,7 @@
 #BSUB -W 30:00
 #BSUB -x
 
-SYSTEM=$HCBASE/resp4/cdk2/l20_l21/
+SYSTEM=$HCBASE/resp4/ptp1b/l4_l22/
 NP=32
 
 #Load modules
