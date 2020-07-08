@@ -9,7 +9,7 @@ Change the directory. Several packages will be installed as dependancies.
 You can also install them manually. See "setup.py" which contains the list. 
 To install ties: 
 
-`python setup.py install # will be tied to the github`
+`python install . # will be tied to the github`
 
 To get help use: 
 
