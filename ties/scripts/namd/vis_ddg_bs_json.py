@@ -118,50 +118,63 @@ def combine_and_plot(transformations, filename, yrange=0.5, plots=[5, 5]):
     # return the combined data
     return trans_dgs, sd_improvements
 
+ligands = []
+complexes = []
+
 # tyk2
 # ligand
 transformations = list(Path('.').glob('tyk2/analysis/lig_l*_l*_*.json'))
 _, tyk_lig_sds = combine_and_plot(transformations, filename='tyk2_lig', plots=[2,3])
+ligands.append(tyk_lig_sds)
 # complex
 transformations = list(Path('.').glob('tyk2/analysis/complex_l*_l*_*.json'))
 _, tyk_complex_sds = combine_and_plot(transformations, filename='tyk2_complex', yrange=1, plots=[2,3])
+complexes.append(tyk_complex_sds)
 
 
 # mcl1
 # ligand
 transformations = list(Path('.').glob('mcl1/analysis/lig_l*_l*_*.json'))
 _, mcl_lig_sds = combine_and_plot(transformations, filename='mcl1_lig', yrange=1, plots=[4, 2])
+ligands.append(mcl_lig_sds)
 # complex
 transformations = list(Path('.').glob('mcl1/analysis/complex_l*_l*_*.json'))
 _, mcl_complex_sds = combine_and_plot(transformations, filename='mcl1_complex', yrange=2.5, plots=[4,2])
+complexes.append(mcl_complex_sds)
 
 
 # thrombin
 # lig
 transformations = list(Path('.').glob('thrombin/analysis/lig_l*_l*_*.json'))
 _, thrombin_lig_sds = combine_and_plot(transformations, filename='thrombin_lig', yrange=0.5, plots=[2, 3])
+ligands.append(thrombin_lig_sds)
 # complex
 transformations = list(Path('.').glob('thrombin/analysis/complex_l*_l*_*.json'))
 _, thrombin_complex_sds = combine_and_plot(transformations, filename='thrombin_complex', yrange=2.5, plots=[2,3])
+complexes.append(thrombin_complex_sds)
 
 
 # ptp1b
 # lig
 transformations = list(Path('.').glob('ptp1b/analysis/lig_l*_l*_*.json'))
 _, ptp1b_lig_sds = combine_and_plot(transformations, filename='ptp1b_lig', yrange=1, plots=[2, 3])
+ligands.append(ptp1b_lig_sds)
 # complex
 transformations = list(Path('.').glob('ptp1b/analysis/complex_l*_l*_*.json'))
 _, ptp1b_complex_sds = combine_and_plot(transformations, filename='ptp1b_complex', yrange=1.5, plots=[2,3])
+complexes.append(ptp1b_complex_sds)
 
 
 # cdk2
 # lig
 transformations = list(Path('.').glob('cdk2/analysis/lig_l*_l*_*.json'))
 _, cdk_lig_sds = combine_and_plot(transformations, filename='cdk2_lig', yrange=0.5, plots=[1, 3])
+ligands.append(cdk_lig_sds)
 
 # complex
 transformations = list(Path('.').glob('cdk2/analysis/complex_l*_l*_*.json'))
 _, cdk_complex_sds = combine_and_plot(transformations, filename='cdk2_complex', yrange=1, plots=[1,3])
+complexes.append(cdk_complex_sds)
 
 
 # combine all sds, so show the points and the distribution
@@ -173,15 +186,28 @@ plt.title('Ligands')
 plt.ylabel('$\\rm  \Delta G ~ \sigma $')
 plt.xlabel('Replica number')
 
+symbol_mapping = {
+    'tyk2': 'x',
+    'mcl1': '.',
+    'thrombin': '*',
+    'ptp1b': '+',
+    'cdk2': 'o',
+}
+colour_mapping = {
+    'tyk2': '#E13D77',
+    'mcl1': '#C9E13D',
+    'thrombin': '#3DE1A7',
+    'ptp1b': '#553DE1',
+    'cdk2': 'black',
+}
+
 for i in range(20):
-    ligands = [tyk_lig_sds, mcl_lig_sds, thrombin_lig_sds, ptp1b_lig_sds, cdk_lig_sds]
     # extract from each case just the one index
-    datapoints = []
     for lig in ligands:
         for system, sds in lig.items():
-            if i < len(sds):
-                datapoints.append(sds[i])
-    plt.scatter([i] * len(datapoints), datapoints)
+            sym = symbol_mapping[system.split('/')[0]]
+            color = colour_mapping[system.split('/')[0]]
+            plt.scatter(range(1, len(sds) + 1), sds, marker=sym, color=color)
 
 # complex
 plt.subplot(1, 2, 2)
@@ -190,14 +216,18 @@ plt.ylabel('$\\rm  \Delta G ~ \sigma $')
 plt.xlabel('Replica number')
 
 for i in range(20):
-    complexes = [tyk_complex_sds, mcl_complex_sds, thrombin_complex_sds, ptp1b_complex_sds, cdk_complex_sds]
     # extract from each case just the one index
-    datapoints = []
     for complex in complexes:
         for system, sds in complex.items():
-            if i < len(sds):
-                datapoints.append(sds[i])
-    plt.scatter([i] * len(datapoints), datapoints)
+            name = system.split('/')[0]
+            sym = symbol_mapping[name]
+            color = colour_mapping[name]
+            plt.scatter(range(1, len(sds) + 1), sds, marker=sym, color=color, label=name)
+
+# remove duplicate labels
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys())
 
 plt.tight_layout()
 plt.savefig('combined_sds.png')
