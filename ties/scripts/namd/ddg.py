@@ -65,8 +65,8 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
 
     # different datasets, add bonded information for the future. It is not used now.
     data = {
-        'dvdw': OrderedDict(), 'dele': OrderedDict(), 'dbon': OrderedDict(),
-        'avdw': OrderedDict(), 'aele': OrderedDict(), 'abon': OrderedDict(),
+        'dvdw': OrderedDict(), 'dele': OrderedDict(),
+        'avdw': OrderedDict(), 'aele': OrderedDict(),
 
         # this is for backward compatiblity with the previous error quantification
         'total_average': {}
