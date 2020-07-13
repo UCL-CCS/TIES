@@ -3175,6 +3175,10 @@ def load_mol2_wrapper(filename):
     warnings.filterwarnings(action='ignore', category=UserWarning,
                             message='Failed to guess the mass for the following atom types: '  # warning to ignore
                             )
+    # squash the internal warning about parsing .mol2 within MDAnalysis
+    warnings.filterwarnings(action='ignore', category=UserWarning,
+                            message='Creating an ndarray from ragged nested sequences '  # warning to ignore
+                            )
     u = mda.Universe(filename)
     return u
 
