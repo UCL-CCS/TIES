@@ -894,8 +894,14 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
 
     if by_atom_name:
         for mol2_atom in mol2.atoms:
+            if mol2_atom.type == 'DU':
+                continue
+
             found_match = False
             for ref_atom in ref_mol2.atoms:
+                if ref_atom.type == 'DU':
+                    continue
+
                 if mol2_atom.name.upper() == ref_atom.name.upper():
                     if found_match == True:
                         raise Exception('AtomNames are not unique or do not match')
@@ -924,6 +930,28 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     assert ref_sum_q == sum(a.charge for a in mol2.atoms)
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
+
+
+def removeDU_atoms(filename):
+    """
+    Ambertools antechamber creates sometimes DU dummy atoms.
+    These are not created when BCC charges are computed from scratch.
+    They are only created if you reuse existing charges.
+    They appear to be a side effect. We remove the dummy atoms therefore.
+    """
+    mol2_u = load_mol2_wrapper(filename)
+    # check if there are any DU atoms
+    has_DU = any(a.type == 'DU' for a in mol2_u.atoms)
+    if not has_DU:
+        return
+
+    print('Removing dummy DU atoms')
+    # make a backup copy before
+    shutil.move(filename, '.beforeRemovingDU'.join(os.path.splitext(filename)))
+
+    # remove DU type atoms and save the file
+    mol2_u.select_atoms('not type DU').atoms.write(filename)
+    print('Removed dummy atoms with type "DU"')
 
 
 def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):

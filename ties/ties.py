@@ -13,6 +13,16 @@ from pathlib import Path, PurePosixPath
 from ties.generator import *
 
 def command_line_script():
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
                         help='Action to be performed. E.g. "ties rename .." ')
@@ -38,15 +48,15 @@ def command_line_script():
                         type=float, required=False, default=0.1,
                         help='The maximum difference in charge between the two ligands. ')
     parser.add_argument('-use-provided-q', '--use-user-q', metavar='True_False', dest='ligands_have_q',
-                        type=bool, required=False,
+                        type=str2bool, required=False,
                         help='Use charges provided with the ligand files (with .mol2). '
                              'Default: If .mol2 is given, using the given charges will be attempted. '
                              'Default: If .pdb is given, then BCC charges are computed with antechamber. ')
     parser.add_argument('-align-mcs', '--align-ligands-mcs', metavar='Align_Ligands_MCS', dest='align_mcs',
-                        type=bool, required=False, default=False,
+                        type=str2bool, required=False, default=False,
                         help='Align the right ligand to the left using the determined common component')
     parser.add_argument('-ant-dr', '--antechamber-dr', metavar='AntechamberDrMode', dest='antechamber_dr',
-                        type=bool, required=False, default=True,
+                        type=str2bool, required=False, default=True,
                         help='Antechamber dr is turned off by default. It is playing up with .mol2 files. '
                              'Please ensure that you input is valid, or turn on the antechamber dr. ')
     parser.add_argument('-ambertools', '--ambertools-home', metavar='Ambertools_path', dest='ambertools_home',
@@ -155,23 +165,23 @@ def command_line_script():
         right_ext = os.path.splitext(right_ligand)[-1].lower()
         if left_ext == '.mol2' and right_ext == '.mol2':
             use_provided_charges = True
+            file_input_type = 'mol2'
         elif left_ext == '.pdb' and right_ext == '.pdb':
             use_provided_charges = False
+            file_input_type = 'pdb'
         else:
             raise ValueError('The requested ligand files have different formats. This is not yet supported.')
     else:
         # fixme - check if this is .mol2 or pdb
         use_provided_charges = args.ligands_have_q
+        file_input_type = 'mol2'
 
     if use_provided_charges:
-        # fixme - you cannot delete charges if that's what we want to keep
-        # ignore the charges,
-        charge_type = 'wc' # 'dc'  # 'Delete Charge'
-        raise NotImplementedError('Does not deal with supplied charges at this moment')
+        # ignore the charges
+        antechamber_charge_type = []
     else:
         # compute the charges
-        # fixme - test with .pdb and with .mol2
-        charge_type = 'bcc'  # 'AM1-BCC'
+        antechamber_charge_type = ['-c', 'bcc'] # 'AM1-BCC'
 
     # A list of pairs that should be matched
     # fixme - this requires better parsing capabilities
@@ -194,10 +204,10 @@ def command_line_script():
     namd_prod = "prod_2017.namd"  # only different because uses Berendsen
     print(f'The NAMD production file in use is {namd_prod}')
 
-    if args.antechamber_dr:
-        antechamber_dr = 'on'
+    if args.antechamber_dr is True:
+        antechamber_dr = 'yes'
     else:
-        antechamber_dr = 'off'
+        antechamber_dr = 'no'
     print(f'Will use antechamber dr: {antechamber_dr}')
 
     # used for naming atom types,
@@ -226,26 +236,34 @@ def command_line_script():
         "timeout" : 60 * 10 # 10 minute timeout
     }
 
+    # antechamber note:
+    # charge type -c is not used if user provided prefer to use their charges
+
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     if not (workplace_root / 'left.mol2').is_file():
         print('Ambertools antechamber stage: converting to .mol2 and generating charges')
         # fixme - does not throw errors? try to make it throw an error
-        subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', 'pdb',
+        subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', file_input_type,
                                             '-o', 'left.mol2', '-fo', 'mol2',
-                                            '-c', charge_type, '-at', atom_type,
-                                            '-nc', str(net_charge), '-dr', antechamber_dr],
+                                            '-at', atom_type, '-nc', str(net_charge),
+                                            '-dr', antechamber_dr] + antechamber_charge_type,
                                    **subprocess_kwargs)
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     if not (workplace_root / 'right.mol2').is_file():
         print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-        subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', 'pdb',
+        subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', file_input_type,
                                     '-o', 'right.mol2', '-fo', 'mol2',
-                                    '-c', charge_type, '-at', atom_type,
-                                    '-nc', str(net_charge), '-dr', antechamber_dr], # FIXME - revisit the doctor
+                                    '-at', atom_type, '-nc', str(net_charge),
+                                    '-dr', antechamber_dr] + antechamber_charge_type,
                                    **subprocess_kwargs)
 
-    if use_original_coor:
+    # scan the files to see if it created DUMMY DU atoms in the .mol2, remove the atoms if that's the case
+    removeDU_atoms(workplace_root / 'left.mol2')
+    removeDU_atoms(workplace_root / 'right.mol2')
+
+    # when the user provides charges, BCC and minimisation is not carried out, so the coordinates are correct
+    if use_original_coor and not use_provided_charges:
         print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
         # copy the files before applying the coordinates
         shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
