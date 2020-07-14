@@ -1708,13 +1708,13 @@ class SuperimposedTopology:
         """
         whole_left_charge = sum(a.charge for a in atom_listL)
         np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=2,
-                                       err_msg=f'left charges are not integral. Expected be {round(whole_left_charge)}'
-                                               f'but found {whole_left_charge}')
+                                       err_msg=f'left charges are not integral. Expected {round(whole_left_charge)}'
+                                               f' but found {whole_left_charge}')
 
         whole_right_charge = sum(a.charge for a in atom_listR)
         np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=2,
-                                       err_msg=f'right charges are not integral. Expected be {round(whole_right_charge)}'
-                                               f'but found {whole_right_charge}'
+                                       err_msg=f'right charges are not integral. Expected {round(whole_right_charge)}'
+                                               f' but found {whole_right_charge}'
                                        )
         # same integer
         np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
