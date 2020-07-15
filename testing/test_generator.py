@@ -2,7 +2,7 @@
 These tests focus on the generator (preprocessing of the input before applying superimpose_topologies
 """
 
-from topology_superimposer import superimpose_topologies, AtomNode, SuperimposedTopology
+from ties.topology_superimposer import superimpose_topologies, AtomNode, SuperimposedTopology
 
 
 def test_same_atomNames_renamed():

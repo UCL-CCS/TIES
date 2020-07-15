@@ -7,7 +7,7 @@ TODO
 - this testing module should focus on "separated" molecules
 """
 
-from topology_superimposer import _superimpose_topologies, AtomNode
+from ties.topology_superimposer import _superimpose_topologies, AtomNode
 
 
 def test_2diffAtoms_CN():

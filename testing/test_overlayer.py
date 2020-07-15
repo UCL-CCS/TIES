@@ -7,7 +7,7 @@ TODO:
 - add more test cases that take into account the "differences"
 """
 
-from topology_superimposer import AtomNode, _overlay, SuperimposedTopology
+from ties.topology_superimposer import AtomNode, _overlay, SuperimposedTopology
 
 
 def test_2diffAtoms_CN_wrongStart():
@@ -308,6 +308,7 @@ def test_Many2One_part2():
     o2 = AtomNode(name='O2', type='O')
     o2.set_position(x=2, y=2, z=0)
     o2.bindTo(n1, 'bondType1')
+    left_atoms = [n1, o1, o2]
 
     # construct the LIGAND 2
     n11 = AtomNode(name='N11', type='N')
@@ -315,11 +316,13 @@ def test_Many2One_part2():
     o12 = AtomNode(name='O12', type='O')
     o12.set_position(x=2, y=2, z=0)
     o12.bindTo(n11, 'bondType1')
+    right_atoms = [n11, o12]
 
     # the good solution is (O1-O11)
 
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(left_atoms, right_atoms))
     assert suptop is not None
     assert len(suptop) == 2
 

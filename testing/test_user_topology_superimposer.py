@@ -7,7 +7,7 @@ TODO
 - this testing module should focus on "separated" molecules
 """
 
-from topology_superimposer import superimpose_topologies, AtomNode
+from ties.topology_superimposer import superimpose_topologies, AtomNode
 import numpy as np
 
 def test_unconnected_component_removed():
@@ -414,7 +414,7 @@ def test_averaging_charges_imbalance_distribution_single():
            \   /
              C8
              |
-             X9 (-0.04e)
+             CL9 (-0.04e)
 
 
     Ligand 2
@@ -430,7 +430,7 @@ def test_averaging_charges_imbalance_distribution_single():
            \   /
              C18
              |
-             Y19 (+0.02e)
+             BR19 (+0.02e)
     """
     # construct LIGAND 1
     c1 = AtomNode(name='C1', type='C', charge=0)
@@ -464,7 +464,7 @@ def test_averaging_charges_imbalance_distribution_single():
     c8.set_position(x=5, y=1, z=0)
     c8.bindTo(c7, 'bondType1')
     c8.bindTo(n1, 'bondType1')
-    c9 = AtomNode(name='C9', type='X', charge=-0.04)
+    c9 = AtomNode(name='CL9', type='CL', charge=-0.04)
     c9.set_position(x=6, y=1, z=0)
     c9.bindTo(c8, 'bondType1')
     top1_list = [c1, c2, c3, c4, c5, c6, c10, c7, n1, c8, c9]
@@ -501,7 +501,7 @@ def test_averaging_charges_imbalance_distribution_single():
     c18.set_position(x=6, y=1, z=0)
     c18.bindTo(c17, 'bondType1')
     c18.bindTo(n11, 'bondType1')
-    c19 = AtomNode(name='C19', type='Y', charge=0.02)
+    c19 = AtomNode(name='BR19', type='BR', charge=0.02)
     c19.set_position(x=7, y=1, z=0)
     c19.bindTo(c18, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
@@ -539,9 +539,9 @@ def test_averaging_charges_imbalance_distribution_multiple():
           /     \
      C10-C7      N1 (+0.04e)
            \   /
-             X8 (0e)
+             CL8 (0e)
              |
-             X9 (-0.04e)
+             CL9 (-0.04e)
 
 
     Ligand 2
@@ -555,9 +555,9 @@ def test_averaging_charges_imbalance_distribution_multiple():
           /     \
      C20-C17       N11 (-0.02e)
            \   /
-             Y18 (0e)
+             BR18 (0e)
              |
-             Y19 (+0.02e)
+             BR19 (+0.02e)
     """
     # construct LIGAND 1
     c1 = AtomNode(name='C1', type='C', charge=0)
@@ -590,11 +590,11 @@ def test_averaging_charges_imbalance_distribution_multiple():
     n1 = AtomNode(name='N1', type='N', charge=0.04)
     n1.set_position(x=4, y=3, z=0)
     n1.bindTo(c6, 'bondType1')
-    c8 = AtomNode(name='C8', type='X', charge=0)
+    c8 = AtomNode(name='CL8', type='CL', charge=0)
     c8.set_position(x=5, y=1, z=0)
     c8.bindTo(c7, 'bondType1')
     c8.bindTo(n1, 'bondType1')
-    c9 = AtomNode(name='C9', type='X', charge=-0.04)
+    c9 = AtomNode(name='CL9', type='CL', charge=-0.04)
     c9.set_position(x=6, y=1, z=0)
     c9.bindTo(c8, 'bondType1')
     top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
@@ -630,11 +630,11 @@ def test_averaging_charges_imbalance_distribution_multiple():
     n11 = AtomNode(name='N11', type='N', charge=-0.02)
     n11.set_position(x=5, y=3, z=0)
     n11.bindTo(c16, 'bondType1')
-    c18 = AtomNode(name='C18', type='Y', charge=0)
+    c18 = AtomNode(name='BR18', type='BR', charge=0)
     c18.set_position(x=6, y=1, z=0)
     c18.bindTo(c17, 'bondType1')
     c18.bindTo(n11, 'bondType1')
-    c19 = AtomNode(name='C19', type='Y', charge=0.02)
+    c19 = AtomNode(name='BR19', type='BR', charge=0.02)
     c19.set_position(x=7, y=1, z=0)
     c19.bindTo(c18, 'bondType1')
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
@@ -797,9 +797,9 @@ def test_averaging_charges_imbalance_distribution_2to2():
           /     \
      C10-C7      N1
            \   /
-             X8
+             CL8
              |
-             X9
+             CL9
 
 
          C11 - C12
@@ -810,9 +810,9 @@ def test_averaging_charges_imbalance_distribution_2to2():
           /     \
      C20-C17       N11
            \   /
-             Y18
+             BR18
              |
-             Y19
+             BR19
     """
     # construct LIGAND 1
     c1 = AtomNode(name='C1', type='C', charge=0)
@@ -845,11 +845,11 @@ def test_averaging_charges_imbalance_distribution_2to2():
     n1 = AtomNode(name='N1', type='N', charge=0.04)
     n1.set_position(x=4, y=3, z=0)
     n1.bindTo(c6, 'bondType1')
-    c8 = AtomNode(name='C8', type='X', charge=0.01)
+    c8 = AtomNode(name='CL8', type='CL', charge=0.01)
     c8.set_position(x=5, y=1, z=0)
     c8.bindTo(c7, 'bondType1')
     c8.bindTo(n1, 'bondType1')
-    c9 = AtomNode(name='C9', type='X', charge=-0.04)
+    c9 = AtomNode(name='CL9', type='CL', charge=-0.04)
     c9.set_position(x=6, y=1, z=0)
     c9.bindTo(c8, 'bondType1')
     top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
@@ -882,11 +882,11 @@ def test_averaging_charges_imbalance_distribution_2to2():
     n11 = AtomNode(name='N11', type='N', charge=-0.02)
     n11.set_position(x=5, y=3, z=0)
     n11.bindTo(c16, 'bondType1')
-    c18 = AtomNode(name='C18', type='Y', charge=-0.01)
+    c18 = AtomNode(name='BR18', type='BR', charge=-0.01)
     c18.set_position(x=6, y=1, z=0)
     c18.bindTo(c17, 'bondType1')
     c18.bindTo(n11, 'bondType1')
-    c19 = AtomNode(name='C19', type='Y', charge=0.02)
+    c19 = AtomNode(name='BR19', type='BR', charge=0.02)
     c19.set_position(x=7, y=1, z=0)
     c19.bindTo(c18, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
