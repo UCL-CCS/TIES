@@ -225,6 +225,12 @@ class AtomNode:
     def set_charge(self, charge):
         self.charge = charge
 
+    def set_original_charge(self, charge):
+        # this charge should never change and should only be
+        # used once.  This is for a test.
+        # ie that appearing and disappearing atoms keep their charges intact.
+        self.original_charge = charge
+
     def set_type(self, amber_type):
         self.amber_type = amber_type
 
@@ -2457,10 +2463,11 @@ class Topology:
 
         return False
 
-def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True, use_coords=True, starting_node_pairs=None,
+def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
+                           use_coords=True, starting_node_pairs=None,
                            force_mismatch=None, no_disjoint_components=True,
                            net_charge_filter=True, net_charge_threshold=0.1,
-                           redistribute_charges=True,
+                           redistribute_charges_over_unmatched=True,
                            ligandLmda=None, ligandRmda=None,
                            align_molecules=True,
                            partial_rings_allowed=True,
@@ -2603,7 +2610,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         assert len(suptops) == 1
 
     #
-    if redistribute_charges and not ignore_charges_completely:
+    if redistribute_charges_over_unmatched and not ignore_charges_completely:
         if len(suptops) > 1:
             raise NotImplementedError(
                 'Currently distributing charges works only if there is no disjointed components')
@@ -3218,10 +3225,11 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
             atom = AtomNode(name=mda_atom.name, type=mda_atom.type, use_general_type=use_general_type)
             try:
                 atom.set_charge(mda_atom.charge)
+                atom.set_original_charge(mda_atom.charge)
             except AttributeError as Att:
                 # fixme - expand on the message
-                print('Missing charge attribute, setting to 0')
-                atom.set_charge(0)
+                print('Missing charge attribute, setting to N/A')
+                atom.set_charge('N/A')
             atom.set_id(mda_atom.id)
             atom.set_position(mda_atom.position[0], mda_atom.position[1], mda_atom.position[2])
             atom.set_resname(mda_atom.resname)
