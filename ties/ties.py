@@ -74,6 +74,11 @@ def command_line_script():
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom cannot be matched to BR2 atom.'
                              'Note that this option might have undesired consequences. ')
+    parser.add_argument('-redist-q', '--redistribute-q-over-unmatched', dest='redistribute_charges_over_unmatched',
+                        type=str2bool, required=False, default=True,
+                        help='Averaging the charges in the matched areas changes the overall molecule charge slightly. '
+                             'Redistribute the lost/gained charges over the unmatched area to make the two molecules '
+                             'equal. ')
     # temporary
     parser.add_argument('-amberff', '--amberff-name', metavar='AmberFFName', dest='amber_tleap_forcefield',
                         type=str, required=False, default='leaprc.protein.ff14SB',
@@ -210,6 +215,9 @@ def command_line_script():
         antechamber_dr = 'no'
     print(f'Will use antechamber dr: {antechamber_dr}')
 
+    redist_q_over_unmatched = args.redistribute_charges_over_unmatched
+    print(f'Will distribute introduced q disparity in the unmatched region. {redist_q_over_unmatched}')
+
     # used for naming atom types,
     # fixme - we have to make sure this is consistent across the files (and ff leap.in files)
     atom_type = 'gaff'
@@ -281,7 +289,8 @@ def command_line_script():
                                        align_molecules=align_molecules,
                                        pair_charge_atol=atom_pair_q_atol,
                                        manual_match=manually_matched, force_mismatch=force_mismatch,
-                                       net_charge_threshold=net_charge_threshold)
+                                       net_charge_threshold=net_charge_threshold,
+                                       redistribute_charges_over_unmatched=redist_q_over_unmatched)
 
     # save the superimposition results
     left_right_matching_json = workplace_root / 'joint_meta_fep.json'
