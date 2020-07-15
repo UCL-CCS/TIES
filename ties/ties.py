@@ -164,7 +164,11 @@ def command_line_script():
     atom_pair_q_atol = args.qtol
     net_charge_threshold = args.net_charge_threshold
 
-    if args.ligands_have_q is None:
+    if args.ligands_have_q:
+        # fixme - check if this is .mol2 or pdb
+        use_provided_charges = args.ligands_have_q
+        file_input_type = 'mol2'
+    else:
         # determine automatically based on the file extension
         left_ext = os.path.splitext(left_ligand)[-1].lower()
         right_ext = os.path.splitext(right_ligand)[-1].lower()
@@ -176,10 +180,6 @@ def command_line_script():
             file_input_type = 'pdb'
         else:
             raise ValueError('The requested ligand files have different formats. This is not yet supported.')
-    else:
-        # fixme - check if this is .mol2 or pdb
-        use_provided_charges = args.ligands_have_q
-        file_input_type = 'mol2'
 
     if use_provided_charges:
         # ignore the charges
