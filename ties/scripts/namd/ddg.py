@@ -26,9 +26,6 @@ from itertools import accumulate
 # from pymbar import timeseries
 
 
-analysis_dir = 'analysis'
-
-
 def merge_prod_files(files, output_merged_filename):
     # find the original prod.alch file first
     orig_prod = list(filter(lambda f:f.endswith('prod.alch'), files))[0]
@@ -46,11 +43,12 @@ def merge_prod_files(files, output_merged_filename):
     open(output_merged_filename, 'w').writelines(lines)
 
 
-def extract_energies(location, choderas_cut=False, eq_steps=1000):
+def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_added=False):
     """
     @location - referes to the main locations where the lambda directories reside.
     @eq_steps = 500 to be discarded as EQ stage.
     @choderas_cut - use Chodera's script to determine which part is the EQ part
+    @same_lambda_added - temporary
     """
     print('Extracting energies from', location)
     if choderas_cut:
@@ -69,12 +67,15 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
         'avdw': OrderedDict(), 'aele': OrderedDict(),
 
         # this is for backward compatiblity with the previous error quantification
-        'total_average': {}
+        'total_average': {},
+        # this is similar but instead of recording the entire means, it records all the data points
+        'added_series': {}
     }
 
     for lambda_dir in lambda_dirs:
         dir_lambda_val = float(str(lambda_dir).split('_')[1])
         data['total_average'][dir_lambda_val] = []
+        data['added_series'][dir_lambda_val] = []
 
         fresh_lambda = True
         ignore_dele_lambda = False
@@ -120,9 +121,11 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                 assert partition1.startswith('#PARTITION 1')
                 assert partition2.startswith('#PARTITION 2')
                 app_vdw_lambda = float(partition1.split('VDW')[1].split('ELEC')[0])
-                assert app_vdw_lambda == float(str(lambda_dir).split('_')[1]), lambda_dir
                 dis_vdw_lambda = float(partition2.split('VDW')[1].split('ELEC')[0])
-                assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
+
+                # this is the default check that does not apply if you change the way lambda is created
+                # assert app_vdw_lambda == float(str(lambda_dir).split('_')[1]), lambda_dir
+                # assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
                 app_ele_lambda = float(partition1.split('ELEC')[1])
                 dis_ele_lambda = float(partition2.split('ELEC')[1])
 
@@ -178,6 +181,8 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                     this_replica_total += np.mean(aele_dvdl)
 
                 data['total_average'][dir_lambda_val].append(this_replica_total)
+                # extract the values
+                data['added_series'][dir_lambda_val].append(avdw_dvdl - dvdw_dvdl + (aele_dvdl - dele_dvdl)/0.55)
                 # ---------------------------------------------
 
                 # add to the right dataset
@@ -202,6 +207,13 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
         # fixme / todo
 
     return data
+
+
+def saveSeriesTotalPerLambda(data):
+    # save the series for each lambda together
+    for lambda_window, reps in data['added_series'].items():
+        # merge the replicas into one numpy array
+        pass
 
 
 def choder_get_eqpart(datapoints):
@@ -458,9 +470,15 @@ def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
     # return the standard error
     return bootstrapped_ddGs
 
-# make a directory for the analysis
+
+analysis_dir = 'analysis'
+data_dir = 'data'
+
+# make directories if they do not exist
 if not os.path.isdir(analysis_dir):
     os.mkdir(analysis_dir)
+if not os.path.isdir(data_dir):
+    os.mkdir(data_dir)
 
 t_start = time.time()
 choderas_cut = False
@@ -477,9 +495,13 @@ print(f"Delta Delta: {complex_delta - lig_delta:.4f}")
 print (f"Agastya Error {complex_data['sigma_2017'] + lig_data['sigma_2017']:.4f}")
 
 # pickle lig and complex data
-with open('analysis/lig.pkl', 'wb') as FLIG, open('analysis/complex.pkl', 'wb') as FCOMPLEX:
+with open('data/lig.pkl', 'wb') as FLIG, open('data/complex.pkl', 'wb') as FCOMPLEX:
     pkl.dump(lig_all, FLIG)
     pkl.dump(complex_all, FCOMPLEX)
+
+# save the general energies for each lambda, these are used for calculating the error
+print('hi')
+
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
 # se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)
