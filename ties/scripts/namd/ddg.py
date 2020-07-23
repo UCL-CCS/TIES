@@ -79,7 +79,7 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_ad
 
         fresh_lambda = True
         ignore_dele_lambda = False
-        for rep in lambda_dir.glob('rep[0-9]*'):
+        for rep in sorted(lambda_dir.glob('rep[0-9]*')):
             if not rep.is_dir():
                 continue
 
