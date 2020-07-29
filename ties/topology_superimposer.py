@@ -397,8 +397,8 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self.removed_due_to_charge = None
-        self._removed_because_disjointed_cc = []
+        self._removed_due_to_charge = []    # atom-atom charge decided by qtol
+        self._removed_because_disjointed_cc = []    # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
 
@@ -429,6 +429,36 @@ class SuperimposedTopology:
         self._nonoverlapping_lcycles = lcycles
         self._nonoverlapping_rcycles = rcycles
 
+    def get_single_topology_region(self):
+        # get the atoms which were unmatched for any reason
+        # fixme: this should not work with disjointed cc and others?
+        unmatched_due_to_reasons = self._removed_because_disjointed_cc + \
+                          self._removed_due_to_net_charge + \
+                          self._removed_due_to_charge
+
+        # combine with the main matched area
+        return self.matched_pairs + unmatched_due_to_reasons
+
+    def get_single_topology_app(self):
+        # get the apperaing and disappearing region in the hybrid single topology
+        # use the single topology region and classify all other atoms not in it
+        # ass either apperaing or disapearing
+        single_top_area = self.get_single_topology_region()
+        # turn it into a set
+        single_top_set = set()
+        for l, r in single_top_area:
+            single_top_set.add(l)
+            single_top_set.add(r)
+
+        # these unmatched atoms could be due to charge etc.
+        # so they historically refer to the dual-topology
+        unmatched_app = self.get_appearing_atoms()
+        app = {a for a in unmatched_app if a not in single_top_set}
+        unmatched_dis = self.get_disappearing_atoms()
+        dis = {a for a in unmatched_dis if a not in single_top_set}
+
+        return app, dis
+
     def is_or_was_matched(self, atomName1, atomName2):
         """
         A helper function. For whatever reasons atoms get discarded.
@@ -442,15 +472,13 @@ class SuperimposedTopology:
         # check if it was unmatched
         unmatched_lists = [self._removed_because_disjointed_cc,
                            self._removed_due_to_net_charge,
-                           self.removed_due_to_charge]
+                           self._removed_due_to_charge]
         for unmatched_list in unmatched_lists:
             for atom1, atom2 in unmatched_list:
                 if atom1.atomName == atomName1 and atom2.atomName == atomName2:
                     return True
 
         return False
-
-        pass
 
     def find_pair_with_atom(self, atomName):
         for node1, node2 in self.matched_pairs:
@@ -1396,9 +1424,10 @@ class SuperimposedTopology:
 
             removed_pairs.append((node1, node2))
         # keep track of the removed atoms due to the charge
-        if not self.removed_due_to_charge is None:
-            raise Exception('the charges have already been refined, should not be called twice')
-        self.removed_due_to_charge = removed_pairs
+        # fixme
+        # if not self._removed_due_to_charge is None:
+        #     raise Exception('the charges have already been refined, should not be called twice')
+        self._removed_due_to_charge = removed_pairs
 
         return removed_pairs, removed_attached_hydrogens
 
@@ -2550,8 +2579,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if use_charges and not ignore_charges_completely:
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
-            if sup_top.removed_due_to_charge:
-                print(f'Removed due to charge incompatibility: {sup_top.removed_due_to_charge}')
+            if sup_top._removed_due_to_charge:
+                print(f'Removed due to charge incompatibility: {sup_top._removed_due_to_charge}')
 
     # apply the force mismatch at the end
     #  this is an interactive feature

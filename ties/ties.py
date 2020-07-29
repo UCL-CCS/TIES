@@ -79,6 +79,10 @@ def command_line_script():
                         help='Averaging the charges in the matched areas changes the overall molecule charge slightly. '
                              'Redistribute the lost/gained charges over the unmatched area to make the two molecules '
                              'equal. ')
+    parser.add_argument('-hybrid-top', '--hybrid-singe-dual-top', dest='hybrid_single_dual_top',
+                        type=str2bool, required=False, default=False,
+                        help='Use hybrid single-dual topology in NAMD. See NAMD manual and '
+                             'https://pubs.acs.org/doi/10.1021/acs.jcim.9b00362')
     # temporary
     parser.add_argument('-amberff', '--amberff-name', metavar='AmberFFName', dest='amber_tleap_forcefield',
                         type=str, required=False, default='leaprc.protein.ff14SB',
@@ -118,7 +122,7 @@ def command_line_script():
 
     if args.action == 'rename':
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
-        renameAtomNamesUnique(left_ligand, right_ligand)
+        renameAtomNamesUniqueAndResnames(left_ligand, right_ligand)
         sys.exit()
     elif args.action == 'create':
         print('Main protocol is used. ')
@@ -195,6 +199,8 @@ def command_line_script():
         with open(args.manual_match_file) as IN:
             for left_atom, right_atom in csv.reader(IN, delimiter='-'):
                 manually_matched.append((left_atom.strip(), right_atom.strip()))
+    if len(manually_matched) > 1:
+        raise NotImplementedError('Currently only one atom pair can be matched - others were not tested')
     force_mismatch = []
     if args.manual_mismatch_file is not None:
         with open(args.manual_mismatch_file) as IN:
@@ -218,6 +224,13 @@ def command_line_script():
     redist_q_over_unmatched = args.redistribute_charges_over_unmatched
     print(f'Will distribute introduced q disparity in the unmatched region. {redist_q_over_unmatched}')
 
+    # use NAMD hybrid single dual topology
+    use_hybrid_single_dual_top = args.hybrid_single_dual_top
+    if use_hybrid_single_dual_top:
+        ignore_charges_completely = True
+    else:
+        ignore_charges_completely = False
+
     # used for naming atom types,
     # fixme - we have to make sure this is consistent across the files (and ff leap.in files)
     atom_type = 'gaff'
@@ -233,7 +246,7 @@ def command_line_script():
     namd_script_dir = script_dir / 'namd'
     ambertools_script_dir = script_dir / 'ambertools'
 
-
+    ## Start of TIES
 
     # subprocess options for calling ambertools
     subprocess_kwargs = {
@@ -282,7 +295,7 @@ def command_line_script():
         # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
 
     # rename the atom names to ensure they are unique across the two molecules
-    renameAtomNamesUnique(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
+    renameAtomNamesUniqueAndResnames(workplace_root / 'left.mol2', workplace_root / 'right.mol2')
 
     # superimpose the two topologies
     suptop, mda_l1, mda_l2 = getSuptop(workplace_root / 'left.mol2', workplace_root / 'right.mol2',
@@ -290,16 +303,40 @@ def command_line_script():
                                        pair_charge_atol=atom_pair_q_atol,
                                        manual_match=manually_matched, force_mismatch=force_mismatch,
                                        net_charge_threshold=net_charge_threshold,
-                                       redistribute_charges_over_unmatched=redist_q_over_unmatched)
+                                       redistribute_charges_over_unmatched=redist_q_over_unmatched,
+                                       ignore_charges_completely=ignore_charges_completely)
 
     # save the superimposition results
     left_right_matching_json = workplace_root / 'joint_meta_fep.json'
-    save_superimposition_results(left_right_matching_json, suptop)
+    left_right_matching = save_superimposition_results(left_right_matching_json, suptop)
     # hybrid .pdb
-    write_dual_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop)
+    write_morph_top_pdb(workplace_root / 'morph.pdb', mda_l1, mda_l2, suptop,
+                        hybrid_single_dual_top=use_hybrid_single_dual_top)
     # hybrid .mol2
     hybrid_mol2 = workplace_root / 'morph.mol2'
-    write_merged(suptop, hybrid_mol2)
+    # we save the merged .mol2 regardless of whether a dual or hybrid is used
+    write_merged_mol2(suptop, hybrid_mol2)
+
+    def rewrite_mol2_hybrid_top(file, single_top_atom_names):
+        # in the  case of the hybrid single-dual topology in NAMD
+        # the .mol2 files have to be rewritten so that
+        # the atoms dual-topology atoms that appear/disappear
+        # are placed at the beginning of the molecule
+        # (single topology atoms have to be separted by
+        # the same distance)
+        shutil.copy(file, os.path.splitext(file)[0] + '_before_sdtop_reordering.mol2' )
+        u = mda.Universe(file)
+        # select the single top area, use their original order
+        single_top_area = u.select_atoms('name ' +  ' '.join(single_top_atom_names))
+        # all others are mutating
+        dual_top_area = u.select_atoms('not name ' + ' '.join(single_top_atom_names))
+        new_order_u = single_top_area + dual_top_area
+        new_order_u.atoms.write(file)
+
+    if use_hybrid_single_dual_top:
+        rewrite_mol2_hybrid_top('left.mol2', list(left_right_matching["single_top_matched"].keys()))
+        rewrite_mol2_hybrid_top('right.mol2', list(left_right_matching["single_top_matched"].values()))
+
 
     # generate the functional forms
     print('Ambertools parmchk2 generating .frcmod')
@@ -327,6 +364,13 @@ def command_line_script():
 
     ##########################################################
     # ------------------   Ligand ----------------------------
+
+    # pick the right tleap instuctions
+    if use_hybrid_single_dual_top:
+        ligand_tleap_in = 'leap_ligand_sdtop.in'
+    else:
+        ligand_tleap_in = 'leap_ligand.in'
+
     prepare_inputs(workplace_root, directory='lig',
                    protein=None,
                    hybrid_mol2=hybrid_mol2,
@@ -334,13 +378,14 @@ def command_line_script():
                    left_right_mapping=left_right_matching_json,
                    namd_script_loc=namd_script_dir,
                    scripts_loc=script_dir,
-                   tleap_in='leap_ligand.in',
+                   tleap_in=ligand_tleap_in,
                    protein_ff=amber_forcefield,
                    net_charge=net_charge,
                    ambertools_script_dir=ambertools_script_dir,
                    subprocess_kwargs=subprocess_kwargs,
                    ambertools_bin=ambertools_bin,
-                   namd_prod=namd_prod
+                   namd_prod=namd_prod,
+                   hybrid_topology=use_hybrid_single_dual_top
                    )
 
     ##########################################################
@@ -350,6 +395,12 @@ def command_line_script():
                            ambertools_bin, ambertools_script_dir / 'solv_prot.in',
                            subprocess_kwargs, amber_forcefield)
 
+    # pick the right tleap instuctions
+    if use_hybrid_single_dual_top:
+        complex_tleap_in = 'leap_complex_sdtop.in'
+    else:
+        complex_tleap_in = 'leap_complex.in'
+
     prepare_inputs(workplace_root, directory='complex',
                    protein=protein_filename,
                    hybrid_mol2=hybrid_mol2,
@@ -357,13 +408,14 @@ def command_line_script():
                    left_right_mapping=left_right_matching_json,
                    namd_script_loc=namd_script_dir,
                    scripts_loc=script_dir,
-                   tleap_in='leap_complex.in',
+                   tleap_in=complex_tleap_in,
                    protein_ff=amber_forcefield,
                    net_charge=net_charge + protein_net_charge,
                    ambertools_script_dir=ambertools_script_dir,
                    subprocess_kwargs=subprocess_kwargs,
                    ambertools_bin=ambertools_bin,
-                   namd_prod=namd_prod)
+                   namd_prod=namd_prod,
+                   hybrid_topology=use_hybrid_single_dual_top)
 
     print('TIES 20 Finished')
 

@@ -13,7 +13,6 @@
 #BSUB -W 30:00
 #BSUB -x
 
-SYSTEM=$HCBASE/resp4/ptp1b/l4_l22/
 NP=32
 
 #Load modules
@@ -44,6 +43,7 @@ echo "lambda $lambda"
 
 cmd_mpinamd="mpiexec -n $NP namd2 +pemap 1-31 +commap 0"
 
+SYSTEM=`pwd`
 # check the ligand first
 cd $SYSTEM/lig
 cd lambda_$lambda/rep$replica

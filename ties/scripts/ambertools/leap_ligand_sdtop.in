@@ -1,0 +1,25 @@
+# NAMD hybrid single dual topology variant
+
+# solvation script to solvate the merged topologies .mol2
+source {protein_ff}
+source leaprc.water.tip3p
+source leaprc.gaff
+
+loadamberparams ../left.frcmod
+left = loadMol2 ../left.mol2
+
+loadamberparams ../right.frcmod
+right = loadMol2 ../right.mol2
+
+# double curly brackets since we use python's str.format misapplies here
+sys = Combine {{left right}}
+
+# https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
+# https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
+solvateoct sys TIP3PBOX 14
+# fixme - this should be handled appropriately, ie the software won't understand dual topologies
+{NaIons}
+{ClIons}
+savepdb sys sys_solv.pdb
+saveamberparm sys sys_solv.top sys_solv.crd
+quit

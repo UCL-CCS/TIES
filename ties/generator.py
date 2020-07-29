@@ -34,33 +34,46 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
     # fixme - manual match should be improved here and allow for a sensible format.
 
     # empty lists count as None
-    if not manual_match:
-        manual_match = None
     if not force_mismatch:
         force_mismatch = None
 
     # assign
-    # fixme - Ideally I would reuse the mdanalysis data for this
+    # fixme - Ideally I would reuse the mdanalysis data for this,
+    # MDAnalysis can use bonds if they are present - fixme
+    # map atom IDs to their objects
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
-        if manual_match is not None and atomNode.atomName == manual_match[0]:
-            startLeft = atomNode
+    # link them together
     for nfrom, nto, btype in leftlig_bonds:
         ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
-        if manual_match is not None and atomNode.atomName == manual_match[1]:
-            startRight = atomNode
     for nfrom, nto, btype in rightlig_bonds:
         ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
 
-    if manual_match is None:
-        starting_node_pairs = None
-    else:
-        starting_node_pairs = [(startLeft, startRight)]
+    # fixme - this should be moved out of here,
+    #  ideally there would be a function in the main interface for this
+    starting_node_pairs = []
+    for l_aname, r_aname in manual_match:
+        # find the starting node pairs, ie the manually matched pair(s)
+        found_left_node = None
+        for id, ln in ligand1_nodes.items():
+            if l_aname == ln.atomName:
+                found_left_node = ln
+        if found_left_node is None:
+            raise ValueError(f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule')
+
+        found_right_node = None
+        for id, ln in ligand2_nodes.items():
+            if r_aname == ln.atomName:
+                found_right_node = ln
+        if found_right_node is None:
+            raise ValueError(f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule')
+
+        starting_node_pairs.append([found_left_node, found_right_node])
 
     # fixme - simplify to only take the mdanalysis as input
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
@@ -84,13 +97,15 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
     return suptops[0], mda_l1, mda_l2
 
 
-def renameAtomNamesUnique(left_mol2, right_mol2):
+def renameAtomNamesUniqueAndResnames(left_mol2, right_mol2):
     """
     Ensure that each has a name that is unique to both files.
 
     # rename the ligand to ensure that no atom has the same name
     # name atoms using the first letter (C, N, ..) and count them
     # keep the names if possible (ie if they are already different)
+
+    Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
     """
     # load both ligands
     left = load_mol2_wrapper(left_mol2)
@@ -124,6 +139,19 @@ def renameAtomNamesUnique(left_mol2, right_mol2):
     # ie it is fine for a molecule to use general type
     # assert len(set(R_atom_names)) == len(R_atom_names)
 
+    # rename the resnames to INI and FIN
+    left_resnames = {a.resname for a in left.atoms}
+    if 'INI' not in left_resnames or len(left_resnames) > 1:
+        for a in left.atoms:
+            a.residue.resname = 'INI'
+        left_renamed = True
+
+    right_resnames = {a.resname for a in right.atoms}
+    if 'FIN' not in right_resnames or len(right_resnames) > 1:
+        for a in right.atoms:
+            a.residue.resname = 'FIN'
+        right_renamed = True
+
     # make a copy of the original files
     if left_renamed:
         l_filename, l_extension = os.path.splitext(left_mol2)
@@ -151,7 +179,8 @@ def prepare_inputs(workplace_root, directory='complex',
                    ambertools_script_dir=None,
                    subprocess_kwargs=None,
                    ambertools_bin=None,
-                   namd_prod=None,):
+                   namd_prod=None,
+                   hybrid_topology=False):
 
     dest_dir = workplace_root / directory
     if not dest_dir.is_dir():
@@ -197,9 +226,12 @@ def prepare_inputs(workplace_root, directory='complex',
     hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
     # check if the solvation is correct
 
+    # for hybrid single-dual topology approach, we have to use a different approach
+
     # generate the merged .fep file
     complex_solvated_fep = dest_dir / 'sys_solv_fep.pdb'
-    correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep)
+    correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep,
+                           hybrid_topology)
 
     # fixme - check that the protein does not have the same resname?
 
@@ -404,16 +436,45 @@ def save_superimposition_results(filepath, suptop):
     # fixme - check if the file exists
     with open(filepath, 'w') as FOUT:
         # use json format, only use atomNames
+        app, dis = suptop.get_single_topology_app()
         data = {
-            'matching': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
+            # the dual topology information
+            'matched': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
             'appearing': list(map(str, suptop.get_appearing_atoms())),
-            'disappearing': list(map(str, suptop.get_disappearing_atoms()))
+            'disappearing': list(map(str, suptop.get_disappearing_atoms())),
+            # single topology information
+            'single_top_matched': {str(n1): str(n2) for n1, n2 in suptop.get_single_topology_region()},
+            # NAMD hybrid single-dual topology info
+            'single_top_appearing': list(map(str, app)),
+            'single_top_disappearing': list(map(str, dis)),
         }
         FOUT.write(json.dumps(data, indent=4))
 
+    return data
 
-def write_dual_top_pdb(filepath, mda_l1, mda_l2, suptop):
-    # fixme - find another library that can handle writing to a PDB file, mdanalysis?
+
+def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
+    if hybrid_single_dual_top:
+        # the NAMD hybrid single dual topology
+        # rename the ligand on the left to INI
+        # and the ligand on the right to END
+
+        # make a copy of the suptop here to ensure that the modifications won't affect it
+        st = copy.copy(suptop)
+
+        # first, set all the matched pairs to -2 and 2 (single topology)
+        # regardless of how they were mismatched
+        print('hi')
+
+        # then, set the different atoms to -1 and 1 (dual topology)
+
+        # save in a single PDB file
+        # Note that the atoms from left to right
+        # in the single topology region have to
+        # be separated by the same number
+        # fixme - make a check for that
+        return
+    # fixme - find another library that can handle writing to a PDB file, MDAnalysis
     # save the ligand with all the appropriate atomic positions, write it using the pdb format
     # pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
     # write a dual .pdb file
@@ -459,10 +520,12 @@ def write_dual_top_pdb(filepath, mda_l1, mda_l2, suptop):
                 FOUT.write(line)
 
 
-def write_merged(suptop, merged_filename, use_left_charges=True, use_left_coords=True):
+def write_merged_mol2(suptop, merged_filename, use_left_charges=True, use_left_coords=True):
     # fixme - make this as a method of suptop as well
     # recreate the mol2 file that is merged and contains the correct atoms from both
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
+    # fixme - build this molecule using the MDAnalysis builder instead of the current approach
+    # where the formatting is done manually
     with open(merged_filename, 'w') as FOUT:
         bonds = suptop.getDualTopologyBonds()
 
@@ -765,16 +828,78 @@ def join_frcmod_files(f1, f2, output_filepath):
     write_frcmod(joined_frc, output_filepath)
 
 
-def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filename):
+def _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, new_pdb_filename):
+    """
+    Single topology version of function correct_fep_tempfactor.
+
+    The left ligand has to be called INI
+    And right FIN
+    """
+    u = mda.Universe(source_pdb_filename)
+    if 'INI' not in u.atoms.resnames or 'FIN' not in u.atoms.resnames:
+        raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
+
+    with open(fep_json_filename) as F:
+        fep_meta = json.load(F)
+
+    # dual-topology info
+    # matched atoms are denoted -2 and 2 (morphing into each other)
+    matched_disappearing = list(fep_meta['single_top_matched'].keys())
+    matched_appearing = list( fep_meta['single_top_matched'].values())
+    # disappearing is denoted by -1
+    disappearing_atoms = fep_meta['single_top_disappearing']
+    # appearing is denoted by 1
+    appearing_atoms = fep_meta['single_top_appearing']
+
+    # update the Temp column
+    for atom in u.atoms:
+        # ignore water and ions and non-ligand resname
+        # we only modify the protein, so ignore the ligand resnames
+        # fixme .. why is it called mer, is it tleap?
+        if atom.resname != 'INI' and atom.resname != 'FIN':
+            continue
+
+        # if the atom was "matched", meaning present in both ligands (left and right)
+        # then ignore
+        # note: we only use the left ligand
+        if atom.name.upper() in matched_disappearing:
+            atom.tempfactor = -2
+        elif atom.name.upper() in matched_appearing:
+            atom.tempfactor = 2
+        elif atom.name.upper() in disappearing_atoms:
+            atom.tempfactor = -1
+        elif atom.name.upper() in appearing_atoms:
+            # appearing atoms should
+            atom.tempfactor = 1
+        else:
+            raise Exception('This should never happen. It has to be one of the cases')
+
+    u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
+
+
+def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
     """
     fixme - this function does not need to use the file?
     we have the json information available here.
-    """
-    u = mda.Universe(source_pdb_filename)
-    fep_meta_str = open(fep_json_filename).read()
-    fep_meta = json.loads(fep_meta_str)
 
-    left_matched = list(fep_meta['matching'].keys())
+    Sets the temperature column in the PDB file
+    So that the number reflects the alchemical information
+    Requires by NAMD in order to know which atoms
+    appear (1) and which disappear (-1).
+    """
+    if hybrid_topology:
+        # delegate correcting fep column in the pdb file
+        return _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, new_pdb_filename)
+
+    u = mda.Universe(source_pdb_filename)
+    if 'mer' not in u.atoms.resnames:
+        raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
+
+    with open(fep_json_filename) as F:
+        fep_meta = json.load(F)
+
+    # dual-topology info
+    matched = list(fep_meta['matched'].keys())
     appearing_atoms = fep_meta['appearing']
     disappearing_atoms = fep_meta['disappearing']
 
@@ -789,13 +914,15 @@ def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filen
         # if the atom was "matched", meaning present in both ligands (left and right)
         # then ignore
         # note: we only use the left ligand
-        if atom.name in left_matched:
+        if atom.name in matched:
             continue
         elif atom.name in appearing_atoms:
             # appearing atoms should
             atom.tempfactor = 1
         elif atom.name in disappearing_atoms:
             atom.tempfactor = -1
+        else:
+            raise Exception('This should never happen. It has to be one of the cases')
 
     u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
 
