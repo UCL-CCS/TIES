@@ -43,12 +43,13 @@ def merge_prod_files(files, output_merged_filename):
     open(output_merged_filename, 'w').writelines(lines)
 
 
-def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_added=False):
+def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_added=False, data=None):
     """
     @location - referes to the main locations where the lambda directories reside.
     @eq_steps = 500 to be discarded as EQ stage.
     @choderas_cut - use Chodera's script to determine which part is the EQ part
     @same_lambda_added - temporary
+    @data - use multiple times in order to get data from more locations
     """
     print('Extracting energies from', location)
     if choderas_cut:
@@ -62,20 +63,22 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_ad
     lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split('_')[1]))
 
     # different datasets, add bonded information for the future. It is not used now.
-    data = {
-        'dvdw': OrderedDict(), 'dele': OrderedDict(),
-        'avdw': OrderedDict(), 'aele': OrderedDict(),
+    if data is None:
+        data = {
+            'dvdw': OrderedDict(), 'dele': OrderedDict(),
+            'avdw': OrderedDict(), 'aele': OrderedDict(),
 
-        # this is for backward compatiblity with the previous error quantification
-        'total_average': {},
-        # this is similar but instead of recording the entire means, it records all the data points
-        'added_series': {}
-    }
+            # this is for backward compatiblity with the previous error quantification
+            'total_average': {},
+            # this is similar but instead of recording the entire means, it records all the data points
+            'added_series': {}
+        }
 
     for lambda_dir in lambda_dirs:
         dir_lambda_val = float(str(lambda_dir).split('_')[1])
-        data['total_average'][dir_lambda_val] = []
-        data['added_series'][dir_lambda_val] = []
+        if dir_lambda_val not in data['total_average']:
+            data['total_average'][dir_lambda_val] = []
+            data['added_series'][dir_lambda_val] = []
 
         fresh_lambda = True
         ignore_dele_lambda = False

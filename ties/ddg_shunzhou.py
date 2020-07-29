@@ -13,25 +13,17 @@ from pathlib import Path
 from collections import OrderedDict
 import glob
 import time
-import itertools
-import random
-import sys
 import pickle as pkl
-import json
 
 import numpy as np
 import matplotlib
 matplotlib.use('Qt5Agg')
-# matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from scipy.stats import sem
 from scipy import interpolate
 # import pandas as pd
 from itertools import accumulate
 # from pymbar import timeseries
-
-
-analysis_dir = 'analysis'
 
 
 def merge_prod_files(files, output_merged_filename):
@@ -51,11 +43,12 @@ def merge_prod_files(files, output_merged_filename):
     open(output_merged_filename, 'w').writelines(lines)
 
 
-def extract_energies(location, choderas_cut=False, eq_steps=1000):
+def extract_energies(location, choderas_cut=False, eq_steps=1000, same_lambda_added=False):
     """
     @location - referes to the main locations where the lambda directories reside.
     @eq_steps = 500 to be discarded as EQ stage.
     @choderas_cut - use Chodera's script to determine which part is the EQ part
+    @same_lambda_added - temporary
     """
     print('Extracting energies from', location)
     if choderas_cut:
@@ -70,22 +63,27 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
 
     # different datasets, add bonded information for the future. It is not used now.
     data = {
-        'dvdw': OrderedDict(), 'dele': OrderedDict(), 'dbon': OrderedDict(),
-        'avdw': OrderedDict(), 'aele': OrderedDict(), 'abon': OrderedDict(),
+        'dvdw': OrderedDict(), 'dele': OrderedDict(),
+        'avdw': OrderedDict(), 'aele': OrderedDict(),
 
         # this is for backward compatiblity with the previous error quantification
-        'total_average': {}
+        'total_average': {},
+        # this is similar but instead of recording the entire means, it records all the data points
+        'added_series': {}
     }
 
     for lambda_dir in lambda_dirs:
         dir_lambda_val = float(str(lambda_dir).split('_')[1])
         data['total_average'][dir_lambda_val] = []
+        data['added_series'][dir_lambda_val] = []
 
         fresh_lambda = True
         ignore_dele_lambda = False
-        for rep in lambda_dir.glob('rep[0-9]*'):
+        # fixme - this sort won't work with larger numbers?
+        for rep in sorted(lambda_dir.glob('rep[0-9]*')):
             if not rep.is_dir():
                 continue
+
 
             # check if there are multiple .alch files, this means the restart was used and needs to be accounted for,
             # you could merge the results in that case and use them instead
@@ -113,6 +111,7 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
             # 8 is BOND2
             # 10 is ELECT2
             # 12 is VDW2
+            print(prod_alch)
             energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[2, 4, 6, 8, 10, 12])
 
             # load metadata from the file
@@ -174,12 +173,16 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                 if dir_lambda_val < 0.4:
                     # take only the dele
                     this_replica_total += np.mean(dele_dvdl)
+                    # extract the values
+                    data['added_series'][dir_lambda_val].append(avdw_dvdl - dvdw_dvdl - dele_dvdl / 0.55)
                 elif dir_lambda_val >= 0.4 and dir_lambda_val <= 0.6:
                     # take the difference of both
                     this_replica_total += np.mean(aele_dvdl) - np.mean(dele_dvdl)
+                    data['added_series'][dir_lambda_val].append(avdw_dvdl - dvdw_dvdl - (aele_dvdl - dele_dvdl) / 0.55)
                 else:
                     # take only the aele value
                     this_replica_total += np.mean(aele_dvdl)
+                    data['added_series'][dir_lambda_val].append(avdw_dvdl - dvdw_dvdl - aele_dvdl / 0.55)
 
                 data['total_average'][dir_lambda_val].append(this_replica_total)
                 # ---------------------------------------------
@@ -208,6 +211,20 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
     return data
 
 
+def saveSeriesTotalPerLambda(data, name):
+    if not os.path.isdir('shunzhou2'):
+        os.mkdir('shunzhou2')
+
+    # save the series for each lambda together
+    for lambda_window, reps in data['added_series'].items():
+        # the reps already represent data = avdw - dvdw + (aele - dele)/0.55
+        # merge the replicas into one numpy array,
+        all_reps_tog = np.concatenate(reps)
+        # save them
+        np.savetxt(os.path.join('shunzhou2', f'lambda_{name}_{lambda_window:0.2f}.dat'), all_reps_tog,
+                   fmt="%.5f")
+
+
 def choder_get_eqpart(datapoints):
     """
     Extracts the equilibriated part
@@ -223,10 +240,9 @@ def autocorr(x):
     return result[int(result.size / 2):]
 
 
-def get_replicas_stats(dataset, sample_reps=0, sample_join=False):
+def get_replicas_stats(dataset, sample_reps):
     """
     To do: obtains stats for each replica separately, as well as for all of them together merged,
-    sample_reps: how many replicas from which to sample
     todo
     """
     meta = {
@@ -240,18 +256,12 @@ def get_replicas_stats(dataset, sample_reps=0, sample_join=False):
     for lambda_val, replicas in dataset.items():
         # extract all the data points
         merged_replicas = []
-        if sample_reps == 0:
-            for rep in replicas:
-                merged_replicas.extend(rep)
-        elif sample_reps > 0:
-            for rep in random.choices(replicas, k=sample_reps):
-                merged_replicas.extend(rep)
-
+        for rep in replicas:
+            merged_replicas.extend(rep)
 
         # this should not be here, create a separate function that carries this out
-        if sample_reps == -1:
+        if sample_reps:
             merged_replicas = np.random.choice(merged_replicas, size=len(merged_replicas), replace=True)
-            raise Exception('Revisit')
 
         # record the observables
         meta['merged_mean'][lambda_val] = np.mean(merged_replicas)
@@ -333,7 +343,7 @@ def bootstrap_replica_averages_improved(data):
     data['sigma_int'] = sigma_int
 
 
-def analyse(data, system_conf, calc_aga_err=False, sample_reps=0, verbose=False, plot=False):
+def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
     """
     Process the timeseries from each replica
     """
@@ -440,7 +450,7 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
         print(out)
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
-    return aele_int, avdw_int, dvdw_int, dele_int
+    return aele_int, avdw_int, dvdw_int, dele_int, data
 
 
 def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
@@ -454,11 +464,11 @@ def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
     # fixme - try bootstrapping to understand the error in aele, dele etc
     bootstrapped_ddGs = []
     for i in range(bootstrap_size_k * 1000):  # fixme
-        laele_int, lavdw_int, ldvdw_int, ldele_int = analyse(lig_all, 'lig', calc_aga_err=False,
+        laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=False,
                                                                        verbose=False, sample_reps=True,
                                                                        plot=False)
         lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
-        caele_int, cavdw_int, cdvdw_int, cdele_int = analyse(complex_all, 'complex',
+        caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex',
                                                                            calc_aga_err=False,
                                                                            verbose=False, sample_reps=True,
                                                                            plot=False)
@@ -470,148 +480,39 @@ def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
     return bootstrapped_ddGs
 
 
+analysis_dir = 'analysis'
+data_dir = 'data'
 
-# make a directory for the analysis
+# make directories if they do not exist
 if not os.path.isdir(analysis_dir):
-    try:
-        os.mkdir(analysis_dir)
-    except Exception:
-        pass
+    os.mkdir(analysis_dir)
+if not os.path.isdir(data_dir):
+    os.mkdir(data_dir)
 
-# do it protein by transformations
-transformations = list(Path('.').glob('set*/l*_l*'))
-# sort by transformation
-transformations.sort(key = lambda k: str(k).split('/')[1])
-
-force_types = ['avdw', 'dvdw', 'aele', 'dele']
-
-# group by transformation
-for transformation, replica_sets in itertools.groupby(transformations, key=lambda t:str(t).split('/')[1]):
-    print(f'Next: {transformation}')
-
-    # do the one you're told to do
-    case = sys.argv[2]
-    if not case == transformation:
-        print(f'Ignoring {transformation}')
-        continue
-    print(f'Proceeding: {transformation}')
-
-    # load all for that transformation
-    trans_lig_sets = []
-    trans_complex_sets = []
-    for repset in replica_sets:
-        # load pickled lig and complex data
-        with open(repset / 'analysis/lig.pkl', 'rb') as FLIG, open(repset / 'analysis/complex.pkl', 'rb') as FCOMPLEX:
-            lig_all = pkl.load(FLIG)
-            complex_all = pkl.load(FCOMPLEX)
-            trans_lig_sets.append(lig_all)
-            trans_complex_sets.append(complex_all)
-
-            # for force_type in force_types:
-            #     x = lig_all[force_type]
-            #     print('Reading file ')
-
-    # combine the replicas into a single list and then carry out the calculation and bootstrapping
-    all_lig = trans_lig_sets[0]
-    for other in trans_lig_sets[1:]:
-        for force_type in force_types:
-            # walk over lambdas and force types and combine replicas
-            for lam, reps in all_lig[force_type].items():
-                reps.extend(other[force_type][lam])
-    for force_type in force_types:
-        print(f'For ligand {force_type} there is together {len(all_lig[force_type][0])} replicas')
-
-    # combine the complexes
-    all_complex = trans_complex_sets[0]
-    for other in trans_complex_sets[1:]:
-        for force_type in force_types:
-            # walk over lambdas and force types and combine replicas
-            for lam, reps in all_complex[force_type].items():
-                reps.extend(other[force_type][lam])
-    for force_type in force_types:
-        print(f'For complex {force_type} there is together {len(all_complex[force_type][0])} replicas')
-
-    start = time.time()
-    bs_num = int(sys.argv[1])
-    print(f'Using BS samples: {bs_num}')
-    # bootstrap a variable set of replicas
-    tot_rep_no = len(all_lig['avdw'][0])
-    bootstrapped_dGs_lig = {}
-    for rep_no in range(1, tot_rep_no + 1):
-        bootstrapped_dGs_lig[rep_no] = []
-        for i in range(bs_num):  # fixme
-            aele_int, avdw_int, dvdw_int, dele_int = analyse(all_lig, 'All Lig', sample_reps=rep_no)
-            delta = aele_int + avdw_int - dvdw_int - dele_int
-            bootstrapped_dGs_lig[rep_no].append(delta)
-
-    # bootstrap a variable set of replicas
-    tot_rep_no = len(all_complex['avdw'][0])
-    bootstrapped_dGs_complex = {}
-    for rep_no in range(1, tot_rep_no + 1):
-        bootstrapped_dGs_complex[rep_no] = []
-        for i in range(bs_num):  # fixme
-            aele_int, avdw_int, dvdw_int, dele_int = analyse(all_complex, 'All Lig', sample_reps=rep_no)
-            delta = aele_int + avdw_int - dvdw_int - dele_int
-            bootstrapped_dGs_complex[rep_no].append(delta)
-
-    print(f'BS finished with {bs_num} samples. Time together: {time.time() - start}')
-
-    # plot the boxplots
-    plt.figure(figsize=(8, 10))  # , dpi=80) facecolor='w', edgecolor='k')
-    plt.rcParams.update({'font.size': 15})
-
-    plt.subplot(211)
-    plt.xlim([0, 20])
-    plt.title('Lig: ' + transformation)
-
-    # give files their own specific name
-    tseed = str(time.time()).split('.')[1]
-
-    # save bs to a file
-    with open(f'analysis/lig_{transformation}_{tseed}.json', 'w') as bs_file:
-        bs_file.write(json.dumps(bootstrapped_dGs_lig))
-
-    for rep_no, dGs in bootstrapped_dGs_lig.items():
-        # plot the dv/dl boxplots
-        # stagger lambdas so that replicas do not overlap
-        plt.boxplot(dGs, positions=[rep_no, ], showfliers=False)
-                    #widths=staggered_lambdas[1] - staggered_lambdas[0],
-                    #sym='.', )
-    plt.ylabel('$\\rm \Delta G $')
-    plt.xlabel('$\\rm Replica # (simple bootstrap) $')
-
-    plt.subplot(212)
-    plt.xlim([0, 20])
-    plt.title('Complex: ' + transformation)
-
-    # save bs to a file
-    with open(f'analysis/complex_{transformation}_{tseed}.json', 'w') as bs_file:
-        bs_file.write(json.dumps(bootstrapped_dGs_complex))
-
-    for rep_no, dGs in bootstrapped_dGs_complex.items():
-        # plot the dv/dl boxplots
-        # stagger lambdas so that replicas do not overlap
-        plt.boxplot(dGs, positions=[rep_no, ], showfliers=False)
-                    #widths=staggered_lambdas[1] - staggered_lambdas[0],
-                    #sym='.', )
-
-    # plt.legend()
-    plt.tight_layout()
-    plt.savefig(f'{transformation}.png', dpi=300)
-    # plt.show()
-    plt.cla()
-
-
-
-# calc_aga_err = True
+t_start = time.time()
+choderas_cut = False
+calc_aga_err = True
+lig_all = extract_energies('lig', choderas_cut=choderas_cut)
+saveSeriesTotalPerLambda(lig_all, name='lig')
 # laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=calc_aga_err, verbose=True)
 # lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
+complex_all = extract_energies('complex', choderas_cut=choderas_cut)
+saveSeriesTotalPerLambda(complex_all, name='complex')
 # caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex', calc_aga_err=calc_aga_err, verbose=True)
 # complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
 #
 # # Give the overall results
 # print(f"Delta Delta: {complex_delta - lig_delta:.4f}")
 # print (f"Agastya Error {complex_data['sigma_2017'] + lig_data['sigma_2017']:.4f}")
+#
+# # pickle lig and complex data
+# with open('data/lig.pkl', 'wb') as FLIG, open('data/complex.pkl', 'wb') as FCOMPLEX:
+#     pkl.dump(lig_all, FLIG)
+#     pkl.dump(complex_all, FCOMPLEX)
+#
+# # save the general energies for each lambda, these are used for calculating the error
+# print('hi')
+
 
 # now that we have the bootstrapped_ddGs, we take SD to find the standard error in the bootstrapped ddG
 # se_bootstrapped_ddG = bootstrapped_ddG(lig_data, complex_data, 1)

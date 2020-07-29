@@ -27,7 +27,7 @@ def combine(transformations):
     """
 
     # sort by transformation
-    transformations.sort(key=lambda k: str(k).rsplit('/', maxsplit=1)[1])
+    transformations.sort(key=lambda k: str(k).split('/')[1])
 
     # group by transformation
     trans_dgs = {}
@@ -43,7 +43,7 @@ def combine(transformations):
             with open(repset) as F:
                 lig_all = json.load(F)
                 # verify that the length is the same for each "replica number"
-                sample_num = len(list(lig_all.values())[0])
+                sample_num = len(lig_all['1'])
                 for next_rep_num, samples in lig_all.items():
                     int_next_rep = int(next_rep_num)
                     if sample_num != len(samples):
@@ -54,7 +54,7 @@ def combine(transformations):
                     dg_replicas_samples.setdefault(int_next_rep, [])
                     dg_replicas_samples[int_next_rep].extend(samples)
 
-        print(f'in each set there is {len(list(dg_replicas_samples.values())[0])} samples')
+        print(f'in each set there is {len(dg_replicas_samples[1])} samples')
         trans_dgs[transformation] = dg_replicas_samples
 
     # for this protein, across the ligand transformation,
@@ -75,43 +75,39 @@ def combine(transformations):
     return trans_dgs, sd_improvements
 
 
-def plot_ddgs(exp, trans_dgs, sd_improvements, work_dir, filename, yrange=0.5, plots=[5, 5], experimental=None):
+def plot_dgs(trans_dgs, sd_improvements, work_dir, filename, yrange=0.5, plots=[5, 5]):
     plt.figure(figsize=(15, 10))  # , dpi=80) facecolor='w', edgecolor='k')
     plt.rcParams.update({'font.size': 9})
 
     counter = 1
     for tran, data in trans_dgs.items():
-        # extract the name of the transformation
-        _, left, right = tran.split('/')[-1].split('_')
-        parsed_trans = left.upper() + ' ' + right.upper()
-
         # plot the boxplots
         plt.subplot(plots[0], plots[1], counter)
         plt.xlim([0.5, 20 + 0.5])
-        plt.title(parsed_trans)
+        plt.title(tran.rsplit('/')[-1])
 
-        for number_of_reps, ddGs in data.items():
-            plt.boxplot(ddGs, positions=[number_of_reps, ], showfliers=False)
-        plt.ylabel('$\\rm Bootstrapped~\Delta \Delta G $')
+        # give files their own specific name
+        tseed = str(time.time()).split('.')[1]
+
+        for number_of_reps, dGs in data.items():
+            plt.boxplot(dGs, positions=[number_of_reps, ], showfliers=True)
+        plt.ylabel('$\\rm Bootstrapped~\Delta G $')
         plt.xlabel('$\\rm Replicas~\# ~/~ 20  $')
         plt.xticks(range(0, 20 + 1, 2), range(0, 20 + 1, 2))
 
-        # plot the exp value
-        exp_value = exp[parsed_trans]
-        plt.axhline(y=exp_value)
-
-        # ensure that the experimental line can be seen
-        # ylim_min, ylim_max = plt.axes().get_ylim()
-        # plt.ylim([min(exp_value, ylim_min), max(exp_value, ylim_max)])
+        reps_largest = data[max(data.keys())]
+        reps_largest_mean = np.mean(reps_largest)
+        # plt.ylim(reps_largest_mean - yrange, reps_largest_mean + yrange)
 
         counter += 1
 
+    # plt.legend()
     plt.tight_layout()
-    plt.savefig(work_dir / f'ddg_{filename}_y{yrange*2:0.2f}.png', dpi=300)
+    # plt.suptitle('TYK2 ligand')
+    plt.savefig(work_dir / f'{filename}_y{yrange*2:0.2f}.png', dpi=300)
     # plt.show()
 
-    # ----------------------------------
-    # for each system plot show how much the system decreases the uncertainty
+    # for each system plot how much it improves
     plt.figure(figsize=(15, 10))
     plt.rcParams.update({'font.size': 9})
 
@@ -120,35 +116,13 @@ def plot_ddgs(exp, trans_dgs, sd_improvements, work_dir, filename, yrange=0.5, p
         plt.subplot(plots[0], plots[1], counter)
         # plt.xlim([0.5, 20 + 0.5])
         plt.title(system.rsplit('/')[-1])
-        plt.plot([5, 10, 15, 20], sds)
+        plt.plot(sds)
         plt.tight_layout()
         plt.xlim([-0.5, 20.5])
         plt.xlabel('Number of replicas')
-        plt.ylabel('$\\rm  \Delta\Delta G ~ \sigma $')
-        plt.savefig(work_dir / f'ddg_sds_decrease_{filename}.png', dpi=300)
+        plt.ylabel('$\\rm  \Delta G ~ \sigma $')
+        plt.savefig(work_dir / f'sds_decrease_{filename}.png', dpi=300)
         counter += 1
-
-def merge_protein_cases(exp, data):
-    """
-    For the system or protein, take all the transformations t and
-    F = merge each | ddGs(t) - exp | for each transformation t
-
-    So subtract the experiment from each transformation, then take the absolute values of that distributions,
-    and merge the distributions together
-    """
-    merged_abs_dists = {5: [], 10: [], 15: [], 20: []}
-    for tran, data in trans_ddGs.items():
-        # extract the name of the transformation
-        _, left, right = tran.split('/')[-1].split('_')
-        parsed_trans = left.upper() + ' ' + right.upper()
-
-        exp_value = exp[parsed_trans]
-
-        for number_of_reps, ddGs in data.items():
-            d = np.abs(np.array(ddGs) - exp_value)
-            merged_abs_dists[number_of_reps].extend(d)
-
-    return merged_abs_dists
 
 
 def get_exp_data():
@@ -172,50 +146,99 @@ def get_exp_data():
 
     return exp_data
 
+def extract_every5_merge_cases(trans_dgs, exp_protein):
+    """
+    Take the distribution of dG across the different transformations,
+    and subtract the exp value.
+    """
+    fives = []
+    tens = []
+    fifteens = []
+    twenties = []
+    for sys, data in trans_dgs.items():
+        if 'l6_l14' in sys:
+            continue
+        # look up the experimental value for this case
+        case_parts = sys.split('/')[-1].split('_')
+        case = case_parts[1].upper() + ' ' + case_parts[2].upper()
+        exp = exp_protein[case]
+        fives.extend(np.array(data[5]) - exp)
+        tens.extend(np.array(data[10]) - exp)
+        fifteens.extend(np.array(data[15]) - exp)
+        twenties.extend(np.array(data[max(data.keys())]) - exp)
+        # extract
+    return fives, tens, fifteens, twenties
+
 
 exp_data = get_exp_data()
 
-systems = []
+ligands = []
 complexes = []
-ddg_minus_exp = {}
+lig_minus_exp = {}
+complex_minus_exp = {}
 
 root_work = Path('/home/dresio/ucl/validation/replica20')
 
 # tyk2
 # ligand
-transformations = list(root_work.glob('tyk2/analysis/ddg_l*_l*_*.json'))
-trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['tyk2'], trans_ddGs, sds, root_work, filename='tyk2', plots=[2, 3])
-ddg_minus_exp['tyk2'] = merge_protein_cases(exp_data['tyk2'], trans_ddGs)
+# transformations = list(root_work.glob('tyk2/analysis/lig_l*_l*_*.json'))
+# _, tyk_lig_sds = combine_and_plot(transformations, root_work, filename='tyk2_lig', plots=[2,3])
+# ligands.append(tyk_lig_sds)
+# # complex
+# transformations = list(root_work.glob('tyk2/analysis/complex_l*_l*_*.json'))
+# _, tyk_complex_sds = combine_and_plot(transformations, root_work, filename='tyk2_complex', yrange=1, plots=[2,3])
+# complexes.append(tyk_complex_sds)
+
 
 # mcl1
 # ligand
-transformations = list(root_work.glob('mcl1/analysis/ddg_l*_l*_*.json'))
-trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['mcl1'], trans_ddGs, sds, root_work, filename='mcl1', yrange=1, plots=[4, 2])
-ddg_minus_exp['mcl1'] = merge_protein_cases(exp_data['mcl1'], trans_ddGs)
-
+# transformations = list(root_work.glob('mcl1/analysis/lig_l*_l*_*.json'))
+# _, mcl_lig_sds = combine_and_plot(transformations, root_work, filename='mcl1_lig', yrange=1, plots=[4, 2])
+# ligands.append(mcl_lig_sds)
+# # complex
+# transformations = list(root_work.glob('mcl1/analysis/complex_l*_l*_*.json'))
+# _, mcl_complex_sds = combine_and_plot(transformations, root_work, filename='mcl1_complex', yrange=2.5, plots=[4,2])
+# complexes.append(mcl_complex_sds)
+#
+#
 # thrombin
 # lig
-transformations = list(root_work.glob('thrombin/analysis/ddg_l*_l*_*.json'))
-trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['thrombin'], trans_ddGs, sds, root_work, filename='thrombin', yrange=0.5, plots=[2, 3])
-ddg_minus_exp['thrombin'] = merge_protein_cases(exp_data['thrombin'], trans_ddGs)
+# transformations = list(root_work.glob('thrombin/analysis/lig_l*_l*_*.json'))
+# _, thrombin_lig_sds = combine_and_plot(transformations, root_work, filename='thrombin_lig', yrange=0.5, plots=[2, 3])
+# ligands.append(thrombin_lig_sds)
+# # complex
+# transformations = list(root_work.glob('thrombin/analysis/complex_l*_l*_*.json'))
+# _, thrombin_complex_sds = combine_and_plot(transformations, root_work, filename='thrombin_complex', yrange=2.5, plots=[2,3])
+# complexes.append(thrombin_complex_sds)
 
 # ptp1b
 # lig
-transformations = list(root_work.glob('ptp1b/analysis/ddg_l*_l*_*.json'))
-trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['ptp1b'], trans_ddGs, sds, root_work, filename='ptp1b', yrange=3, plots=[2, 3])
-ddg_minus_exp['ptp1b'] = merge_protein_cases(exp_data['ptp1b'], trans_ddGs)
+transformations = list(root_work.glob('ptp1b/analysis/lig_l*_l*_*.json'))
+trans_dgs, ptp1b_lig_sds = combine(transformations)
+# plot_dgs(trans_dgs, ptp1b_lig_sds, root_work, filename='ptp1b_lig', yrange=3, plots=[2, 3])
+extracted_minus_exp = extract_every5_merge_cases(trans_dgs, exp_data['ptp1b'])
+lig_minus_exp['ptp1b'] = extracted_minus_exp
 
-
+ligands.append(ptp1b_lig_sds)
+# complex
+transformations = list(root_work.glob('ptp1b/analysis/complex_l*_l*_*.json'))
+trans_dgs, ptp1b_complex_sds = combine(transformations)
+# plot_dgs(trans_dgs, ptp1b_complex_sds, root_work, filename='ptp1b_complex', yrange=5, plots=[2, 3])
+extracted_minus_exp = extract_every5_merge_cases(trans_dgs, exp_data['ptp1b'])
+complex_minus_exp['ptp1b'] = extracted_minus_exp
+complexes.append(ptp1b_complex_sds)
+#
+#
 # cdk2
 # lig
-transformations = list(root_work.glob('cdk2/analysis/ddg_l*_l*_*.json'))
-trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['cdk2'], trans_ddGs, sds, root_work, filename='cdk2', yrange=0.5, plots=[1, 3])
-ddg_minus_exp['cdk2'] = merge_protein_cases(exp_data['cdk2'], trans_ddGs)
+# transformations = list(root_work.glob('cdk2/analysis/lig_l*_l*_*.json'))
+# _, cdk_lig_sds = combine_and_plot(transformations, root_work, filename='cdk2_lig', yrange=0.5, plots=[1, 3])
+# ligands.append(cdk_lig_sds)
+#
+# # complex
+# transformations = list(root_work.glob('cdk2/analysis/complex_l*_l*_*.json'))
+# _, cdk_complex_sds = combine_and_plot(transformations, root_work, filename='cdk2_complex', yrange=1, plots=[1,3])
+# complexes.append(cdk_complex_sds)
 
 
 symbol_mapping = {
@@ -232,56 +255,6 @@ colour_mapping = {
     'ptp1b': '#553DE1',
     'cdk2': 'black',
 }
-
-
-# ------------------------
-# plot for each protein separately the progress
-plt.figure(figsize=(15, 10))
-plt.rcParams.update({'font.size': 9})
-
-protein_counter = 1
-for protein, dists in ddg_minus_exp.items():
-    plt.subplot(2, 3, protein_counter)
-    plt.title(protein.upper())
-    plt.ylabel('$\\rm |\Delta\Delta G - exp| $')
-    plt.xlabel('# Replicas used in bootstrapping / 20')
-    plt.ylim([-0.1, 3])
-
-    case_counter = 1
-    for rep_no, ddgs in dists.items():
-        plt.boxplot(ddgs, positions=[case_counter, ], widths=0.13, showfliers=False)
-        case_counter += 1
-
-    plt.xticks([1, 2, 3, 4], [5, 10, 15, 20])
-
-
-    protein_counter += 1
-
-plt.tight_layout()
-plt.savefig(root_work / 'ddgs_byprot.png')
-# plt.show()
-
-# -----------------------------------
-# lot the ddg-exp joined distributions as a bar plot
-# plt.figure(figsize=(15, 10))
-# plt.rcParams.update({'font.size': 9})
-# plt.ylabel('$\\rm Bootstrapped~ |\Delta\Delta G - exp| $')
-# plt.xlabel('Replica number')
-#
-# # rearrange the data, such that each internal list represents different proteins
-#
-# protein_factor = -0.3
-# for protein, dists in ddg_minus_exp.items():
-#     case_counter = 1
-#     for rep_no, ddgs in dists.items():
-#         plt.boxplot(ddgs, positions=[case_counter + protein_factor, ], widths=0.13, showfliers=False)
-#         case_counter += 1
-#
-#
-#     protein_factor += 0.15
-#
-# plt.xticks([1, 2, 3, 4], [5, 10, 15, 20])
-# plt.show()
 
 # ---------------------------------------------------------------
 # combine all sds, so show the points and the distribution
@@ -336,23 +309,45 @@ plt.savefig(root_work / 'ddgs_byprot.png')
 
 # combine all sds, so show the points and the distribution
 # ligands first
-# plt.figure(figsize=(15, 10))
-# plt.rcParams.update({'font.size': 9})
-# plt.title('ddG')
-# plt.ylabel('$\\rm  \Delta G ~ \sigma $')
-# plt.xlabel('Replica number')
-#
-# for i in range(20):
-#     # extract from each case just the one index
-#     for lig in systems:
-#         for system, sds in lig.items():
-#             if 'l6_l14' in system:
-#                 continue
-#             name = re.match(r".*/replica20/([a-z0-9]+)/analysis/.*", system).group(1)
-#             sym = symbol_mapping[name]
-#             color = colour_mapping[name]
-#             plt.scatter(range(1, len(sds) + 1), sds, marker=sym, color=color)
-#
-#
-# plt.tight_layout()
-# plt.savefig(root_work / 'combined_sds.png')
+plt.figure(figsize=(15, 10))
+plt.rcParams.update({'font.size': 9})
+plt.subplot(1,2,1)
+plt.title('Ligands')
+plt.ylabel('$\\rm  \Delta G ~ \sigma $')
+plt.xlabel('Replica number')
+
+for i in range(20):
+    # extract from each case just the one index
+    for lig in ligands:
+        for system, sds in lig.items():
+            if 'l6_l14' in system:
+                continue
+            name = re.match(r".*/replica20/([a-z0-9]+)/analysis/.*", system).group(1)
+            sym = symbol_mapping[name]
+            color = colour_mapping[name]
+            plt.scatter(range(1, len(sds) + 1), sds, marker=sym, color=color)
+
+# complex
+plt.subplot(1, 2, 2)
+plt.title('Complexes')
+plt.ylabel('$\\rm  \Delta G ~ \sigma $')
+plt.xlabel('Replica number')
+
+for i in range(20):
+    # extract from each case just the one index
+    for complex in complexes:
+        for system, sds in complex.items():
+            if 'l6_l14' in system:
+                continue
+            name = re.match(r".*/replica20/([a-z0-9]+)/analysis/.*", system).group(1)
+            sym = symbol_mapping[name]
+            color = colour_mapping[name]
+            plt.scatter(range(1, len(sds) + 1), sds, marker=sym, color=color, label=name)
+
+# remove duplicate labels
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys())
+
+plt.tight_layout()
+plt.savefig(root_work / 'combined_sds.png')
