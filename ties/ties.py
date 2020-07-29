@@ -83,6 +83,9 @@ def command_line_script():
                         type=str2bool, required=False, default=False,
                         help='Use hybrid single-dual topology in NAMD. See NAMD manual and '
                              'https://pubs.acs.org/doi/10.1021/acs.jcim.9b00362')
+    parser.add_argument('-disjoint-allowed', '--disjoint-appearing-disappearing', dest='allow_disjoint_components',
+                        type=str2bool, required=False, default=False,
+                        help='Allow the molecules to be divided by "disappearing/appearing" atoms.')
     # temporary
     parser.add_argument('-amberff', '--amberff-name', metavar='AmberFFName', dest='amber_tleap_forcefield',
                         type=str, required=False, default='leaprc.protein.ff14SB',
@@ -191,6 +194,9 @@ def command_line_script():
     else:
         # compute the charges
         antechamber_charge_type = ['-c', 'bcc'] # 'AM1-BCC'
+
+    allow_disjoint_components = args.allow_disjoint_components
+    print(f'Configuration: allowing disjoint components {allow_disjoint_components}')
 
     # A list of pairs that should be matched
     # fixme - this requires better parsing capabilities
@@ -304,7 +310,8 @@ def command_line_script():
                                        manual_match=manually_matched, force_mismatch=force_mismatch,
                                        net_charge_threshold=net_charge_threshold,
                                        redistribute_charges_over_unmatched=redist_q_over_unmatched,
-                                       ignore_charges_completely=ignore_charges_completely)
+                                       ignore_charges_completely=ignore_charges_completely,
+                                       no_disjoint_components=not allow_disjoint_components)
 
     # save the superimposition results
     left_right_matching_json = workplace_root / 'joint_meta_fep.json'
