@@ -6,6 +6,11 @@ from pathlib import Path
 
 from ties.ddg20 import extract_energies, merge_datasets, analyse
 
+"""
+1) Uses the previously created interface
+2) Calculates the ddG for all 20 replicas from different systems.
+"""
+
 analysis_dir = 'analysis'
 data_dir = 'data'
 
