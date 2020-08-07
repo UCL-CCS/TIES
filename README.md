@@ -28,4 +28,4 @@ Then in the simplest case use the BCC charges:
 Conda can be used to easily install ambertools:
 `conda install ambertools`
 
-This should set the variable AMBERHOME which `ties` software will pick up on the fly. 
+This should set the variable AMBERHOME which will be picked up on the fly. 
