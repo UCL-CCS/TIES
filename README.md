@@ -21,3 +21,11 @@ I recommend renaming the molecules first manually:
 Then in the simplest case use the BCC charges:
 
 `ties create -l left_coor.pdb -r right_coor.pdb -p protein.pdb -nc -2`
+
+
+## How to install ambertools and export the AMBERHOME variable
+
+Conda can be used to easily install ambertools:
+`conda install ambertools`
+
+This should set the variable AMBERHOME which `ties` software will pick up on the fly. 
