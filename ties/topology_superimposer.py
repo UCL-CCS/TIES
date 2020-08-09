@@ -2541,7 +2541,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                                       ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type)
 
-    print('Original suptops: ')
+    if not suptops:
+        raise Exception('Did not find a single superimposition state. ')
+
     for st in suptops:
         print('Original suptop len %d' % len(st))
         # st.print_summary()
@@ -2618,6 +2620,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             suptops.remove(st)
 
     if no_disjoint_components:
+        print(f'Checking for disjoint components in the {len(suptops)} suptops')
         # ensure that each suptop represents one CC
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
         [st.only_largest_CC_survives() for st in suptops]
@@ -2636,7 +2639,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if len(suptops) > 1:
                 suptops = [suptops[0]]
 
-        assert len(suptops) == 1
+        assert len(suptops) == 1, suptops
 
     #
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
@@ -2885,7 +2888,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     # - Proposal 1: find junctions and use them to start the search
     # - Analyse components of the graph (ie rotatable due to a single bond connection) and
     #   pick a starting point from each component
-    if starting_node_pairs is None:
+    if not starting_node_pairs:
         # generate each to each nodes
         starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
 

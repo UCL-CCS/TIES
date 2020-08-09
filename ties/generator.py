@@ -75,6 +75,9 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
 
         starting_node_pairs.append([found_left_node, found_right_node])
 
+    if starting_node_pairs:
+        print('Starting nodes will be used:', starting_node_pairs)
+
     # fixme - simplify to only take the mdanalysis as input
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                      starting_node_pairs=starting_node_pairs,

@@ -25,7 +25,7 @@ def command_line_script():
 
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
-                        help='Action to be performed. E.g. "ties rename .." ')
+                        help='Action to be performed. E.g. "ties rename, ties create, ties .." ')
     parser.add_argument('-l', '--left-ligand', metavar='Left_Ligand_File', dest='left_ligand',
                         type=Path, required=False,
                         help='The left ligand file')
@@ -260,7 +260,7 @@ def command_line_script():
         "cwd" : workplace_root,
         "stdout" : sys.stdout, #subprocess.PIPE,
         "stderr" : sys.stderr, #subprocess.PIPE,
-        "timeout" : 60 * 10 # 10 minute timeout
+        "timeout" : 60 * 60 # 60 minute timeout
     }
 
     # antechamber note:
