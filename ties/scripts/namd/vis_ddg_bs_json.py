@@ -154,7 +154,7 @@ def merge_protein_cases(exp, data):
 def get_exp_data():
     # load the data
     # columns 0 are names, and 13 are experiments
-    data = genfromtxt("/home/dresio/pubs/ties_replication_validation/figures/energies.csv",
+    data = genfromtxt("/home/dresio/pubs/ties20/figures/energies.csv",
                       delimiter=',', dtype=None, encoding='UTF-8', usecols=[0,13])
 
     # separate the proteins
@@ -236,16 +236,21 @@ colour_mapping = {
 
 # ------------------------
 # plot for each protein separately the progress
-plt.figure(figsize=(15, 10))
-plt.rcParams.update({'font.size': 9})
+plt.figure(figsize=(15, 7))
+plt.rcParams.update({'font.size': 15})
 
 protein_counter = 1
 for protein, dists in ddg_minus_exp.items():
     plt.subplot(2, 3, protein_counter)
     plt.title(protein.upper())
-    plt.ylabel('$\\rm |\Delta\Delta G - exp| $')
-    plt.xlabel('# Replicas used in bootstrapping / 20')
-    plt.ylim([-0.1, 3])
+    if protein_counter in (1, 4):
+        plt.ylabel('$\\rm |\Delta\Delta G - exp| $')
+    if protein_counter in (3, 4, 5):
+        plt.xlabel('# Replicas used in bootstrapping / 20')
+
+    # add the experimental range?
+
+    plt.ylim([0, 3])
 
     case_counter = 1
     for rep_no, ddgs in dists.items():

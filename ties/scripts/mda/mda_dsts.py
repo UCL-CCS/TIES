@@ -75,7 +75,7 @@ def get_wat_around(top_path, sims):
 
     return flat
 
-def get_dsts(top_path, sims):
+def get_dsts(top_path, sims, afrom, ato):
     print('Top: ', top_path)
     dsts_for_lambda = []
     for lambda_val, replicas in sorted(sims.items()):
@@ -86,8 +86,8 @@ def get_dsts(top_path, sims):
         print(f'Lambda {lambda_val}, Frames {u.trajectory.n_frames}')
 
         # C7 and C59  / CL8 BR1
-        cl8 = u.select_atoms('name C9')
-        br1 = u.select_atoms('name Na+')
+        cl8 = u.select_atoms(afrom)
+        br1 = u.select_atoms(ato)
         # check their distance over time
         dsts = []
         for ts in u.trajectory:
@@ -102,28 +102,37 @@ def get_dsts(top_path, sims):
     return flat
 
 
-good_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.131_hsp/lig'
-good_sims = get_sims(good_lig)
-good_dsts = get_wat_around(good_lig, good_sims)
+# good_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.131_hsp/lig'
+# good_sims = get_sims(good_lig)
+# good_dsts = get_wat_around(good_lig, good_sims)
+#
+# bad_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.101_hsp/lig'
+# bad_sims = get_sims(bad_lig)
+# bad_dsts = get_wat_around(bad_lig, bad_sims)
 
-bad_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.101_hsp/lig'
-bad_sims = get_sims(bad_lig)
-bad_dsts = get_wat_around(bad_lig, bad_sims)
+# same l6l6
+good_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/odd_case_l6l6/case_c7c59_hsp/lig'
+good_sims = get_sims(good_lig)
+good_dsts = get_dsts(good_lig, good_sims, 'name C7', 'name C59')
+
+# bad_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/odd_case_l6l6/case_cl8cl9_hsp/lig'
+# bad_sims = get_sims(bad_lig)
+# bad_dsts = get_dsts(bad_lig, bad_sims, '')
 
 # nocross_lig = '/home/dresio/ucl/validation/resp_validation/ptp1b/l6_l14_atol0.101_no_cross_angdi_hsp/lig'
 # nocross_sims = get_sims(nocross_lig)
 # nocross_dsts = get_dsts(nocross_lig, nocross_sims)
 
-bin_from = min(min(bad_dsts), min(good_dsts))
-bin_to = max(max(bad_dsts), max(good_dsts))
-bins = np.linspace(bin_from, bin_to, 20)
-# bins=20
-plt.hist(good_dsts, label='0.131', bins=bins, alpha=0.8)
-plt.hist(bad_dsts, label='0.101', bins=bins, alpha=0.8)
+# bin_from = min(min(bad_dsts), min(good_dsts))
+# bin_to = max(max(bad_dsts), max(good_dsts))
+# bins = np.linspace(bin_from, bin_to, 20)
+bins=20
+plt.hist(good_dsts, label='withC7', bins=bins, alpha=0.8)
+# plt.hist(bad_dsts, label='justCl', bins=bins, alpha=0.8)
 # plt.hist(nocross_flat, label='no cross 0.101', bins=bins, alpha=0.8)
-plt.title('7A from Cl/BR')
-plt.ylabel('Freq')
-plt.xlabel('# water')
+# plt.title('Cl/Cl dst')
+plt.ylabel('freq')
+plt.xlabel('Ring C dst (A)')
 plt.legend()
 plt.show()
 

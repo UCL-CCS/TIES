@@ -181,13 +181,13 @@ root_work = Path('/home/dresio/ucl/validation/replica20')
 
 # tyk2
 # ligand
-# transformations = list(root_work.glob('tyk2/analysis/lig_l*_l*_*.json'))
-# _, tyk_lig_sds = combine_and_plot(transformations, root_work, filename='tyk2_lig', plots=[2,3])
-# ligands.append(tyk_lig_sds)
-# # complex
-# transformations = list(root_work.glob('tyk2/analysis/complex_l*_l*_*.json'))
-# _, tyk_complex_sds = combine_and_plot(transformations, root_work, filename='tyk2_complex', yrange=1, plots=[2,3])
-# complexes.append(tyk_complex_sds)
+transformations = list(root_work.glob('tyk2/analysis/lig_l*_l*_*.json'))
+_, tyk_lig_sds = combine_and_plot(transformations, root_work, filename='tyk2_lig', plots=[2,3])
+ligands.append(tyk_lig_sds)
+# complex
+transformations = list(root_work.glob('tyk2/analysis/complex_l*_l*_*.json'))
+_, tyk_complex_sds = combine_and_plot(transformations, root_work, filename='tyk2_complex', yrange=1, plots=[2,3])
+complexes.append(tyk_complex_sds)
 
 
 # mcl1
@@ -215,9 +215,9 @@ root_work = Path('/home/dresio/ucl/validation/replica20')
 # lig
 transformations = list(root_work.glob('ptp1b/analysis/lig_l*_l*_*.json'))
 trans_dgs, ptp1b_lig_sds = combine(transformations)
-# plot_dgs(trans_dgs, ptp1b_lig_sds, root_work, filename='ptp1b_lig', yrange=3, plots=[2, 3])
-extracted_minus_exp = extract_every5_merge_cases(trans_dgs, exp_data['ptp1b'])
-lig_minus_exp['ptp1b'] = extracted_minus_exp
+plot_dgs(trans_dgs, ptp1b_lig_sds, root_work, filename='ptp1b_lig', yrange=3, plots=[2, 3])
+# extracted_minus_exp = extract_every5_merge_cases(trans_dgs, exp_data['ptp1b'])
+# lig_minus_exp['ptp1b'] = extracted_minus_exp
 
 ligands.append(ptp1b_lig_sds)
 # complex
