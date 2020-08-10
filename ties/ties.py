@@ -161,7 +161,7 @@ def command_line_script():
         sys.exit()
     # fixme - test ambertools at this stage before proceeding
 
-    if not args.net_charge:
+    if args.net_charge is None:
         print('Please supply the net charge of the ligands with -nc')
         sys.exit()
     else:
