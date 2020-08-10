@@ -28,4 +28,6 @@ Then in the simplest case use the BCC charges:
 Conda can be used to easily install ambertools:
 `conda install ambertools`
 
+Note that `sqm` in ambertools might need `libgfortran`. This can be installed with `apt-get install libgfortran3`. However, the conda version `conda install libgfortran` should also work. 
+
 This should set the variable AMBERHOME which will be picked up on the fly. 
