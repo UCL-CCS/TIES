@@ -211,17 +211,19 @@ colour_mapping = {
 
 # ------------------------
 # plot for each protein separately the progress
-plt.figure(figsize=(10, 10))
-plt.rcParams.update({'font.size': 12})
+fig = plt.figure(figsize=(10, 7))
+global_ax = fig.add_subplot(111)
+plt.rcParams.update({'font.size': 12, 'legend.fontsize': 9})
 
 protein_counter = 1
+avg357 = []
 for protein, dists in dddgs.items():
     plt.subplot(3, 2, protein_counter)
     plt.title(protein.upper())
-    if protein_counter in (1, 3, 5):
-        plt.ylabel(r'$\rm \langle |\Delta\Delta\Delta G| \rangle_{average} $')
-    if protein_counter in (4, 5):
-        plt.xlabel(' Replicas # + 1 / 20')
+    # if protein_counter in {3}:
+    #     plt.ylabel(r'$\rm \langle |f(x) - f(x+1)| \rangle_{average} (kcal/mol) $')
+    # if protein_counter in (4, 5):
+    plt.xlabel('Replica #')
 
     # add the experimental range?
     plt.ylim([0, 1.6])
@@ -236,14 +238,37 @@ for protein, dists in dddgs.items():
         data = sorted(all_reps.items())
         replica_numbers = [x[0] for x in data]
         dddg_avgs = [np.mean(np.abs(x[1])) for x in data]
+        avg357.append([dddg_avgs[2], dddg_avgs[4], dddg_avgs[6]])
         plt.plot(replica_numbers, dddg_avgs, label=f'{ligA.upper()} {ligB.upper()}')
 
-    plt.xticks(range(1, 20, 2))
+    plt.xticks(range(1, 20, 2), fontsize=10)
+    plt.yticks(fontsize=10)
 
     plt.legend()
     protein_counter += 1
 
+
+# add one more plot showing the distribution of how much improvement is seen with 3, 5 and 7 replicas,
+plt.subplot(3, 2, protein_counter)
+just3 = [d[0] for d in avg357]
+just5 = [d[1] for d in avg357]
+just7 = [d[2] for d in avg357]
+alpha = 0.7
+bins = np.linspace(0, 0.75, 30)
+plt.hist(just3, bins=bins, label='3 + 1 Replicas', alpha=alpha)
+plt.hist(just5, bins=bins, label='5 + 1 Replicas', alpha=alpha)
+plt.hist(just7, bins=bins, label='7 + 1 Replicas', alpha=alpha)
+plt.xticks(np.linspace(0, 0.7, 8), [f'{x:.1f}' for x in np.linspace(0, 0.7, 8)])
+plt.xticks(fontsize=10)
+plt.tick_params(axis='y', which='both', left=False, labelleft=False)
+plt.xlabel(r'average change in $\rm \Delta \Delta G$ (kcal/mol)')
+plt.ylabel('P(x)')
+plt.legend()
+
 plt.tight_layout()
+plt.subplots_adjust(left=0.08)
+fig.text(0.01, 0.4, r'$\rm \langle | \Delta\Delta G(r) - \Delta\Delta G(r+1)| \rangle_{mean} $', rotation='vertical')
+
 plt.savefig(root_work / 'relative_ddgs_byprot.png')
 # plt.show()
 

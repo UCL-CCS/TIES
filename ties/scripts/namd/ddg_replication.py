@@ -504,10 +504,6 @@ for transformation, replica_sets in itertools.groupby(transformations, key=lambd
             trans_lig_sets.append(lig_all)
             trans_complex_sets.append(complex_all)
 
-            # for force_type in force_types:
-            #     x = lig_all[force_type]
-            #     print('Reading file ')
-
     # combine the replicas into a single list and then carry out the calculation and bootstrapping
     all_lig = trans_lig_sets[0]
     for other in trans_lig_sets[1:]:

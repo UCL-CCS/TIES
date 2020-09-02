@@ -178,6 +178,7 @@ def prepare_inputs(workplace_root, directory='complex',
                    scripts_loc=None,
                    tleap_in=None,
                    protein_ff=None,
+                   ligand_ff=None,
                    net_charge=None,
                    ambertools_script_dir=None,
                    subprocess_kwargs=None,
@@ -220,6 +221,7 @@ def prepare_inputs(workplace_root, directory='complex',
     elif Cl_num > 0:
         tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
     open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+                                                              ligand_ff=ligand_ff,
                                                               NaIons=tleap_Na_ions,
                                                               ClIons=tleap_Cl_ions))
 
@@ -287,9 +289,10 @@ def prepare_inputs(workplace_root, directory='complex',
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
 
-def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
-                        ambertools_bin, ambertools_script_dir,
-                        cwd, test_dir_name='ambertools_frcmod_test'):
+def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
+                        protein_ff, ligand_ff,
+                        ambertools_bin, ambertools_script_dir, cwd,
+                        test_dir_name='ambertools_frcmod_test'):
     """
     Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
     Check that the output library can be used to create a valid amber topology.
@@ -310,7 +313,7 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod, protein_ff,
     # prepare tleap input
     leap_in_test = 'leap_test_morph.in'
     leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
-    open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff))
+    open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff, ligand_ff=ligand_ff))
 
     # attempt generating the .top
     tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
@@ -1199,7 +1202,8 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input
     # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
     # fixme - consider moving out of the complex
     leap_in_conf = open(leap_input_file).read()
-    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff))
+    ligand_ff = 'leaprc.gaff' # ignored but must be provided
+    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff))
     subprocess_kwargs['cwd'] = solv_prot_alone
     subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
 

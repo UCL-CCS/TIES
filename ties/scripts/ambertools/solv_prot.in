@@ -1,7 +1,7 @@
 # solvation script to solvate the protein by itself to find out how many ions it needs
 source {protein_ff}
 source leaprc.water.tip3p
-source leaprc.gaff
+source {ligand_ff}
 # for phosphorylated residues
 source leaprc.phosaa10
 

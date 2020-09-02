@@ -3,7 +3,7 @@
 # solvation script to solvate the merged topologies .mol2
 source {protein_ff}
 source leaprc.water.tip3p
-source leaprc.gaff
+source {ligand_ff}
 
 loadamberparams ../left.frcmod
 left = loadMol2 ../left.mol2

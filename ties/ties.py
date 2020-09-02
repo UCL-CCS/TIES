@@ -91,6 +91,9 @@ def command_line_script():
                         type=str, required=False, default='leaprc.protein.ff14SB',
                         help='This is a temporary solution. Ambertools tleap filename of the amberforcefield to be used. '
                              'Another one is "leaprc.ff99SBildn" etc. ')
+    parser.add_argument('-ligff', '--ligandff-name', metavar='LigandFF', dest='ligand_ff',
+                        type=str, required=False, default='gaff',
+                        help='Either "gaff" or "gaff2"')
     parser.add_argument('-namd_prod', '--namd-prod', metavar='NAMD_prod', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
@@ -239,7 +242,14 @@ def command_line_script():
 
     # used for naming atom types,
     # fixme - we have to make sure this is consistent across the files (and ff leap.in files)
-    atom_type = 'gaff'
+    atom_type = args.ligand_ff
+    if atom_type == 'gaff':
+        # they both use the same ff
+        ligand_ff = 'leaprc.gaff'
+    elif atom_type == 'gaff2':
+        ligand_ff = 'leaprc.gaff2'
+    else:
+        raise ValueError('Argument -ligff cannot be anything else but "gaff" or "gaff2" currently')
 
     # not configurable currently
     hpc_submit = None  # "hpc_hartree_hsp.sh"
@@ -359,7 +369,7 @@ def command_line_script():
     join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
 
     # if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
-    updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield,
+    updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield, ligand_ff,
                                                  ambertools_bin, ambertools_script_dir, cwd=workplace_root)
     with open(hybrid_frcmod, 'w') as FOUT:
         FOUT.write(updated_frcmod_content)
@@ -387,6 +397,7 @@ def command_line_script():
                    scripts_loc=script_dir,
                    tleap_in=ligand_tleap_in,
                    protein_ff=amber_forcefield,
+                   ligand_ff=ligand_ff,
                    net_charge=net_charge,
                    ambertools_script_dir=ambertools_script_dir,
                    subprocess_kwargs=subprocess_kwargs,
@@ -417,6 +428,7 @@ def command_line_script():
                    scripts_loc=script_dir,
                    tleap_in=complex_tleap_in,
                    protein_ff=amber_forcefield,
+                   ligand_ff=ligand_ff,
                    net_charge=net_charge + protein_net_charge,
                    ambertools_script_dir=ambertools_script_dir,
                    subprocess_kwargs=subprocess_kwargs,

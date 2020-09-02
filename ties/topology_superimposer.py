@@ -2553,8 +2553,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         # fixme - do proper
         st.ignore_bond_types = ignore_bond_types
 
-    # connect the sup_tops to their original molecules
+    # connect the suptops to their original molecules
     for suptop in suptops:
+        # fixme this should have been done in the constructor?
         suptop.set_tops(top1_nodes, top2_nodes)
         suptop.set_mdas(ligandLmda, ligandRmda)
 
@@ -2585,7 +2586,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                 print(f'Removed due to charge incompatibility: {sup_top._removed_due_to_charge}')
 
     # apply the force mismatch at the end
-    #  this is an interactive feature
+    # this is an interactive feature
     if force_mismatch is not None:
         for suptop in suptops:
             for an1, an2 in force_mismatch:
@@ -2596,6 +2597,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if net_charge_filter and not ignore_charges_completely:
         # ensure that each found component has net charge < 0.1
         for suptop in suptops[::-1]:
+            # fixme this should be function within suptop
             while np.abs(suptop.get_net_charge()) > net_charge_threshold:
                 largest_difference = suptop.remove_worst_charge_match()
                 if largest_difference == 0:

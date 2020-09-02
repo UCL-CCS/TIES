@@ -1,7 +1,8 @@
 # A script for checking whether the combined .frcmod needs dummy angles/dihedrals
 source {protein_ff}
 source leaprc.water.tip3p
-source leaprc.gaff
+# leaprc.gaff
+source {ligand_ff}
 
 loadamberparams morph.frcmod
 hybrid = loadMol2 morph.mol2
