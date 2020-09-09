@@ -529,7 +529,7 @@ for transformation, replica_sets in itertools.groupby(transformations, key=lambd
     # bootstrap a variable set of replicas
     tot_rep_no = len(all_lig['avdw'][0])
     bootstrapped_ddGs = {}
-    for rep_no in [5, 10, 15, 20]:
+    for rep_no in [1, 3, 5, 10, 15, 20]:
         bootstrapped_ddGs[rep_no] = []
         for i in range(bs_num):  # fixme
             aele_int, avdw_int, dvdw_int, dele_int = analyse(all_lig, 'All Lig', sample_reps=rep_no,
@@ -565,7 +565,7 @@ for transformation, replica_sets in itertools.groupby(transformations, key=lambd
     plt.title('Complex: ' + transformation)
 
     # save bs to a file
-    with open(f'analysis/ddg_{transformation}_{tseed}.json', 'w') as bs_file:
+    with open(f'analysis/ddg_135_{transformation}_{tseed}.json', 'w') as bs_file:
         bs_file.write(json.dumps(bootstrapped_ddGs))
 
     for rep_no, dGs in bootstrapped_ddGs.items():
