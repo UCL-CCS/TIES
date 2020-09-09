@@ -178,6 +178,7 @@ exp_data = get_exp_data()
 systems = []
 complexes = []
 ddg_minus_exp = {}
+ddgs = {}
 
 root_work = Path('/home/dresio/ucl/validation/replica20')
 
@@ -185,37 +186,42 @@ root_work = Path('/home/dresio/ucl/validation/replica20')
 # ligand
 transformations = list(root_work.glob('tyk2/analysis/ddg_l*_l*_*.json'))
 trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['tyk2'], trans_ddGs, sds, root_work, filename='tyk2', plots=[2, 3])
-ddg_minus_exp['tyk2'] = merge_protein_cases(exp_data['tyk2'], trans_ddGs)
+# plot_ddgs(exp_data['tyk2'], trans_ddGs, sds, root_work, filename='tyk2', plots=[2, 3])
+# ddg_minus_exp['tyk2'] = merge_protein_cases(exp_data['tyk2'], trans_ddGs)
+ddgs['tyk2'] = trans_ddGs
 
 # mcl1
 # ligand
 transformations = list(root_work.glob('mcl1/analysis/ddg_l*_l*_*.json'))
 trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['mcl1'], trans_ddGs, sds, root_work, filename='mcl1', yrange=1, plots=[4, 2])
-ddg_minus_exp['mcl1'] = merge_protein_cases(exp_data['mcl1'], trans_ddGs)
+# plot_ddgs(exp_data['mcl1'], trans_ddGs, sds, root_work, filename='mcl1', yrange=1, plots=[4, 2])
+# ddg_minus_exp['mcl1'] = merge_protein_cases(exp_data['mcl1'], trans_ddGs)
+ddgs['mcl1'] = trans_ddGs
 
 # thrombin
 # lig
 transformations = list(root_work.glob('thrombin/analysis/ddg_l*_l*_*.json'))
 trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['thrombin'], trans_ddGs, sds, root_work, filename='thrombin', yrange=0.5, plots=[2, 3])
-ddg_minus_exp['thrombin'] = merge_protein_cases(exp_data['thrombin'], trans_ddGs)
+# plot_ddgs(exp_data['thrombin'], trans_ddGs, sds, root_work, filename='thrombin', yrange=0.5, plots=[2, 3])
+# ddg_minus_exp['thrombin'] = merge_protein_cases(exp_data['thrombin'], trans_ddGs)
+ddgs['thrombin'] = trans_ddGs
 
 # ptp1b
 # lig
 transformations = list(root_work.glob('ptp1b/analysis/ddg_l*_l*_*.json'))
 trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['ptp1b'], trans_ddGs, sds, root_work, filename='ptp1b', yrange=3, plots=[2, 3])
-ddg_minus_exp['ptp1b'] = merge_protein_cases(exp_data['ptp1b'], trans_ddGs)
+# plot_ddgs(exp_data['ptp1b'], trans_ddGs, sds, root_work, filename='ptp1b', yrange=3, plots=[2, 3])
+# ddg_minus_exp['ptp1b'] = merge_protein_cases(exp_data['ptp1b'], trans_ddGs)
+ddgs['ptp1b'] = trans_ddGs
 
 
 # cdk2
 # lig
 transformations = list(root_work.glob('cdk2/analysis/ddg_l*_l*_*.json'))
 trans_ddGs, sds = combine(transformations)
-plot_ddgs(exp_data['cdk2'], trans_ddGs, sds, root_work, filename='cdk2', yrange=0.5, plots=[1, 3])
-ddg_minus_exp['cdk2'] = merge_protein_cases(exp_data['cdk2'], trans_ddGs)
+# plot_ddgs(exp_data['cdk2'], trans_ddGs, sds, root_work, filename='cdk2', yrange=0.5, plots=[1, 3])
+# ddg_minus_exp['cdk2'] = merge_protein_cases(exp_data['cdk2'], trans_ddGs)
+ddgs['cdk2'] = trans_ddGs
 
 
 symbol_mapping = {
@@ -235,36 +241,94 @@ colour_mapping = {
 
 
 # ------------------------
-# plot for each protein separately the progress
-plt.figure(figsize=(15, 7))
-plt.rcParams.update({'font.size': 15})
+def ddgs_relExp_by_prot():
+    # plot for each protein separately the progress
+    plt.figure(figsize=(15, 7))
+    plt.rcParams.update({'font.size': 15})
 
-protein_counter = 1
-for protein, dists in ddg_minus_exp.items():
-    plt.subplot(2, 3, protein_counter)
-    plt.title(protein.upper())
-    if protein_counter in (1, 4):
-        plt.ylabel('$\\rm |\Delta\Delta G - exp| $')
-    if protein_counter in (3, 4, 5):
-        plt.xlabel('# Replicas used in bootstrapping / 20')
+    protein_counter = 1
+    for protein, dists in ddg_minus_exp.items():
+        plt.subplot(2, 3, protein_counter)
+        plt.title(protein.upper())
+        if protein_counter in (1, 4):
+            plt.ylabel('$\\rm |\Delta\Delta G - exp| $')
+        if protein_counter in (3, 4, 5):
+            plt.xlabel('# Replicas used in bootstrapping / 20')
 
-    # add the experimental range?
+        # add the experimental range?
 
-    plt.ylim([0, 3])
+        plt.ylim([0, 3])
 
-    case_counter = 1
-    for rep_no, ddgs in dists.items():
-        plt.boxplot(ddgs, positions=[case_counter, ], widths=0.13, showfliers=False)
-        case_counter += 1
+        case_counter = 1
+        for rep_no, ddgs in dists.items():
+            plt.boxplot(ddgs, positions=[case_counter, ], widths=0.13, showfliers=False)
+            case_counter += 1
 
-    plt.xticks([1, 2, 3, 4], [5, 10, 15, 20])
+        plt.xticks([1, 2, 3, 4], [5, 10, 15, 20])
 
 
-    protein_counter += 1
+        protein_counter += 1
 
-plt.tight_layout()
-plt.savefig(root_work / 'ddgs_byprot.png')
-# plt.show()
+    plt.tight_layout()
+    plt.savefig(root_work / 'ddgs_byprot.png')
+    # plt.show()
+#ddgs_relExp_by_prot()
+
+def ties_ddgs_dists(ddgs):
+    # plot for each protein separately the progress
+    plt.figure(figsize=(10, 5))
+    # plt.rcParams.update({'font.size': 12})
+
+    limit_cases = 5
+    protein_counter = 1
+    for protein, dists in ddgs.items():
+        case_counter = 0
+        # plt.ylim([0, 3])
+
+        for trans_name, ddgs in dists.items():
+            if 'l6_l14' in trans_name and protein == 'ptp1b':
+                print('skipping the bad case ptp1b l6-l14')
+                continue
+
+            # e.g. '/home/dresio/ucl/validation/replica20/tyk2/analysis/ddg_l15_l10'
+            _, left, right = trans_name.split('/')[-1].upper().split('_')
+
+            plt.subplot(limit_cases, 5, protein_counter + case_counter * 5)
+            # plt.title(f'{protein.upper()} {left}-{right}')
+            if protein_counter in (1, ):
+                plt.ylabel('P(x)')
+            if case_counter in (limit_cases - 1, ):
+                plt.xlabel(r' $\rm \Delta \Delta G ^ {TIES} - \mu $')
+            if case_counter == 0:
+                plt.title(f'{protein.upper()}')
+            plt.text(0, 0.05, f'{left}-{right}', horizontalalignment='center') # verticalalignment='center'
+
+            # take only the bootstrapped 5 replicas from the 20 replicas we had
+            five_rep_bs = np.array(ddgs[5])
+            # take the mean away from the all samples
+            hist_no_mean = five_rep_bs - np.mean(five_rep_bs)
+            # determine the number of beans (every 0.1 ddg)
+            bin_no = int((max(hist_no_mean) - min(hist_no_mean))/0.1)
+            print(f'Samples {bin_no}')
+
+            plt.hist(hist_no_mean, bins=bin_no, alpha=0.4, density=True)
+            plt.tick_params(
+                axis='y',  # changes apply to the x-axis
+                which='both',  # both major and minor ticks are affected
+                left=False,  # ticks along the bottom edge are off
+                top=False,  # ticks along the top edge are off
+                labelleft=False)
+            case_counter += 1
+            if case_counter > (limit_cases - 1):
+                break
+
+        # plt.xticks([1, 2, 3, 4], [5, 10, 15, 20])
+
+        protein_counter += 1
+
+    plt.tight_layout()
+    plt.savefig(root_work / 'noexp_ddgs_dists.png')
+ties_ddgs_dists(ddgs)
 
 # -----------------------------------
 # lot the ddg-exp joined distributions as a bar plot
