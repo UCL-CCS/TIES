@@ -26,7 +26,9 @@ jobs:
 #         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Install ties
-      run: pip install .
+      run: |
+        pip install .
+        which pip
     - name: Install pytest
       run: |
         pip install pytest
