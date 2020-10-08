@@ -1,0 +1,9 @@
+name: ties20
+channels:
+  - conda-forge
+dependencies:
+  - ambertools
+  - python=3.6   # or 2.7
+#  - numpy=1.9.*
+  - pip:
+    - Flask-Testing
