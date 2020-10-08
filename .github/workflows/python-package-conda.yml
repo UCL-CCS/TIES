@@ -28,6 +28,8 @@ jobs:
     - name: Install ties
       run: pip install .
     - name: Install pytest
-      run: pip install pytest
+      run: |
+        pip install pytest
+        conda install pytest
     - name: Test with pytest
       run: $CONDA/bin/pytest
