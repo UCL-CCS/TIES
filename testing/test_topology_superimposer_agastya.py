@@ -8,11 +8,13 @@ For example, if there is a linking atom C that mutates into O,
 Then we might be able to detect that this exact mutation takes place. 1
 """
 
-from ties.topology_superimposer import SuperimposedTopology, get_atoms_bonds_from_ac, \
-    superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb
-import networkx as nx
-import MDAnalysis as mda
 from os import path
+from pathlib import Path
+
+import MDAnalysis as mda
+from ties.topology_superimposer import get_atoms_bonds_from_ac, \
+    superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb
+
 
 
 def load_problem_from_dir(liglig_path):
@@ -21,13 +23,14 @@ def load_problem_from_dir(liglig_path):
     """
     ligand_from, ligand_to = path.basename(liglig_path).split('-')
     print("working now on: ", liglig_path)
+    liglig_fullpath = Path(__file__).parent / liglig_path
     # fixme - make sure these two are superimposed etc, that data is used later
-    mda_left_lig = mda.Universe(path.join(liglig_path, 'init_%s.pdb' % ligand_from))
-    mda_right_lig = mda.Universe(path.join(liglig_path, 'final_%s.pdb' % ligand_to))
+    mda_left_lig = mda.Universe(path.join(liglig_fullpath, 'init_%s.pdb' % ligand_from))
+    mda_right_lig = mda.Universe(path.join(liglig_fullpath, 'final_%s.pdb' % ligand_to))
 
     # read the corresponding charge values for the l14
-    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_path, 'init_%s.ac' % ligand_from))
-    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_path, 'final_%s.ac' % ligand_to))
+    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_fullpath, 'init_%s.ac' % ligand_from))
+    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_fullpath, 'final_%s.ac' % ligand_to))
 
     # fixme - make sure these two are superimposed etc, that data is used later
     # get the atom location using the .pdb which are superimposed onto each other
