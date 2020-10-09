@@ -30,6 +30,6 @@ jobs:
         $CONDA/bin/pip install .
     - name: Install pytest
       run: |
-        conda install pytest
+        $CONDA/bin/pip install pytest
     - name: Test with pytest
-      run: $CONDA/bin/pytest
+      run: $CONDA/bin/python3 -m pytest
