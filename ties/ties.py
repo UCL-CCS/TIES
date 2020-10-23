@@ -12,17 +12,72 @@ from pathlib import Path, PurePosixPath
 
 from ties.generator import *
 
-def command_line_script():
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
+def find_antechamber(args):
+    # set up ambertools
+    if args.ambertools_home is not None:
+        # user manually specified the variable.
+        ambertools_bin = args.ambertools_home / 'bin'
+    elif os.getenv('AMBERHOME'):
+        ambertools_bin = PurePosixPath(os.getenv('AMBERHOME')) / 'bin'
+    elif os.getenv('AMBER_PREFIX'):
+        ambertools_bin = PurePosixPath(os.getenv('AMBER_PREFIX')) / 'bin'
+    else:
+        print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
+        print('Option 1: source your ambertools script amber.sh')
+        print('Option 2: specify manually the path to amberhome with -ambertools option')
+        sys.exit()
 
+    # fixme - test ambertools at this stage before proceeding
+    return ambertools_bin
+
+
+def convert_prepi_to_mol2(filename, output_name, args, workplace_root):
+    """
+    If the file is not a prepi file, this function does not do anything.
+    Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
+
+    @output_name: 'left' or 'right'
+
+    Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
+    """
+    base, ext = os.path.splitext(filename.lower())
+    if ext != '.prepi':
+        return filename
+
+    print('Searching for antechamber in order to convert .prepi to a .mol2 file')
+    ambertools_bin = find_antechamber(args)
+
+    # subprocess options for calling ambertools
+    subprocess_kwargs = {
+        "check": True, "text": True,
+        "cwd": workplace_root,
+        "stdout": sys.stdout,  # subprocess.PIPE,
+        "stderr": sys.stderr,  # subprocess.PIPE,
+        "timeout": 30  # seconds
+    }
+
+    # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
+    new_filename = output_name + '_converted.mol2'
+    subprocess.run([ambertools_bin / 'antechamber', '-i', filename, '-fi', 'prepi',
+                    '-o', new_filename, '-fo', 'mol2'],
+                   **subprocess_kwargs)
+    return new_filename
+
+
+def str2bool(v):
+    "ArgumentParser tool to figure out the bool value"
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
                         help='Action to be performed. E.g. "ties rename, ties create, ties .." ')
@@ -126,6 +181,12 @@ def command_line_script():
         print(f'File {right_ligand} not found in {workplace_root}')
         sys.exit(1)
 
+    # fixme
+    # if it is .prepi file format, convert it to .mol2,
+    # however, the antechamber checks must take place first
+    # left_ligand = convert_prepi_to_mol2(left_ligand, 'left', args, workplace_root)
+    # right_ligand = convert_prepi_to_mol2(right_ligand, 'right', args, workplace_root)
+
     if args.action == 'rename':
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
         renameAtomNamesUniqueAndResnames(left_ligand, right_ligand)
@@ -149,20 +210,7 @@ def command_line_script():
     # use the original coords because antechamber can change them slightly
     use_original_coor = True
 
-    # set up ambertools
-    if args.ambertools_home is not None:
-        # user manually specified the variable.
-        ambertools_bin = args.ambertools_home / 'bin'
-    elif os.getenv('AMBERHOME'):
-        ambertools_bin = PurePosixPath(os.getenv('AMBERHOME')) / 'bin'
-    elif os.getenv('AMBER_PREFIX'):
-        ambertools_bin = PurePosixPath(os.getenv('AMBER_PREFIX')) / 'bin'
-    else:
-        print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-        print('Option 1: source your ambertools script.')
-        print('Option 2: specify manually the path to amberhome with -ambertools')
-        sys.exit()
-    # fixme - test ambertools at this stage before proceeding
+    ambertools_bin = find_antechamber(args)
 
     if args.net_charge is None:
         print('Please supply the net charge of the ligands with -nc')

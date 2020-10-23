@@ -2595,6 +2595,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     suptop.remove_node_pair((n1, n2))
 
     if net_charge_filter and not ignore_charges_completely:
+        # Note that we apply this rule to each suptop.
+        # This is because we are only keeping one suptop right now.
+        # However, if disjointed components are allowed, these number might change.
         # ensure that each found component has net charge < 0.1
         for suptop in suptops[::-1]:
             # fixme this should be function within suptop
