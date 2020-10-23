@@ -154,7 +154,7 @@ systems = []
 complexes = []
 dddgs = {}
 
-root_work = Path('/home/dresio/ucl/validation/replica20')
+root_work = Path('/home/dresio/ucl/ties/ties20/replica20')
 
 # tyk2
 # ligand
@@ -267,7 +267,7 @@ plt.legend()
 
 plt.tight_layout()
 plt.subplots_adjust(left=0.08)
-fig.text(0.01, 0.4, r'$\rm \langle | \Delta\Delta G(r) - \Delta\Delta G(r+1)| \rangle_{mean} $', rotation='vertical')
+fig.text(0.01, 0.3, r'$\rm \langle | \Delta\Delta G(r) - \Delta\Delta G(r+1)| \rangle_{mean}  $ (kcal/mol)', rotation='vertical')
 
 plt.savefig(root_work / 'relative_ddgs_byprot.png')
 # plt.show()

@@ -198,7 +198,7 @@ exp_data = get_exp_data()
 ligs = OrderedDict()
 complexs = OrderedDict()
 
-root_work = Path('/home/dresio/ucl/validation/replica20')
+root_work = Path('/home/dresio/ucl/ties/ties20/replica20')
 
 # tyk2
 # ligand
@@ -322,8 +322,8 @@ for prot, transformations in ligs.items():
         label_kwarg['label'] = ''
 corr_sds = pearsonr(com_sds_one, lig_sds_one)
 print('corr', corr_sds)
-plt.ylabel(r'$\rm \Delta G^{protein} ~ \sigma $')
-plt.xlabel(r'$\rm \Delta G^{water} ~ \sigma $')
+plt.ylabel(r'$\rm SD(\Delta G)_{TIES}^{protein} (kcal/mol)  $')
+plt.xlabel(r'$\rm SD(\Delta G)_{TIES}^{water} (kcal/mol) $')
 plt.text(0.01, 2.9, f'$\\rm \\rho$ = {corr_sds[0]:.2f}')
 plt.legend(loc='lower right')
 plt.savefig(root_work / 'dg_sds_corr_lig_complex.png', dpi=300)

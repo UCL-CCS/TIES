@@ -23,15 +23,16 @@ def find_waters(topo, traj, prot_sel='protein', lig_sel='resname ged', wat_sel='
     water_o = u.select_atoms(wat_sel)
     print('Wat', len(water_o))
 
-    closest_wat_number = 10
+    closest_wat_number = 3
     # create the trajectory writers, which will
-    mda_writers = [mda.Writer(f'{traj_dcd_prefix}{watNum}.dcd', n_atoms=len(lig) + len(prot) + 3*watNum)
-                   for watNum in range(1, closest_wat_number + 1)]
+    # mda_writers = [mda.Writer(f'{traj_dcd_prefix}{watNum}.dcd', n_atoms=len(lig) + len(prot) + 3*watNum)
+    #                for watNum in range(0, closest_wat_number + 1)]
+    out_traj = mda.Writer(f'com_wat3.dcd', n_atoms=len(lig) + len(prot) + 3 * closest_wat_number)
 
     cum_sums = np.zeros(len(water_o.residues))
 
     every_nth_frame = 1
-    number_of_frames = 2
+    number_of_frames = 3
     start_frame = 0 # 1 means the second frame
     water_ids_per_frame = []
     for ts in u.trajectory[start_frame:number_of_frames:every_nth_frame]:
@@ -57,12 +58,11 @@ def find_waters(topo, traj, prot_sel='protein', lig_sel='resname ged', wat_sel='
         # extract only the water IDs
         water_ids_per_frame.append([ts.frame] + [wid for wid, dst in chained_ord])
 
-        # write the trajectories with the closest water molecules
-        for watNum in range(0, closest_wat_number):
-            # select the best waters, get their IDs and extract the indices
-            com_wat_ids = [chained_ord[x][0] - 1 for x in range(watNum + 1)]
-            com_wat = u.residues[com_wat_ids]
-            mda_writers[watNum].write(prot + lig + com_wat.atoms)
+        # select the best waters, get their IDs and convert them to indices
+        com_wat_resids = [chained_ord[x][0] - 1 for x in range(closest_wat_number)]
+        com_wat = u.residues[com_wat_resids]
+        print('Writing atoms to the traj:', len(prot + lig + com_wat.atoms))
+        out_traj.write(prot + lig + com_wat.atoms)
 
     # save the water molecules
     np.savetxt(output_file, water_ids_per_frame, fmt='%d', header='Frame closest_watID1 closest_watID2 ..')
@@ -84,6 +84,8 @@ if __name__ == '__main__':
     parser.add_argument('-top', type=str, help='Topology file', dest='top')
     args = parser.parse_args()
 
-    #root_dir = Path('/home/dresio/ucl/validation/resp_validation/mcl1/l1_l8/complex/lambda_0.00/rep1')
     find_waters(args.top, args.traj)
-    # find_waters('morph_solv.prmtop', 'prod.dcd')
+
+    # example:
+    # /home/dresio/ucl/validation/resp_validation/mcl1/l1_l8/complex/lambda_0.00/rep1
+    # python ~/path/scripts/mda/find_shunzhou_waters.py -top morph_solv.prmtop -traj prod.dcd &
