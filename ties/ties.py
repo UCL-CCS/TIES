@@ -31,7 +31,31 @@ def find_antechamber(args):
     return ambertools_bin
 
 
-def convert_prepi_to_mol2(filename, output_name, args, workplace_root):
+def call_antechamber(storage_directory, ambertools_bin, left_ligand, file_input_type, atom_type, net_charge, antechamber_dr,
+                     antechamber_charge_type, subprocess_kwargs):
+    """
+    A helper function that calls antechamber and ensures that the log is kept.
+    The default behaviour is to keep the results in the file.
+    """
+    print('Ambertools antechamber stage: converting to .mol2 and generating charges if necessary')
+
+    # prepare the directory
+    if not os.path.isdir(storage_directory):
+        os.makedirs(storage_directory)
+    
+
+    # fixme - does not throw errors? try to make it throw an error
+    # todo - save the output in a file
+    # todo - ensure that the antechamber is run in the right directory, which is a different directory
+    subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', file_input_type,
+                    '-o', 'left.mol2', '-fo', 'mol2',
+                    '-at', atom_type, '-nc', str(net_charge),
+                    '-dr', antechamber_dr] + antechamber_charge_type,
+                   **subprocess_kwargs)
+    pass
+
+
+def convert_ac_to_mol2(filename, output_name, args, workplace_root, antechamber_dr='no'):
     """
     If the file is not a prepi file, this function does not do anything.
     Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
@@ -40,29 +64,50 @@ def convert_prepi_to_mol2(filename, output_name, args, workplace_root):
 
     Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
     """
-    base, ext = os.path.splitext(filename.lower())
-    if ext != '.prepi':
+    base, ext = os.path.splitext(str(filename).lower())
+    if ext != '.ac':
         return filename
 
-    print('Searching for antechamber in order to convert .prepi to a .mol2 file')
+    print('Will convert .ac to a .mol2 file')
+    print('Searching for antechamber')
     ambertools_bin = find_antechamber(args)
+
+    # a directory for the operation
+    conversion_dir = f'converting_{output_name}_to_mol2'
+    if not os.path.isdir(conversion_dir):
+        os.makedirs(conversion_dir)
 
     # subprocess options for calling ambertools
     subprocess_kwargs = {
         "check": True, "text": True,
-        "cwd": workplace_root,
-        "stdout": sys.stdout,  # subprocess.PIPE,
-        "stderr": sys.stderr,  # subprocess.PIPE,
+        "cwd": workplace_root / conversion_dir,
         "timeout": 30  # seconds
     }
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-    print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-    new_filename = output_name + '_converted.mol2'
-    subprocess.run([ambertools_bin / 'antechamber', '-i', filename, '-fi', 'prepi',
-                    '-o', new_filename, '-fo', 'mol2'],
-                   **subprocess_kwargs)
-    return new_filename
+    print('Antechamber: converting the .ac to .mol2')
+    new_filename = output_name + '_converted_from_ac.mol2'
+
+    log_filename = workplace_root / conversion_dir / "antechamber_conversion.log"
+    with open(log_filename, 'w') as LOG:
+        try:
+            subprocess.run([ambertools_bin / 'antechamber',
+                                '-i', filename.resolve(), '-fi', 'ac',
+                                '-o', new_filename, '-fo', 'mol2',
+                                '-dr', antechamber_dr],
+                                stdout=LOG, stderr=LOG,
+                               **subprocess_kwargs)
+        except subprocess.CalledProcessError as E:
+            print('An error occured during the antechamber conversion. ')
+            print(f'Please see whathe directory: { workplace_root / conversion_dir}')
+            print(f'ERROR can be found in the file: {log_filename}')
+            raise E
+
+
+    # return a path to the new file as the input
+    converted_file = workplace_root / conversion_dir / new_filename
+    print(f'Converted .ac file to .mol2. The location of the new file: {converted_file}')
+    return converted_file
 
 
 def str2bool(v):
@@ -181,11 +226,16 @@ def command_line_script():
         print(f'File {right_ligand} not found in {workplace_root}')
         sys.exit(1)
 
+    if args.antechamber_dr is True:
+        antechamber_dr = 'yes'
+    else:
+        antechamber_dr = 'no'
+    print(f'Will use antechamber dr: {antechamber_dr}')
+
     # fixme
-    # if it is .prepi file format, convert it to .mol2,
-    # however, the antechamber checks must take place first
-    # left_ligand = convert_prepi_to_mol2(left_ligand, 'left', args, workplace_root)
-    # right_ligand = convert_prepi_to_mol2(right_ligand, 'right', args, workplace_root)
+    # if it is .ac file format (ambertools, almost the same as .pdb), convert it to .mol2,
+    left_ligand = convert_ac_to_mol2(left_ligand, 'left', args, workplace_root, antechamber_dr)
+    right_ligand = convert_ac_to_mol2(right_ligand, 'right', args, workplace_root, antechamber_dr)
 
     if args.action == 'rename':
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
@@ -272,12 +322,6 @@ def command_line_script():
     namd_prod = "prod_2017.namd"  # only different because uses Berendsen
     print(f'The NAMD production file in use is {namd_prod}')
 
-    if args.antechamber_dr is True:
-        antechamber_dr = 'yes'
-    else:
-        antechamber_dr = 'no'
-    print(f'Will use antechamber dr: {antechamber_dr}')
-
     redist_q_over_unmatched = args.redistribute_charges_over_unmatched
     print(f'Will distribute introduced q disparity in the unmatched region. {redist_q_over_unmatched}')
 
@@ -326,13 +370,8 @@ def command_line_script():
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     if not (workplace_root / 'left.mol2').is_file():
-        print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-        # fixme - does not throw errors? try to make it throw an error
-        subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', file_input_type,
-                                            '-o', 'left.mol2', '-fo', 'mol2',
-                                            '-at', atom_type, '-nc', str(net_charge),
-                                            '-dr', antechamber_dr] + antechamber_charge_type,
-                                   **subprocess_kwargs)
+        call_antechamber("process_left_ambertools", ambertools_bin, left_ligand, file_input_type, atom_type, net_charge, antechamber_dr,
+                     antechamber_charge_type, subprocess_kwargs)
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     if not (workplace_root / 'right.mol2').is_file():
