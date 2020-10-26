@@ -31,28 +31,58 @@ def find_antechamber(args):
     return ambertools_bin
 
 
-def call_antechamber(storage_directory, ambertools_bin, left_ligand, file_input_type, atom_type, net_charge, antechamber_dr,
-                     antechamber_charge_type, subprocess_kwargs):
+def prepare_antechamber_mol2_input(molecule, workplace_root, ambertools_bin, left_ligand,
+                                   file_input_type, atom_type, net_charge,
+                                   antechamber_dr, antechamber_charge_type):
     """
+    Convert the files into .mol2 files. Generate BCC charges if needed.
     A helper function that calls antechamber and ensures that the log is kept.
     The default behaviour is to keep the results in the file.
+
+    # antechamber note:
+    # charge type -c is not used if user provided prefer to use their charges
     """
-    print('Ambertools antechamber stage: converting to .mol2 and generating charges if necessary')
+    print('Antechamber: converting to .mol2 and generating charges if necessary')
+    if not antechamber_charge_type:
+        print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
+    else:
+        print('Antechamber: Generating BCC charges')
+
+    storage_directory = f"initial_{molecule}_preparation"
 
     # prepare the directory
     if not os.path.isdir(storage_directory):
         os.makedirs(storage_directory)
-    
+
+    cwd = workplace_root / storage_directory
+
+    subprocess_kwargs = {
+        "check" : True, "text" : True,
+        "timeout" : 60 * 30 # 30 minutes
+    }
 
     # fixme - does not throw errors? try to make it throw an error
     # todo - save the output in a file
     # todo - ensure that the antechamber is run in the right directory, which is a different directory
-    subprocess.run([ambertools_bin / 'antechamber', '-i', left_ligand, '-fi', file_input_type,
-                    '-o', 'left.mol2', '-fo', 'mol2',
-                    '-at', atom_type, '-nc', str(net_charge),
-                    '-dr', antechamber_dr] + antechamber_charge_type,
-                   **subprocess_kwargs)
-    pass
+    log_filename = cwd / "antechamber.log"
+    with open(log_filename, 'w') as LOG:
+        try:
+            subprocess.run([ambertools_bin / 'antechamber',
+                            '-i', left_ligand, '-fi', file_input_type,
+                            '-o', f'{molecule}.mol2', '-fo', 'mol2',
+                            '-at', atom_type, '-nc', str(net_charge),
+                            '-dr', antechamber_dr] + antechamber_charge_type,
+                           cwd=cwd,
+                           stdout=LOG, stderr=LOG,
+                           **subprocess_kwargs)
+        except subprocess.CalledProcessError as E:
+            print('ERROR: occured when creating the input .mol2 file with antechamber. ')
+            print(f'ERROR: The output was saved in the directory: {cwd}')
+            print(f'ERROR: can be found in the file: {log_filename}')
+            raise E
+    print(f'Converted {molecule} into {molecule}.mol2, Log: {log_filename}')
+    # copy the output to the root directory, e.g.  root/left.mol2
+    shutil.copy(cwd / f'{molecule}.mol2', workplace_root / f'{molecule}.mol2')
 
 
 def convert_ac_to_mol2(filename, output_name, args, workplace_root, antechamber_dr='no'):
@@ -98,11 +128,10 @@ def convert_ac_to_mol2(filename, output_name, args, workplace_root, antechamber_
                                 stdout=LOG, stderr=LOG,
                                **subprocess_kwargs)
         except subprocess.CalledProcessError as E:
-            print('An error occured during the antechamber conversion. ')
-            print(f'Please see whathe directory: { workplace_root / conversion_dir}')
-            print(f'ERROR can be found in the file: {log_filename}')
+            print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
+            print(f'ERROR: The output was saved in the directory: { workplace_root / conversion_dir}')
+            print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
             raise E
-
 
     # return a path to the new file as the input
     converted_file = workplace_root / conversion_dir / new_filename
@@ -301,6 +330,7 @@ def command_line_script():
 
     # A list of pairs that should be matched
     # fixme - this requires better parsing capabilities
+    # fixme - this should be handled by a function and throw ArgumentException if something is off
     manually_matched = []
     if args.manual_match_file is not None:
         with open(args.manual_match_file) as IN:
@@ -365,22 +395,17 @@ def command_line_script():
         "timeout" : 60 * 60 # 60 minute timeout
     }
 
-    # antechamber note:
-    # charge type -c is not used if user provided prefer to use their charges
-
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     if not (workplace_root / 'left.mol2').is_file():
-        call_antechamber("process_left_ambertools", ambertools_bin, left_ligand, file_input_type, atom_type, net_charge, antechamber_dr,
-                     antechamber_charge_type, subprocess_kwargs)
-
-    # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+        prepare_antechamber_mol2_input("left", workplace_root, ambertools_bin, left_ligand,
+                                       file_input_type, atom_type,
+                                       net_charge, antechamber_dr,
+                                       antechamber_charge_type)
     if not (workplace_root / 'right.mol2').is_file():
-        print('Ambertools antechamber stage: converting to .mol2 and generating charges')
-        subprocess.run([ambertools_bin / 'antechamber', '-i', right_ligand, '-fi', file_input_type,
-                                    '-o', 'right.mol2', '-fo', 'mol2',
-                                    '-at', atom_type, '-nc', str(net_charge),
-                                    '-dr', antechamber_dr] + antechamber_charge_type,
-                                   **subprocess_kwargs)
+        prepare_antechamber_mol2_input("right", workplace_root, ambertools_bin, right_ligand,
+                                       file_input_type, atom_type,
+                                       net_charge, antechamber_dr,
+                                       antechamber_charge_type)
 
     # scan the files to see if it created DUMMY DU atoms in the .mol2, remove the atoms if that's the case
     removeDU_atoms(workplace_root / 'left.mol2')
