@@ -139,6 +139,41 @@ def convert_ac_to_mol2(filename, output_name, args, workplace_root, antechamber_
     return converted_file
 
 
+def generate_frcmod(parmchk2, workplace_root, molecule, atom_type):
+    print(f'Parmchk2: generate the .frcmod for {molecule}.mol2')
+
+    # prepare the directory
+    cwd_dir = workplace_root / f'generating_frcmod_{molecule}'
+    if not os.path.isdir(cwd_dir):
+        os.makedirs(cwd_dir)
+
+    subprocess_kwargs = {
+        "check": True, "text": True,
+        "cwd": cwd_dir,
+        "timeout": 60 * 5  # 5 minutes
+    }
+
+    log_filename = cwd_dir / "parmchk2.log"
+    with open(log_filename, 'w') as LOG:
+        try:
+            subprocess.run([parmchk2,
+                                '-i', (workplace_root / f'{molecule}.mol2').resolve(),
+                                '-o', f'{molecule}.frcmod',
+                                '-f', 'mol2',
+                                '-s', atom_type],
+                               stdout=LOG, stderr=LOG,
+                               **subprocess_kwargs)
+        except subprocess.CalledProcessError as E:
+            print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
+            print(f'ERROR: The output was saved in the directory: {cwd_dir}')
+            print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
+            raise E
+
+    frcmod = cwd_dir / (str(molecule) + ".frcmod")
+    print(f'Parmchk2: created successfully the .frcmod. Location: {frcmod}')
+    return frcmod
+
+
 def str2bool(v):
     "ArgumentParser tool to figure out the bool value"
     if isinstance(v, bool):
@@ -277,8 +312,8 @@ def command_line_script():
         sys.exit()
 
     if not args.protein:
-        print('Please supply the protein file with -p')
-        sys.exit()
+        protein_filename = None
+        print('No protein was select. Generating only one delta G directory.')
     else:
         protein_filename = args.protein
         if not os.path.isfile(protein_filename):
@@ -469,31 +504,22 @@ def command_line_script():
 
     # generate the functional forms
     print('Ambertools parmchk2 generating .frcmod')
-    left_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'left.mol2', '-o', 'left.frcmod',
-                                 '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
-    right_chk2 = subprocess.run([ambertools_bin / 'parmchk2', '-i', 'right.mol2', '-o', 'right.frcmod',
-                                 '-f', 'mol2', '-s', atom_type], **subprocess_kwargs)
+    left_frcmod = generate_frcmod(ambertools_bin / 'parmchk2', workplace_root, 'left', atom_type)
+    right_frcmod = generate_frcmod(ambertools_bin / 'parmchk2', workplace_root, 'right', atom_type)
 
     # join the .frcmod files
-    left_frcmod = workplace_root / 'left.frcmod'
-    right_frcmod = workplace_root / 'right.frcmod'
     hybrid_frcmod = workplace_root / 'morph.frcmod'
     join_frcmod_files2(left_frcmod, right_frcmod, hybrid_frcmod)
 
     # if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
+    # fixme - this should be a part of the "joining above"
     updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield, ligand_ff,
                                                  ambertools_bin, ambertools_script_dir, cwd=workplace_root)
     with open(hybrid_frcmod, 'w') as FOUT:
         FOUT.write(updated_frcmod_content)
 
-    # prepare
-    shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
-    shutil.copy(namd_script_dir / "ddg.py", workplace_root)
-
-
     ##########################################################
     # ------------------   Ligand ----------------------------
-
     # pick the right tleap instuctions
     if use_hybrid_single_dual_top:
         ligand_tleap_in = 'leap_ligand_sdtop.in'
@@ -521,32 +547,37 @@ def command_line_script():
     ##########################################################
     # ------------------ Complex  ----------------------------
     # calculate the charges of the protein (using ambertools)
-    protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
-                           ambertools_bin, ambertools_script_dir / 'solv_prot.in',
-                           subprocess_kwargs, amber_forcefield)
+    if protein_filename is not None:
+        protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
+                               ambertools_bin, ambertools_script_dir / 'solv_prot.in',
+                               subprocess_kwargs, amber_forcefield)
 
-    # pick the right tleap instuctions
-    if use_hybrid_single_dual_top:
-        complex_tleap_in = 'leap_complex_sdtop.in'
-    else:
-        complex_tleap_in = 'leap_complex.in'
+        # pick the right tleap instuctions
+        if use_hybrid_single_dual_top:
+            complex_tleap_in = 'leap_complex_sdtop.in'
+        else:
+            complex_tleap_in = 'leap_complex.in'
 
-    prepare_inputs(workplace_root, directory='complex',
-                   protein=protein_filename,
-                   hybrid_mol2=hybrid_mol2,
-                   hybrid_frc=hybrid_frcmod,
-                   left_right_mapping=left_right_matching_json,
-                   namd_script_loc=namd_script_dir,
-                   scripts_loc=script_dir,
-                   tleap_in=complex_tleap_in,
-                   protein_ff=amber_forcefield,
-                   ligand_ff=ligand_ff,
-                   net_charge=net_charge + protein_net_charge,
-                   ambertools_script_dir=ambertools_script_dir,
-                   subprocess_kwargs=subprocess_kwargs,
-                   ambertools_bin=ambertools_bin,
-                   namd_prod=namd_prod,
-                   hybrid_topology=use_hybrid_single_dual_top)
+        prepare_inputs(workplace_root, directory='complex',
+                       protein=protein_filename,
+                       hybrid_mol2=hybrid_mol2,
+                       hybrid_frc=hybrid_frcmod,
+                       left_right_mapping=left_right_matching_json,
+                       namd_script_loc=namd_script_dir,
+                       scripts_loc=script_dir,
+                       tleap_in=complex_tleap_in,
+                       protein_ff=amber_forcefield,
+                       ligand_ff=ligand_ff,
+                       net_charge=net_charge + protein_net_charge,
+                       ambertools_script_dir=ambertools_script_dir,
+                       subprocess_kwargs=subprocess_kwargs,
+                       ambertools_bin=ambertools_bin,
+                       namd_prod=namd_prod,
+                       hybrid_topology=use_hybrid_single_dual_top)
+
+    # prepare the post-analysis scripts
+    shutil.copy(namd_script_dir / "check_namd_outputs.py", workplace_root)
+    shutil.copy(namd_script_dir / "ddg.py", workplace_root)
 
     print('TIES 20 Finished')
 
