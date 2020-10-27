@@ -2540,7 +2540,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            align_molecules=True,
                            partial_rings_allowed=True,
                            ignore_charges_completely=False,
-                           ignore_bond_types=False,
+                           ignore_bond_types=True,
                            ignore_coords=False,
                            left_coords_are_ref=True,
                            use_general_type=True,
@@ -2620,10 +2620,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # we cannot have A-B where the bonds are different. In this case, we have A-B=C and A=B-C in a ring,
     # we could in theory remove A,B,C which makes sense as these will show slightly different behaviour,
     # and this we we avoid tensions in the bonds, and represent both
-    for st in suptops:
-        removed = st.removeMatchedPairsWithDifferentBonds()
-        if not removed:
-            print('Removed bonded pairs due to different bonds:', removed)
+    # fixme - apparently we are not relaying on thsese?
+    if not ignore_bond_types and False:
+        for st in suptops:
+            removed = st.removeMatchedPairsWithDifferentBonds()
+            if not removed:
+                print('Removed bonded pairs due to different bonds:', removed)
 
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
