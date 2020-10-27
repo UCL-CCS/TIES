@@ -402,6 +402,7 @@ class SuperimposedTopology:
         self._removed_because_disjointed_cc = []    # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
+        self._removed_because_diff_bonds = [] # the atoms pair uses a different bond
 
         # save the cycles in the left and right molecules
         if self.top1 is not None and self.top2 is not None:
@@ -611,6 +612,39 @@ class SuperimposedTopology:
 
         return rmsd
 
+    def removeMatchedPairsWithDifferentBonds(self):
+        """
+        Scan the matched pairs. Assume you have three pairs
+        A-B=C with the double bond on the right side,
+        and the alternative bonds
+        A=B-C remove all A, B and C pairs because of the different bonds
+        Remove them by finding that A-B is not A=B, and B=C is not B-C
+
+        return: the list of removed pairs
+        """
+
+        # extract the bonds for the matched molecules first
+        removed_pairs = []
+        for from_pair, bonded_pair_list in list(self.matched_pairs_bonds.items())[::-1]:
+            for bonded_pair, bond_type in bonded_pair_list:
+                # ignore if this combination was already checked
+                if bonded_pair in removed_pairs and from_pair in removed_pairs:
+                    continue
+
+                if bond_type[0] != bond_type[1]:
+                    # resolve this, remove the bonded pair from the matched atoms
+                    if not from_pair in removed_pairs:
+                        self.remove_node_pair(from_pair)
+                        removed_pairs.append(from_pair)
+                    if not bonded_pair in removed_pairs:
+                        self.remove_node_pair(bonded_pair)
+                        removed_pairs.append(bonded_pair)
+
+                    # keep the history
+                    self._removed_because_diff_bonds.append((from_pair, bonded_pair))
+
+        return removed_pairs
+
     def getDualTopologyBonds(self):
         """
         Get the bonds between all the atoms.
@@ -626,7 +660,11 @@ class SuperimposedTopology:
             from_pair_id = self.get_generated_atom_ID(from_pair)
             for bonded_pair, bond_type in bonded_pair_list:
                 if not self.ignore_bond_types:
-                    assert bond_type[0] == bond_type[1]
+                    if bond_type[0] != bond_type[1]:
+                        print(f'ERROR: bond types do not match, even though they apply to the same atoms')
+                        print(f'ERROR: left bond is "{bond_type[0]}" and right bond is "{bond_type[1]}"')
+                        print(f'ERROR: the bonded atoms are {bonded_pair}')
+                        raise Exception('The bond types do not correspong to each other')
                 # every bonded pair has to be in the topology
                 assert bonded_pair in self.matched_pairs
                 to_pair_id = self.get_generated_atom_ID(bonded_pair)
@@ -2576,6 +2614,16 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if not use_only_gentype:
         for st in suptops:
             st.matched_atom_types_are_the_same()
+
+    # todo - ensure that the bonds are used correctly. If the bonds disagree, but atom types are the same,
+    # remove both bonded pairs
+    # we cannot have A-B where the bonds are different. In this case, we have A-B=C and A=B-C in a ring,
+    # we could in theory remove A,B,C which makes sense as these will show slightly different behaviour,
+    # and this we we avoid tensions in the bonds, and represent both
+    for st in suptops:
+        removed = st.removeMatchedPairsWithDifferentBonds()
+        if not removed:
+            print('Removed bonded pairs due to different bonds:', removed)
 
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
