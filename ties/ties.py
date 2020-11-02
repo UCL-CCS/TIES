@@ -425,8 +425,6 @@ def command_line_script():
     subprocess_kwargs = {
         "check" : True, "text" : True,
         "cwd" : workplace_root,
-        "stdout" : sys.stdout, #subprocess.PIPE,
-        "stderr" : sys.stderr, #subprocess.PIPE,
         "timeout" : 60 * 60 # 60 minute timeout
     }
 
@@ -502,7 +500,6 @@ def command_line_script():
         rewrite_mol2_hybrid_top('left.mol2', list(left_right_matching["single_top_matched"].keys()))
         rewrite_mol2_hybrid_top('right.mol2', list(left_right_matching["single_top_matched"].values()))
 
-
     # generate the functional forms
     print('Ambertools parmchk2 generating .frcmod')
     left_frcmod = generate_frcmod(ambertools_bin / 'parmchk2', workplace_root, 'left', atom_type)
@@ -514,6 +511,7 @@ def command_line_script():
 
     # if the hybrid .frcmod needs new terms between the appearing/disappearing atoms, insert dummy ones
     # fixme - this should be a part of the "joining above"
+    # fixme - ideally returns the filepath to the key file
     updated_frcmod_content = check_hybrid_frcmod(hybrid_mol2, hybrid_frcmod, amber_forcefield, ligand_ff,
                                                  ambertools_bin, ambertools_script_dir, cwd=workplace_root)
     with open(hybrid_frcmod, 'w') as FOUT:

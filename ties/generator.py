@@ -220,16 +220,27 @@ def prepare_inputs(workplace_root, directory='complex',
         tleap_Cl_ions = ''
     elif Cl_num > 0:
         tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+
     open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
                                                               ligand_ff=ligand_ff,
                                                               NaIons=tleap_Na_ions,
                                                               ClIons=tleap_Cl_ions))
 
     # ambertools tleap: combine ligand+complex, solvate, generate amberparm
-    subprocess_kwargs['cwd'] = dest_dir
-    subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'], **subprocess_kwargs)
-    hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
-    # check if the solvation is correct
+    log_filename = dest_dir / 'generate_sys_top.log'
+    with open(log_filename, 'w') as LOG:
+        try:
+            subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'],
+                           stdout=LOG, stderr=LOG,
+                           cwd = dest_dir,
+                           check=True, text=True, timeout=30)
+            hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
+            # check if the solvation is correct
+        except subprocess.CalledProcessError as E:
+            print('ERROR: occured when creating the input .mol2 file with antechamber. ')
+            print(f'ERROR: The output was saved in the directory: {dest_dir}')
+            print(f'ERROR: can be found in the file: {log_filename}')
+            raise E
 
     # for hybrid single-dual topology approach, we have to use a different approach
 
@@ -303,7 +314,7 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
     test_dir = Path(test_dir_name)
     if not test_dir.is_dir():
         os.mkdir(test_dir)
-    cwd = os.path.join(cwd, test_dir)
+    cwd = Path(cwd) / test_dir
 
     # prepare files
     shutil.copy(mol2_file, test_dir)
@@ -316,8 +327,13 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
     open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff, ligand_ff=ligand_ff))
 
     # attempt generating the .top
+    print('Try creating amber7 topology .top')
     tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
-        cwd=cwd, text=True, timeout=60*10, capture_output=True, check=True)
+                                   cwd=cwd, text=True, timeout=60*3,
+                                   capture_output=True, check=True)
+
+    # save stdout and stderr
+    open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
 
     if not 'Errors = 0' in tleap_process.stdout:
         # extract the missing angles/dihedrals
@@ -1204,8 +1220,22 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input
     leap_in_conf = open(leap_input_file).read()
     ligand_ff = 'leaprc.gaff' # ignored but must be provided
     open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff))
-    subprocess_kwargs['cwd'] = solv_prot_alone
-    subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'solv_prot.in'], **subprocess_kwargs)
+
+    log_filename = solv_prot_alone / "ties_tleap.log"
+    with open(log_filename, 'w') as LOG:
+        try:
+            subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'solv_prot.in'],
+                           cwd = solv_prot_alone,
+                           stdout=LOG, stderr=LOG,
+                           check=True, text=True,
+                           timeout=60 * 2  # 2 minutes
+                        )
+        except subprocess.CalledProcessError as E:
+            print('ERROR: tleap could generate a simple topology for the protein to check the number of ions. ')
+            print(f'ERROR: The output was saved in the directory: {solv_prot_alone}')
+            print(f'ERROR: can be found in the file: {log_filename}')
+            raise E
+
 
     # read the file to see how many ions were added
     u = mda.Universe(solv_prot_alone / 'prot_solv.pdb')
