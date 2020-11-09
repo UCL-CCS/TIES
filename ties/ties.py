@@ -520,6 +520,8 @@ def command_line_script():
     with open(hybrid_frcmod, 'w') as FOUT:
         FOUT.write(updated_frcmod_content)
 
+    # fixme: print a summary here about the superimspotion, number of app, dis, etc,
+
     ##########################################################
     # ------------------   Ligand ----------------------------
     # pick the right tleap instuctions
@@ -545,6 +547,7 @@ def command_line_script():
                    namd_prod=namd_prod,
                    hybrid_topology=use_hybrid_single_dual_top
                    )
+    print('Ligand "lig" directory populated successfully')
 
     ##########################################################
     # ------------------ Complex  ----------------------------

@@ -6,6 +6,7 @@ import subprocess
 import math
 from collections import OrderedDict
 from pathlib import Path
+import warnings
 
 import MDAnalysis as mda
 import numpy as np
@@ -376,7 +377,7 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
             if not "Errors = 0" in tleap_process.stdout:
                 raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
 
-    print('\nTest hybrid topology creation: OK.')
+    print('Test hybrid topology creation: OK.')
     frcmod_with_dummy_terms = open(modified_hybrid_frcmod).read()
     return frcmod_with_dummy_terms
 
@@ -899,6 +900,16 @@ def _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, n
     u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
 
 
+def load_mda_u(filename):
+    # Load a MDAnalysis file, but turn off warnings about the dual topology setting
+    # fixme - fuse with the .pdb loading, no distinction needed
+    warnings.filterwarnings(action='ignore', category=UserWarning,
+                            message='Element information is absent or missing for a few atoms. '
+                                    'Elements attributes will not be populated.'    # warning to ignore
+                            )
+    return mda.Universe(filename)
+
+
 def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
     """
     fixme - this function does not need to use the file?
@@ -913,7 +924,7 @@ def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filen
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, new_pdb_filename)
 
-    u = mda.Universe(source_pdb_filename)
+    u = load_mda_u(source_pdb_filename)
     if 'mer' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 

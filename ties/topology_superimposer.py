@@ -3275,6 +3275,7 @@ def load_mol2_wrapper(filename):
                             message='Creating an ndarray from ragged nested sequences '  # warning to ignore
                             )
     u = mda.Universe(filename)
+    # turn off the filter warning after?
     return u
 
 
