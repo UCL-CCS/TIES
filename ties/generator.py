@@ -328,7 +328,7 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
     open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff, ligand_ff=ligand_ff))
 
     # attempt generating the .top
-    print('Try creating amber7 topology .top')
+    print('Create amber7 topology .top')
     tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
                                    cwd=cwd, text=True, timeout=60*3,
                                    capture_output=True, check=True)
@@ -1107,7 +1107,6 @@ def removeDU_atoms(filename):
     if not has_DU:
         return
 
-    print('Removing dummy DU atoms')
     # make a backup copy before
     shutil.move(filename, '.beforeRemovingDU'.join(os.path.splitext(filename)))
 

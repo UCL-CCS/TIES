@@ -173,7 +173,7 @@ def generate_frcmod(parmchk2, workplace_root, molecule, atom_type):
             raise E
 
     frcmod = cwd_dir / (str(molecule) + ".frcmod")
-    print(f'Parmchk2: created successfully the .frcmod. Location: {frcmod}')
+    print(f'Parmchk2: created .frcmod: {frcmod}')
     return frcmod
 
 
@@ -297,7 +297,7 @@ def command_line_script():
         antechamber_dr = 'yes'
     else:
         antechamber_dr = 'no'
-    print(f'Will use antechamber dr: {antechamber_dr}')
+    print(f'Antechamber dr: {antechamber_dr}')
 
     # fixme
     # if it is .ac file format (ambertools, almost the same as .pdb), convert it to .mol2,
@@ -309,7 +309,7 @@ def command_line_script():
         renameAtomNamesUniqueAndResnames(left_ligand, right_ligand)
         sys.exit()
     elif args.action == 'create':
-        print('Main protocol is used. ')
+        pass
     else:
         print('please provide action (rename/create)')
         sys.exit()
@@ -364,7 +364,7 @@ def command_line_script():
         antechamber_charge_type = ['-c', 'bcc'] # 'AM1-BCC'
 
     allow_disjoint_components = args.allow_disjoint_components
-    print(f'Configuration: allowing disjoint components {allow_disjoint_components}')
+    print(f'Allowing disjoint components: {allow_disjoint_components}')
 
     # A list of pairs that should be matched
     # fixme - this requires better parsing capabilities
@@ -385,13 +385,13 @@ def command_line_script():
 
     # ambertools forcefield
     amber_forcefield = args.amber_tleap_forcefield
-    print(f'Will use amber forcefield name {amber_forcefield}')
+    print(f'Amber forcefield name: {amber_forcefield}')
 
     namd_prod = "prod_2017.namd"  # only different because uses Berendsen
-    print(f'The NAMD production file in use is {namd_prod}')
+    print(f'The NAMD production file used: {namd_prod}')
 
     redist_q_over_unmatched = args.redistribute_charges_over_unmatched
-    print(f'Will distribute introduced q disparity in the unmatched region. {redist_q_over_unmatched}')
+    print(f'Distribute of introduced q disparity in the alchemical region: {redist_q_over_unmatched}')
 
     # use NAMD hybrid single dual topology
     use_hybrid_single_dual_top = args.hybrid_single_dual_top
@@ -520,8 +520,6 @@ def command_line_script():
     with open(hybrid_frcmod, 'w') as FOUT:
         FOUT.write(updated_frcmod_content)
 
-    # fixme: print a summary here about the superimspotion, number of app, dis, etc,
-
     ##########################################################
     # ------------------   Ligand ----------------------------
     # pick the right tleap instuctions
@@ -556,6 +554,7 @@ def command_line_script():
         protein_net_charge = get_protein_net_charge(workplace_root, protein_filename.resolve(),
                                ambertools_bin, ambertools_script_dir / 'solv_prot.in',
                                amber_forcefield)
+        print(f'Protein net charge: {protein_net_charge}')
 
         # pick the right tleap instuctions
         if use_hybrid_single_dual_top:
