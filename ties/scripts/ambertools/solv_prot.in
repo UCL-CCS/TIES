@@ -5,7 +5,7 @@ source {ligand_ff}
 # for phosphorylated residues
 source leaprc.phosaa10
 
-protein = LoadPdb protein.pdb
+protein = LoadPdb {protein_file}
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
 solvateoct protein TIP3PBOX 14

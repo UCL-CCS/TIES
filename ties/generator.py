@@ -192,7 +192,7 @@ def prepare_inputs(workplace_root, directory='complex',
 
     # copy the protein complex .pdb
     if protein is not None:
-        shutil.copy(workplace_root / protein, dest_dir)
+        shutil.copy(protein, dest_dir / 'protein.pdb')
 
     # copy the hybrid ligand (topology and .frcmod)
     shutil.copy(hybrid_mol2, dest_dir)
@@ -1201,7 +1201,7 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
     target.atoms.write(output_filename)
 
 
-def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input_file, subprocess_kwargs, prot_ff):
+def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input_file, prot_ff):
     """
     Use automatic ambertools solvation of a single component to determine what is the next charge of the system.
     This should be replaced with pka/propka or something akin.
@@ -1219,7 +1219,8 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input
     # fixme - consider moving out of the complex
     leap_in_conf = open(leap_input_file).read()
     ligand_ff = 'leaprc.gaff' # ignored but must be provided
-    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff))
+    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff,
+                                                                          protein_file=protein_file))
 
     log_filename = solv_prot_alone / "ties_tleap.log"
     with open(log_filename, 'w') as LOG:

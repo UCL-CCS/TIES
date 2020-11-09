@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Expose a basic terminal interace to TIES 20.
+Exposes a basic terminal interace to TIES 20.
 
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
@@ -13,6 +13,7 @@ import argparse
 from pathlib import Path, PurePosixPath
 
 from ties.generator import *
+
 
 def find_antechamber(args):
     # set up ambertools
@@ -33,7 +34,7 @@ def find_antechamber(args):
     return ambertools_bin
 
 
-def prepare_antechamber_mol2_input(molecule, workplace_root, ambertools_bin, left_ligand,
+def prepare_antechamber_mol2_input(molecule, workplace_root, ambertools_bin, ligand,
                                    file_input_type, atom_type, net_charge,
                                    antechamber_dr, antechamber_charge_type):
     """
@@ -70,7 +71,7 @@ def prepare_antechamber_mol2_input(molecule, workplace_root, ambertools_bin, lef
     with open(log_filename, 'w') as LOG:
         try:
             subprocess.run([ambertools_bin / 'antechamber',
-                            '-i', left_ligand, '-fi', file_input_type,
+                            '-i', ligand.resolve(), '-fi', file_input_type,
                             '-o', f'{molecule}.mol2', '-fo', 'mol2',
                             '-at', atom_type, '-nc', str(net_charge),
                             '-dr', antechamber_dr] + antechamber_charge_type,
@@ -317,8 +318,8 @@ def command_line_script():
         protein_filename = None
         print('No protein was select. Generating only one delta G directory.')
     else:
-        protein_filename = args.protein
-        if not os.path.isfile(protein_filename):
+        protein_filename = Path(args.protein)
+        if not protein_filename.is_file():
             print(f'Protein file (-p) name/path does not seem to lead to a file: {protein_filename}')
             sys.exit(1)
 
@@ -549,9 +550,9 @@ def command_line_script():
     # ------------------ Complex  ----------------------------
     # calculate the charges of the protein (using ambertools)
     if protein_filename is not None:
-        protein_net_charge = get_protein_net_charge(workplace_root, protein_filename,
+        protein_net_charge = get_protein_net_charge(workplace_root, protein_filename.resolve(),
                                ambertools_bin, ambertools_script_dir / 'solv_prot.in',
-                               subprocess_kwargs, amber_forcefield)
+                               amber_forcefield)
 
         # pick the right tleap instuctions
         if use_hybrid_single_dual_top:
