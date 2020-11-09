@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+Expose a basic terminal interace to TIES 20.
+
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
 import os
