@@ -398,7 +398,7 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_due_to_charge = []    # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = []    # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []    # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -432,20 +432,29 @@ class SuperimposedTopology:
         self._nonoverlapping_rcycles = rcycles
 
     def get_single_topology_region(self):
-        # get the atoms which were unmatched for any reason
-        # fixme: this should not work with disjointed cc and others?
-        unmatched_due_to_reasons = self._removed_because_disjointed_cc + \
-                          self._removed_due_to_net_charge + \
-                          self._removed_due_to_charge
+        """
+        Return: matched atoms (even if they were unmatched for any reason)
+        """
+        # strip the pairs of the exact information about the charge differences
+        removed_pairs_with_charge_difference = [(n1, n2) for n1, n2, qdiff in
+                                                self._removed_pairs_with_charge_difference]
 
-        # combine with the main matched area
-        return self.matched_pairs + unmatched_due_to_reasons
+        # fixme: this should not work with disjointed cc and others?
+        unpaired = self._removed_because_disjointed_cc + \
+                   self._removed_due_to_net_charge + \
+                   removed_pairs_with_charge_difference
+
+        return self.matched_pairs + unpaired
 
     def get_single_topology_app(self):
-        # get the apperaing and disappearing region in the hybrid single topology
-        # use the single topology region and classify all other atoms not in it
-        # ass either apperaing or disapearing
+        """
+        fixme - called app but gives both app and dis
+        get the appearing and disappearing region in the hybrid single topology
+        use the single topology region and classify all other atoms not in it
+        as either appearing or disappearing
+        """
         single_top_area = self.get_single_topology_region()
+
         # turn it into a set
         single_top_set = set()
         for l, r in single_top_area:
@@ -474,7 +483,7 @@ class SuperimposedTopology:
         # check if it was unmatched
         unmatched_lists = [self._removed_because_disjointed_cc,
                            self._removed_due_to_net_charge,
-                           self._removed_due_to_charge]
+                           self._removed_pairs_with_charge_difference]
         for unmatched_list in unmatched_lists:
             for atom1, atom2 in unmatched_list:
                 if atom1.atomName == atomName1 and atom2.atomName == atomName2:
@@ -1442,33 +1451,27 @@ class SuperimposedTopology:
 
     def refineAgainstCharges(self, atol):
         """
-        Removes the matched pairs which turn out to have charges more different
-        than the given absolute tolerance (atol) [Electron units]
+        Removes the matched pairs which have charges more different
+        than the provided absolute tolerance (atol) [Electron units]
 
-        After removing a pair, removes any hydrogens attached to the heavy atoms.
+        After removing any pair it also removes any bonded hydrogen(s).
         """
-        # walk through the superimposed topologies
-        # and move the atom-atom pairs that suffer from being the same
-        removed_pairs = []
-        removed_attached_hydrogens = []
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
-            # remove any dangling hydrogens from this pair
+            # remove the dangling hydrogens
             removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
-            removed_attached_hydrogens.extend(removed_h_pairs)
+
             # remove this pair
             self.remove_node_pair((node1, node2))
 
-            removed_pairs.append((node1, node2))
-        # keep track of the removed atoms due to the charge
-        # fixme
-        # if not self._removed_due_to_charge is None:
-        #     raise Exception('the charges have already been refined, should not be called twice')
-        self._removed_due_to_charge = removed_pairs
+            # keep track of the removed atoms due to the charge
+            self._removed_pairs_with_charge_difference.append((node1, node2, node2.charge - node1.charge))
+            for h1, h2 in removed_h_pairs:
+                self._removed_pairs_with_charge_difference.append((h1, h2, h2.charge - h1.charge))
 
-        return removed_pairs, removed_attached_hydrogens
+        return self._removed_pairs_with_charge_difference
 
     def is_consistent_cycles(self, suptop):
         # check if each sup top has the same number of cycles
@@ -2547,7 +2550,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            use_only_gentype=False,
                            check_atom_names_unique=True):
     """
-    This is a helper function that managed the entire process.
+    A helper function that manages the entire process.
 
     TODO:
     - check if each molecule topology is connected
@@ -2576,15 +2579,16 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     take_largest = lambda x, y: x if len(x) > len(y) else y
     #     reduce(take_largest, suptops).alignLigandsUsingMatched()
 
-    suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligandLmda, ligandRmda, starting_node_pairs=starting_node_pairs,
-                                      ignore_coords=ignore_coords, left_coords_are_ref=left_coords_are_ref,
+    suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligandLmda, ligandRmda,
+                                      starting_node_pairs=starting_node_pairs,
+                                      ignore_coords=ignore_coords,
+                                      left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type)
-
     if not suptops:
-        raise Exception('Did not find a single superimposition state. ')
+        raise Exception('Did not find a single superimposition state.')
 
     for st in suptops:
-        print('Original suptop len %d' % len(st))
+        print(f'Found an original suptop with the number of pairs: {len(st)}')
         # st.print_summary()
 
     # ignore bond types
@@ -2633,8 +2637,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if use_charges and not ignore_charges_completely:
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
-            if sup_top._removed_due_to_charge:
-                print(f'Removed due to charge incompatibility: {sup_top._removed_due_to_charge}')
+            if sup_top._removed_pairs_with_charge_difference:
+                print(f'Removed pairs with charge incompatibility: {sup_top._removed_pairs_with_charge_difference}')
 
     # apply the force mismatch at the end
     # this is an interactive feature
@@ -2728,6 +2732,13 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                 if mirror_rmsd < main_rmsd:
                     print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
             st.alignLigandsUsingMatched(overwrite_original=True)
+
+    # print a general summary
+    print('-------- Summary -----------')
+    print(f'Final number of matched pair: {len(suptop.matched_pairs)}')
+    print(f'Disappearing atoms: { len(suptop.matched_pairs) / len(top1_nodes) * 100:.2f}%')
+    print(f'Appearing atoms: {len(suptop.matched_pairs) / len(top2_nodes) * 100:.2f}%')
+    # print('Introduced q imbalance: ')
 
     return suptops
 
