@@ -437,7 +437,7 @@ class SuperimposedTopology:
         Return: matched atoms (even if they were unmatched for any reason)
         """
         # strip the pairs of the exact information about the charge differences
-        removed_pairs_with_charge_difference = [(n1, n2) for n1, n2, qdiff in
+        removed_pairs_with_charge_difference = [(n1, n2) for (n1, n2), qdiff in
                                                 self._removed_pairs_with_charge_difference]
 
         # fixme: this should not work with disjointed cc and others?
@@ -1015,14 +1015,20 @@ class SuperimposedTopology:
 
     def remove_attached_hydrogens(self, node_pair):
         """
-        This means that the node_pair, to which these hydrogens are attached, was removed.
-        Therefore these are dangling hydrogens.
+        The node_pair to which these hydrogens are attached was removed.
+        Remove the dangling hydrogens.
 
         Check if these hydrogen are matched/superimposed. If that is the case. Remove the pairs.
 
         Note that if the hydrogens are paired and attached to node_pairA,
         they have to be attached to node_pairB, as a rule of being a match.
         """
+
+        # skip if no hydrogens found
+        if node_pair not in self.matched_pairs_bonds:
+            print('No dangling hydrogens')
+            return []
+
         attached_pairs = self.matched_pairs_bonds[node_pair]
 
         removed_pairs = []
@@ -1456,24 +1462,31 @@ class SuperimposedTopology:
     def refineAgainstCharges(self, atol):
         """
         Removes the matched pairs which have charges more different
-        than the provided absolute tolerance (atol) [Electron units]
+        than the provided absolute tolerance atol (units in Electrons).
 
-        After removing any pair it also removes any bonded hydrogen(s).
+        After removing any pair it also removes any bound hydrogen(s) from the matched region.
         """
+
+        # work on a shallow copy
+        # put the hydrogens at the end of the list
+        # existing_pairs = sorted(self.matched_pairs[::], key=lambda x:x[0].atomName.upper().startswith('H'))
+
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
             # remove the dangling hydrogens
-            removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            # removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            # print('Q: removed dangling:', removed_h_pairs)
 
             # remove this pair
+            print('Q: removing nodes', (node1, node2))
             self.remove_node_pair((node1, node2))
 
             # keep track of the removed atoms due to the charge
             self._removed_pairs_with_charge_difference.append( ((node1, node2), node2.charge - node1.charge) )
-            for h1, h2 in removed_h_pairs:
-                self._removed_pairs_with_charge_difference.append( ((h1, h2), h2.charge - h1.charge) )
+            # for h1, h2 in removed_h_pairs:
+            #     self._removed_pairs_with_charge_difference.append( ((h1, h2), h2.charge - h1.charge) )
 
         return self._removed_pairs_with_charge_difference
 
@@ -2644,9 +2657,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
             if sup_top._removed_pairs_with_charge_difference:
-                print('Removed pairs with charge incompatibility: ' + str(sup_top._removed_pairs_with_charge_difference))
-                # print(f'Removed pairs with charge incompatibility: '
-                #       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
+                print(f'Removed pairs with charge incompatibility: '
+                      f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
 
     # apply the force mismatch at the end
     # this is an interactive feature
