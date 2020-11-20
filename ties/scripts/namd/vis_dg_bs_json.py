@@ -322,8 +322,8 @@ for prot, transformations in ligs.items():
         label_kwarg['label'] = ''
 corr_sds = pearsonr(com_sds_one, lig_sds_one)
 print('corr', corr_sds)
-plt.ylabel(r'$\rm SD(\Delta G)_{TIES}^{protein} (kcal/mol)  $')
-plt.xlabel(r'$\rm SD(\Delta G)_{TIES}^{water} (kcal/mol) $')
+plt.ylabel(r'$\rm SD(\Delta G_{alch}^{bound}) (kcal/mol)  $')
+plt.xlabel(r'$\rm SD(\Delta G_{alch}^{aq}) (kcal/mol) $')
 plt.text(0.01, 2.9, f'$\\rm \\rho$ = {corr_sds[0]:.2f}')
 plt.legend(loc='lower right')
 plt.savefig(root_work / 'dg_sds_corr_lig_complex.png', dpi=300)
