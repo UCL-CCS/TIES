@@ -8,6 +8,7 @@ For example, if there is a linking atom C that mutates into O,
 Then we might be able to detect that this exact mutation takes place. 1
 """
 
+import pytest
 from os import path
 from pathlib import Path
 
@@ -195,8 +196,8 @@ def test_mcl1_l8l18():
 
     # check non-hydrogen atoms
     removed_non_hydrogens = list(filter(lambda x: not x[0].upper().startswith('H'), removed_atom_names))
-    assert removed_non_hydrogens == [('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
-                           ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')]
+    assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
+                           ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')}
 
     # prepare hydrogens
     # fixme this will require a bit of work, ie disconnected components, we do not remove dangling hydrogens any more

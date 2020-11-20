@@ -2,6 +2,7 @@
 These tests focus on the generator (preprocessing of the input before applying superimpose_topologies
 """
 
+import pytest
 from ties.topology_superimposer import superimpose_topologies, AtomNode, SuperimposedTopology
 
 

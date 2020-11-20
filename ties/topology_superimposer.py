@@ -147,6 +147,7 @@ import os
 import warnings
 from io import StringIO
 from functools import reduce
+import math
 
 import numpy as np
 import networkx as nx
@@ -1464,29 +1465,25 @@ class SuperimposedTopology:
         Removes the matched pairs which have charges more different
         than the provided absolute tolerance atol (units in Electrons).
 
-        After removing any pair it also removes any bound hydrogen(s) from the matched region.
+        Removed: After removing any pair it also removes any bound hydrogen(s) from the matched region.
+        Replacement: Use the disconnected component survival function to remove the dangling hydrogens.
         """
-
-        # work on a shallow copy
-        # put the hydrogens at the end of the list
-        # existing_pairs = sorted(self.matched_pairs[::], key=lambda x:x[0].atomName.upper().startswith('H'))
-
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
-            # remove the dangling hydrogens
+            # Removed functionality: remove the dangling hydrogens
             # removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
-            # print('Q: removed dangling:', removed_h_pairs)
 
             # remove this pair
-            print('Q: removing nodes', (node1, node2))
+            # print('Q: removing nodes', (node1, node2)) # to do - consider making this into a logging feature
             self.remove_node_pair((node1, node2))
 
             # keep track of the removed atoms due to the charge
-            self._removed_pairs_with_charge_difference.append( ((node1, node2), node2.charge - node1.charge) )
-            # for h1, h2 in removed_h_pairs:
-            #     self._removed_pairs_with_charge_difference.append( ((h1, h2), h2.charge - h1.charge) )
+            self._removed_pairs_with_charge_difference.append( ((node1, node2), math.fabs(node2.charge - node1.charge)) )
+
+        # sort the removed in a descending order
+        self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
 
         return self._removed_pairs_with_charge_difference
 

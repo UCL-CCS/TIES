@@ -7,8 +7,11 @@ TODO
 - this testing module should focus on "separated" molecules
 """
 
-from ties.topology_superimposer import superimpose_topologies, AtomNode
+import pytest
 import numpy as np
+
+from ties.topology_superimposer import superimpose_topologies, AtomNode
+
 
 def test_unconnected_component_removed():
     """
