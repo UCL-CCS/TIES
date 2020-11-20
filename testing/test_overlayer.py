@@ -7,6 +7,7 @@ TODO:
 - add more test cases that take into account the "differences"
 """
 
+import pytest
 from ties.topology_superimposer import AtomNode, _overlay, SuperimposedTopology
 
 

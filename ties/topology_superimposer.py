@@ -1,30 +1,5 @@
-
 """
 To do:
- - initially, check if each graph is strongly connected
- - rarity rank: rank the atoms so that the atoms that are shared
- in both graphs and which are also rare (e.g. a minimum number of them)
- can be used as starting points for the comparison
- - if you reconstruct an entire graph of one molecule, finish
- this means that the second molecule
- - if you do not reconstruct either of the molecule, that means
- that some of the atoms have been mutated
- - if there is a node sequence A-B-C overlapped with A-X-C, then we
- will finish with subgraphs A and subgraphs C, so there is a possibility
- of finishing with multiple connected subgraphs. In this case,
- the different subgraphs cannot overlap
- - TEST: with multiple graphs at the end, and uncertainty, we should ensure that
- we finish with disjoints graphs: if two graphs are present and they overlap,
- the smaller one should be removed, because it is a subgraph of the larger
- - Low Priority: currently, if the ligands l1 and l2 are symmetric, then the "matching" 
- or superimposition of the topologies
- can be done in multiple ways and there is no difference between them, 
- however, the charges on the molecules can be used to help with the symmetry: ie even
- though they are similar enough (within the absolute tolerance atol), they 
- might on one side be more similar than on the other side. However, here it is ignored
- for now because it does not lead to any wrong results
- -consider an overall try-catch that attaches a message for the user to contact you in the case something
- does not work as expected
  - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
  - ensure that the mirrors are recorded in a better way (rather than as whole suptops?)
 
@@ -147,6 +122,7 @@ import os
 import warnings
 from io import StringIO
 from functools import reduce
+import math
 
 import numpy as np
 import networkx as nx
@@ -171,20 +147,23 @@ general_atom_types2 = {
     # Furthermore, GAFF2 is being added in stages
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'CZ': 'C', 'CG': 'C',
+    'CZ': 'C', 'CG': 'C', 'CS':'C', 'CH':'C',
     'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HX': 'H',
     'HO':'H', 'HS':'H', 'HP':'H',  'H2':'H', 'H3': 'H',  'H5':'H',
     'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
     'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
-    'O': 'O', 'OH':'O', 'OS':'O',
+    'O': 'O', 'OH':'O', 'OS':'O', 'OP':'O', 'OQ':'O',
     'N': 'N', 'NB':'N', 'NS':'N', 'N1':'N', 'N2':'N', 'N3':'N',
     'N4':'N', 'NA':'N', 'NH':'N', 'NO':'N', 'NC': 'N',  'ND':'N', 'NU':'N',
-    'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S', 'SX': 'S', 'SY': 'S',
+    'NE':'N', 'NF':'N', 'NT':'N', 'NX':'N', 'NY':'N', 'NZ':'N',
+    'N+':'N', 'NV':'N', 'N7':'N', 'N8':'N', 'N9':'N', 'NI':'N', 'NJ':'N',
+    'NK':'N', 'NL':'N', 'NM':'N', 'NN':'N', 'NP':'N', 'NQ':'N', 'N5':'N', 'N6':'N',
     'CL': 'CL',
     'F': 'F',
     'BR': 'BR', 'B': 'BR',
     'I': 'I',
-    'S': 'S',
+    'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S',
+    'SX': 'S', 'SY': 'S', 'SP':'S', 'SQ': 'S',
 }
 
 class AtomNode:
@@ -1464,29 +1443,25 @@ class SuperimposedTopology:
         Removes the matched pairs which have charges more different
         than the provided absolute tolerance atol (units in Electrons).
 
-        After removing any pair it also removes any bound hydrogen(s) from the matched region.
+        Removed: After removing any pair it also removes any bound hydrogen(s) from the matched region.
+        Replacement: Use the disconnected component survival function to remove the dangling hydrogens.
         """
-
-        # work on a shallow copy
-        # put the hydrogens at the end of the list
-        # existing_pairs = sorted(self.matched_pairs[::], key=lambda x:x[0].atomName.upper().startswith('H'))
-
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
-            # remove the dangling hydrogens
+            # Removed functionality: remove the dangling hydrogens
             # removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
-            # print('Q: removed dangling:', removed_h_pairs)
 
             # remove this pair
-            print('Q: removing nodes', (node1, node2))
+            # print('Q: removing nodes', (node1, node2)) # to do - consider making this into a logging feature
             self.remove_node_pair((node1, node2))
 
             # keep track of the removed atoms due to the charge
-            self._removed_pairs_with_charge_difference.append( ((node1, node2), node2.charge - node1.charge) )
-            # for h1, h2 in removed_h_pairs:
-            #     self._removed_pairs_with_charge_difference.append( ((h1, h2), h2.charge - h1.charge) )
+            self._removed_pairs_with_charge_difference.append( ((node1, node2), math.fabs(node2.charge - node1.charge)) )
+
+        # sort the removed in a descending order
+        self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
 
         return self._removed_pairs_with_charge_difference
 
