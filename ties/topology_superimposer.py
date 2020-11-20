@@ -2705,6 +2705,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         print(f'Checking for disjoint components in the {len(suptops)} suptops')
         # ensure that each suptop represents one CC
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
+        # fixme - add the log about which atoms are removed?
         [st.only_largest_CC_survives() for st in suptops]
 
         for st in suptops:
