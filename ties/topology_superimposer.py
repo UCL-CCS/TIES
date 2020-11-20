@@ -982,7 +982,7 @@ class SuperimposedTopology:
         worst_match = [(n1, n2) for n1, n2 in self.matched_pairs if np.abs(n1.charge - n2.charge) == largest_difference][0]
         self.remove_node_pair(worst_match)
         # add to the list of removed because of the net charge
-        self._removed_due_to_net_charge.append(worst_match)
+        self._removed_due_to_net_charge.append([worst_match, largest_difference])
         return np.abs(largest_difference)
 
     def remove_node_pair(self, node_pair):
@@ -2587,9 +2587,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if not suptops:
         raise Exception('Did not find a single superimposition state.')
 
-    for st in suptops:
-        print(f'Found an original suptop with the number of pairs: {len(st)}')
-        # st.print_summary()
+    print(f'Phase 1: The number of SupTops found: {len(suptops)}')
+    print(f'SupTops lengths:  {", ".join([str(len(st)) for st in suptops])}')
+    # for st in suptops:
+    #     print(f'Found an original suptop with the number of pairs: {len(st)}')
+    #     # st.print_summary()
 
     # ignore bond types
     for st in suptops:
@@ -2638,7 +2640,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
             if sup_top._removed_pairs_with_charge_difference:
-                print(f'Removed pairs with charge incompatibility: {sup_top._removed_pairs_with_charge_difference}')
+                print(f'Removed pairs with charge incompatibility: '
+                      f'{[(s[0], s[1], f"{s[2]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
 
     # apply the force mismatch at the end
     # this is an interactive feature
@@ -2654,6 +2657,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         # This is because we are only keeping one suptop right now.
         # However, if disjointed components are allowed, these number might change.
         # ensure that each found component has net charge < 0.1
+        print(f'Accounting for net charge limit of {net_charge_threshold:.3f}')
         for suptop in suptops[::-1]:
             # fixme this should be function within suptop
             while np.abs(suptop.get_net_charge()) > net_charge_threshold:
@@ -2666,7 +2670,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     # remove the suptop from the list
                     suptops.remove(suptop)
                     break
-            print (f'Removed pairs due to net charge: {suptop._removed_due_to_net_charge}')
+            if suptop._removed_due_to_net_charge:
+                print (f'SupTop: Removed pairs due to net charge: {[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}')
 
     if not partial_rings_allowed:
         # remove partial rings, note this is a cascade problem if there are double rings
