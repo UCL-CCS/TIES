@@ -168,6 +168,7 @@ general_atom_types = {
 general_atom_types2 = {
     # Source http://ambermd.org/antechamber/gaff.html#atomtype
     # However, some general atom types were added separately
+    # Furthermore, GAFF2 is being added in stages
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
     'CZ': 'C', 'CG': 'C',
@@ -481,9 +482,12 @@ class SuperimposedTopology:
             return True
 
         # check if it was unmatched
-        unmatched_lists = [self._removed_because_disjointed_cc,
-                           self._removed_due_to_net_charge,
-                           self._removed_pairs_with_charge_difference]
+        unmatched_lists = [
+                            self._removed_because_disjointed_cc,
+                            # ignore the charges in this list
+                            [pair for pair, q in self._removed_due_to_net_charge],
+                            [pair for pair, q in self._removed_pairs_with_charge_difference]
+                           ]
         for unmatched_list in unmatched_lists:
             for atom1, atom2 in unmatched_list:
                 if atom1.atomName == atomName1 and atom2.atomName == atomName2:
@@ -1467,9 +1471,9 @@ class SuperimposedTopology:
             self.remove_node_pair((node1, node2))
 
             # keep track of the removed atoms due to the charge
-            self._removed_pairs_with_charge_difference.append((node1, node2, node2.charge - node1.charge))
+            self._removed_pairs_with_charge_difference.append( ((node1, node2), node2.charge - node1.charge) )
             for h1, h2 in removed_h_pairs:
-                self._removed_pairs_with_charge_difference.append((h1, h2, h2.charge - h1.charge))
+                self._removed_pairs_with_charge_difference.append( ((h1, h2), h2.charge - h1.charge) )
 
         return self._removed_pairs_with_charge_difference
 
@@ -2640,8 +2644,9 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         for sup_top in suptops:
             sup_top.refineAgainstCharges(atol=pair_charge_atol)
             if sup_top._removed_pairs_with_charge_difference:
-                print(f'Removed pairs with charge incompatibility: '
-                      f'{[(s[0], s[1], f"{s[2]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
+                print('Removed pairs with charge incompatibility: ' + str(sup_top._removed_pairs_with_charge_difference))
+                # print(f'Removed pairs with charge incompatibility: '
+                #       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
 
     # apply the force mismatch at the end
     # this is an interactive feature
