@@ -1,30 +1,5 @@
-
 """
 To do:
- - initially, check if each graph is strongly connected
- - rarity rank: rank the atoms so that the atoms that are shared
- in both graphs and which are also rare (e.g. a minimum number of them)
- can be used as starting points for the comparison
- - if you reconstruct an entire graph of one molecule, finish
- this means that the second molecule
- - if you do not reconstruct either of the molecule, that means
- that some of the atoms have been mutated
- - if there is a node sequence A-B-C overlapped with A-X-C, then we
- will finish with subgraphs A and subgraphs C, so there is a possibility
- of finishing with multiple connected subgraphs. In this case,
- the different subgraphs cannot overlap
- - TEST: with multiple graphs at the end, and uncertainty, we should ensure that
- we finish with disjoints graphs: if two graphs are present and they overlap,
- the smaller one should be removed, because it is a subgraph of the larger
- - Low Priority: currently, if the ligands l1 and l2 are symmetric, then the "matching" 
- or superimposition of the topologies
- can be done in multiple ways and there is no difference between them, 
- however, the charges on the molecules can be used to help with the symmetry: ie even
- though they are similar enough (within the absolute tolerance atol), they 
- might on one side be more similar than on the other side. However, here it is ignored
- for now because it does not lead to any wrong results
- -consider an overall try-catch that attaches a message for the user to contact you in the case something
- does not work as expected
  - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
  - ensure that the mirrors are recorded in a better way (rather than as whole suptops?)
 
