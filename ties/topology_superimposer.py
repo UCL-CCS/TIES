@@ -177,7 +177,7 @@ general_atom_types2 = {
     'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
     'O': 'O', 'OH':'O', 'OS':'O',
     'N': 'N', 'NB':'N', 'NS':'N', 'N1':'N', 'N2':'N', 'N3':'N',
-    'N4':'N', 'NA':'N', 'NH':'N', 'NO':'N', 'NC': 'N',  'ND':'N',
+    'N4':'N', 'NA':'N', 'NH':'N', 'NO':'N', 'NC': 'N',  'ND':'N', 'NU':'N',
     'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S', 'SX': 'S', 'SY': 'S',
     'CL': 'CL',
     'F': 'F',
