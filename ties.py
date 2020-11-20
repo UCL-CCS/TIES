@@ -1,5 +1,9 @@
 #!/home/dresio/software/virtualenvs/ties/bin/python
 # -*- coding: utf-8 -*-
+"""
+This is a helpful file for the TIES interface for debugging in Pycharm. It can be run without installation and
+relays the commands to the ties/ties.py, the same way it is done when it is installed by pip in the python package.
+"""
 import re
 import sys
 from ties import ties
