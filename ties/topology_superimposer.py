@@ -148,22 +148,22 @@ general_atom_types2 = {
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
     'CZ': 'C', 'CG': 'C', 'CS':'C', 'CH':'C',
-    'H': 'H', 'HA':'H', 'HN': 'H', 'H4':'H', 'HC':'H', 'H1':'H', 'HX': 'H',
-    'HO':'H', 'HS':'H', 'HP':'H',  'H2':'H', 'H3': 'H',  'H5':'H',
+    'H': 'H', 'HA': 'H', 'HN': 'H', 'H4': 'H', 'HC': 'H', 'H1': 'H', 'HX': 'H',
+    'HO': 'H', 'HS': 'H', 'HP': 'H',  'H2': 'H', 'H3': 'H',  'H5': 'H',
     'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
     'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
-    'O': 'O', 'OH':'O', 'OS':'O', 'OP':'O', 'OQ':'O',
-    'N': 'N', 'NB':'N', 'NS':'N', 'N1':'N', 'N2':'N', 'N3':'N',
-    'N4':'N', 'NA':'N', 'NH':'N', 'NO':'N', 'NC': 'N',  'ND':'N', 'NU':'N',
-    'NE':'N', 'NF':'N', 'NT':'N', 'NX':'N', 'NY':'N', 'NZ':'N',
-    'N+':'N', 'NV':'N', 'N7':'N', 'N8':'N', 'N9':'N', 'NI':'N', 'NJ':'N',
-    'NK':'N', 'NL':'N', 'NM':'N', 'NN':'N', 'NP':'N', 'NQ':'N', 'N5':'N', 'N6':'N',
+    'O': 'O', 'OH': 'O', 'OS': 'O', 'OP': 'O', 'OQ': 'O',
+    'N': 'N', 'NB': 'N', 'NS': 'N', 'N1': 'N', 'N2': 'N', 'N3': 'N',
+    'N4': 'N', 'NA': 'N', 'NH': 'N', 'NO': 'N', 'NC': 'N',  'ND': 'N', 'NU': 'N',
+    'NE': 'N', 'NF': 'N', 'NT': 'N', 'NX': 'N', 'NY': 'N', 'NZ': 'N', 'N+': 'N',
+    'NV': 'N', 'N7': 'N', 'N8': 'N', 'N9': 'N', 'NI': 'N', 'NJ': 'N', 'NK': 'N',
+    'NL': 'N', 'NM': 'N', 'NN': 'N', 'NP': 'N', 'NQ': 'N', 'N5': 'N', 'N6': 'N',
     'CL': 'CL',
     'F': 'F',
     'BR': 'BR', 'B': 'BR',
     'I': 'I',
-    'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S', 'S6': 'S',
-    'SX': 'S', 'SY': 'S', 'SP':'S', 'SQ': 'S',
+    'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S',
+    'S6': 'S', 'SX': 'S', 'SY': 'S', 'SP':'S', 'SQ': 'S',
 }
 
 class AtomNode:
@@ -893,6 +893,48 @@ class SuperimposedTopology:
     def set_mdas(self, ligandLmda, ligandRmda):
         self.mda_ligandL = ligandLmda
         self.mda_ligandR = ligandRmda
+
+    def match_CCCD_to_CDCC(self):
+        """
+        If needed, swap cc-cd with cd-cc.
+        If two pairs are linked: (CC/CD) - (CD/CC),
+        replace them according to the left side: (CC/CC) - (CD/CD)
+
+        These two define where the double bond is in a ring
+        GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
+        So with this interventions we ensure that we do not remove atoms based on an arbitrary order.
+        """
+        corrected_pairs = []
+        for A1, A2 in self.matched_pairs:
+            # check if it is a combination of CD and CD
+            if not {A1.type, A2.type} == {'CC', 'CD'} or (A1, A2) in corrected_pairs:
+                continue
+
+            # check if there is a single neighbour with the same combination CC and CD
+            neighCCCD = [(B1, B2) for (B1, B2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
+                         if {B1.type, B2.type} == {'CC', 'CD'}]
+            if len(neighCCCD) > 1:
+                raise Exception('Error: Problem with the CC-CD to CD-CC pair mapping. '
+                                'There apperas to be a double bond twice in a raw?. ')
+            elif len(neighCCCD) == 0:
+                raise Exception('Error(?): Found CC-CD mismatch without a neighbouring CD-CC? Investigate')
+
+            # We found the two pairs, so we can carry out the swap.
+            B1, B2 = neighCCCD[0]
+
+            # fixme - temporary solution
+            # for now we are simply rewriting the types here so that it passes the "specific atom type" checks later
+            # ie so that later CC-CC are comparedn and CD-CD are compared
+            A2.type = A1.type
+            B2.type = B1.type
+            print(f'Ring double bond (arbitrary) order correction. '
+                  f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}), '
+                  f'Right atom type {B2.type} (in {B2}) overwritten with left atom type {B1.type} (in {B1}).')
+
+            corrected_pairs.append((A1, A2))
+            corrected_pairs.append((B1, B2))
+
+        return 0
 
     def print_summary(self):
         print("Topology Pairs ", len(self.matched_pairs), "Mirror Number", len(self.mirrors))
@@ -2571,26 +2613,26 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     take_largest = lambda x, y: x if len(x) > len(y) else y
     #     reduce(take_largest, suptops).alignLigandsUsingMatched()
 
+    # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligandLmda, ligandRmda,
                                       starting_node_pairs=starting_node_pairs,
                                       ignore_coords=ignore_coords,
                                       left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type)
     if not suptops:
-        raise Exception('Did not find a single superimposition state.')
+        raise Exception('Error: Did not find a single superimposition state.'
+                        'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
 
     print(f'Phase 1: The number of SupTops found: {len(suptops)}')
     print(f'SupTops lengths:  {", ".join([str(len(st)) for st in suptops])}')
-    # for st in suptops:
-    #     print(f'Found an original suptop with the number of pairs: {len(st)}')
-    #     # st.print_summary()
 
     # ignore bond types
+    # they are ignored when creating the run file with tleap anyway
     for st in suptops:
         # fixme - do proper
         st.ignore_bond_types = ignore_bond_types
 
-    # connect the suptops to their original molecules
+    # link the suptops to their original molecule data
     for suptop in suptops:
         # fixme this should have been done in the constructor?
         suptop.set_tops(top1_nodes, top2_nodes)
@@ -2606,6 +2648,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # if useCoords:
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
+
+    # allow to swap cc-cd with cd-cc
+    # These two define where the double bond is in a ring
+    # GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
+    for st in suptops:
+        st.match_CCCD_to_CDCC()
 
     # ensure the actual atom types is correct (general atom type can be used to match atoms)
     # fixme - this is going to be another stage
