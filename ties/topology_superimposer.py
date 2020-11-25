@@ -923,8 +923,9 @@ class SuperimposedTopology:
             B1, B2 = neighCCCD[0]
 
             # fixme - temporary solution
+            # fixme - do we want to check if we are in a ring?
             # for now we are simply rewriting the types here so that it passes the "specific atom type" checks later
-            # ie so that later CC-CC are comparedn and CD-CD are compared
+            # ie so that later CC-CC and CD-CD are compared
             A2.type = A1.type
             B2.type = B1.type
             print(f'Ring double bond (arbitrary) order correction. '
