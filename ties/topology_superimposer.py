@@ -903,6 +903,8 @@ class SuperimposedTopology:
         These two define where the double bond is in a ring
         GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
         So with this interventions we ensure that we do not remove atoms based on an arbitrary order.
+
+        Note that this operation is idempotent.
         """
         corrected_pairs = []
         for A1, A2 in self.matched_pairs:
