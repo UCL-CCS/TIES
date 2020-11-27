@@ -1483,22 +1483,24 @@ class SuperimposedTopology:
                 # if node_b leads to the same node X
         return overall_score
 
-    def refineAgainstCharges(self, atol):
+    def refineAgainstCharges(self, atol, remove_dangling_h=False):
         """
-        Removes the matched pairs which have charges more different
+        Removes the matched pairs where atom charges are more different
         than the provided absolute tolerance atol (units in Electrons).
 
-        Removed: After removing any pair it also removes any bound hydrogen(s) from the matched region.
-        Replacement: Use the disconnected component survival function to remove the dangling hydrogens.
+        remove_dangling_h: After removing any pair it also removes any bound hydrogen(s).
         """
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
 
             # Removed functionality: remove the dangling hydrogens
-            # removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            if remove_dangling_h == True:
+                # fixme - needs work and test cases
+                removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
 
             # remove this pair
+            # use full logging for this kind of information
             # print('Q: removing nodes', (node1, node2)) # to do - consider making this into a logging feature
             self.remove_node_pair((node1, node2))
 
@@ -1870,7 +1872,6 @@ class SuperimposedTopology:
         # get the unmatched nodes in L and R
         L_unmatched = self.get_disappearing_atoms()
         R_unmatched = self.get_appearing_atoms()
-
 
         if len(L_unmatched) == 0 and l_delta_charge_total != 0:
             print('----------------------------------------------------------------------------------------------')
@@ -2681,8 +2682,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # becomes two different atoms with different IDs
     if use_charges and not ignore_charges_completely:
         for sup_top in suptops:
-            sup_top.refineAgainstCharges(atol=pair_charge_atol)
-            if sup_top._removed_pairs_with_charge_difference:
+            removed = sup_top.refineAgainstCharges(atol=pair_charge_atol)
+            if removed:
                 print(f'Removed pairs with charge incompatibility: '
                       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
 
@@ -2750,7 +2751,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
         assert len(suptops) == 1, suptops
 
-    #
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
         if len(suptops) > 1:
             raise NotImplementedError(
