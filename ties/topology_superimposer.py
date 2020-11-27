@@ -2784,10 +2784,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
     # print a general summary
     print('-------- Summary -----------')
-    print(f'Final number of matched pair: {len(suptop.matched_pairs)}')
-    print(f'Disappearing atoms: { len(suptop.matched_pairs) / len(top1_nodes) * 100:.2f}%')
-    print(f'Appearing atoms: {len(suptop.matched_pairs) / len(top2_nodes) * 100:.2f}%')
-    # print('Introduced q imbalance: ')
+    for st in suptops:
+        print(f'Final number of matched pairs: {len(st.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
+        print(f'Disappearing atoms: { (len(top1_nodes) - len(st.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
+        print(f'Appearing atoms: { (len(top2_nodes) - len(st.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
+        # print('Introduced q imbalance: ')
 
     return suptops
 
