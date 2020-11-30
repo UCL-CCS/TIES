@@ -14,16 +14,8 @@ import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
-# fixme: change to CA:C dictionary
-# fixme delete this for now
-general_atom_types = {
-    'C' : {'C', 'CA', 'CB', 'C3', 'CX'},
-    'CL' : {'CL'},
-    'H' : {'H', 'HA', 'HN', 'H4', 'HC', 'H1', 'HO'},
-    'O' : {'O', 'OH'},
-    'N' : {'N', 'NB', 'NS'},
-}
-# fixme - change this to a simpler version
+
+# fixme: change this to a simpler version
 general_atom_types2 = {
     # Source http://ambermd.org/antechamber/gaff.html#atomtype
     # However, some general atom types were added separately
@@ -175,15 +167,6 @@ class AtomNode:
         # it is a shallow copy, as this object is "immutable"
         return self
 
-def are_same_general_type(type1, type2):
-    # check if the two atom types are of the same general type
-    # ie C and CB are both carbons
-    for atom_type in general_atom_types:
-        if type1 in atom_type:
-            if type2 in atom_type:
-                return True
-            return False
-    raise Exception
 
 class AtomPair:
     """
@@ -3280,7 +3263,6 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
     umob_bonds = [(bond[0].id, bond[1].id, bond.order) for bond in umob.bonds]
 
     return uref_atoms, uref_bonds, umob_atoms, umob_bonds, uref, umob
-
 
 
 def assign_coords_from_pdb(atoms, pdb_atoms):
