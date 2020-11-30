@@ -1,132 +1,15 @@
 """
-To do:
- - fixme - you should check if you can rely on atomName and __hash__ for uniqueness which you need
- - ensure that the mirrors are recorded in a better way (rather than as whole suptops?)
-
- -fixme - make sure that the "bonds" are obeyed, if an atom changes its biding, e.g. it has a double bond and then it has
- one more hydrogen, then that is a very different atom, and both need to correctly evolve into each other
-
-TODO:
- - the _overlayer now always can return only one solution, is there a situation where it cannot?
- - we should demand that the particles have 3D coordinates, and base our work on that
-
- Improvements:
- - switch to mdanalysis for creating universes and bonds and etc and other stuff,
- - switch to mdanalysis for all kinds of atom traversal - ie try to use atom bonds etc instead of doing
- all these details myself
- 
- Case:
- - in the case of a ring, if the ring stops existing, ie one of the bonds is removed, then it is a chain,
- but that crates a big issue, because they entire ring now is completely broken, so it should not be anything similar 
- anymore? that would be detected because the charges change
- 
- 
- fixme
- - ERROR: imagine that you have a olecule with 3 overlaid Strongly Connected Components that are all the same to
- each other. Currently, their matching will be arbitrary, which could potentially lead to problems
- - ERROR: some overlaps are clearly incorrect: in the case of a chiral molecule, clearly one group disappears,
- and another group appears, however, they are symmetric to each other and therefore the strongly connected component
- is found in that place. To solve this, one could superimpose only the same molecules to understand the global 
- superimposition and see what is the best way to force it, and use that as guidence, however,
- i have the impression that the same thing can be done by taking into the account the position of the gropus in question
- to other components on their own "topologies", but i have to think about this more
- 
- - there is a lot of matches which are substandard - possibly. 
- For example, imagine some hydrogen wrongly matched with another hydrogen, 
- These have been used in larger strongly connected components, meaning
- that this pair should be removed, which is the approach I take,  but 
- what if there is no much for one of the hydrogens nowhere? I guess it is new 
- 
- ??
- - how to spot errors and poor matches? we should be able to verify our approach and give it some measure.
- if we make this tool available online, then we will see what people give us, and therefore we can work
- on improving the tool. However, we might need hand adjustment - and if something scores poorly, 
- even though it should be perfect, then we might want to flag that. We could use e.g. rdkit 
- to see the "fintertips" which would help us with the maximum score, we could also find the best match,
- using just the atom type 
- - should we take into account the spatial information? what if they can be easily superimposed, 
- and such as structural superimposition would show which atoms are which, how different is that with topology? 
- in theory, we should be able to try to superimpose topologies while ignoring the type (how would we do that? )
- - should we match together the mismatching atoms? we already know which atoms disappear and which appear, but
- do we know which atoms "were mutated" into which others? This would be a useful information. 
- 
- TODO - 
- - use the atom type only to create a match to see how different these things are
- - create test cases to see if everything behaves well
- - check if you should understand the number of bonds which is crucial for understanding the species, 
- it might be a better way to distinguish between the atoms than using any atom types etc
- - ensure the molecule is "connected" before doing any work
- 
- 
- Optimisation:
- - consider sorting your topologies to make it easier to compare them
- - you don't have check every n1 and n2 in the two topologies: 
- e.g. if you find a component which extended to NX-NY match,
- then NX-NY is not a necessary starting condition  
- - one major question that will have to be asked is to understand how after one traversal, we can take away
- certain node pairs and based on that say that these pairs do not need to be used/searched as the starting point
- - we should understand the limits of the search: how many max pairs can we actually find?
- - what you could do is to find "carbons" which do not allow for multiple paths. In other words, if we have A-X-B
- where X is a linear chain, we should be able to start for any molecule on X and arrive at the conclusion,
- for this reason X cannot be on a loop, as the loops are the ones that make the situation more tricky.
- So what I could do is to feed in the topology from both molecules, and find the atoms that are not on loops, and
- use them to traverse the molecule with the hope of finding the right one. However, this is still tricky because there
- will be a lot of atoms that we unnecessarily check.
- - instead of trying every starting AX-BX combination, employ a good gessuing algorithm based on the structural
- overlap, and ensure to terminate searching if you find the right answer
- 
- 
- Complex Testing - Generation Topologies: 
- - one way to automate testing and make it more robust is to generate molecules yourself knowing 
- which parts are mutating and therefore knowing what parts is the same and how the topology should
- be matched, and therefore 
- - check the number of cycles/benzene rings in both, we should ensure that in both cases this is okay
- 
- 
- 
- - extension: apply the same superimposition but ignore the charges to understand what is happening: we will know
- how many of the atoms are changed due to charge, and what happens to the overlap. Furthermore, we can use it 
- as our template. For example, by having the fully superimposed structure, we would be able to assign to each
- node its "universal position" and use that to make some of the later decisions. Furthermore, this
- global match can be extended, and once having multiple components, we can see if we can "bridge" them over the
- areas that are not matched. For example, in the case of a mutated atom, we can jump over that one atom
- and in both cases we know how we are connected to the other component. In other words, connecting the components
- together. 
- 
-
-fixme
-- approach to rare cases where "mirror" is not correct, but it is clearly a mirror. Mirror is checked naively,
-which does not always work. The case where it does not work is test_mcl1_l17l9. This is because
-one of the atoms used in one of the overlaps is not used in the "mirror". However,
-we can score the two topolgies, and notice which one is better based on the RMSD.
-- the above can extended to a further search, if we have coordinates, we can compute the distance for atoms and
-check exactly which atoms do not fit with each other. If other topologies matchd the same area in a better way,
-and have a lower RMSD or in general, a better match in this case, then we would know and be able to specifically
-say that this is some kind of "unusual mirror".
- 
-fixme 
- - optimising too much - finding matches which should not be found? how come our topology superimposition
- ignores the chirality in the case of mcl1?
-
-Suggestions:
- - should you keep track of which bonds are rotatable? just like FEP+ does?
- - growing RMSD: another way to grow the molecules and check local RMSD is to superimpose a smaller part of it,
- ie are these two atoms matching? Maybe the whole superimpositon should not decided about that,
- but rather, the local environment
+The main module responsible for the superimposition.
 """
 import hashlib
 import copy
 import itertools
-import sys
-import os
 import warnings
-from io import StringIO
 from functools import reduce
 import math
 
 import numpy as np
 import networkx as nx
-
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
@@ -1866,6 +1749,7 @@ class SuperimposedTopology:
                 r_delta_charge_total += r.charge - avg_charge
                 # this new charge is made to each molecule
                 l.charge = r.charge = avg_charge
+        print(f'Total charge imbalance in L={l_delta_charge_total:.2f} and R={r_delta_charge_total:.2f}')
 
         # fixme should matched_total_chargeL be l_delta_charge_total?
 
@@ -1892,6 +1776,7 @@ class SuperimposedTopology:
             r_delta_per_atom = float(r_delta_charge_total) / len(R_unmatched)
         else:
             r_delta_per_atom = 0
+        print(f'Charge imbalance per app/dis atom in L={l_delta_per_atom:.2f} and R={r_delta_per_atom:.2f}')
 
         # redistribute that delta q over the atoms in the left and right molecule
         for atom in L_unmatched:
