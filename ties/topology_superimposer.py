@@ -15,7 +15,6 @@ from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
 
-# fixme: change this to a simpler version
 element_from_type = {
     # Source http://ambermd.org/antechamber/gaff.html#atomtype
     # However, some general atom types were added separately
