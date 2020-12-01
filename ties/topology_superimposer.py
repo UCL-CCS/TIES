@@ -1167,7 +1167,7 @@ class SuperimposedTopology:
             # across all the possible choices, found the best match now:
             blacklisted_bxs.append(closest_bx)
             shortest_dsts.append(closest_dst)
-            log(closest_a1.atomName, 'is matching best with', closest_bx.atomName)
+            log(closest_a1.name, 'is matching best with', closest_bx.name)
 
             # remove the old tuple and insert the new one
             self.add_node_pair((closest_a1, closest_bx))
@@ -3189,7 +3189,7 @@ def get_atoms_bonds_from_ac(ac_file):
         charge = float(charge)
         res_id = int(res_id)
         atom_id = int(atom_id)
-        atom = AtomNode(name=atom_name, type=atom_colloq)
+        atom = AtomNode(name=atom_name, atom_type=atom_colloq)
         atom.set_charge(charge)
         atom.set_id(atom_id)
         atom.set_position(x, y, z)
