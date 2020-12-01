@@ -2531,7 +2531,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if align_molecules:
         def take_largest(x, y):
             return x if len(x) > len(y) else y
-        reduce(take_largest, suptops).alignLigandsUsingMatched()
+        reduce(take_largest, suptops).align_ligands_using_matched()
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
@@ -2661,12 +2661,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # carry out a check. Each
     if align_molecules:
         for st in suptops:
-            main_rmsd = st.alignLigandsUsingMatched()
+            main_rmsd = st.align_ligands_using_matched()
             for mirror in st.mirrors:
                 mirror_rmsd = mirror.align_ligands_using_matched()
                 if mirror_rmsd < main_rmsd:
                     print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-            st.alignLigandsUsingMatched(overwrite_original=True)
+            st.align_ligands_using_matched(overwrite_original=True)
 
     # print a general summary
     print('-------- Summary -----------')
