@@ -44,7 +44,7 @@ element_from_type = {
 class AtomNode:
     counter = 1
 
-    def __init__(self, name, atom_type, charge=None, use_general_type=False):
+    def __init__(self, name, atom_type, charge=0, use_general_type=False):
         self.atomId = None
         # this atom name might change
         self.name = name.upper()
@@ -2870,13 +2870,33 @@ def remove_candidates_subgraphs(candidate_suptop, suptops):
     return removed_subgraphs
 
 
+def get_starting_configuration(left_nodes, right_nodes):
+    """
+        Minimise the number of starting configurations to optimise the process speed.
+        Use:
+         * the rarity of the specific atom types,
+         * whether the atoms are bottlenecks (so they do not suffer from symmetry).
+            The issue with symmetry is that it is impossible to find the proper
+            symmetry match if you start from the wrong symmetry.
+    """
+
+    pass
+
+
 def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=None,
                             starting_node_pairs=None,
                             ignore_coords=False,
                             left_coords_are_ref=True,
-                            use_general_type=True):
+                            use_general_type=True,
+                            rare_atoms_starting_pair=True):
     """
     Superimpose two molecules.
+
+    @parameter rare_atoms_starting_pair: instead of trying every possible pair for the starting configuration,
+        use several information to narrow down the good possible starting configuration. Specifically,
+        use two things: 1) the extact atom type, find how rare they are, and use the rarity to make the call,
+        2) use the "linkers" and areas that are not parts of the rings to avoid the issue of symmetry in the ring.
+        We are striving here to have 5% starting configurations.
     """
     # generate the graph for the top1 and top2
     top1 = Topology(top1_nodes)
