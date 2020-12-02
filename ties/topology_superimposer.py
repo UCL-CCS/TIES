@@ -2990,7 +2990,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                             ignore_coords=False,
                             left_coords_are_ref=True,
                             use_general_type=True,
-                            starting_pairs_heuristics=False):
+                            starting_pairs_heuristics=True):
     """
     Superimpose two molecules.
 
