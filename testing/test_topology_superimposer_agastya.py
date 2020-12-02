@@ -99,7 +99,7 @@ def test_mcl1_l17l9():
     liglig_path = "agastya_dataset/mcl1/l17-l9"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
+    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(), starting_pairs_heuristics=False)
     assert len(suptops) == 2
 
     for suptop in suptops:

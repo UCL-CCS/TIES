@@ -8,7 +8,7 @@ TODO
 """
 
 import pytest
-from ties.topology_superimposer import _superimpose_topologies, AtomNode
+from ties.topology_superimposer import _superimpose_topologies, AtomNode, get_starting_configurations
 
 
 def test_2diff_atoms_cn():
@@ -37,7 +37,7 @@ def test_2diff_atoms_cn():
     top2_list = [c11, n11]
 
     # should return a list with an empty sup_top
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     # it should return an empty suptop
     assert len(suptops) == 1
     assert len(suptops[0]) == 2
@@ -78,7 +78,7 @@ def test_3diff_atoms_cno_right_start():
     top2_list = [c11, n11, o11]
 
     # should overlap 2 atoms
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     suptop = suptops[0]
 
@@ -144,7 +144,7 @@ def test_simple_multiple_solutions(lr_atoms_branches):
     top1_list, top2_list = lr_atoms_branches
 
     # should be two topologies
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     # there is one solution
     assert len(suptops) == 1
 
@@ -167,7 +167,7 @@ def test_SimpleMultipleSolutions_mirrors(lr_atoms_branches):
     top1_list, top2_list = lr_atoms_branches
 
     # should be two topologies
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     # note that mirros have not been finished
     return
     # there is one solution
@@ -216,7 +216,7 @@ def test_2same_atoms_2c_symmetry(lr_atoms_chain_2c):
     """
     top1_list, top2_list = lr_atoms_chain_2c
     # should return a list with an empty sup_top
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     assert len(suptops[0]) == 2
 
@@ -270,7 +270,7 @@ def test_3c_circle():
     c13.bind_to(c12, 'bondType1')
     top2_list = [c11, c12, c13]
 
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     assert len(suptops[0]) == 3
     assert len(suptops[0].mirrors) > 2
@@ -401,7 +401,7 @@ def test_mcl1_l12l35_crossed_double_cycle(lr_nodes_dual_ring_molecule):
     top1_list, top2_list = lr_nodes_dual_ring_molecule
 
     # we have to discriminate against this case somehow
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     assert len(suptops[0]) == 11
 
@@ -524,6 +524,17 @@ def test_refine_against_charges_order_problem():
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
     # we have to discriminate against this case somehow
-    suptops = _superimpose_topologies(top1_list, top2_list)
+    suptops = _superimpose_topologies(top1_list, top2_list, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     assert len(suptops[0]) == 11
+
+
+def test_get_starting_configuration(lr_nodes_dual_ring_molecule):
+    left_nodes, right_nodes = lr_nodes_dual_ring_molecule
+
+    starting_configurations = get_starting_configurations(left_nodes, right_nodes, fraction=0.1, filter_ring_c=True)
+
+    # we expect over 10% (0.1 fraction) of the possible atom match.
+    # the maximum overlap in theory is 12 atoms
+    # so that's 1.2 in this case, and the rare atoms should be N and CL
+    assert len(starting_configurations) == 2
