@@ -45,13 +45,13 @@ def load_problem_from_dir(liglig_path):
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in leftlig_bonds:
-        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], 'bondType1')
+        ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], 'bondType1')
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], 'bondType1')
+        ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], 'bondType1')
 
     return ligand1_nodes, ligand2_nodes
 
@@ -74,7 +74,7 @@ def test_mcl1_l18l39():
     core_test_pairs = [('C21', 'C43'), ('C15', 'C37'), ('O3', 'O6'), ('C9', 'C31'),
                   ('C1', 'C23'), ('N1', 'N2'), ('C6', 'C28'), ('C4', 'C26')]
     for atomName1, atomname2 in core_test_pairs:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
+        assert suptop.contains_atom_name_pair(atomName1, atomname2)
 
     # resolve the multiple possible matches
     avg_dst = suptop.correct_for_coordinates()
@@ -83,15 +83,15 @@ def test_mcl1_l18l39():
     corrected_symmetries = [('O2', 'O5'), ('O1', 'O4'), ('H7', 'H25'), ('H6', 'H24'),
                             ('H4', 'H22'), ('H5', 'H23'), ('H8', 'H26'), ('H9', 'H27')]
     for atomName1, atomname2 in corrected_symmetries:
-        assert suptop.contains_atomNamePair(atomName1, atomname2)
+        assert suptop.contains_atom_name_pair(atomName1, atomname2)
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    all_removed_pairs = suptop.refine_against_charges(atol=0.1)
     print(all_removed_pairs)
     removed_pairs = [('C5', 'C27'), ('C4', 'C26')]
     for atomName1, atomname2 in removed_pairs:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+        assert not suptop.contains_atom_name_pair(atomName1, atomname2)
 
 
 def test_mcl1_l17l9():
@@ -106,7 +106,7 @@ def test_mcl1_l17l9():
         # the core chain should always be the same
         core_test_pairs = [('O3', 'O6'), ('C9', 'C28'), ('C3', 'C22'), ('C6', 'C25')]
         for atomName1, atomname2 in core_test_pairs:
-            assert suptop.contains_atomNamePair(atomName1, atomname2)
+            assert suptop.contains_atom_name_pair(atomName1, atomname2)
 
     # use coordinates to solve multiple matches
     [st.correct_for_coordinates() for st in suptops]
@@ -123,15 +123,15 @@ def test_mcl1_l17l9():
                              ('H7', 'H25'), ('H6', 'H24'),
                              ('H5', 'H23')]
     for atomName1, atomname2 in multchoice_test_pairs:
-        assert solution_suptop.contains_atomNamePair(atomName1, atomname2)
+        assert solution_suptop.contains_atom_name_pair(atomName1, atomname2)
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    all_removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    all_removed_pairs = suptop.refine_against_charges(atol=0.1)
     print(all_removed_pairs)
     removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
     for atomName1, atomname2 in removed_pairs:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+        assert not suptop.contains_atom_name_pair(atomName1, atomname2)
 
     # check if the lonely hydrogens were removed together with charges
     # fixme - for this the disconnected component survival has to be used
@@ -157,7 +157,7 @@ def test_mcl1_l8l18():
                              ('H11', 'H27')]
     for atomName1, atomname2 in two_untouched_rings[::-1]:
         # the core chain should always be the same
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             two_untouched_rings.remove((atomName1, atomname2))
     # the pairs that remain were not found
     assert len(two_untouched_rings) == 0, two_untouched_rings
@@ -165,7 +165,7 @@ def test_mcl1_l8l18():
     # check the linker backbone
     linker_backbone = [('O3', 'O7'), ('C12', 'C34'), ('C11', 'C33'), ('C10', 'C32')]
     for atomName1, atomname2 in linker_backbone[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_backbone.remove((atomName1, atomname2))
     assert len(linker_backbone) == 0, linker_backbone
 
@@ -175,7 +175,7 @@ def test_mcl1_l8l18():
                      ('H1', 'H17'), ('C5', 'C27'), ('C6', 'C28'), ('C7', 'C29'),
                      ('H3', 'H19')]
     for atomName1, atomname2 in mutating_area[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
 
@@ -184,15 +184,15 @@ def test_mcl1_l8l18():
                         ('H7', 'H23'), ('H6', 'H22'),
                         ('H9', 'H25'), ('H8', 'H24')]
     for atomName1, atomname2 in linker_hydrogens[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_hydrogens.remove((atomName1, atomname2))
     assert len(linker_hydrogens) == 0, linker_hydrogens
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    removed_pairs = suptop.refine_against_charges(atol=0.1)
     # extract the atom names
-    removed_atom_names = [(left.atomName, right.atomName) for (left, right), q in removed_pairs]
+    removed_atom_names = [(left.name, right.name) for (left, right), q in removed_pairs]
 
     # check non-hydrogen atoms
     removed_non_hydrogens = list(filter(lambda x: not x[0].upper().startswith('H'), removed_atom_names))
@@ -228,7 +228,7 @@ def test_mcl1_l32_l42():
                            ('O2', 'O4')]
     for atomName1, atomname2 in two_untouched_rings[::-1]:
         # the core chain should always be the same
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             two_untouched_rings.remove((atomName1, atomname2))
     # the pairs that remain were not found
     assert len(two_untouched_rings) == 0, two_untouched_rings
@@ -236,7 +236,7 @@ def test_mcl1_l32_l42():
     # check the linker backbone
     linker_backbone = [('O3', 'O6'), ('C12', 'C33'), ('C11', 'C32'), ('C10', 'C31')]
     for atomName1, atomname2 in linker_backbone[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_backbone.remove((atomName1, atomname2))
     assert len(linker_backbone) == 0, linker_backbone
 
@@ -246,36 +246,36 @@ def test_mcl1_l32_l42():
                      ('H16', 'H34'), ('C21', 'C43'), ('H15', 'H33'), ('C20', 'C42'),
                      ('H14', 'H32'), ('C19', 'C41')]
     for atomName1, atomname2 in mutating_area[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
 
-    # this pair of hydrogens has actually a different type, so it is not found
-    assert not suptop.contains_atomNamePair('H13', 'H31')
+    # this pair of hydrogens has actually a different atom_type, so it is not found
+    assert not suptop.contains_atom_name_pair('H13', 'H31')
 
     # check the linker hydrogens
     # note that it is 1) not clear which are which, 2) should not matter
     linker_hydrogens = [('H6', 'H23'), ('H5', 'H22'), ('H7', 'H25'), ('H8', 'H24'), ('H10', 'H26')]
     for atomName1, atomname2 in linker_hydrogens[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_hydrogens.remove((atomName1, atomname2))
     if len(linker_hydrogens) == 0:
         print(linker_hydrogens)
 
     # refine against charges
     # ie remove the matches due to charge difference
-    removed_pairs = suptop.refineAgainstCharges(atol=0.1)
+    removed_pairs = suptop.refine_against_charges(atol=0.1)
     print('removed', removed_pairs)
     should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'),
         ('C20', 'C42'), ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'),
         ('C14', 'C35'), ('C11', 'C32')]
     for (n1, n2), q in removed_pairs:
-        should_remove_pairs.remove((n1.atomName, n2.atomName))
+        should_remove_pairs.remove((n1.name, n2.name))
     assert len(should_remove_pairs) == 0, should_remove_pairs
 
     # remove the dangling hydrogens by using "no disconnected components"
     # fixme requires parsing the CC survives output
-    toGoThrough = suptop.only_largest_CC_survives()
+    toGoThrough = suptop.largest_cc_survives()
     # check if the lonely hydrogens were removed together with charges
     removed_lonely_hydrogens = [('H15', 'H33'), ('H14', 'H32'),
                    ('H12', 'H29'), ('H8', 'H24'), ('H7', 'H25')]
@@ -316,11 +316,11 @@ def test_tyk2_l11l14():
         assert suptop.is_or_was_matched(atomName1, atomname2), (atomName1, atomname2)
 
     # removed due to charges
-    assert not suptop.contains_atomNamePair('C16', 'C32')
+    assert not suptop.contains_atom_name_pair('C16', 'C32')
     assert suptop.is_or_was_matched('C16', 'C32')
 
     # hydrogens should not be dangling by themselves
-    assert not suptop.contains_atomNamePair('H2', 'H14')
+    assert not suptop.contains_atom_name_pair('H2', 'H14')
 
 
 def test_tyk2_l13l12():
@@ -337,7 +337,7 @@ def test_tyk2_l13l12():
                        ('H4', 'H19'), ('C8', 'C25'), ('C12', 'C29'), ('C11', 'C28'),
                        ('N3', 'N6'), ('C13', 'C30'), ('O2', 'O4')]
     for atomName1, atomname2 in core_test_pairs[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             core_test_pairs.remove((atomName1, atomname2))
     assert len(core_test_pairs) == 0, core_test_pairs
 
@@ -367,8 +367,8 @@ def todotest_tyk2_l6l11():
     liglig_path = "agastya_dataset/tyk2/l6-l11"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
-    lefthook = next(filter(lambda x: x.atomName == 'N1', lig1_nodes.values()))
-    righthook = next(filter(lambda x: x.atomName == 'N4', lig2_nodes.values()))
+    lefthook = next(filter(lambda x: x.name == 'N1', lig1_nodes.values()))
+    righthook = next(filter(lambda x: x.name == 'N4', lig2_nodes.values()))
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values(),
                                       starting_node_pairs=[(lefthook, righthook)])
     suptop = suptops[0]
@@ -379,7 +379,7 @@ def todotest_tyk2_l6l11():
     two_untouched_rings = []
     for atomName1, atomname2 in two_untouched_rings[::-1]:
         # the core chain should always be the same
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             two_untouched_rings.remove((atomName1, atomname2))
     # the pairs that remain were not found
     assert len(two_untouched_rings) == 0, two_untouched_rings
@@ -387,40 +387,40 @@ def todotest_tyk2_l6l11():
     # check the linker backbone
     linker_backbone = []
     for atomName1, atomname2 in linker_backbone[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_backbone.remove((atomName1, atomname2))
     assert len(linker_backbone) == 0, linker_backbone
 
     # check the rings that mutate
     mutating_area = []
     for atomName1, atomname2 in mutating_area[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
 
-    # this pair of hydrogens has actually a different type, so it is not found
-    assert not suptop.contains_atomNamePair()
+    # this pair of hydrogens has actually a different atom_type, so it is not found
+    assert not suptop.contains_atom_name_pair()
 
     # check the linker hydrogens
     # note that it is 1) not clear which are which, 2) should not matter
     linker_hydrogens = []
     for atomName1, atomname2 in linker_hydrogens[::-1]:
-        if suptop.contains_atomNamePair(atomName1, atomname2):
+        if suptop.contains_atom_name_pair(atomName1, atomname2):
             linker_hydrogens.remove((atomName1, atomname2))
     if len(linker_hydrogens) == 0:
         print(linker_hydrogens)
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs, rm_h_pairs = suptop.refineAgainstCharges(atol=0.1)
+    removed_pairs, rm_h_pairs = suptop.refine_against_charges(atol=0.1)
     print('removed', removed_pairs)
     should_remove_pairs = []
     for n1, n2 in removed_pairs:
-        should_remove_pairs.remove((n1.atomName, n2.atomName))
+        should_remove_pairs.remove((n1.name, n2.name))
     assert len(should_remove_pairs) == 0, should_remove_pairs
 
     # check if the lonely hydrogens were removed together with charges
     removed_lonely_hydrogens = []
     for n1, n2 in rm_h_pairs:
-        removed_lonely_hydrogens.remove((n1.atomName, n2.atomName))
+        removed_lonely_hydrogens.remove((n1.name, n2.name))
     assert len(removed_lonely_hydrogens) == 0, removed_lonely_hydrogens

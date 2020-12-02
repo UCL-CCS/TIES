@@ -25,19 +25,19 @@ def getSuptop():
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
         ligand1_nodes[atomNode.get_id()] = atomNode
-        if atomNode.atomName == 'C11':
+        if atomNode.name == 'C11':
             c11 = atomNode
     for nfrom, nto, btype in leftlig_bonds:
-        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
+        ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
 
     c33 = None
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
-        if atomNode.atomName == 'C33':
+        if atomNode.name == 'C33':
             c33 = atomNode
     for nfrom, nto, btype in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
+        ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
 
     suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                      starting_node_pairs=[(c11, c33)])
@@ -46,11 +46,11 @@ def getSuptop():
 
     present = [('C18', 'C40'), ('O2', 'O5')]
     for atomName1, atomname2 in present:
-        assert suptop.contains_atomNamePair(atomName1, atomname2), f'({atomName1}, {atomname2}) not found'
+        assert suptop.contains_atom_name_pair(atomName1, atomname2), f'({atomName1}, {atomname2}) not found'
 
     removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
     for atomName1, atomname2 in removed_pairs:
-        assert not suptop.contains_atomNamePair(atomName1, atomname2)
+        assert not suptop.contains_atom_name_pair(atomName1, atomname2)
 
     return suptop, mda_l1, mda_l2
 
@@ -103,7 +103,7 @@ with open('namd_tests/l18-l39/l18l39.pdb', 'w') as FOUT:
         """
         # write all the atoms if they are matched, that's the common part
         REMAINS = 0
-        if suptop.contains_left_atomName(atom.name):
+        if suptop.contains_left_atom_name(atom.name):
             line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                    f"{atom.resid:>4d}    " \
                    f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
@@ -123,7 +123,7 @@ with open('namd_tests/l18-l39/l18l39.pdb', 'w') as FOUT:
     # add atoms from the right topology,
     # which are going to be created
     for atom in mda_l2.atoms:
-        if not suptop.contains_right_atomName(atom.name):
+        if not suptop.contains_right_atom_name(atom.name):
             APPEARING_ATOM = 1.0
             line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                    f"{atom.resid:>4d}    " \
@@ -147,14 +147,14 @@ assert len(ltop.bonds) > 0 and len(rtop.bonds) > 0
 def write_merged(suptop, merged_filename):
     # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
     with open(merged_filename, 'w') as FOUT:
-        bonds = suptop.getDualTopologyBonds()
+        bonds = suptop.get_dual_topology_bonds()
 
         FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
         # name of the molecule
         FOUT.write('merged ' + os.linesep)
         # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
         # fixme this is tricky
-        FOUT.write(f'{suptop.getUnqiueAtomCount():d} '
+        FOUT.write(f'{suptop.get_unique_atom_count():d} '
                    f'{len(bonds):d}' + os.linesep)
         # mole type
         FOUT.write('SMALL ' + os.linesep)
@@ -180,10 +180,10 @@ def write_merged(suptop, merged_filename):
         # prepare all the atoms, note that we use primarily the left ligand naming
         all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
         # reorder the list according to the ID
-        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_ID(atom))
+        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_id(atom))
 
         for atom in all_atoms:
-            FOUT.write(f'{suptop.get_generated_atom_ID(atom)} {atom.atomName} '
+            FOUT.write(f'{suptop.get_generated_atom_id(atom)} {atom.name} '
                        f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
                        f'{atom.type.lower()} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
 

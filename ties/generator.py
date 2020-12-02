@@ -12,7 +12,7 @@ import MDAnalysis as mda
 import numpy as np
 
 from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
-    superimpose_topologies, general_atom_types2, load_mol2_wrapper, get_atoms_bonds_from_ac
+    superimpose_topologies, element_from_type, load_mol2_wrapper, get_atoms_bonds_from_ac
 
 
 def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
@@ -47,13 +47,13 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
         ligand1_nodes[atomNode.get_id()] = atomNode
     # link them together
     for nfrom, nto, btype in leftlig_bonds:
-        ligand1_nodes[nfrom].bindTo(ligand1_nodes[nto], btype)
+        ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
         ligand2_nodes[atomNode.get_id()] = atomNode
     for nfrom, nto, btype in rightlig_bonds:
-        ligand2_nodes[nfrom].bindTo(ligand2_nodes[nto], btype)
+        ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
 
     # fixme - this should be moved out of here,
     #  ideally there would be a function in the main interface for this
@@ -62,14 +62,14 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
         # find the starting node pairs, ie the manually matched pair(s)
         found_left_node = None
         for id, ln in ligand1_nodes.items():
-            if l_aname == ln.atomName:
+            if l_aname == ln.name:
                 found_left_node = ln
         if found_left_node is None:
             raise ValueError(f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule')
 
         found_right_node = None
         for id, ln in ligand2_nodes.items():
-            if r_aname == ln.atomName:
+            if r_aname == ln.name:
                 found_right_node = ln
         if found_right_node is None:
             raise ValueError(f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule')
@@ -86,14 +86,14 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
                                      no_disjoint_components=no_disjoint_components,
                                      net_charge_filter=net_charge_filter,
                                      pair_charge_atol=pair_charge_atol,
-                                     ligandLmda=mda_l1, ligandRmda=mda_l2,
+                                     ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
                                      ignore_charges_completely=ignore_charges_completely,
                                      ignore_bond_types=ignore_bond_types,
                                      ignore_coords=ignore_coords,
                                      left_coords_are_ref=left_coords_are_ref,
                                      align_molecules=align_molecules,
                                      use_general_type=use_general_type,
-                                     use_only_gentype=use_only_gentype,
+                                     use_only_element=use_only_gentype,
                                      check_atom_names_unique=check_atom_names_unique,
                                      net_charge_threshold=net_charge_threshold,
                                      redistribute_charges_over_unmatched=redistribute_charges_over_unmatched)
@@ -512,7 +512,7 @@ def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top
             """
             # write all the atoms if they are matched, that's the common part
             REMAINS = 0
-            if suptop.contains_left_atomName(atom.name):
+            if suptop.contains_left_atom_name(atom.name):
                 line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                        f"{atom.resid:>4d}    " \
                        f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
@@ -532,7 +532,7 @@ def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top
         # add atoms from the right topology,
         # which are going to be created
         for atom in mda_l2.atoms:
-            if not suptop.contains_right_atomName(atom.name):
+            if not suptop.contains_right_atom_name(atom.name):
                 APPEARING_ATOM = 1.0
                 line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                        f"{atom.resid:>4d}    " \
@@ -550,14 +550,14 @@ def write_merged_mol2(suptop, merged_filename, use_left_charges=True, use_left_c
     # fixme - build this molecule using the MDAnalysis builder instead of the current approach
     # where the formatting is done manually
     with open(merged_filename, 'w') as FOUT:
-        bonds = suptop.getDualTopologyBonds()
+        bonds = suptop.get_dual_topology_bonds()
 
         FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
         # name of the molecule
         FOUT.write('merged ' + os.linesep)
         # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
         # fixme this is tricky
-        FOUT.write(f'{suptop.getUnqiueAtomCount():d} '
+        FOUT.write(f'{suptop.get_unique_atom_count():d} '
                    f'{len(bonds):d}' + os.linesep)
         # mole type
         FOUT.write('SMALL ' + os.linesep)
@@ -593,10 +593,10 @@ def write_merged_mol2(suptop, merged_filename, use_left_charges=True, use_left_c
         all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
         unmatched_atoms = suptop.get_unmatched_atoms()
         # reorder the list according to the ID
-        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_ID(atom))
+        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_id(atom))
 
         for atom in all_atoms:
-            FOUT.write(f'{suptop.get_generated_atom_ID(atom)} {atom.atomName} '
+            FOUT.write(f'{suptop.get_generated_atom_id(atom)} {atom.name} '
                        f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
                        f'{atom.type.lower()} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
 
@@ -1028,7 +1028,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     for mol2_atom in mol2.atoms:
         found_match = False
         for ac_atom in ac_atoms:
-            if mol2_atom.name.upper() == ac_atom.atomName.upper():
+            if mol2_atom.name.upper() == ac_atom.name.upper():
                 found_match = True
                 mol2_atom.charge = ac_atom.charge
                 break
@@ -1074,7 +1074,7 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
         for mol2_atom in mol2.atoms:
             found_match = False
             for ref_atom in ref_mol2.atoms:
-                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
                     if found_match == True:
                         raise Exception('AtomNames are not unique or do not match')
                     found_match = True
@@ -1082,8 +1082,8 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
             assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
     elif by_index:
         for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
-                atype = general_atom_types2[mol2_atom.type.upper()]
-                reftype = general_atom_types2[ref_atom.type.upper()]
+                atype = element_from_type[mol2_atom.type.upper()]
+                reftype = element_from_type[ref_atom.type.upper()]
                 if atype != reftype:
                     raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
 
@@ -1137,7 +1137,7 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
         for mol2_atom in mol2.atoms:
             found_match = False
             for ref_atom in ref_mol2.atoms:
-                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
                     found_match = True
                     mol2_atom.position = ref_atom.position
                     break
@@ -1153,8 +1153,8 @@ def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_i
             assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
     elif by_index:
         for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
-                atype = general_atom_types2[mol2_atom.type.upper()]
-                reftype = general_atom_types2[ref_atom.type.upper()]
+                atype = element_from_type[mol2_atom.type.upper()]
+                reftype = element_from_type[ref_atom.type.upper()]
                 if atype != reftype:
                     raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
 
@@ -1181,7 +1181,7 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
         for mol2_atom in target.atoms:
             found_match = False
             for ref_atom in ref.atoms:
-                if general_atom_types2[mol2_atom.type.upper()] == general_atom_types2[ref_atom.type.upper()]:
+                if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
                     found_match = True
                     mol2_atom.position = ref_atom.position
                     break
@@ -1197,8 +1197,8 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
             assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
     elif by_index:
         for mol2_atom, ref_atom in zip(target.atoms, ref.atoms):
-                atype = general_atom_types2[mol2_atom.type.upper()]
-                reftype = general_atom_types2[ref_atom.type.upper()]
+                atype = element_from_type[mol2_atom.type.upper()]
+                reftype = element_from_type[ref_atom.type.upper()]
                 if atype != reftype:
                     raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
 
