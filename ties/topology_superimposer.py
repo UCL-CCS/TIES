@@ -166,8 +166,12 @@ class AtomNode:
 
     def __deepcopy__(self, memodict={}):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
-        # it is a shallow copy, as this object is "immutable"
+        # it is a shallow copy, as this object should be in the future immutable
         return self
+
+    def deepCopy(self):
+        # Generate a new object of this class
+        return AtomNode(self.name, self.type, self.charge)
 
 
 class AtomPair:

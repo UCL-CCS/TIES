@@ -120,7 +120,7 @@ def renameAtomNamesUniqueAndResnames(left_mol2, right_mol2):
     # first, ensure that all the atom names are unique
     L_atom_names = [a.name for a in left.atoms]
     L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
-    L_correct_format = is_correct_atom_name_format(L_atom_names)
+    L_correct_format = are_correct_names(L_atom_names)
 
     left_renamed = False
     if not L_names_unique or not L_correct_format:
@@ -133,7 +133,7 @@ def renameAtomNamesUniqueAndResnames(left_mol2, right_mol2):
 
     R_atom_names = [a.name for a in right.atoms]
     R_names_unique = len(set(R_atom_names)) == len(R_atom_names)
-    R_correct_format = is_correct_atom_name_format(R_atom_names)
+    R_correct_format = are_correct_names(R_atom_names)
     L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
 
     right_renamed = False
@@ -170,6 +170,29 @@ def renameAtomNamesUniqueAndResnames(left_mol2, right_mol2):
         shutil.copy(right_mol2, r_filename + '_before_atomNameChange' + r_extension)
         # overwrite the file
         right.atoms.write(right_mol2)
+
+
+def make_atom_names_unique(ligand):
+    """
+    Ensure that each atom has a unique name.
+
+    rename the ligand to ensure that no atom has the same atom name
+    using the first letter (C, N, ..) and count them
+    keep the names if possible (ie if they are already different)
+    """
+    # load the ligand with MDAnalysis
+    ligand_universe = load_mol2_wrapper(ligand)
+
+    # ensure that all the atom names are unique
+    atom_names = [a.name for a in ligand_universe.atoms]
+    names_unique = len(set(atom_names)) == len(atom_names)
+
+    if not names_unique or not are_correct_names(atom_names):
+        print(f'Atom names in your molecule ({ligand}) are either not unique '
+              f'or do not follow NameDigit format (e.g. C15). Renaming')
+        rename_ligand(ligand_universe.atoms)
+
+    return ligand_universe
 
 
 def prepare_inputs(workplace_root, directory='complex',
@@ -384,13 +407,13 @@ def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
     return frcmod_with_dummy_terms
 
 
-
-def is_correct_atom_name_format(names):
+def are_correct_names(atoms):
     """
-    check if the atom format is like "C15", ie atom type followed by a number
-    input atoms: MDAnalysis atoms
+    Check if the atom name is followed by a number, e.g. "C15"
+    @parameter names: a list of atom names
+    @returns True if they all follow the correct format.
     """
-    for name in names:
+    for name in atoms.names:
         afterLetters = [i for i, l in enumerate(name) if l.isalpha()][-1] + 1
 
         atom_name = name[:afterLetters]
@@ -408,7 +431,9 @@ def is_correct_atom_name_format(names):
 
 def rename_ligand(atoms, name_counter=None):
     """
-    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
+    todo - add unit tests
+
+    @parameter/returns name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
     the counter keeps track of the last used counter for each name.
     Empty means that the counting will start from 1.
     input atoms: mdanalysis atoms

@@ -193,12 +193,12 @@ def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('action', metavar='command', type=str,
                         help='Action to be performed. E.g. "ties rename, ties create, ties .." ')
-    parser.add_argument('-l', '--left-ligand', metavar='Left_Ligand_File', dest='left_ligand',
-                        type=Path, required=False,
-                        help='The left ligand file')
-    parser.add_argument('-r', '--right-ligand', metavar='Right_Ligand_File', dest='right_ligand',
-                        type=Path, required=False,
-                        help='The right ligand file')
+    parser.add_argument('-l', '--ligands', metavar='Ligands ', dest='ligands',
+                        nargs='+',
+                        #type=Path, required=False,
+                        help='A list of the ligands in the right order. When two ligands are given they would be '
+                             'treated as Left and Right (Right-Left). '
+                             'If more ligands are given, Lead Optmisation Mapping (like LOMAP) will be used.')
     parser.add_argument('-cwd', metavar='Current_Working_Directory', dest='cwd',
                         type=Path, required=False,
                         help='If not provided, current directory is used. ')
@@ -277,21 +277,23 @@ def command_line_script():
     print(f'Working Directory: {workplace_root}')
 
     # check if ligand files are fine
-    if args.left_ligand is None or args.right_ligand is None:
-        print('Please supply ligand files with -l and -r')
+    if args.ligands is None or len(args.ligands) < 2:
+        print('Please supply at least two ligand files with -l (--ligands). E.g. -l file1.pdb file2.pdb ')
         sys.exit()
 
-    left_ligand = args.left_ligand
-    right_ligand = args.right_ligand
+    ligands = args.ligands
 
     # check if the input files exist
     # todo - verify the files at this stage
-    if not (workplace_root / left_ligand).is_file():
-        print(f'File {left_ligand} not found in {workplace_root}')
-        sys.exit(1)
-    elif not (workplace_root / right_ligand).is_file():
-        print(f'File {right_ligand} not found in {workplace_root}')
-        sys.exit(1)
+    for lig in ligands:
+        if not (workplace_root / lig).is_file():
+            print(f'File {lig} not found in {workplace_root}')
+            sys.exit(1)
+
+    # todo - ensure that each atom name is unique (see #237)
+    for lig in ligands:
+        make_atom_names_unique(workplace_root / 'left.mol2')
+        pass
 
     if args.antechamber_dr is True:
         antechamber_dr = 'yes'
@@ -302,7 +304,6 @@ def command_line_script():
     # fixme
     # if it is .ac file format (ambertools, almost the same as .pdb), convert it to .mol2,
     left_ligand = convert_ac_to_mol2(left_ligand, 'left', args, workplace_root, antechamber_dr)
-    right_ligand = convert_ac_to_mol2(right_ligand, 'right', args, workplace_root, antechamber_dr)
 
     if args.action == 'rename':
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
