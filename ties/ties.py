@@ -325,7 +325,7 @@ def command_line_script():
 
     align_molecules = args.align_mcs
     # use the original coords because antechamber can change them slightly
-    use_original_coor = True
+    use_original_coor = False
 
     ambertools_bin = find_antechamber(args)
 
