@@ -21,7 +21,7 @@ element_from_type = {
     # Furthermore, GAFF2 is being added in stages
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C',
+    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C', 'C1': 'C',
     'H': 'H', 'HA': 'H', 'HN': 'H', 'H4': 'H', 'HC': 'H', 'H1': 'H', 'HX': 'H',
     'HO': 'H', 'HS': 'H', 'HP': 'H',  'H2': 'H', 'H3': 'H',  'H5': 'H',
     'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
