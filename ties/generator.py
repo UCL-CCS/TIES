@@ -103,102 +103,9 @@ def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
     return suptops[0], mda_l1, mda_l2
 
 
-def renameAtomNamesUniqueAndResnames(left_mol2, right_mol2):
-    """
-    Ensure that each has a name that is unique to both files.
-
-    # rename the ligand to ensure that no atom has the same name
-    # name atoms using the first letter (C, N, ..) and count them
-    # keep the names if possible (ie if they are already different)
-
-    Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
-    """
-    # load both ligands
-    left = load_mol2_wrapper(left_mol2)
-    right = load_mol2_wrapper(right_mol2)
-
-    # first, ensure that all the atom names are unique
-    L_atom_names = [a.name for a in left.atoms]
-    L_names_unique = len(set(L_atom_names)) == len(L_atom_names)
-    L_correct_format = are_correct_names(L_atom_names)
-
-    left_renamed = False
-    if not L_names_unique or not L_correct_format:
-        print(f'Renaming left molecule ({left_mol2}) atom names because they are not unique')
-        name_counter_L_nodes = rename_ligand(left.atoms)
-        L_atom_names = [a.name for a in left.atoms]
-        left_renamed = True
-    else:
-        name_counter_L_nodes = get_atom_names_counter(left.atoms)
-
-    R_atom_names = [a.name for a in right.atoms]
-    R_names_unique = len(set(R_atom_names)) == len(R_atom_names)
-    R_correct_format = are_correct_names(R_atom_names)
-    L_R_overlap = len(set(R_atom_names).intersection(set(L_atom_names))) > 0
-
-    right_renamed = False
-    if not R_names_unique or not R_correct_format or L_R_overlap:
-        print(f'Renaming right molecule ({right_mol2}) atom names because they are not unique')
-        rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
-        right_renamed = True
-    # each atom name is unique, fixme - this check does not apply anymore
-    # ie it is fine for a molecule to use general type
-    # assert len(set(R_atom_names)) == len(R_atom_names)
-
-    # rename the resnames to INI and FIN
-    left_resnames = {a.resname for a in left.atoms}
-    if 'INI' not in left_resnames or len(left_resnames) > 1:
-        for a in left.atoms:
-            a.residue.resname = 'INI'
-        left_renamed = True
-
-    right_resnames = {a.resname for a in right.atoms}
-    if 'FIN' not in right_resnames or len(right_resnames) > 1:
-        for a in right.atoms:
-            a.residue.resname = 'FIN'
-        right_renamed = True
-
-    # make a copy of the original files
-    if left_renamed:
-        l_filename, l_extension = os.path.splitext(left_mol2)
-        shutil.copy(left_mol2, l_filename + '_before_atomNameChange' + l_extension)
-        # overwrite the file
-        left.atoms.write(left_mol2)
-
-    if right_renamed:
-        r_filename, r_extension = os.path.splitext(right_mol2)
-        shutil.copy(right_mol2, r_filename + '_before_atomNameChange' + r_extension)
-        # overwrite the file
-        right.atoms.write(right_mol2)
-
-
-def make_atom_names_unique(ligand):
-    """
-    Ensure that each atom has a unique name.
-
-    rename the ligand to ensure that no atom has the same atom name
-    using the first letter (C, N, ..) and count them
-    keep the names if possible (ie if they are already different)
-    """
-    # load the ligand with MDAnalysis
-    ligand_universe = load_mol2_wrapper(ligand)
-
-    # ensure that all the atom names are unique
-    atom_names = [a.name for a in ligand_universe.atoms]
-    names_unique = len(set(atom_names)) == len(atom_names)
-
-    if not names_unique or not are_correct_names(atom_names):
-        print(f'Atom names in your molecule ({ligand}) are either not unique '
-              f'or do not follow NameDigit format (e.g. C15). Renaming')
-        rename_ligand(ligand_universe.atoms)
-
-    return ligand_universe
-
-
-def prepare_inputs(workplace_root, directory='complex',
+def prepare_inputs(morph,
+                   dir_prefix='complex',
                    protein=None,
-                   hybrid_mol2=None, hybrid_frc=None,
-                   left_right_mapping=None,
                    namd_script_loc=None,
                    submit_script=None,
                    scripts_loc=None,
@@ -212,17 +119,17 @@ def prepare_inputs(workplace_root, directory='complex',
                    namd_prod=None,
                    hybrid_topology=False):
 
-    dest_dir = workplace_root / directory
-    if not dest_dir.is_dir():
-        dest_dir.mkdir()
+    cwd = morph.workplace_root / (f'{dir_prefix}_{morph.internal_name}')
+    if not cwd.is_dir():
+        cwd.mkdir(exist_ok=True)
 
     # copy the protein complex .pdb
     if protein is not None:
-        shutil.copy(protein, dest_dir / 'protein.pdb')
+        shutil.copy(protein, cwd / 'protein.pdb')
 
     # copy the hybrid ligand (topology and .frcmod)
-    shutil.copy(hybrid_mol2, dest_dir)
-    shutil.copy(hybrid_frc, dest_dir)
+    shutil.copy(morph.mol2, cwd / 'morph.mol2')
+    shutil.copy(morph.frcmod, cwd / 'morph.frcmod')
 
     # determine the number of ions to neutralise the ligand charge
     if net_charge < 0:
@@ -247,51 +154,51 @@ def prepare_inputs(workplace_root, directory='complex',
     elif Cl_num > 0:
         tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 
-    open(dest_dir / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+    open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
                                                               ligand_ff=ligand_ff,
                                                               NaIons=tleap_Na_ions,
                                                               ClIons=tleap_Cl_ions))
 
     # ambertools tleap: combine ligand+complex, solvate, generate amberparm
-    log_filename = dest_dir / 'generate_sys_top.log'
+    log_filename = cwd / 'generate_sys_top.log'
     with open(log_filename, 'w') as LOG:
         try:
             subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'],
                            stdout=LOG, stderr=LOG,
-                           cwd = dest_dir,
+                           cwd = cwd,
                            check=True, text=True, timeout=30)
-            hybrid_solv = dest_dir / 'sys_solv.pdb' # generated
+            hybrid_solv = cwd / 'sys_solv.pdb' # generated
             # check if the solvation is correct
         except subprocess.CalledProcessError as E:
             print('ERROR: occured when creating the input .mol2 file with antechamber. ')
-            print(f'ERROR: The output was saved in the directory: {dest_dir}')
+            print(f'ERROR: The output was saved in the directory: {cwd}')
             print(f'ERROR: can be found in the file: {log_filename}')
             raise E
 
     # for hybrid single-dual topology approach, we have to use a different approach
 
     # generate the merged .fep file
-    complex_solvated_fep = dest_dir / 'sys_solv_fep.pdb'
-    correct_fep_tempfactor(left_right_mapping, hybrid_solv, complex_solvated_fep,
+    complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
+    correct_fep_tempfactor(morph.summary, hybrid_solv, complex_solvated_fep,
                            hybrid_topology)
 
     # fixme - check that the protein does not have the same resname?
 
     # calculate PBC for an octahedron
-    solv_oct_boc = extract_PBC_oct_from_tleap_log(dest_dir / "leap.log")
+    solv_oct_boc = extract_PBC_oct_from_tleap_log(cwd / "leap.log")
 
     # prepare NAMD input files for min+eq+prod
-    init_namd_file_min(namd_script_loc, dest_dir, "min.namd",
+    init_namd_file_min(namd_script_loc, cwd, "min.namd",
                        structure_name='sys_solv', pbc_box=solv_oct_boc)
-    eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", dest_dir)
-    shutil.copy(namd_script_loc / namd_prod, dest_dir / 'prod.namd')
+    eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", cwd)
+    shutil.copy(namd_script_loc / namd_prod, cwd / 'prod.namd')
 
     # generate 4 different constraint .pdb files (it uses B column)
-    constraint_files = create_4_constraint_files(hybrid_solv, dest_dir)
+    constraint_files = create_4_constraint_files(hybrid_solv, cwd)
 
     # Generate the directory structure for all the lambdas, and copy the files
     for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-        lambda_path = dest_dir / f'lambda_{lambda_step:.2f}'
+        lambda_path = cwd / f'lambda_{lambda_step:.2f}'
         if not os.path.exists(lambda_path):
             os.makedirs(lambda_path)
 
@@ -309,111 +216,30 @@ def prepare_inputs(workplace_root, directory='complex',
             prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
             prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
             # copy ambertools-generated topology
-            prepareFile(os.path.relpath(dest_dir / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
+            prepareFile(os.path.relpath(cwd / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
             # copy the .pdb files with constraints in the B column
             for constraint_file in constraint_files:
                 prepareFile(os.path.relpath(constraint_file, replica_dir),
                             replica_dir / os.path.basename(constraint_file))
 
             # copy the NAMD protocol files
-            prepareFile(os.path.relpath(dest_dir / 'min.namd', replica_dir), replica_dir / 'min.namd')
+            prepareFile(os.path.relpath(cwd / 'min.namd', replica_dir), replica_dir / 'min.namd')
             [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
                         for eq in eq_namd_filenames]
-            prepareFile(os.path.relpath(dest_dir / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
+            prepareFile(os.path.relpath(cwd / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
 
             # copy a submit script
             if submit_script is not None:
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
 
-def check_hybrid_frcmod(mol2_file, hybrid_frcmod,
-                        protein_ff, ligand_ff,
-                        ambertools_bin, ambertools_script_dir, cwd,
-                        test_dir_name='ambertools_frcmod_test'):
-    """
-    Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
-    Check that the output library can be used to create a valid amber topology.
-    Add missing terms with no force to pass the topology creation.
-    Returns the corrected .frcmod content, otherwise throws an exception.
-    """
-    # prepare directory
-    test_dir = Path(test_dir_name)
-    if not test_dir.is_dir():
-        os.mkdir(test_dir)
-    cwd = Path(cwd) / test_dir
-
-    # prepare files
-    shutil.copy(mol2_file, test_dir)
-    shutil.copy(hybrid_frcmod, test_dir)
-    modified_hybrid_frcmod = os.path.join(test_dir, os.path.basename(hybrid_frcmod))
-
-    # prepare tleap input
-    leap_in_test = 'leap_test_morph.in'
-    leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
-    open(test_dir / leap_in_test, 'w').write(leap_in_conf.format(protein_ff=protein_ff, ligand_ff=ligand_ff))
-
-    # attempt generating the .top
-    print('Create amber7 topology .top')
-    tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
-                                   cwd=cwd, text=True, timeout=60*3,
-                                   capture_output=True, check=True)
-
-    # save stdout and stderr
-    open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
-
-    if not 'Errors = 0' in tleap_process.stdout:
-        # extract the missing angles/dihedrals
-        missing_angles = []
-        missing_dihedrals = []
-        for line in tleap_process.stdout.splitlines():
-            if "Could not find angle parameter:" in line:
-                cols = line.split(':')
-                angle = cols[-1].strip()
-                if angle not in missing_angles:
-                    missing_angles.append(angle)
-            elif "No torsion terms for" in line:
-                cols = line.split()
-                torsion = cols[-1].strip()
-                if torsion not in missing_dihedrals:
-                    missing_dihedrals.append(torsion)
-
-        if missing_angles or missing_dihedrals:
-            print('WARNING: Adding dummy dihedrals/angles to frcmod to generate .top')
-            frcmod_lines = open(modified_hybrid_frcmod).readlines()
-            # overwriting the .frcmod with dummy angles/dihedrals
-            with open(modified_hybrid_frcmod, 'w') as NEW_FRCMOD:
-                for line in frcmod_lines:
-                    NEW_FRCMOD.write(line)
-                    if 'ANGLE' in line:
-                        for angle in missing_angles:
-                            dummy_angle = f'{angle:<14}0  120.010  \t\t# Dummy angle\n'
-                            NEW_FRCMOD.write(dummy_angle)
-                            print(f'Added dummy angle: "{dummy_angle}"')
-                    if 'DIHE' in line:
-                        for dihedral in missing_dihedrals:
-                            dummy_dihedral = f'{dihedral:<14}1  0.00  180.000  2.000   \t\t# Dummy dihedrals\n'
-                            NEW_FRCMOD.write(dummy_dihedral)
-                            print(f'Added dummy dihedral: "{dummy_dihedral}"')
-
-            # verify that adding the dummy angles/dihedrals worked
-            tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
-                                           cwd=cwd, text=True, timeout=60 * 10, capture_output=True, check=True)
-
-            if not "Errors = 0" in tleap_process.stdout:
-                raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
-
-    print('Test hybrid topology creation: OK.')
-    frcmod_with_dummy_terms = open(modified_hybrid_frcmod).read()
-    return frcmod_with_dummy_terms
-
-
-def are_correct_names(atoms):
+def are_correct_names(names):
     """
     Check if the atom name is followed by a number, e.g. "C15"
     @parameter names: a list of atom names
     @returns True if they all follow the correct format.
     """
-    for name in atoms.names:
+    for name in names:
         afterLetters = [i for i, l in enumerate(name) if l.isalpha()][-1] + 1
 
         atom_name = name[:afterLetters]
@@ -482,182 +308,6 @@ def get_atom_names_counter(atoms):
     return name_counter
 
 
-def save_superimposition_results(filepath, suptop):
-    # fixme - check if the file exists
-    with open(filepath, 'w') as FOUT:
-        # use json format, only use atomNames
-        app, dis = suptop.get_single_topology_app()
-        data = {
-            # the dual topology information
-            'matched': {str(n1): str(n2) for n1, n2 in suptop.matched_pairs},
-            'appearing': list(map(str, suptop.get_appearing_atoms())),
-            'disappearing': list(map(str, suptop.get_disappearing_atoms())),
-            # single topology information
-            'single_top_matched': {str(n1): str(n2) for n1, n2 in suptop.get_single_topology_region()},
-            # NAMD hybrid single-dual topology info
-            'single_top_appearing': list(map(str, app)),
-            'single_top_disappearing': list(map(str, dis)),
-        }
-        FOUT.write(json.dumps(data, indent=4))
-
-    return data
-
-
-def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
-    if hybrid_single_dual_top:
-        # the NAMD hybrid single dual topology
-        # rename the ligand on the left to INI
-        # and the ligand on the right to END
-
-        # make a copy of the suptop here to ensure that the modifications won't affect it
-        st = copy.copy(suptop)
-
-        # first, set all the matched pairs to -2 and 2 (single topology)
-        # regardless of how they were mismatched
-        print('hi')
-
-        # then, set the different atoms to -1 and 1 (dual topology)
-
-        # save in a single PDB file
-        # Note that the atoms from left to right
-        # in the single topology region have to
-        # be separated by the same number
-        # fixme - make a check for that
-        return
-    # fixme - find another library that can handle writing to a PDB file, MDAnalysis
-    # save the ligand with all the appropriate atomic positions, write it using the pdb format
-    # pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
-    # write a dual .pdb file
-    with open(filepath, 'w') as FOUT:
-        for atom in mda_l1.atoms:
-            """
-            There is only one forcefield which is shared across the two topologies. 
-            Basically, we need to check whether the atom is in both topologies. 
-            If that is the case, then the atom should have the same name, and therefore appear only once. 
-            However, if there is a new atom, it should be specfically be outlined 
-            that it is 1) new and 2) the right type
-            """
-            # write all the atoms if they are matched, that's the common part
-            REMAINS = 0
-            if suptop.contains_left_atom_name(atom.name):
-                line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                       f"{atom.resid:>4d}    " \
-                       f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
-                       f"{1.0:>6.2f}{REMAINS:>6.2f}" + (' ' * 11) + \
-                       '  ' + '  ' + '\n'
-                FOUT.write(line)
-            else:
-                # this atom was not found, this means it disappears, so we should update the
-                DISAPPEARING_ATOM = -1.0
-                line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                       f"{atom.resid:>4d}    " \
-                       f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
-                       f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}" + \
-                       (' ' * 11) + \
-                       '  ' + '  ' + '\n'
-                FOUT.write(line)
-        # add atoms from the right topology,
-        # which are going to be created
-        for atom in mda_l2.atoms:
-            if not suptop.contains_right_atom_name(atom.name):
-                APPEARING_ATOM = 1.0
-                line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                       f"{atom.resid:>4d}    " \
-                       f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
-                       f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}" + \
-                       (' ' * 11) + \
-                       '  ' + '  ' + '\n'
-                FOUT.write(line)
-
-
-def write_merged_mol2(suptop, merged_filename, use_left_charges=True, use_left_coords=True):
-    # fixme - make this as a method of suptop as well
-    # recreate the mol2 file that is merged and contains the correct atoms from both
-    # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
-    # fixme - build this molecule using the MDAnalysis builder instead of the current approach
-    # where the formatting is done manually
-    with open(merged_filename, 'w') as FOUT:
-        bonds = suptop.get_dual_topology_bonds()
-
-        FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
-        # name of the molecule
-        FOUT.write('merged ' + os.linesep)
-        # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-        # fixme this is tricky
-        FOUT.write(f'{suptop.get_unique_atom_count():d} '
-                   f'{len(bonds):d}' + os.linesep)
-        # mole type
-        FOUT.write('SMALL ' + os.linesep)
-        # charge_type
-        FOUT.write('NO_CHARGES ' + os.linesep)
-        FOUT.write(os.linesep)
-
-        # write the atoms
-        FOUT.write('@<TRIPOS>ATOM ' + os.linesep)
-        # atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
-        # e.g.
-        #       1 O4           3.6010   -50.1310     7.2170 o          1 L39      -0.815300
-
-        # so from the two topologies all the atoms are needed and they need to have a different atom_id
-        # so we might need to name the atom_id for them, other details are however pretty much the same
-        # the importance of atom_name is difficult to estimate
-
-        # we are going to assign IDs in the superimposed topology in order to track which atoms have IDs
-        # and which don't
-
-        # fixme - for writing, modify things to achieve the desired output
-        # note - we are modifying in place our atoms
-        for left, right in suptop.matched_pairs:
-            print(f'Aligned {left.originalAtomName} id {left.atomId} with {right.originalAtomName} id {right.atomId}')
-            if not use_left_charges:
-                left.charge = right.charge
-            if not use_left_coords:
-                left.position = right.position
-
-        subst_id = 1  # resid basically
-        # write all the atoms that were matched first with their IDs
-        # prepare all the atoms, note that we use primarily the left ligand naming
-        all_atoms = [left for left, right in suptop.matched_pairs] + suptop.get_unmatched_atoms()
-        unmatched_atoms = suptop.get_unmatched_atoms()
-        # reorder the list according to the ID
-        all_atoms.sort(key=lambda atom: suptop.get_generated_atom_id(atom))
-
-        for atom in all_atoms:
-            FOUT.write(f'{suptop.get_generated_atom_id(atom)} {atom.name} '
-                       f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
-                       f'{atom.type.lower()} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
-
-        # for left_atom, _ in suptop.matched_pairs:
-        #     # note that the atom id is the most important
-        #     FOUT.write(f'{suptop.get_generated_atom_ID(left_atom)} {left_atom.atomName} '
-        #                f'{left_atom.position[0]:.4f} {left_atom.position[1]:.4f} {left_atom.position[2]:.4f} '
-        #                f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
-
-        # write the IDs for the atoms which are appearing/disappearing
-        # for unmatched in suptop.get_unmatched_atoms():
-        #     FOUT.write(f'{suptop.get_generated_atom_ID(unmatched)} {unmatched.atomName} '
-        #                f'{unmatched.position[0]:.4f} {unmatched.position[1]:.4f} {unmatched.position[2]:.4f} '
-        #                f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
-
-        FOUT.write(os.linesep)
-
-        # write bonds
-        FOUT.write('@<TRIPOS>BOND ' + os.linesep)
-
-        # we have to list every bond:
-        # 1) all the bonds between the paired atoms, so that part is easy
-        # 2) bonds which link the disappearing atoms, and their connection to the paired atoms
-        # 3) bonds which link the appearing atoms, and their connections to the paired atoms
-
-        bond_counter = 1
-        list(bonds)
-        for bond_from_id, bond_to_id, bond_type in sorted(list(bonds), key=lambda b: b[:2]):
-            # Bond Line Format:
-            # bond_id origin_atom_id target_atom_id bond_type [status_bits]
-            FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)
-            bond_counter += 1
-
-
 def parse_frcmod_sections(filename):
     """
     Copied from the previous TIES. It's simpler and this approach must be fine then.
@@ -692,29 +342,6 @@ def _merge_frcmod_section(ref_lines, other_lines):
             merged_section.append(line)
 
     return merged_section
-
-
-def join_frcmod_files2(filename1, filename2, output_filename):
-    """
-    Copied from the previous TIES. It's simpler and this approach must be fine then.
-    """
-    frcmod_info1 = parse_frcmod_sections(filename1)
-    frcmod_info2 = parse_frcmod_sections(filename2)
-
-    with open(output_filename, 'w') as FOUT:
-        FOUT.write('merged frcmod\n')
-
-        for section in ['MASS', 'BOND', 'ANGLE',
-                        'DIHE', 'IMPROPER', 'NONBON']:
-            section_lines = frcmod_info1[section] + frcmod_info2[section]
-            FOUT.write('{0:s}\n'.format(section))
-            for line in section_lines:
-                FOUT.write('{0:s}'.format(line))
-            FOUT.write('\n')
-
-        FOUT.write('\n\n')
-
-    return
 
 
 def join_frcmod_files(f1, f2, output_filepath):
@@ -878,7 +505,7 @@ def join_frcmod_files(f1, f2, output_filepath):
     write_frcmod(joined_frc, output_filepath)
 
 
-def _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, new_pdb_filename):
+def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename):
     """
     Single topology version of function correct_fep_tempfactor.
 
@@ -889,17 +516,14 @@ def _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, n
     if 'INI' not in u.atoms.resnames or 'FIN' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
-    with open(fep_json_filename) as F:
-        fep_meta = json.load(F)
-
     # dual-topology info
     # matched atoms are denoted -2 and 2 (morphing into each other)
-    matched_disappearing = list(fep_meta['single_top_matched'].keys())
-    matched_appearing = list( fep_meta['single_top_matched'].values())
+    matched_disappearing = list(fep_summary['single_top_matched'].keys())
+    matched_appearing = list( fep_summary['single_top_matched'].values())
     # disappearing is denoted by -1
-    disappearing_atoms = fep_meta['single_top_disappearing']
+    disappearing_atoms = fep_summary['single_top_disappearing']
     # appearing is denoted by 1
-    appearing_atoms = fep_meta['single_top_appearing']
+    appearing_atoms = fep_summary['single_top_appearing']
 
     # update the Temp column
     for atom in u.atoms:
@@ -937,7 +561,7 @@ def load_mda_u(filename):
     return mda.Universe(filename)
 
 
-def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
+def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
     """
     fixme - this function does not need to use the file?
     we have the json information available here.
@@ -949,19 +573,16 @@ def correct_fep_tempfactor(fep_json_filename, source_pdb_filename, new_pdb_filen
     """
     if hybrid_topology:
         # delegate correcting fep column in the pdb file
-        return _correct_fep_tempfactor_single_top(fep_json_filename, source_pdb_filename, new_pdb_filename)
+        return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
 
     u = load_mda_u(source_pdb_filename)
     if 'mer' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
-    with open(fep_json_filename) as F:
-        fep_meta = json.load(F)
-
     # dual-topology info
-    matched = list(fep_meta['matched'].keys())
-    appearing_atoms = fep_meta['appearing']
-    disappearing_atoms = fep_meta['disappearing']
+    matched = list(fep_summary['matched'].keys())
+    appearing_atoms = fep_summary['appearing']
+    disappearing_atoms = fep_summary['disappearing']
 
     # update the Temp column
     for atom in u.atoms:
@@ -1119,27 +740,6 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     assert ref_sum_q == sum(a.charge for a in mol2.atoms)
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
-
-
-def removeDU_atoms(filename):
-    """
-    Ambertools antechamber creates sometimes DU dummy atoms.
-    These are not created when BCC charges are computed from scratch.
-    They are only created if you reuse existing charges.
-    They appear to be a side effect. We remove the dummy atoms therefore.
-    """
-    mol2_u = load_mol2_wrapper(filename)
-    # check if there are any DU atoms
-    has_DU = any(a.type == 'DU' for a in mol2_u.atoms)
-    if not has_DU:
-        return
-
-    # make a backup copy before
-    shutil.move(filename, '.beforeRemovingDU'.join(os.path.splitext(filename)))
-
-    # remove DU type atoms and save the file
-    mol2_u.select_atoms('not type DU').atoms.write(filename)
-    print('Removed dummy atoms with type "DU"')
 
 
 def set_coor_from_ref(mol2_filename, coor_ref_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):
