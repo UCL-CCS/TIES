@@ -13,6 +13,12 @@ import csv
 import argparse
 from pathlib import Path, PurePosixPath
 
+import numpy
+import networkx
+import dwave_networkx.algorithms
+import dimod
+from tabulate import tabulate
+
 from ties.generator import *
 
 
@@ -125,11 +131,17 @@ class Ligand:
         # last used representative Path file
         self.current = self.original_input
 
-        Ligand.LIG_COUNTER += 1
+        # internal index
+        self.index = Ligand.LIG_COUNTER
         # internal name without an extension
         self.internal_name = f'ligand{Ligand.LIG_COUNTER:d}'
+        Ligand.LIG_COUNTER += 1
 
         self.frcmod = None
+        self.ligand_with_uniq_atom_names = None
+
+    def __repr__(self):
+        return self.original_input.stem
 
     def make_atom_names_unique(self):
         """
@@ -221,11 +233,11 @@ class Ligand:
         else:
             print(f'File {mol2_target} already exists. Skipping. ')
 
-            self.antechamber_mol2 = mol2_target
-            self.current = mol2_target
+        self.antechamber_mol2 = mol2_target
+        self.current = mol2_target
 
-            # remove any DUMMY DU atoms in the .mol2 atoms
-            self.removeDU_atoms()
+        # remove any DUMMY DU atoms in the .mol2 atoms
+        self.removeDU_atoms()
 
     def removeDU_atoms(self):
         """
@@ -278,6 +290,7 @@ class Ligand:
         print(f'Parmchk2: created .frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
 
+
 class Morph():
     """
     A convenience class to help organise hybrids/morphs.
@@ -303,6 +316,9 @@ class Morph():
         self.mda_l1 = None
         self.mda_l2 = None
 
+    def __repr__(self):
+        return self.internal_name
+
     def set_suptop(self, suptop, mda_l1, mda_l2):
         self.suptop = suptop
         self.mda_l1 = mda_l1
@@ -318,8 +334,9 @@ class Morph():
 
         Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
         """
-        self.ligA.make_atom_names_unique()
-        self.ligZ.make_atom_names_unique()
+        # fixme these we called before, do they break anything?
+        # self.ligA.make_atom_names_unique()
+        # self.ligZ.make_atom_names_unique()
 
         # load both ligands
         left = load_mol2_wrapper(self.ligA.current)
@@ -450,6 +467,7 @@ class Morph():
         # recreate the mol2 file that is merged and contains the correct atoms from both
         # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
         # fixme - build this molecule using the MDAnalysis builder instead of the current approach
+        # however, MDAnalysis currently cannot convert pdb into mol2? ...
         # where the formatting is done manually
         with open(hybrid_mol2, 'w') as FOUT:
             bonds = self.suptop.get_dual_topology_bonds()
@@ -653,6 +671,72 @@ class Morph():
         # set this .frcmod as the correct one now,
         self.frcmod_before_correction = self.frcmod
         self.frcmod = modified_hybrid_frcmod
+
+    def overlap_fractions(self):
+        matched_fraction_left = len(self.suptop.matched_pairs) / float(len(self.suptop.top1))
+        matched_fraction_right = len(self.suptop.matched_pairs) / float(len(self.suptop.top2))
+        disappearing_atoms_fraction = (len(self.suptop.top1) - len(self.suptop.matched_pairs)) \
+                                   / float(len(self.suptop.top1)) * 100
+        appearing_atoms_fraction = (len(self.suptop.top2) - len(self.suptop.matched_pairs)) \
+                                   / float(len(self.suptop.top2)) * 100
+
+        return matched_fraction_left, matched_fraction_right, disappearing_atoms_fraction, appearing_atoms_fraction
+
+
+class LigandMap():
+    """
+    Work on a list of morphs and use their information to generate a each to each map.
+    This class then uses the information for clustering, path finding, visualisation, etc.
+    """
+
+    def __init__(self, ligands, morphs):
+        self.morphs = morphs
+        self.ligands = ligands
+        # similarity map
+        self.map = None
+        self.map_weights = None
+        self.graph = None
+
+    def generate_map(self):
+        """
+        Use the underlying morphs to extract the each to each cases.
+        """
+        # a simple 2D map of the ligands
+        self.map = [list(range(len(self.ligands))) for l1 in range(len(self.ligands))]
+
+        # weights based on the size of the superimposed topology
+        self.map_weights = numpy.zeros([len(self.ligands), len(self.ligands)])
+        for morph in self.morphs:
+            self.map[morph.ligA.index][morph.ligZ.index] = morph
+            self.map[morph.ligZ.index][morph.ligA.index] = morph
+
+            matched_left, matched_right, disappearing_atoms, appearing_atoms = morph.overlap_fractions()
+            # use the average number of matched fractions in both ligands
+            self.map_weights[morph.ligA.index][morph.ligZ.index] = (matched_left + matched_right) / 2.0
+            self.map_weights[morph.ligZ.index][morph.ligA.index] = (matched_left + matched_right) / 2.0
+
+    def generate_graph(self):
+        # create the nodes first
+        graph = networkx.Graph()
+        for ligand in self.ligands:
+            graph.add_node(ligand)
+        for morph in self.morphs:
+            graph.add_edge(morph.ligA, morph.ligZ, weight=self.map_weights[morph.ligA.index][morph.ligZ.index])
+
+        self.graph = graph
+
+    def print_traveling_salesmen(self):
+        print('Traveling Salesmen (QUBO approximation): ')
+        ts = dwave_networkx.traveling_salesperson(self.graph, dimod.ExactSolver())
+        print(ts)
+
+    def print_map(self):
+        print('Ligand Map')
+        print(tabulate(self.map))
+        print('LOMAP weights/similarities')
+        print(self.map_weights)
+        # recreate the map
+
 
 
 def command_line_script():
@@ -919,7 +1003,7 @@ def command_line_script():
         # set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_index=True)
         # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
 
-    # generate all possible morphs
+    # generate all pairings
     morphs = [Morph(ligA, ligZ, workplace_root) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the two topologies
@@ -944,8 +1028,6 @@ def command_line_script():
         morph.write_superimposition_json()
         morph.write_morph_pdb(hybrid_single_dual_top=use_hybrid_single_dual_top)
         morph.write_hybrid_mol2()
-
-        morphs.append(morph)
 
     def rewrite_mol2_hybrid_top(file, single_top_atom_names):
         # in the  case of the hybrid single-dual topology in NAMD
@@ -976,6 +1058,14 @@ def command_line_script():
     print('Ambertools parmchk2 generating .frcmod for morphs')
     [morph.join_frcmod_files(ambertools_bin, ambertools_script_dir, amber_forcefield, ligand_ff) for morph in morphs]
 
+    # decide on which pairs to compare in order to obtain the full ranking
+    if len(ligands) > 2:
+        lm = LigandMap(ligands, morphs)
+        lm.generate_map()
+        lm.print_map()
+        lm.generate_graph()
+        lm.print_traveling_salesmen()
+
     ##########################################################
     # ------------------   Ligand ----------------------------
     # pick the right tleap instructions
@@ -985,6 +1075,8 @@ def command_line_script():
         ligand_tleap_in = 'leap_ligand.in'
 
     # fixme - at this point you'd know which pairs to set up
+    # fixme - rather than using this, we should be able to have morph.prepare_inputs instead.
+    # this way we could reuse a lot of this information
     for morph in morphs:
         prepare_inputs(morph,
                        dir_prefix='lig',
