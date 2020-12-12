@@ -12,23 +12,23 @@ import MDAnalysis as mda
 import numpy as np
 
 from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
-    superimpose_topologies, element_from_type, load_mol2_wrapper, get_atoms_bonds_from_ac
+    superimpose_topologies, element_from_type, get_atoms_bonds_from_ac
 
 
-def getSuptop(mol1, mol2, manual_match=None, force_mismatch=None,
-              no_disjoint_components=True, net_charge_filter=True,
-              ignore_charges_completely=False,
-              use_general_type=True,
-              ignore_bond_types=True,
-              ignore_coords=False,
-              left_coords_are_ref=True,
-              align_molecules=True,
-              use_only_gentype=False,
-              check_atom_names_unique=True,
-              pair_charge_atol=0.1,
-              net_charge_threshold=0.1,
-              redistribute_charges_over_unmatched=True,
-              starting_pairs_heuristics=True):
+def get_suptop(mol1, mol2, manual_match=None, force_mismatch=None,
+               no_disjoint_components=True, net_charge_filter=True,
+               ignore_charges_completely=False,
+               use_general_type=True,
+               ignore_bond_types=True,
+               ignore_coords=False,
+               left_coords_are_ref=True,
+               align_molecules=True,
+               use_only_gentype=False,
+               check_atom_names_unique=True,
+               pair_charge_atol=0.1,
+               net_charge_threshold=0.1,
+               redistribute_charges_over_unmatched=True,
+               starting_pairs_heuristics=True):
     # use mdanalysis to load the files
     # fixme - should not squash all messsages. For example, wrong type file should not be squashed
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
@@ -231,102 +231,6 @@ def prepare_inputs(morph,
             # copy a submit script
             if submit_script is not None:
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
-
-
-def are_correct_names(names):
-    """
-    Check if the atom name is followed by a number, e.g. "C15"
-    @parameter names: a list of atom names
-    @returns True if they all follow the correct format.
-    """
-    for name in names:
-        afterLetters = [i for i, l in enumerate(name) if l.isalpha()][-1] + 1
-
-        atom_name = name[:afterLetters]
-        if len(atom_name) == 0:
-            return False
-
-        atom_number = name[afterLetters:]
-        try:
-            int(atom_number)
-        except:
-            return False
-
-    return True
-
-
-def rename_ligand(atoms, name_counter=None):
-    """
-    todo - add unit tests
-
-    @parameter/returns name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
-    the counter keeps track of the last used counter for each name.
-    Empty means that the counting will start from 1.
-    input atoms: mdanalysis atoms
-    """
-    if name_counter is None:
-        name_counter = {}
-
-    for atom in atoms:
-        # get the first letters that is not a character
-        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
-
-        atom_name = atom.name[:afterLetters]
-        last_used_counter = name_counter.get(atom_name, 0)
-
-        # rename
-        last_used_counter += 1
-        newAtomName = atom_name + str(last_used_counter)
-        print(f'Renaming {atom.name} to {newAtomName}')
-        atom.name = newAtomName
-
-        # update the counter
-        name_counter[atom_name] = last_used_counter
-
-    return name_counter
-
-
-def get_atom_names_counter(atoms):
-    """
-    name_counter: a dictionary with atom as the key such as 'N', 'C', etc,
-    the counter keeps track of the last used counter for each name.
-    Ie if there are C1, C2, C3, this will return {'C':3} as the last counter.
-    """
-    name_counter = {}
-
-    for atom in atoms:
-        # get the first letters that is not a character
-        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
-
-        atom_name = atom.name[:afterLetters]
-        atom_number = int(atom.name[afterLetters:])
-        last_used_counter = name_counter.get(atom_name, 0)
-
-        # update the counter
-        name_counter[atom_name] = max(last_used_counter, atom_number)
-
-    return name_counter
-
-
-def parse_frcmod_sections(filename):
-    """
-    Copied from the previous TIES. It's simpler and this approach must be fine then.
-    """
-    frcmod_info = {}
-    section = 'REMARK'
-
-    with open(filename) as F:
-        for line in F:
-            start_line = line[0:9].strip()
-
-            if start_line in ['MASS', 'BOND', 'IMPROPER',
-                              'NONBON', 'ANGLE', 'DIHE']:
-                section = start_line
-                frcmod_info[section] = []
-            elif line.strip() and section != 'REMARK':
-                frcmod_info[section].append(line)
-
-    return frcmod_info
 
 
 def _merge_frcmod_section(ref_lines, other_lines):

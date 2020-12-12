@@ -14,6 +14,8 @@ import MDAnalysis
 from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
+from ties.helpers import load_mol2_wrapper
+
 
 element_from_type = {
     # Source http://ambermd.org/antechamber/gaff.html#atomtype
@@ -3334,26 +3336,6 @@ def get_atoms_bonds_from_ac(ac_file):
              [left.split() for left in bond_lines]]
 
     return atoms, bonds
-
-
-def load_mol2_wrapper(filename):
-    # Load a .mol2 file
-    # fixme - fuse with the .pdb loading, no distinction needed
-    # ignore the .mol2 warnings about the mass
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Failed to guess the mass for the following atom types: '  # warning to ignore
-                            )
-    # squash the internal warning about parsing .mol2 within MDAnalysis
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Creating an ndarray from ragged nested sequences '
-                            )
-    # squash the internal warning about missing "cell dimensions"
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Unit cell dimensions not found. CRYST1 record set to unitary values.'
-                            )
-    u = MDAnalysis.Universe(filename)
-    # turn off the filter warning after?
-    return u
 
 
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
