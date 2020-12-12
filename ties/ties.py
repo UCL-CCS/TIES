@@ -101,7 +101,7 @@ def command_line_script():
         workplace_root = Path(os.getcwd())
     print(f'Working Directory: {workplace_root}')
 
-    # check if ligand files are fine
+    # check if ligand arguments are fine
     if args.ligands is None or len(args.ligands) < 2:
         print('Please supply at least two ligand files with -l (--ligands). E.g. -l file1.pdb file2.pdb ')
         sys.exit()
@@ -118,28 +118,24 @@ def command_line_script():
     command = args.action
 
     if command == 'rename':
-        print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
         # this case assumes that there are only two ligands given
         if len(ligands) != 2:
             print('ERROR: to rename atoms to be unique across two ligands, '
                   'you have to provide exactly two ligands with -l.'
                   'E.g. ties rename -l init.mol2 final.mol2')
             sys.exit()
-        renameAtomNamesUniqueAndResnames(ligands[0], ligands[1])
+        print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
+        morph = Morph(ligands[0], ligands[1], workplace_root)
+        morph.unique_atomres_names()
         sys.exit()
-
-    # fixme
-    # If .ac format (ambertools, similar to .pdb), convert it to .mol2,
-    ligands_right_format = [convert_ac_to_mol2(lig, 'left', args, workplace_root, antechamber_dr)
-                            for lig in ligands]
-
-    # ensure that each atom name is unique (see #237)
-    # this helps to track further problems later
-    [lig.make_atom_names_unique() for lig in ligands]
 
     if command != 'create':
         print('please provide action (rename/create)')
         sys.exit()
+
+    # ensure that each atom name is unique (see #237)
+    # this helps to track further problems later
+    [lig.make_atom_names_unique() for lig in ligands]
 
     if not args.protein:
         protein_filename = None

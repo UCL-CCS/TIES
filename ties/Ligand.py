@@ -4,7 +4,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
-from ties.helpers import are_correct_names, load_mol2_wrapper, rename_ligand
+from ties.helpers import are_correct_names, load_mol2_wrapper, rename_ligand, find_antechamber
 
 
 class Ligand:
@@ -18,6 +18,7 @@ class Ligand:
 
     UNIQ_ATOM_NAME_DIR = 'unique_atom_names'
     FRCMOD_DIR = 'ligand_frcmods'
+    AC_CONVERT = 'ac_to_mol2'
 
     _USED_FILENAMES = set()
 
@@ -51,9 +52,57 @@ class Ligand:
         self.frcmod = None
         self.ligand_with_uniq_atom_names = None
 
+        # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
+        self.convert_ac_to_mol2()
+
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
+
+    def convert_ac_to_mol2(self, antechamber_dr='no'):
+        """
+        If the file is not a prepi file, this function does not do anything.
+        Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
+
+        @output_name: 'left' or 'right'
+
+        Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
+        """
+        if self.current.suffix.lower() is not '.ac':
+            return
+
+        print('Will convert .ac to a .mol2 file')
+        print('Searching for antechamber')
+        ambertools_bin = find_antechamber(args)
+
+        cwd = self.workplace_root / Ligand.AC_CONVERT / self.internal_name
+        if not cwd.is_dir():
+            cwd.mkdir(parents=True, exist_ok=True)
+
+        # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
+        print('Antechamber: converting the .ac to .mol2')
+        new_current = cwd / (self.internal_name + '.mol2')
+
+        log_filename = cwd / "antechamber_conversion.log"
+        with open(log_filename, 'w') as LOG:
+            try:
+                subprocess.run([ambertools_bin / 'antechamber',
+                                '-i', self.current, '-fi', 'ac',
+                                '-o', new_current, '-fo', 'mol2',
+                                '-dr', antechamber_dr],
+                               stdout=LOG, stderr=LOG,
+                               check=True, text=True,
+                               cwd=cwd, timeout=30)
+            except subprocess.CalledProcessError as E:
+                print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
+                print(f'ERROR: The output was saved in the directory: {cwd}')
+                print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
+                raise E
+
+        # update
+        self.original_ac = self.current
+        self.current = new_current
+        print(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
 
     def make_atom_names_unique(self):
         """

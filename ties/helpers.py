@@ -140,60 +140,6 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def convert_ac_to_mol2(filename, output_name, args, workplace_root, antechamber_dr='no'):
-    """
-    If the file is not a prepi file, this function does not do anything.
-    Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
-
-    @output_name: 'left' or 'right'
-
-    Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
-    """
-    base, ext = os.path.splitext(str(filename).lower())
-    if ext != '.ac':
-        return filename
-
-    print('Will convert .ac to a .mol2 file')
-    print('Searching for antechamber')
-    ambertools_bin = find_antechamber(args)
-
-    # a directory for the operation
-    conversion_dir = f'converting_{output_name}_to_mol2'
-    if not os.path.isdir(conversion_dir):
-        os.makedirs(conversion_dir)
-
-    # subprocess options for calling ambertools
-    subprocess_kwargs = {
-        "check": True, "text": True,
-        "cwd": workplace_root / conversion_dir,
-        "timeout": 30  # seconds
-    }
-
-    # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-    print('Antechamber: converting the .ac to .mol2')
-    new_filename = output_name + '_converted_from_ac.mol2'
-
-    log_filename = workplace_root / conversion_dir / "antechamber_conversion.log"
-    with open(log_filename, 'w') as LOG:
-        try:
-            subprocess.run([ambertools_bin / 'antechamber',
-                                '-i', filename.resolve(), '-fi', 'ac',
-                                '-o', new_filename, '-fo', 'mol2',
-                                '-dr', antechamber_dr],
-                                stdout=LOG, stderr=LOG,
-                               **subprocess_kwargs)
-        except subprocess.CalledProcessError as E:
-            print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
-            print(f'ERROR: The output was saved in the directory: { workplace_root / conversion_dir}')
-            print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
-            raise E
-
-    # return a path to the new file as the input
-    converted_file = workplace_root / conversion_dir / new_filename
-    print(f'Converted .ac file to .mol2. The location of the new file: {converted_file}')
-    return converted_file
-
-
 def find_antechamber(args):
     # set up ambertools
     if args.ambertools_home is not None:
