@@ -3345,7 +3345,11 @@ def load_mol2_wrapper(filename):
                             )
     # squash the internal warning about parsing .mol2 within MDAnalysis
     warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Creating an ndarray from ragged nested sequences '  # warning to ignore
+                            message='Creating an ndarray from ragged nested sequences '
+                            )
+    # squash the internal warning about missing "cell dimensions"
+    warnings.filterwarnings(action='ignore', category=UserWarning,
+                            message='Unit cell dimensions not found. CRYST1 record set to unitary values.'
                             )
     u = MDAnalysis.Universe(filename)
     # turn off the filter warning after?

@@ -137,11 +137,14 @@ class Ligand:
         self.internal_name = f'ligand{Ligand.LIG_COUNTER:d}'
         Ligand.LIG_COUNTER += 1
 
+        print(f'Mapping {self.original_input} to {self.internal_name}')
+
         self.frcmod = None
         self.ligand_with_uniq_atom_names = None
 
     def __repr__(self):
-        return self.original_input.stem
+        # return self.original_input.stem
+        return self.internal_name
 
     def make_atom_names_unique(self):
         """
@@ -167,7 +170,7 @@ class Ligand:
         names_unique = len(set(atom_names)) == len(atom_names)
 
         if not names_unique or not are_correct_names(atom_names):
-            print(f'Atom names in your molecule ({self.original_input}) are either not unique '
+            print(f'Atom names in your molecule ({self.original_input}/{self.internal_name}) are either not unique '
                   f'or do not follow NameDigit format (e.g. C15). Renaming')
             rename_ligand(ligand_universe.atoms)
 
@@ -315,9 +318,16 @@ class Morph():
         self.suptop = None
         self.mda_l1 = None
         self.mda_l2 = None
+        self.distance = None
 
     def __repr__(self):
-        return self.internal_name
+        if self.distance is None:
+            return self.internal_name
+
+        return f'{self.internal_name}({self.distance:.2f})'
+
+    def set_distance(self, value):
+        self.distance = value
 
     def set_suptop(self, suptop, mda_l1, mda_l2):
         self.suptop = suptop
@@ -712,8 +722,12 @@ class LigandMap():
 
             matched_left, matched_right, disappearing_atoms, appearing_atoms = morph.overlap_fractions()
             # use the average number of matched fractions in both ligands
-            self.map_weights[morph.ligA.index][morph.ligZ.index] = (matched_left + matched_right) / 2.0
-            self.map_weights[morph.ligZ.index][morph.ligA.index] = (matched_left + matched_right) / 2.0
+            weight = 1 - (matched_left + matched_right) / 2.0
+            self.map_weights[morph.ligA.index][morph.ligZ.index] = weight
+            self.map_weights[morph.ligZ.index][morph.ligA.index] = weight
+
+            # update also the morph
+            morph.set_distance(weight)
 
     def generate_graph(self):
         # create the nodes first
@@ -725,15 +739,50 @@ class LigandMap():
 
         self.graph = graph
 
-    def print_traveling_salesmen(self):
+    def traveling_salesmen(self):
         print('Traveling Salesmen (QUBO approximation): ')
         ts = dwave_networkx.traveling_salesperson(self.graph, dimod.ExactSolver())
+
+        distances = [self.map[ligA.index][ligZ.index].distance for ligA, ligZ in zip(ts, ts[1:])]
+        # one extra between the first and last
+        distances.append(self.map[ts[0].index][ts[-1].index].distance)
+        print(f'Sum: {sum(distances):.2f}')
+        print(f'Average: {np.mean(distances):.2f}')
+
         print(ts)
+        morphs = [self.map[ligA.index][ligZ.index] for ligA, ligZ in zip(ts, ts[1:])]
+        return morphs
+
+    def kruskal(self):
+        print('Minimum spanning trees (Kruskal): ')
+        mst = networkx.minimum_spanning_tree(self.graph)
+        # sum the distances
+        dst_sum = sum(item[1]['weight'] for item in mst.edges.items())
+        print(f'Sum: {dst_sum:.2f}')
+        print(mst.edges)
+
+        # look up the selected MST morphs
+        chosen_transformations = []
+        for ligA, ligZ in mst.edges.items():
+            for morph in self.morphs:
+                if morph.ligA == ligA and morph.ligZ == ligZ:
+                    chosen_transformations.append(morph)
+                    break
+        return chosen_transformations
 
     def print_map(self):
+        # combine the maps
         print('Ligand Map')
-        print(tabulate(self.map))
+        # print(tabulate(self.map))
+        for ri, row in enumerate(self.map):
+            line = ''
+            for ci, col in enumerate(row):
+                if ci >= ri:
+                    break
+                line += repr(self.map[ri][ci]) + '\t'
+            print(line)
         print('LOMAP weights/similarities')
+        numpy.set_printoptions(precision=2)
         print(self.map_weights)
         # recreate the map
 
@@ -1008,10 +1057,14 @@ def command_line_script():
 
     # superimpose the two topologies
     for morph in morphs:
+        print(f'Next ligand pair: {morph.internal_name}')
         # rename the atom names to ensure they are unique across the two molecules
         # we need to execute our pipeline for every pair and create the directories
         # which means we'll end up with a set of pairs
         morph.unique_atomres_names()
+
+        # TODO optimisation: check if the .json was created before, and use that to create the starting pair
+        #
 
         suptop, mda_l1, mda_l2 = getSuptop(morph.renamed_ligA, morph.renamed_ligZ,
                                            align_molecules=align_molecules,
@@ -1059,12 +1112,15 @@ def command_line_script():
     [morph.join_frcmod_files(ambertools_bin, ambertools_script_dir, amber_forcefield, ligand_ff) for morph in morphs]
 
     # decide on which pairs to compare in order to obtain the full ranking
-    if len(ligands) > 2:
+    if len(ligands) == 2:
+        selected_morphs = morphs
+    else:
         lm = LigandMap(ligands, morphs)
         lm.generate_map()
         lm.print_map()
         lm.generate_graph()
-        lm.print_traveling_salesmen()
+        selected_morphs = lm.traveling_salesmen()
+        selected_morphs = lm.kruskal()
 
     ##########################################################
     # ------------------   Ligand ----------------------------
@@ -1077,7 +1133,7 @@ def command_line_script():
     # fixme - at this point you'd know which pairs to set up
     # fixme - rather than using this, we should be able to have morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
-    for morph in morphs:
+    for morph in selected_morphs:
         prepare_inputs(morph,
                        dir_prefix='lig',
                        protein=None,
