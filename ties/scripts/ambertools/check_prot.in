@@ -8,7 +8,7 @@ source leaprc.phosaa10
 protein = LoadPdb {protein_file}
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
-solvateoct protein TIP3PBOX 14
+# solvateoct protein TIP3PBOX 14
 
 addIons protein Na+ 0
 addIons protein Cl- 0

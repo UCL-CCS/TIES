@@ -14,7 +14,7 @@ import MDAnalysis
 from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
-from ties.helpers import load_mol2_wrapper
+from ties.helpers import load_MDAnalysis_atom_group
 
 
 element_from_type = {
@@ -2462,7 +2462,7 @@ class Topology:
 
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
                            use_coords=True, starting_node_pairs=None,
-                           force_mismatch=None, no_disjoint_components=True,
+                           force_mismatch=None, disjoint_components=True,
                            net_charge_filter=True, net_charge_threshold=0.1,
                            redistribute_charges_over_unmatched=True,
                            ligand_l_mda=None, ligand_r_mda=None,
@@ -2499,7 +2499,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if check_atom_names_unique:
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
         assert len(same_atom_names) == 0, \
-            f"The molecules have the same atom names. This is now allowed. They are: {same_atom_names}"
+            f"The molecules have the same atom names. This is not allowed. They are: {same_atom_names}"
 
     # align the 3D coordinates before applying further changes
     # todo
@@ -2621,7 +2621,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         if len(st) == 0:
             suptops.remove(st)
 
-    if no_disjoint_components:
+    if not disjoint_components:
         print(f'Checking for disjoint components in the {len(suptops)} suptops')
         # ensure that each suptop represents one CC
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
@@ -2644,7 +2644,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
         assert len(suptops) == 1, suptops
 
-    if redistribute_charges_over_unmatched and not ignore_charges_completely:
+    if redistribute_charges_over_unmatched and not ignore_charges_completely and disjoint_components:
         if len(suptops) > 1:
             raise NotImplementedError(
                 'Currently distributing charges works only if there is no disjointed components')
@@ -3349,8 +3349,8 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
 
-    universe_ref = load_mol2_wrapper(ref_filename)
-    universe_mobile = load_mol2_wrapper(mob_filename)
+    universe_ref = load_MDAnalysis_atom_group(ref_filename)
+    universe_mobile = load_MDAnalysis_atom_group(mob_filename)
 
     # this RMSD superimposition requires the same number of atoms to be superimposed
     # find out the RMSD between them and the rotation matrix

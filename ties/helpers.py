@@ -34,7 +34,7 @@ def are_correct_names(names):
     return True
 
 
-def load_mol2_wrapper(filename):
+def load_MDAnalysis_atom_group(filename):
     # Load a .mol2 file
     # fixme - fuse with the .pdb loading, no distinction needed
     # ignore the .mol2 warnings about the mass
@@ -48,6 +48,11 @@ def load_mol2_wrapper(filename):
     # squash the internal warning about missing "cell dimensions"
     warnings.filterwarnings(action='ignore', category=UserWarning,
                             message='Unit cell dimensions not found. CRYST1 record set to unitary values.'
+                            )
+    # squash the internal warning about missing element information absent/missing
+    warnings.filterwarnings(action='ignore', category=UserWarning,
+                            message='Element information is absent or missing for a few atoms. '
+                                    'Elements attributes will not be populated.'
                             )
     u = MDAnalysis.Universe(filename)
     # turn off the filter warning after?
@@ -128,32 +133,37 @@ def parse_frcmod_sections(filename):
     return frcmod_info
 
 
-def str2bool(v):
-    "ArgumentParser tool to figure out the bool value"
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+class ArgparseChecker():
 
+    @staticmethod
+    def str2bool(v):
+        "ArgumentParser tool to figure out the bool value"
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def find_antechamber(args):
-    # set up ambertools
-    if args.ambertools_home is not None:
-        # user manually specified the variable.
-        ambertools_bin = args.ambertools_home / 'bin'
-    elif os.getenv('AMBERHOME'):
-        ambertools_bin = pathlib.Path(os.getenv('AMBERHOME')) / 'bin'
-    elif os.getenv('AMBER_PREFIX'):
-        ambertools_bin = pathlib.Path(os.getenv('AMBER_PREFIX')) / 'bin'
-    else:
-        print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-        print('Option 1: source your ambertools script amber.sh')
-        print('Option 2: specify manually the path to amberhome with -ambertools option')
-        sys.exit()
+    @staticmethod
+    def existing_file(v):
+        # check ligand arguments
+        if not pathlib.Path(v).is_file():
+            raise argparse.ArgumentTypeError(f'The file {v} could not be found.')
+        return pathlib.Path(v)
 
-    # fixme - test ambertools at this stage before proceeding
-    return ambertools_bin
+    @staticmethod
+    def ambertools_home(path):
+        # check if this path points to ambertools
+        amber_home = pathlib.Path(path)
+        if not amber_home.is_dir():
+            raise argparse.ArgumentTypeError(f'The path to ambertools does not point towards a directory. ')
+        # check if the bin directory, antechamber and antechamber
+        if not (amber_home / 'bin').is_dir():
+            raise argparse.ArgumentTypeError(f'The path to ambertools does not contain the "bin" directory. ')
+        if not (amber_home / 'bin' / 'antechamber').is_dir():
+            raise argparse.ArgumentTypeError(f'The path to ambertools does not contain the "bin/antechamber" file. ')
+
+        return amber_home

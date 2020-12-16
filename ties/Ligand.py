@@ -4,7 +4,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
-from ties.helpers import are_correct_names, load_mol2_wrapper, rename_ligand, find_antechamber
+from ties.helpers import are_correct_names, load_MDAnalysis_atom_group, rename_ligand
 
 
 class Ligand:
@@ -16,16 +16,19 @@ class Ligand:
     """
     LIG_COUNTER = 0
 
-    UNIQ_ATOM_NAME_DIR = 'unique_atom_names'
-    FRCMOD_DIR = 'ligand_frcmods'
-    AC_CONVERT = 'ac_to_mol2'
+    ROOT = Path('prep')
+    UNIQ_ATOM_NAME_DIR = ROOT / 'unique_atom_names'
+    FRCMOD_DIR = ROOT / 'ligand_frcmods'
+    AC_CONVERT = ROOT / 'ac_to_mol2'
+    MOL2 = ROOT / 'mol2'
 
     _USED_FILENAMES = set()
 
-    def __init__(self, ligand, workplace_root):
+    def __init__(self, ligand, config):
+        self.config = config
         # save workplace root
-        self.workplace_root = Path(workplace_root)
-        self.original_input = self.workplace_root / ligand
+        self.workplace_root = Path(config.workdir)
+        self.original_input = ligand.absolute()
 
         # check if the input files exist
         if not self.original_input.is_file():
@@ -53,13 +56,13 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
-        self.convert_ac_to_mol2()
+        self.convert_ac_to_mol2(config.ambertools_antechamber, config.antechamber_dr)
 
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
 
-    def convert_ac_to_mol2(self, antechamber_dr='no'):
+    def convert_ac_to_mol2(self, antechamber, antechamber_dr='no'):
         """
         If the file is not a prepi file, this function does not do anything.
         Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
@@ -72,8 +75,6 @@ class Ligand:
             return
 
         print('Will convert .ac to a .mol2 file')
-        print('Searching for antechamber')
-        ambertools_bin = find_antechamber(args)
 
         cwd = self.workplace_root / Ligand.AC_CONVERT / self.internal_name
         if not cwd.is_dir():
@@ -86,7 +87,7 @@ class Ligand:
         log_filename = cwd / "antechamber_conversion.log"
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([ambertools_bin / 'antechamber',
+                subprocess.run([antechamber,
                                 '-i', self.current, '-fi', 'ac',
                                 '-o', new_current, '-fo', 'mol2',
                                 '-dr', antechamber_dr],
@@ -121,14 +122,14 @@ class Ligand:
         os.makedirs(self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
 
         # load the ligand with MDAnalysis
-        ligand_universe = load_mol2_wrapper(self.current)
+        ligand_universe = load_MDAnalysis_atom_group(self.current)
 
         # ensure that all the atom names are unique
         atom_names = [a.name for a in ligand_universe.atoms]
         names_unique = len(set(atom_names)) == len(atom_names)
 
         if not names_unique or not are_correct_names(atom_names):
-            print(f'Atom names in your molecule ({self.original_input}/{self.internal_name}) are either not unique '
+            print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
                   f'or do not follow NameDigit format (e.g. C15). Renaming')
             rename_ligand(ligand_universe.atoms)
 
@@ -144,7 +145,7 @@ class Ligand:
     def suffix(self):
         return self.current.suffix.lower()
 
-    def antechamber_prepare_mol2(self, ambertools_bin, atom_type, net_charge, antechamber_dr, antechamber_charge_type):
+    def antechamber_prepare_mol2(self, atom_type, net_charge, antechamber_dr, antechamber_charge_type):
         """
         Convert the files into .mol2 files. Generate BCC charges if needed.
         A helper function that calls antechamber and ensures that the log is kept.
@@ -159,7 +160,7 @@ class Ligand:
         else:
             print('Antechamber: Generating BCC charges')
 
-        mol2_cwd = self.workplace_root / 'mol2_prep' / self.internal_name
+        mol2_cwd = self.workplace_root / self.MOL2 / self.internal_name
 
         # prepare the directory
         if not mol2_cwd.is_dir():
@@ -177,7 +178,7 @@ class Ligand:
             log_filename = mol2_cwd / "antechamber.log"
             with open(log_filename, 'w') as LOG:
                 try:
-                    subprocess.run([ambertools_bin / 'antechamber',
+                    subprocess.run([self.config.ambertools_antechamber,
                                     '-i', self.current, '-fi', self.current.suffix[1:],
                                     '-o', mol2_target, '-fo', 'mol2',
                                     '-at', atom_type, '-nc', str(net_charge),
@@ -207,7 +208,7 @@ class Ligand:
         They are only created if you reuse existing charges.
         They appear to be a side effect. We remove the dummy atoms therefore.
         """
-        mol2_u = load_mol2_wrapper(self.current)
+        mol2_u = load_MDAnalysis_atom_group(self.current)
         # check if there are any DU atoms
         has_DU = any(a.type == 'DU' for a in mol2_u.atoms)
         if not has_DU:

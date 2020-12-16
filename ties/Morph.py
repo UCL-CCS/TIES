@@ -4,7 +4,9 @@ import copy
 import subprocess
 from pathlib import Path
 
-from ties.helpers import load_mol2_wrapper, get_atom_names_counter, rename_ligand, parse_frcmod_sections
+from ties.helpers import load_MDAnalysis_atom_group, get_atom_names_counter, rename_ligand, parse_frcmod_sections
+from ties.generator import get_atoms_bonds_from_mol2
+from ties.topology_superimposer import superimpose_topologies
 
 
 class Morph():
@@ -16,14 +18,20 @@ class Morph():
     This distinction could be removed easily in the future.
     However, way to simplify SupTop might be worth some effort.
     """
-    FRCMOD_DIR = Path('morph_frcmods')
-    FRCMOD_TEST_DIR = FRCMOD_DIR / 'tests'
-    UNIQUE_ATOM_NAMES = Path('morph_unique_atom_names')
+    ROOT = Path('prep')
+    FRCMOD_DIR_name = ROOT / Path('morph_frcmods')
+    FRCMOD_TEST_DIR_name = FRCMOD_DIR_name / 'tests'
+    UNIQUE_ATOM_NAMES_name = ROOT / Path('morph_unique_atom_names')
 
-    def __init__(self, ligA, ligZ, workplace_root):
+    def __init__(self, ligA, ligZ, config):
         self.ligA = ligA
         self.ligZ = ligZ
-        self.workplace_root = workplace_root
+        self.config = config
+        # fixme rm?
+        self.workplace_root = config.workdir
+        self.UNIQUE_ATOM_NAMES = self.workplace_root / Morph.UNIQUE_ATOM_NAMES_name
+        self.FRCMOD_DIR = self.workplace_root / Morph.FRCMOD_DIR_name
+        self.FRCMOD_TEST_DIR = self.workplace_root / Morph.FRCMOD_TEST_DIR_name
 
         self.internal_name = f'{ligA.internal_name}_{ligZ.internal_name}'
         self.mol2 = None
@@ -43,6 +51,96 @@ class Morph():
     def set_distance(self, value):
         self.distance = value
 
+    def get_suptop(self, morph, manual_match=None, force_mismatch=None,
+                   disjoint_components=True, net_charge_filter=True,
+                   ignore_charges_completely=False,
+                   use_general_type=True,
+                   ignore_bond_types=True,
+                   ignore_coords=False,
+                   left_coords_are_ref=True,
+                   align_molecules=True,
+                   use_only_gentype=False,
+                   check_atom_names_unique=True,
+                   pair_charge_atol=0.1,
+                   net_charge_threshold=0.1,
+                   redistribute_charges_over_unmatched=True,
+                   starting_pairs_heuristics=True):
+        # use MDAnalysis to load the files
+        # fixme - move this to the Morph class instead of this place,
+        # fixme - should not squash all messsages. For example, wrong type file should not be squashed
+        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
+            get_atoms_bonds_from_mol2(morph.renamed_ligA, morph.renamed_ligZ, use_general_type=use_general_type)
+        # fixme - manual match should be improved here and allow for a sensible format.
+
+        # empty lists count as None
+        if not force_mismatch:
+            force_mismatch = None
+
+        # assign
+        # fixme - Ideally I would reuse the mdanalysis data for this,
+        # MDAnalysis can use bonds if they are present - fixme
+        # map atom IDs to their objects
+        ligand1_nodes = {}
+        for atomNode in leftlig_atoms:
+            ligand1_nodes[atomNode.get_id()] = atomNode
+        # link them together
+        for nfrom, nto, btype in leftlig_bonds:
+            ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
+
+        ligand2_nodes = {}
+        for atomNode in rightlig_atoms:
+            ligand2_nodes[atomNode.get_id()] = atomNode
+        for nfrom, nto, btype in rightlig_bonds:
+            ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
+
+        # fixme - this should be moved out of here,
+        #  ideally there would be a function in the main interface for this
+        manual_match = [] if manual_match is None else manual_match
+        starting_node_pairs = []
+        for l_aname, r_aname in manual_match:
+            # find the starting node pairs, ie the manually matched pair(s)
+            found_left_node = None
+            for id, ln in ligand1_nodes.items():
+                if l_aname == ln.name:
+                    found_left_node = ln
+            if found_left_node is None:
+                raise ValueError(f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule')
+
+            found_right_node = None
+            for id, ln in ligand2_nodes.items():
+                if r_aname == ln.name:
+                    found_right_node = ln
+            if found_right_node is None:
+                raise ValueError(f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule')
+
+            starting_node_pairs.append([found_left_node, found_right_node])
+
+        if starting_node_pairs:
+            print('Starting nodes will be used:', starting_node_pairs)
+
+        # fixme - simplify to only take the mdanalysis as input
+        suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
+                                         starting_node_pairs=starting_node_pairs,
+                                         force_mismatch=force_mismatch,
+                                         disjoint_components=disjoint_components,
+                                         net_charge_filter=net_charge_filter,
+                                         pair_charge_atol=pair_charge_atol,
+                                         ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
+                                         ignore_charges_completely=ignore_charges_completely,
+                                         ignore_bond_types=ignore_bond_types,
+                                         ignore_coords=ignore_coords,
+                                         left_coords_are_ref=left_coords_are_ref,
+                                         align_molecules=align_molecules,
+                                         use_general_type=use_general_type,
+                                         use_only_element=use_only_gentype,
+                                         check_atom_names_unique=check_atom_names_unique,
+                                         net_charge_threshold=net_charge_threshold,
+                                         redistribute_charges_over_unmatched=redistribute_charges_over_unmatched,
+                                         starting_pairs_heuristics=starting_pairs_heuristics)
+
+        assert len(suptops) == 1
+        morph.set_suptop(suptops[0], mda_l1, mda_l2)
+
     def set_suptop(self, suptop, mda_l1, mda_l2):
         self.suptop = suptop
         self.mda_l1 = mda_l1
@@ -57,30 +155,26 @@ class Morph():
         keep the names if possible (ie if they are already different)
 
         Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
-        """
-        # fixme these we called before, do they break anything?
-        # self.ligA.make_atom_names_unique()
-        # self.ligZ.make_atom_names_unique()
 
+        fixme - rewrite this to be LigA.unique_names(LigZ) so that they can do it internally themselves?
+        """
         # load both ligands
-        left = load_mol2_wrapper(self.ligA.current)
-        right = load_mol2_wrapper(self.ligZ.current)
+        left = load_MDAnalysis_atom_group(self.ligA.current)
+        right = load_MDAnalysis_atom_group(self.ligZ.current)
 
         ligands_atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
 
-        right_renamed = False
         if ligands_atom_names_overlap:
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
             name_counter_L_nodes = get_atom_names_counter(left.atoms)
             rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
-            right_renamed = True
 
-        # rename the resnames to INI and FIN
+        # rename the residue names to INI and FIN
         left.residues.resnames = ['INI']
         right.residues.resnames = ['FIN']
 
         # prepare the destination directory
-        cwd = self.workplace_root / Morph.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+        cwd = self.workplace_root / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         cwd.mkdir(parents=True, exist_ok=True)
 
         # save the updated atom names
@@ -88,6 +182,8 @@ class Morph():
         left.atoms.write(self.renamed_ligA)
         self.renamed_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
         right.atoms.write(self.renamed_ligZ)
+
+        # update the Ligands to use the renamed version
 
     def check_json_file(self):
         # An optimisation for testing
@@ -287,7 +383,7 @@ class Morph():
 
         self.mol2 = hybrid_mol2
 
-    def join_frcmod_files(self, ambertools_bin, ambertools_script_dir, protein_ff, ligand_ff):
+    def join_frcmod_files(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
         """
         Copied from the previous TIES. It's simpler and this appears to work fine.
         I tested the duplication and that seemed to have no effect on the final results.
@@ -298,7 +394,7 @@ class Morph():
         frcmod_info2 = parse_frcmod_sections(self.ligZ.frcmod)
 
         # prep directory
-        cwd = Path(Morph.FRCMOD_DIR)
+        cwd = self.FRCMOD_DIR
         if not cwd.is_dir():
             cwd.mkdir(exist_ok=True)
 
@@ -324,9 +420,9 @@ class Morph():
         # as part of the .frcmod writing
         # insert dummy angles/dihedrals if a morph .frcmod requires
         # new terms between the appearing/disappearing atoms
-        self._check_hybrid_frcmod(ambertools_bin, ambertools_script_dir, protein_ff, ligand_ff)
+        self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff)
 
-    def _check_hybrid_frcmod(self, ambertools_bin, ambertools_script_dir, protein_ff, ligand_ff):
+    def _check_hybrid_frcmod(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
         """
         Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
         Check that the output library can be used to create a valid amber topology.
@@ -350,7 +446,7 @@ class Morph():
 
         # attempt generating the .top
         print('Create amber7 topology .top')
-        tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
+        tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test],
                                        cwd=cwd, text=True, timeout=20,
                                        capture_output=True, check=True)
 
@@ -395,7 +491,7 @@ class Morph():
                             print(f'Added dummy dihedral: "{dummy_dihedral}"')
 
             # verify that adding the dummy angles/dihedrals worked
-            tleap_process = subprocess.run([ambertools_bin / 'tleap', '-s', '-f', leap_in_test],
+            tleap_process = subprocess.run([ambertools_bin, '-s', '-f', leap_in_test],
                                            cwd=cwd, text=True, timeout=60 * 10, capture_output=True, check=True)
 
             if not "Errors = 0" in tleap_process.stdout:

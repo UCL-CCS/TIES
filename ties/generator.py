@@ -15,96 +15,8 @@ from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
     superimpose_topologies, element_from_type, get_atoms_bonds_from_ac
 
 
-def get_suptop(mol1, mol2, manual_match=None, force_mismatch=None,
-               no_disjoint_components=True, net_charge_filter=True,
-               ignore_charges_completely=False,
-               use_general_type=True,
-               ignore_bond_types=True,
-               ignore_coords=False,
-               left_coords_are_ref=True,
-               align_molecules=True,
-               use_only_gentype=False,
-               check_atom_names_unique=True,
-               pair_charge_atol=0.1,
-               net_charge_threshold=0.1,
-               redistribute_charges_over_unmatched=True,
-               starting_pairs_heuristics=True):
-    # use mdanalysis to load the files
-    # fixme - should not squash all messsages. For example, wrong type file should not be squashed
-    leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
-        get_atoms_bonds_from_mol2(mol1, mol2, use_general_type=use_general_type)
-    # fixme - manual match should be improved here and allow for a sensible format.
-
-    # empty lists count as None
-    if not force_mismatch:
-        force_mismatch = None
-
-    # assign
-    # fixme - Ideally I would reuse the mdanalysis data for this,
-    # MDAnalysis can use bonds if they are present - fixme
-    # map atom IDs to their objects
-    ligand1_nodes = {}
-    for atomNode in leftlig_atoms:
-        ligand1_nodes[atomNode.get_id()] = atomNode
-    # link them together
-    for nfrom, nto, btype in leftlig_bonds:
-        ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
-
-    ligand2_nodes = {}
-    for atomNode in rightlig_atoms:
-        ligand2_nodes[atomNode.get_id()] = atomNode
-    for nfrom, nto, btype in rightlig_bonds:
-        ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
-
-    # fixme - this should be moved out of here,
-    #  ideally there would be a function in the main interface for this
-    starting_node_pairs = []
-    for l_aname, r_aname in manual_match:
-        # find the starting node pairs, ie the manually matched pair(s)
-        found_left_node = None
-        for id, ln in ligand1_nodes.items():
-            if l_aname == ln.name:
-                found_left_node = ln
-        if found_left_node is None:
-            raise ValueError(f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule')
-
-        found_right_node = None
-        for id, ln in ligand2_nodes.items():
-            if r_aname == ln.name:
-                found_right_node = ln
-        if found_right_node is None:
-            raise ValueError(f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule')
-
-        starting_node_pairs.append([found_left_node, found_right_node])
-
-    if starting_node_pairs:
-        print('Starting nodes will be used:', starting_node_pairs)
-
-    # fixme - simplify to only take the mdanalysis as input
-    suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                     starting_node_pairs=starting_node_pairs,
-                                     force_mismatch=force_mismatch,
-                                     no_disjoint_components=no_disjoint_components,
-                                     net_charge_filter=net_charge_filter,
-                                     pair_charge_atol=pair_charge_atol,
-                                     ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
-                                     ignore_charges_completely=ignore_charges_completely,
-                                     ignore_bond_types=ignore_bond_types,
-                                     ignore_coords=ignore_coords,
-                                     left_coords_are_ref=left_coords_are_ref,
-                                     align_molecules=align_molecules,
-                                     use_general_type=use_general_type,
-                                     use_only_element=use_only_gentype,
-                                     check_atom_names_unique=check_atom_names_unique,
-                                     net_charge_threshold=net_charge_threshold,
-                                     redistribute_charges_over_unmatched=redistribute_charges_over_unmatched,
-                                     starting_pairs_heuristics=starting_pairs_heuristics)
-    assert len(suptops) == 1
-    return suptops[0], mda_l1, mda_l2
-
-
 def prepare_inputs(morph,
-                   dir_prefix='complex',
+                   dir_prefix,
                    protein=None,
                    namd_script_loc=None,
                    submit_script=None,
@@ -114,14 +26,13 @@ def prepare_inputs(morph,
                    ligand_ff=None,
                    net_charge=None,
                    ambertools_script_dir=None,
-                   subprocess_kwargs=None,
-                   ambertools_bin=None,
+                   ambertools_tleap=None,
                    namd_prod=None,
                    hybrid_topology=False):
 
-    cwd = morph.workplace_root / (f'{dir_prefix}_{morph.internal_name}')
+    cwd = dir_prefix / f'{morph.internal_name}'
     if not cwd.is_dir():
-        cwd.mkdir(exist_ok=True)
+        cwd.mkdir(parents=True, exist_ok=True)
 
     # copy the protein complex .pdb
     if protein is not None:
@@ -163,14 +74,14 @@ def prepare_inputs(morph,
     log_filename = cwd / 'generate_sys_top.log'
     with open(log_filename, 'w') as LOG:
         try:
-            subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'leap.in'],
+            subprocess.run([ambertools_tleap, '-s', '-f', 'leap.in'],
                            stdout=LOG, stderr=LOG,
                            cwd = cwd,
                            check=True, text=True, timeout=30)
             hybrid_solv = cwd / 'sys_solv.pdb' # generated
             # check if the solvation is correct
         except subprocess.CalledProcessError as E:
-            print('ERROR: occured when creating the input .mol2 file with antechamber. ')
+            print('ERROR: occurred when trying to parse the protein.pdb with tleap. ')
             print(f'ERROR: The output was saved in the directory: {cwd}')
             print(f'ERROR: can be found in the file: {log_filename}')
             raise E
@@ -742,45 +653,45 @@ def set_coor_from_ref_manual(target, ref, output_filename, by_atom_name=False, b
     target.atoms.write(output_filename)
 
 
-def get_protein_net_charge(working_dir, protein_file, ambertools_bin, leap_input_file, prot_ff):
+def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_input_file, prot_ff):
     """
     Use automatic ambertools solvation of a single component to determine what is the next charge of the system.
     This should be replaced with pka/propka or something akin.
     Note that this is unsuitable for the hybrid ligand: ambertools does not understand a hybrid ligand
     and might assign the wront net charge.
     """
-    solv_prot_alone = working_dir / 'auxiliary_solv_protein_to_find_net_charge'
-    if not solv_prot_alone.is_dir():
-        solv_prot_alone.mkdir()
+    cwd = working_dir / 'prep' / 'prep_protein_to_find_net_charge'
+    if not cwd.is_dir():
+        cwd.mkdir()
 
     # copy the protein
-    shutil.copy(working_dir / protein_file, solv_prot_alone)
+    shutil.copy(working_dir / protein_file, cwd)
 
     # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
     # fixme - consider moving out of the complex
     leap_in_conf = open(leap_input_file).read()
     ligand_ff = 'leaprc.gaff' # ignored but must be provided
-    open(solv_prot_alone / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff,
+    open(cwd / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff,
                                                                           protein_file=protein_file))
 
-    log_filename = solv_prot_alone / "ties_tleap.log"
+    log_filename = cwd / "ties_tleap.log"
     with open(log_filename, 'w') as LOG:
         try:
-            subprocess.run([ambertools_bin / 'tleap', '-s', '-f', 'solv_prot.in'],
-                           cwd = solv_prot_alone,
+            subprocess.run([ambertools_tleap, '-s', '-f', 'solv_prot.in'],
+                           cwd = cwd,
                            stdout=LOG, stderr=LOG,
                            check=True, text=True,
                            timeout=60 * 2  # 2 minutes
                         )
         except subprocess.CalledProcessError as E:
             print('ERROR: tleap could generate a simple topology for the protein to check the number of ions. ')
-            print(f'ERROR: The output was saved in the directory: {solv_prot_alone}')
+            print(f'ERROR: The output was saved in the directory: {cwd}')
             print(f'ERROR: can be found in the file: {log_filename}')
             raise E
 
 
     # read the file to see how many ions were added
-    u = mda.Universe(solv_prot_alone / 'prot_solv.pdb')
+    u = mda.Universe(cwd / 'prot_solv.pdb')
     cl = len(u.select_atoms('name Cl-'))
     na = len(u.select_atoms('name Na+'))
     if cl > na:
