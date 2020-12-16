@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy
 import networkx
 import dwave_networkx.algorithms
@@ -71,6 +72,14 @@ class LigandMap():
     def kruskal(self):
         print('Minimum spanning trees (Kruskal): ')
         mst = networkx.minimum_spanning_tree(self.graph)
+
+        #
+        pos = networkx.spring_layout(mst)
+        networkx.draw(mst, pos=pos, with_labels=True, font_weight='bold')
+        # draw the weights,
+        edge_weights = {(u, v,): f"{d['weight']:.2f}" for u, v, d in mst.edges(data=True)}
+        networkx.draw_networkx_edge_labels(mst, pos, edge_labels=edge_weights)
+        plt.savefig('ties_map.png', dpi=300)
 
         # sum the distances
         dst_sum = sum(item[1]['weight'] for item in mst.edges.items())
