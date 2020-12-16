@@ -1,0 +1,7 @@
+In order to compare the two ligands, use the following command:
+
+ties create -l l1.pdb l3.pdb -nc 0
+
+
+These files are originally coming from the study below:
+Wang, L., Wu, Y., Deng, Y., Kim, B., Pierce, L., Krilov, G., Lupyan, D., Robinson, S., Dahlgren, M. K., Greenwood, J., Romero, D. L., Masse, C., Knight, J. L., Steinbrecher, T., Beuming, T., Damm, W., Harder, E., Sherman, W., Brewer, M., … Abel, R. (2015). Accurate and Reliable Prediction of Relative Ligand Binding Potency in Prospective Drug Discovery by Way of a Modern Free-Energy Calculation Protocol and Force Field. Journal of the American Chemical Society, 137(7), 2695–2703. https://doi.org/10.1021/ja512751q
