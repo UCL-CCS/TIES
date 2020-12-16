@@ -249,7 +249,7 @@ def command_line_script():
         lm.generate_map()
         lm.print_map()
         lm.generate_graph()
-        selected_morphs = lm.traveling_salesmen()
+        # selected_morphs = lm.traveling_salesmen()
         selected_morphs = lm.kruskal()
 
     ##########################################################
@@ -271,7 +271,8 @@ def command_line_script():
                        ambertools_script_dir=config.ambertools_script_dir,
                        ambertools_tleap=config.ambertools_tleap,
                        namd_prod=config.namd_prod,
-                       hybrid_topology=config.use_hybrid_single_dual_top
+                       hybrid_topology=config.use_hybrid_single_dual_top,
+                       vmd_vis_script=config.vmd_vis_script
                        )
         print(f'Ligand {morph} directory populated successfully')
 
@@ -297,7 +298,9 @@ def command_line_script():
                            ambertools_script_dir=config.ambertools_script_dir,
                            ambertools_tleap=config.ambertools_tleap,
                            namd_prod=config.namd_prod,
-                           hybrid_topology=config.use_hybrid_single_dual_top)
+                           hybrid_topology=config.use_hybrid_single_dual_top,
+                           vmd_vis_script=config.vmd_vis_script
+                           )
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)

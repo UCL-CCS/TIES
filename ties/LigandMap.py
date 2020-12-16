@@ -2,6 +2,7 @@ import numpy
 import networkx
 import dwave_networkx.algorithms
 import dimod
+import tabulate
 
 
 class LigandMap():
@@ -70,10 +71,11 @@ class LigandMap():
     def kruskal(self):
         print('Minimum spanning trees (Kruskal): ')
         mst = networkx.minimum_spanning_tree(self.graph)
+
         # sum the distances
         dst_sum = sum(item[1]['weight'] for item in mst.edges.items())
-        print(f'Sum: {dst_sum:.2f}')
         print(mst.edges)
+        print(f'Sum: {dst_sum:.2f}')
 
         # look up the selected MST morphs
         chosen_transformations = []
@@ -87,14 +89,17 @@ class LigandMap():
     def print_map(self):
         # combine the maps
         print('Ligand Map')
-        # print(tabulate(self.map))
+        tabulate_map = []
         for ri, row in enumerate(self.map):
-            line = ''
+            line = []
             for ci, col in enumerate(row):
                 if ci >= ri:
                     break
-                line += repr(self.map[ri][ci]) + '\t'
-            print(line)
+                line.append(repr(self.map[ri][ci]))
+            if not line:
+                continue
+            tabulate_map.append(line)
+        print(tabulate.tabulate(tabulate_map, tablefmt="grid"))
         print('LOMAP weights/similarities')
         numpy.set_printoptions(precision=2)
         print(self.map_weights)

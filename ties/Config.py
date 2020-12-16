@@ -16,6 +16,7 @@ class Config:
         self.namd_script_dir = self.script_dir / 'namd'
         self.ambertools_script_dir = self.script_dir / 'ambertools'
         self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
+        self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
 
         self._workplace_dir = None
         self._antechamber_dr = None
@@ -295,6 +296,9 @@ class Config:
     def manually_matched_atom_pairs(self, file_or_pairs):
         # A user-provided list of pairs that should be matched
         # This functionality works only if there are two ligands
+        if file_or_pairs is None:
+            self._manually_matched_atom_pairs = []
+            return
         if self._ligand_files is None:
             raise ValueError('Wrong use of Config class. Please set the ._ligand_files attribute first. ')
         elif len(self._ligand_files) != 2:
@@ -313,6 +317,8 @@ class Config:
 
         if len(manually_matched) > 1:
             raise NotImplementedError('Currently only one atom pair can be matched - others were not tested')
+
+        self._manually_matched_atom_pairs = manually_matched
 
     @property
     def protein_ff(self):

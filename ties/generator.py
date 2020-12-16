@@ -28,7 +28,8 @@ def prepare_inputs(morph,
                    ambertools_script_dir=None,
                    ambertools_tleap=None,
                    namd_prod=None,
-                   hybrid_topology=False):
+                   hybrid_topology=False,
+                   vmd_vis_script=None):
 
     cwd = dir_prefix / f'{morph.internal_name}'
     if not cwd.is_dir():
@@ -142,6 +143,13 @@ def prepare_inputs(morph,
             # copy a submit script
             if submit_script is not None:
                 shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
+
+    # copy the visualisation script as hidden
+    shutil.copy(vmd_vis_script, cwd / 'vis.vmd')
+    # simplify the vis.vmd use
+    vis_sh = Path(cwd / 'vis.sh')
+    vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
+    vis_sh.chmod(0o755)
 
 
 def _merge_frcmod_section(ref_lines, other_lines):

@@ -46,7 +46,7 @@ class Morph():
         if self.distance is None:
             return self.internal_name
 
-        return f'{self.internal_name}({self.distance:.2f})'
+        return f'{self.internal_name} ({self.distance:.2f})'
 
     def set_distance(self, value):
         self.distance = value
