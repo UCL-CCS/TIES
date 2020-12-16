@@ -2462,7 +2462,7 @@ class Topology:
 
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
                            use_coords=True, starting_node_pairs=None,
-                           force_mismatch=None, disjoint_components=True,
+                           force_mismatch=None, disjoint_components=False,
                            net_charge_filter=True, net_charge_threshold=0.1,
                            redistribute_charges_over_unmatched=True,
                            ligand_l_mda=None, ligand_r_mda=None,
@@ -2644,7 +2644,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
         assert len(suptops) == 1, suptops
 
-    if redistribute_charges_over_unmatched and not ignore_charges_completely and disjoint_components:
+    if redistribute_charges_over_unmatched and not ignore_charges_completely:
         if len(suptops) > 1:
             raise NotImplementedError(
                 'Currently distributing charges works only if there is no disjointed components')
