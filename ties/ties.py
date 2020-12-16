@@ -10,10 +10,10 @@ import MDAnalysis
 
 from ties.generator import *
 from ties.helpers import *
-from ties.Ligand import Ligand
-from ties.Morph import Morph
-from ties.LigandMap import LigandMap
-from ties.Config import Config
+from ties.ligand import Ligand
+from ties.morph import Morph
+from ties.ligandmap import LigandMap
+from ties.config import Config
 
 
 def command_line_script():

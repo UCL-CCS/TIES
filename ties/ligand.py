@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from ties.helpers import are_correct_names, load_MDAnalysis_atom_group, rename_ligand
+from ties.config import Config
 
 
 class Ligand:
@@ -24,11 +25,15 @@ class Ligand:
 
     _USED_FILENAMES = set()
 
-    def __init__(self, ligand, config):
+    def __init__(self, ligand, save=True, config=None):
+        self.save = save
         self.config = config
         # save workplace root
-        self.workplace_root = Path(config.workdir)
-        self.original_input = ligand.absolute()
+        if config is None:
+            # create an emtpy config
+            config = Config()
+        self.workplace_root = config.workdir
+        self.original_input = Path(ligand).absolute()
 
         # check if the input files exist
         if not self.original_input.is_file():
@@ -56,13 +61,13 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
-        self.convert_ac_to_mol2(config.ambertools_antechamber, config.antechamber_dr)
+        self.convert_ac_to_mol2()
 
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
 
-    def convert_ac_to_mol2(self, antechamber, antechamber_dr='no'):
+    def convert_ac_to_mol2(self):
         """
         If the file is not a prepi file, this function does not do anything.
         Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
@@ -87,10 +92,10 @@ class Ligand:
         log_filename = cwd / "antechamber_conversion.log"
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([antechamber,
+                subprocess.run([self.config.ambertools_antechamber,
                                 '-i', self.current, '-fi', 'ac',
                                 '-o', new_current, '-fo', 'mol2',
-                                '-dr', antechamber_dr],
+                                '-dr', self.config.antechamber_dr],
                                stdout=LOG, stderr=LOG,
                                check=True, text=True,
                                cwd=cwd, timeout=30)
@@ -135,9 +140,11 @@ class Ligand:
 
         ligand_with_uniq_atom_names = self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR / \
                                       (self.internal_name + self.current.suffix)
-        ligand_universe.atoms.write(ligand_with_uniq_atom_names)
+        if self.save:
+            ligand_universe.atoms.write(ligand_with_uniq_atom_names)
 
         self.ligand_with_uniq_atom_names = ligand_with_uniq_atom_names
+        self.universe = ligand_universe
         # this object is now represented by the updated ligand
         self.current = ligand_with_uniq_atom_names
 

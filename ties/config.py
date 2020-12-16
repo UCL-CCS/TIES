@@ -18,7 +18,7 @@ class Config:
         self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
         self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
 
-        self._workplace_dir = None
+        self._workdir = None
         self._antechamber_dr = None
         self._ambertools_home = None
 
@@ -52,18 +52,21 @@ class Config:
 
     @property
     def workdir(self):
-        return self._workplace_dir
+        if self._workdir is None:
+            return pathlib.Path(os.getcwd())
+
+        return self._workdir
 
     @workdir.setter
     def workdir(self, cwd):
         if cwd is not None:
             # user provided
-            self._workplace_dir = cwd
+            self._workdir = cwd
         else:
             # current directory
-            self._workplace_dir = pathlib.Path(os.getcwd()) / 'ties20'
-            self._workplace_dir.mkdir(exist_ok=True)
-        print(f'Working Directory: {self._workplace_dir}')
+            self._workdir = pathlib.Path(os.getcwd()) / 'ties20'
+            self._workdir.mkdir(exist_ok=True)
+        print(f'Working Directory: {self._workdir}')
 
     # --------------- general
     @property

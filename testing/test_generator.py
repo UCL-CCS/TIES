@@ -3,6 +3,7 @@ These tests focus on the generator (preprocessing of the input before applying s
 """
 import MDAnalysis
 
+import ties.helpers
 import ties.topology_superimposer
 import ties.generator
 from ties.ligand import Ligand
@@ -22,8 +23,9 @@ def test_rename_ligand():
     lig.make_atom_names_unique()
     assert len(set(lig.universe.atoms.names)) == len(lig.universe.atoms.names)
 
+
 def test_are_correct_names():
     u = MDAnalysis.Universe.empty(n_atoms=2)
     # set the atom names
     u.add_TopologyAttr('name', ['O1', 'H1'])
-    assert ties.generator.are_correct_names(u.atoms)
+    assert ties.helpers.are_correct_names(u.atoms.names)
