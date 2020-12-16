@@ -1,9 +1,12 @@
 """
 These tests focus on the generator (preprocessing of the input before applying superimpose_topologies
 """
+import MDAnalysis
+
 import ties.topology_superimposer
 import ties.generator
-import MDAnalysis
+from ties.ligand import Ligand
+
 
 def test_no_same_atom_names(dual_ring1):
     # make a copy of the atom list
@@ -15,8 +18,9 @@ def test_no_same_atom_names(dual_ring1):
 
 
 def test_rename_ligand():
-    result = ties.generator.make_atom_names_unique('data/p38_ligands_01.pdb')
-    assert len(set(result.atoms.names)) == len(result.atoms.names)
+    lig = Ligand('data/p38_ligands_01.pdb', save=False)
+    lig.make_atom_names_unique()
+    assert len(set(lig.universe.atoms.names)) == len(lig.universe.atoms.names)
 
 def test_are_correct_names():
     u = MDAnalysis.Universe.empty(n_atoms=2)
