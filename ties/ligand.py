@@ -25,14 +25,11 @@ class Ligand:
 
     _USED_FILENAMES = set()
 
-    def __init__(self, ligand, save=True, config=None):
+    def __init__(self, ligand, config=None, save=True):
         self.save = save
-        self.config = config
         # save workplace root
-        if config is None:
-            # create an emtpy config
-            config = Config()
-        self.workplace_root = config.workdir
+        self.config = Config() if config is None else config
+        self.workplace_root = self.config.workdir
         self.original_input = Path(ligand).absolute()
 
         # check if the input files exist
