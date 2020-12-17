@@ -1,0 +1,79 @@
+TITLE     MDANALYSIS FRAME 0: Created by PDBWriter
+CRYST1    0.000    0.000    0.000   0.00   0.00   0.00 P 1           1
+ATOM      1  C16 MOL S   1      -4.780  -4.176 -16.150  1.00  0.00      SYST C
+ATOM      2  C17 MOL S   1      -4.436  -5.312 -15.441  1.00  0.00      SYST C
+ATOM      3  C18 MOL S   1      -5.413  -6.240 -15.135  1.00  0.00      SYST C
+ATOM      4  C19 MOL S   1      -6.735  -6.061 -15.523  1.00  0.00      SYST C
+ATOM      5  C20 MOL S   1      -7.049  -4.910 -16.236  1.00  0.00      SYST C
+ATOM      6  C21 MOL S   1      -6.087  -3.969 -16.553  1.00  0.00      SYST C
+ATOM      7  Cl3 MOL S   1      -8.685  -4.631 -16.757  1.00  0.00      SYSTCL
+ATOM      8  C22 MOL S   1      -7.808  -7.055 -15.128  1.00  0.00      SYST C
+ATOM      9  O3  MOL S   1      -8.407  -6.943 -14.105  1.00  0.00      SYST O
+ATOM     10  N4  MOL S   1      -7.991  -8.041 -16.049  1.00  0.00      SYST N
+ATOM     11  C23 MOL S   1      -8.887  -9.114 -16.016  1.00  0.00      SYST C
+ATOM     12  C24 MOL S   1      -9.780  -9.351 -14.975  1.00  0.00      SYST C
+ATOM     13  C25 MOL S   1     -10.596 -10.456 -15.097  1.00  0.00      SYST C
+ATOM     14  N5  MOL S   1     -10.590 -11.294 -16.118  1.00  0.00      SYST N
+ATOM     15  C26 MOL S   1      -9.736 -11.053 -17.097  1.00  0.00      SYST C
+ATOM     16  C27 MOL S   1      -8.858  -9.980 -17.102  1.00  0.00      SYST C
+ATOM     17  N6  MOL S   1      -9.812 -11.997 -18.123  1.00  0.00      SYST N
+ATOM     18  C28 MOL S   1      -9.100 -12.080 -19.282  1.00  0.00      SYST C
+ATOM     19  O4  MOL S   1      -8.248 -11.296 -19.598  1.00  0.00      SYST O
+ATOM     20  C29 MOL S   1      -9.459 -13.261 -20.175  1.00  0.00      SYST C
+ATOM     21  Cl4 MOL S   1      -4.955  -7.663 -14.245  1.00  0.00      SYSTCL
+ATOM     22  C30 MOL S   1      -8.227 -14.158 -20.348  1.00  0.00      SYST C
+ATOM     23  H14 MOL S   1      -4.027  -3.448 -16.391  1.00  0.00      SYST H
+ATOM     24  H15 MOL S   1      -3.425  -5.480 -15.125  1.00  0.00      SYST H
+ATOM     25  H16 MOL S   1      -6.362  -3.091 -17.103  1.00  0.00      SYST H
+ATOM     26  H17 MOL S   1      -7.412  -7.999 -16.859  1.00  0.00      SYST H
+ATOM     27  H18 MOL S   1      -9.836  -8.714 -14.121  1.00  0.00      SYST H
+ATOM     28  H19 MOL S   1     -11.302 -10.679 -14.318  1.00  0.00      SYST H
+ATOM     29  H20 MOL S   1      -8.188  -9.833 -17.922  1.00  0.00      SYST H
+ATOM     30  H21 MOL S   1     -10.501 -12.693 -17.942  1.00  0.00      SYST H
+ATOM     31  C31 MOL S   1      -9.970 -12.741 -21.522  1.00  0.00      SYST C
+ATOM     32  H22 MOL S   1     -10.248 -13.842 -19.706  1.00  0.00      SYST H
+ATOM     33  H23 MOL S   1     -10.227 -13.571 -22.172  1.00  0.00      SYST H
+ATOM     34  H24 MOL S   1     -10.856 -12.124 -21.400  1.00  0.00      SYST H
+ATOM     35  H25 MOL S   1      -9.208 -12.145 -22.011  1.00  0.00      SYST H
+ATOM     36  H26 MOL S   1      -8.468 -15.003 -20.985  1.00  0.00      SYST H
+ATOM     37  H27 MOL S   1      -7.417 -13.602 -20.803  1.00  0.00      SYST H
+ATOM     38  H28 MOL S   1      -7.881 -14.544 -19.395  1.00  0.00      SYST H
+CONECT    1    2    6   23
+CONECT    2    1    3   24
+CONECT    3    2    4   21
+CONECT    4    3    5    8
+CONECT    5    4    6    7
+CONECT    6    1    5   25
+CONECT    7    5
+CONECT    8    4    9   10
+CONECT    9    8
+CONECT   10    8   11   26
+CONECT   11   10   12   16
+CONECT   12   11   13   27
+CONECT   13   12   14   28
+CONECT   14   13   15
+CONECT   15   14   16   17
+CONECT   16   11   15   29
+CONECT   17   15   18   30
+CONECT   18   17   19   20
+CONECT   19   18
+CONECT   20   18   22   31   32
+CONECT   21    3
+CONECT   22   20   36   37   38
+CONECT   23    1
+CONECT   24    2
+CONECT   25    6
+CONECT   26   10
+CONECT   27   12
+CONECT   28   13
+CONECT   29   16
+CONECT   30   17
+CONECT   31   20   33   34   35
+CONECT   32   20
+CONECT   33   31
+CONECT   34   31
+CONECT   35   31
+CONECT   36   22
+CONECT   37   22
+CONECT   38   22
+END
