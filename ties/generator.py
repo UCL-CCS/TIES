@@ -808,6 +808,23 @@ def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_fi
     mod_mol2.atoms.write(output_filename)
 
 
+def rewrite_mol2_hybrid_top(file, single_top_atom_names):
+    # in the  case of the hybrid single-dual topology in NAMD
+    # the .mol2 files have to be rewritten so that
+    # the atoms dual-topology atoms that appear/disappear
+    # are placed at the beginning of the molecule
+    # (single topology atoms have to be separted by
+    # the same distance)
+    shutil.copy(file, os.path.splitext(file)[0] + '_before_sdtop_reordering.mol2' )
+    u = mda.Universe(file)
+    # select the single top area, use their original order
+    single_top_area = u.select_atoms('name ' +  ' '.join(single_top_atom_names))
+    # all others are mutating
+    dual_top_area = u.select_atoms('not name ' + ' '.join(single_top_atom_names))
+    new_order_u = single_top_area + dual_top_area
+    new_order_u.atoms.write(file)
+
+
 def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
     """
     fixme - rename this file since it generates the .eq files

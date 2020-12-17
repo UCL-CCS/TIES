@@ -6,8 +6,6 @@ Load two ligands, run the topology superimposer, and then using the results, gen
 """
 import itertools
 
-import MDAnalysis
-
 from ties.generator import *
 from ties.helpers import *
 from ties.ligand import Ligand
@@ -129,12 +127,6 @@ def command_line_script():
     config.set_ligand_ff(args.ligand_ff_name)
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
 
-    # pick the right tleap instructions
-    if config.use_hybrid_single_dual_top:
-        ligand_tleap_in = 'leap_ligand_sdtop.in'
-    else:
-        ligand_tleap_in = 'leap_ligand.in'
-
     # TIES
     # create ligands
     ligands = [Ligand(lig, config) for lig in args.ligands]
@@ -169,15 +161,10 @@ def command_line_script():
 
     # when the user provides charges, BCC and minimisation is not carried out, so the coordinates are correct
     if config.use_original_coor and not config.use_provided_charges:
-        # fixme
-        print(f'Copying coordinates from {left_ligand} and {right_ligand} since antechamber changes them slightly')
+        # todo - make this part of the lig.antechamber_prepare_mol2
+        print(f'Copying coordinates from {ligands[0]} and {ligands[1]} since antechamber changes them slightly')
         # copy the files before applying the coordinates
-        shutil.copy(workplace_root / 'left.mol2', workplace_root / 'left_before_COOR.mol2')
-        shutil.copy(workplace_root / 'right.mol2', workplace_root / 'right_before_COOR.mol2')
-        set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_atom_name=True)
-        set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_atom_name=True)
-        # set_coor_from_ref(workplace_root / 'left.mol2', workplace_root / left_ligand, by_index=True)
-        # set_coor_from_ref(workplace_root / 'right.mol2', workplace_root / right_ligand, by_index=True)
+        ligands[0].set_coor_from_ref(by_atom_name=True)
 
     # generate all pairings
     morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
@@ -209,22 +196,6 @@ def command_line_script():
         morph.write_superimposition_json()
         morph.write_morph_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
         morph.write_hybrid_mol2()
-
-    def rewrite_mol2_hybrid_top(file, single_top_atom_names):
-        # in the  case of the hybrid single-dual topology in NAMD
-        # the .mol2 files have to be rewritten so that
-        # the atoms dual-topology atoms that appear/disappear
-        # are placed at the beginning of the molecule
-        # (single topology atoms have to be separted by
-        # the same distance)
-        shutil.copy(file, os.path.splitext(file)[0] + '_before_sdtop_reordering.mol2' )
-        u = mda.Universe(file)
-        # select the single top area, use their original order
-        single_top_area = u.select_atoms('name ' +  ' '.join(single_top_atom_names))
-        # all others are mutating
-        dual_top_area = u.select_atoms('not name ' + ' '.join(single_top_atom_names))
-        new_order_u = single_top_area + dual_top_area
-        new_order_u.atoms.write(file)
 
     if config.use_hybrid_single_dual_top:
         raise NotImplementedError('Hybrid single-dual not done with LOMAP feature. ')
