@@ -5,14 +5,16 @@ import hashlib
 import copy
 import itertools
 import warnings
-from functools import reduce
 import math
+from functools import reduce
 
 import numpy as np
 import networkx as nx
 import MDAnalysis
 from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
+
+from ties.helpers import load_MDAnalysis_atom_group
 
 
 element_from_type = {
@@ -21,7 +23,7 @@ element_from_type = {
     # Furthermore, GAFF2 is being added in stages
     'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
     'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C',
+    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C', 'C1': 'C',
     'H': 'H', 'HA': 'H', 'HN': 'H', 'H4': 'H', 'HC': 'H', 'H1': 'H', 'HX': 'H',
     'HO': 'H', 'HS': 'H', 'HP': 'H',  'H2': 'H', 'H3': 'H',  'H5': 'H',
     'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
@@ -44,7 +46,7 @@ element_from_type = {
 class AtomNode:
     counter = 1
 
-    def __init__(self, name, atom_type, charge=None, use_general_type=False):
+    def __init__(self, name, atom_type, charge=0, use_general_type=False):
         self.atomId = None
         # this atom name might change
         self.name = name.upper()
@@ -166,8 +168,12 @@ class AtomNode:
 
     def __deepcopy__(self, memodict={}):
         # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
-        # it is a shallow copy, as this object is "immutable"
+        # it is a shallow copy, as this object should be in the future immutable
         return self
+
+    def deepCopy(self):
+        # Generate a new object of this class
+        return AtomNode(self.name, self.type, self.charge)
 
 
 class AtomPair:
@@ -2456,7 +2462,7 @@ class Topology:
 
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
                            use_coords=True, starting_node_pairs=None,
-                           force_mismatch=None, no_disjoint_components=True,
+                           force_mismatch=None, disjoint_components=False,
                            net_charge_filter=True, net_charge_threshold=0.1,
                            redistribute_charges_over_unmatched=True,
                            ligand_l_mda=None, ligand_r_mda=None,
@@ -2468,7 +2474,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            left_coords_are_ref=True,
                            use_general_type=True,
                            use_only_element=False,
-                           check_atom_names_unique=True):
+                           check_atom_names_unique=True,
+                           starting_pairs_heuristics=True):
     """
     A helper function that manages the entire process.
 
@@ -2492,7 +2499,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if check_atom_names_unique:
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
         assert len(same_atom_names) == 0, \
-            f"The molecules have the same atom names. This is now allowed. They are: {same_atom_names}"
+            f"The molecules have the same atom names. This is not allowed. They are: {same_atom_names}"
 
     # align the 3D coordinates before applying further changes
     # todo
@@ -2505,7 +2512,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                                       starting_node_pairs=starting_node_pairs,
                                       ignore_coords=ignore_coords,
                                       left_coords_are_ref=left_coords_are_ref,
-                                      use_general_type=use_general_type)
+                                      use_general_type=use_general_type,
+                                      starting_pairs_heuristics=starting_pairs_heuristics)
     if not suptops:
         raise Exception('Error: Did not find a single superimposition state.'
                         'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
@@ -2613,7 +2621,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         if len(st) == 0:
             suptops.remove(st)
 
-    if no_disjoint_components:
+    if not disjoint_components:
         print(f'Checking for disjoint components in the {len(suptops)} suptops')
         # ensure that each suptop represents one CC
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
@@ -2870,13 +2878,133 @@ def remove_candidates_subgraphs(candidate_suptop, suptops):
     return removed_subgraphs
 
 
+def generate_nxg_from_list(atoms):
+    """
+    Helper function. Generates a graph from a list of atoms
+    @parameter atoms: follow the internal format for atoms
+    """
+    g = nx.Graph()
+    # add attoms
+    [g.add_node(a) for a in atoms]
+    # add all the edges
+    for a in atoms:
+        # add the edges from nA
+        for bonded_to_a, bond_type1 in a.bonds:
+            g.add_edge(a, bonded_to_a)
+
+    return g
+
+
+def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ring_c=True):
+    """
+        Minimise the number of starting configurations to optimise the process speed.
+        Use:
+         * the rarity of the specific atom types,
+         * whether the atoms are bottlenecks (so they do not suffer from symmetry).
+            The issue with symmetry is that it is impossible to find the proper
+            symmetry match if you start from the wrong symmetry.
+        @parameter fraction: ensure that the number of atoms used to start the traversal is not more
+            than the fraction value of the overall number of possible matches, counted as
+            a fraction of the maximum possible number of pairs (MIN(LEFTNODES, RIGHTNODES))
+        @parameter filter_ring_c: filter out the carbon elements in the rings to avoid any issues
+            with the symmetry. This assumes that a ring usually has one N element, etc.
+
+    TODO - ignore hydrogens?
+    """
+    print('Superimposition: optimising the search by narrowing down the starting configuration. ')
+    left_atoms_noh = list(filter(lambda a: a.element != 'H', left_atoms))
+    right_atoms_noh = list(filter(lambda a: a.element != 'H', right_atoms))
+
+    # find out which atoms types are common across the two molecules
+    # fixme - consider subclassing atom from MDAnalysis class and adding functions for some of these features
+    # first, find the unique types for each molecule
+    left_types = {left_atom.type for left_atom in left_atoms_noh}
+    right_types = {right_atom.type for right_atom in right_atoms_noh}
+    common_types = left_types.intersection(right_types)
+
+    # for each atom type, check how many maximum atoms can theoretically be matched
+    per_type_max_counter = {}
+    for atom_type in common_types:
+        left_count_by_type = sum([1 for left_atom in left_atoms if left_atom.type == atom_type])
+        right_count_by_type = sum([1 for right_atom in right_atoms if right_atom.type == atom_type])
+        per_type_max_counter[atom_type] = min(left_count_by_type, right_count_by_type)
+    max_overlap_size = sum(per_type_max_counter.values())
+    print(f'Superimposition - simple max overlap size: {max_overlap_size}')
+
+    left_atoms_starting = left_atoms_noh[:]
+    right_atoms_starting = right_atoms_noh[:]
+
+    # ignore carbons in cycles
+    # fixme - we should not use this for macrocycles, which should be ignored here
+    if filter_ring_c:
+        nxl = generate_nxg_from_list(left_atoms)
+        for cycle in nx.cycle_basis(nxl):
+            # ignore the carbons in the cycle
+            cycle_carbons = list(filter(lambda a: a.element == 'C', cycle))
+            print(f'Superimposition of left atoms: Ignoring carbons as starting configurations because '
+                  f'they are carbons in a cycle: {cycle_carbons}')
+            [left_atoms_starting.remove(a) for a in cycle_carbons if a in left_atoms_starting]
+        nxr = generate_nxg_from_list(right_atoms_starting)
+        for cycle in nx.cycle_basis(nxr):
+            # ignore the carbons in the cycle
+            cycle_carbons = list(filter(lambda a: a.element == 'C', cycle))
+            print(f'Superimposition of right atoms: Ignoring carbons as starting configurations because '
+                  f'they are carbons in a cycle: {cycle_carbons}')
+            [right_atoms_starting.remove(a) for a in cycle_carbons if a in right_atoms_starting]
+
+    # find out which atoms types are common across the two molecules
+    # fixme - consider subclassing atom from MDAnalysis class and adding functions for some of these features
+    # first, find the unique types for each molecule
+    left_types = {left_atom.type for left_atom in left_atoms_starting}
+    right_types = {right_atom.type for right_atom in right_atoms_starting}
+    common_types = left_types.intersection(right_types)
+
+    # for each atom type, check how many maximum atoms can theoretically be matched
+    paired_by_type = []
+    max_after_cycle_carbons = 0
+    for atom_type in common_types:
+        picked_left = list(filter(lambda a: a.type == atom_type, left_atoms_starting))
+        picked_right = list(filter(lambda a: a.type == atom_type, right_atoms_starting))
+        paired_by_type.append([picked_left, picked_right])
+        max_after_cycle_carbons += min(len(picked_left), len(picked_right))
+    print(f'Superimposition: simple max match of atoms after cycle carbons exclusion: {max_after_cycle_carbons}')
+
+    # sort atom according to their type rarity
+    # use the min across, since 1x4 mapping will give 4 options only, so we count this as one,
+    # but 4x4 would give 16,
+    sorted_paired_by_type = sorted(paired_by_type, key=lambda p: min(len(p[0]), len(p[1])))
+
+    # find the atoms in each type and generate appropriate pairs,
+    # use only a fraction of the maximum theoretical match
+    desired_number_of_pairs = int(fraction * max_overlap_size)
+
+    starting_configurations = []
+    added_counter = 0
+    for rare_left_atoms, rare_right_atoms in sorted_paired_by_type:
+        # starting_configurations
+        starting_configurations.extend(list(itertools.product(rare_left_atoms, rare_right_atoms)))
+        added_counter += min(len(rare_left_atoms), len(rare_right_atoms))
+        if added_counter > desired_number_of_pairs:
+            break
+
+    print(f'Superimposition: initial starting pairs for the search: {starting_configurations}')
+    return starting_configurations
+
+
 def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=None,
                             starting_node_pairs=None,
                             ignore_coords=False,
                             left_coords_are_ref=True,
-                            use_general_type=True):
+                            use_general_type=True,
+                            starting_pairs_heuristics=True):
     """
     Superimpose two molecules.
+
+    @parameter rare_atoms_starting_pair: instead of trying every possible pair for the starting configuration,
+        use several information to narrow down the good possible starting configuration. Specifically,
+        use two things: 1) the extact atom type, find how rare they are, and use the rarity to make the call,
+        2) use the "linkers" and areas that are not parts of the rings to avoid the issue of symmetry in the ring.
+        We are striving here to have 5% starting configurations.
     """
     # generate the graph for the top1 and top2
     top1 = Topology(top1_nodes)
@@ -2891,7 +3019,10 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     #   pick a starting point from each component
     if not starting_node_pairs:
         # generate each to each nodes
-        starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
+        if starting_pairs_heuristics:
+            starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes)
+        else:
+            starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
 
     for node1, node2 in starting_node_pairs:
         # fixme - optimisation - reduce the number of starting nX and nY pairs
@@ -3207,22 +3338,6 @@ def get_atoms_bonds_from_ac(ac_file):
     return atoms, bonds
 
 
-def load_mol2_wrapper(filename):
-    # Load a .mol2 file
-    # fixme - fuse with the .pdb loading, no distinction needed
-    # ignore the .mol2 warnings about the mass
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Failed to guess the mass for the following atom types: '  # warning to ignore
-                            )
-    # squash the internal warning about parsing .mol2 within MDAnalysis
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Creating an ndarray from ragged nested sequences '  # warning to ignore
-                            )
-    u = MDAnalysis.Universe(filename)
-    # turn off the filter warning after?
-    return u
-
-
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
     """
     Use MDAnalysis to load the .mol2 files.
@@ -3234,8 +3349,8 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
 
-    universe_ref = load_mol2_wrapper(ref_filename)
-    universe_mobile = load_mol2_wrapper(mob_filename)
+    universe_ref = load_MDAnalysis_atom_group(ref_filename)
+    universe_mobile = load_MDAnalysis_atom_group(mob_filename)
 
     # this RMSD superimposition requires the same number of atoms to be superimposed
     # find out the RMSD between them and the rotation matrix

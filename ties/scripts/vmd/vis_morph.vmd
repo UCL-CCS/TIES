@@ -295,6 +295,9 @@ display aodirect 0.300000
 display dof off
 display dof_fnumber 64.000000
 display dof_focaldist 0.700000
+
+# file exists sys_solv.top
+
 mol new sys_solv.top type parm7 first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
 mol addfile sys_solv_fep.pdb type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
 mol delrep 0 top

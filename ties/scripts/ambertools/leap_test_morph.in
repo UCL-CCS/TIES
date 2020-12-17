@@ -4,8 +4,8 @@ source leaprc.water.tip3p
 # leaprc.gaff
 source {ligand_ff}
 
-loadamberparams morph.frcmod
-hybrid = loadMol2 morph.mol2
+loadamberparams {frcmod}
+hybrid = loadMol2 {mol2}
 
 saveamberprep hybrid test.prepc
 saveamberparm hybrid test.top test.crd

@@ -32,4 +32,6 @@ jobs:
       run: |
         $CONDA/bin/pip install pytest
     - name: Test with pytest
-      run: $CONDA/bin/python3 -m pytest
+      run: |
+        cd testing
+        $CONDA/bin/python3 -m pytest
