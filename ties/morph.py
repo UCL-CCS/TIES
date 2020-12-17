@@ -434,8 +434,6 @@ class Morph():
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
-        modified_hybrid_frcmod = cwd / f'{self.internal_name}_corrected.frcmod'
-
         # prepare tleap input
         leap_in_test = 'leap_test_morph.in'
         leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
@@ -472,9 +470,11 @@ class Morph():
                 if torsion not in missing_dihedrals:
                     missing_dihedrals.append(torsion)
 
+        modified_hybrid_frcmod = cwd / f'{self.internal_name}_corrected.frcmod'
         if missing_angles or missing_dihedrals:
             print('WARNING: Adding dummy dihedrals/angles to frcmod to generate .top')
-            frcmod_lines = open(modified_hybrid_frcmod).readlines()
+            # read the original frcmod
+            frcmod_lines = open(self.frcmod).readlines()
             # overwriting the .frcmod with dummy angles/dihedrals
             with open(modified_hybrid_frcmod, 'w') as NEW_FRCMOD:
                 for line in frcmod_lines:
@@ -490,12 +490,20 @@ class Morph():
                             NEW_FRCMOD.write(dummy_dihedral)
                             print(f'Added dummy dihedral: "{dummy_dihedral}"')
 
+            # update our tleap input test to use the corrected file
+            leap_in_test_corrected = cwd / 'leap_test_morph_corrected.in'
+            open(leap_in_test_corrected, 'w').write(leap_in_conf.format(
+                                mol2=os.path.relpath(self.mol2, cwd),
+                                frcmod=os.path.relpath(modified_hybrid_frcmod, cwd),
+                                protein_ff=protein_ff, ligand_ff=ligand_ff))
+
             # verify that adding the dummy angles/dihedrals worked
-            tleap_process = subprocess.run([ambertools_bin, '-s', '-f', leap_in_test],
+            tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test_corrected],
                                            cwd=cwd, text=True, timeout=60 * 10, capture_output=True, check=True)
 
             if not "Errors = 0" in tleap_process.stdout:
                 raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
+
 
         print('Morph .frcmod after the insertion of dummy angle/dihedrals: OK')
         # set this .frcmod as the correct one now,
