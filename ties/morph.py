@@ -52,7 +52,7 @@ class Morph():
         self.distance = value
 
     def get_suptop(self, morph, manual_match=None, force_mismatch=None,
-                   disjoint_components=True, net_charge_filter=True,
+                   disjoint_components=False, net_charge_filter=True,
                    ignore_charges_completely=False,
                    use_general_type=True,
                    ignore_bond_types=True,

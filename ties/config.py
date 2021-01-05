@@ -222,6 +222,13 @@ class Config:
     def ignore_charges_completely(self):
         return self._ignore_charges_completely
 
+    @ignore_charges_completely.setter
+    def ignore_charges_completely(self, bool):
+        self._ignore_charges_completely = bool
+        if bool:
+            print('Ignoring the charges. ')
+            self.redistribute_q_over_unmatched = False
+
     # superimposition
     @property
     def allow_disjoint_components(self):
