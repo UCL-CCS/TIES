@@ -27,8 +27,14 @@ ties available in the environment. For help use:
 
 I recommend renaming the molecules first manually:
 
-`ties rename -l left_coor.pdb -r right_coor.pdb`
+`ties rename -l left_coor.pdb right_coor.pdb`
 
 Then in the simplest case use the BCC charges. In the following example the net charge is set to -2:
 
-`ties create -l left_coor.pdb -r right_coor.pdb -p protein.pdb -nc -2`
+`ties create -l left_coor.pdb right_coor.pdb -p protein.pdb -nc -2`
+
+The protein is not necessary:
+`ties create -l left_coor.pdb right_coor.pdb -nc -2`
+
+You can use your own charges with the .mol2 format:
+`ties create -l l1.mol2 l2.mol2 l3.mol2 -nc -2`
