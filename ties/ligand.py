@@ -170,11 +170,6 @@ class Ligand:
         if not mol2_cwd.is_dir():
             mol2_cwd.mkdir(parents=True, exist_ok=True)
 
-        subprocess_kwargs = {
-            "check": True, "text": True,
-            "timeout": 60 * 30  # 30 minutes
-        }
-
         # fixme - does not throw errors? try to make it throw an error
         # do not redo if the target file exists
         mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
@@ -189,7 +184,9 @@ class Ligand:
                                     '-dr', antechamber_dr] + antechamber_charge_type,
                                    cwd=mol2_cwd,
                                    stdout=LOG, stderr=LOG,
-                                   **subprocess_kwargs)
+                                   check=True, text=True,
+                                   timeout=60 * 30  # 30 minutes
+                                   )
                 except subprocess.CalledProcessError as E:
                     print('ERROR: occured when creating the input .mol2 file with antechamber. ')
                     print(f'ERROR: The output was saved in the directory: {mol2_cwd}')

@@ -97,6 +97,10 @@ def command_line_script():
     parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
+    # dev tools
+    parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Ignore charges throughout. This is mainly for debugging. ')
 
     args = parser.parse_args()
 
@@ -114,6 +118,7 @@ def command_line_script():
     config.atom_pair_q_atol = args.qtol
     config.net_charge_threshold = args.net_charge_threshold
     config.redistribute_q_over_unmatched = args.redistribute_charges_over_unmatched
+    config.ignore_charges_completely = args.ignore_charges_completely
     # coordinates
     config.align_molecules = args.align_mcs
     # superimposition
