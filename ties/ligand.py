@@ -170,9 +170,14 @@ class Ligand:
         if not mol2_cwd.is_dir():
             mol2_cwd.mkdir(parents=True, exist_ok=True)
 
-        # fixme - does not throw errors? try to make it throw an error
-        # do not redo if the target file exists
         mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
+
+        # copy the existing file if the file is already .mol2
+        if self.current.suffix == '.mol2':
+            print(f'Already .mol2 used. Copying {self.current} to {mol2_cwd}. ')
+            shutil.copy(self.current, mol2_target)
+
+        # do not redo if the target file exists
         if not (mol2_target).is_file():
             log_filename = mol2_cwd / "antechamber.log"
             with open(log_filename, 'w') as LOG:
