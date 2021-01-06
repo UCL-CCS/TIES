@@ -116,7 +116,7 @@ class Config:
                 print(f'Cannot verify initially .ac file {ligand} with MDAnalysis. Skipping. ')
             else:
                 print(f'Trying to open the ligand {ligand} with MDAnalysis..')
-                ligand_universe = MDAnalysis.Universe(ligand)
+                ligand_universe = load_MDAnalysis_atom_group(ligand)
                 # there should be one residue
                 if len(ligand_universe.residues.resnames) > 1:
                     print(f'Warning: more than one residue name detected in the ligand {ligand}')
