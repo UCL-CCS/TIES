@@ -101,6 +101,9 @@ def command_line_script():
     parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Ignore charges throughout. This is mainly for debugging. ')
+    parser.add_argument('-elements', '--compare-elements', metavar='boolean', dest='use_element',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Ignore the specific atom types in the superimposition. Use only the elements. ')
 
     args = parser.parse_args()
 
@@ -123,6 +126,7 @@ def command_line_script():
     config.align_molecules = args.align_mcs
     # superimposition
     config.allow_disjoint_components = args.allow_disjoint_components
+    config.use_element_in_superimposition = args.use_element
     # check the protein and the ligands
     config.protein = args.protein
     config.set_ligand_files(args.ligands, args.ligands_have_q,
@@ -194,7 +198,8 @@ def command_line_script():
                          net_charge_threshold=config.net_charge_threshold,
                          redistribute_charges_over_unmatched=config.redistribute_q_over_unmatched,
                          ignore_charges_completely=config.ignore_charges_completely,
-                         disjoint_components=config.allow_disjoint_components
+                         disjoint_components=config.allow_disjoint_components,
+                         use_only_gentype=config.use_element_in_superimposition,
                          )
 
         # save meta data

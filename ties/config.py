@@ -29,6 +29,8 @@ class Config:
         self._net_charge_threshold = 0.1
         self._redistribute_q_over_unmatched = True
         self._allow_disjoint_components = False
+        # use only the element in the superimposition rather than the specific atom type
+        self._use_element = False
 
         # coordinates
         self._align_molecules = False
@@ -240,6 +242,17 @@ class Config:
         print(f'Allowing disjoint components: {self._allow_disjoint_components}')
 
     @property
+    def use_element_in_superimposition(self):
+        return self._use_element_in_superimposition
+
+    @use_element_in_superimposition.setter
+    def use_element_in_superimposition(self, bool):
+        self._use_element_in_superimposition = bool
+        if bool:
+            print('Warning. Ignoring the specific atom types during superimposition. '
+                  'The results should not be used in production simulations.')
+
+    @property
     def align_molecules(self):
         return self._align_molecules
 
@@ -387,9 +400,9 @@ class Config:
             self._use_hybrid_single_dual_top = True
             self._ligand_tleap_in = 'leap_ligand_sdtop.in'
             self._complex_tleap_in = 'leap_complex_sdtop.in'
-            self._ignore_charges_completely = True
+            if self._ignore_charges_completely != True:
+                raise Exception('Charges have to be ignored completely when using hybrid single-dual topology.')
         else:
-            self._ignore_charges_completely = False
             self._ligand_tleap_in = 'leap_ligand.in'
             self._complex_tleap_in = 'leap_complex.in'
 
