@@ -79,7 +79,7 @@ class LigandMap():
         # draw the weights,
         edge_weights = {(u, v,): f"{d['weight']:.2f}" for u, v, d in mst.edges(data=True)}
         networkx.draw_networkx_edge_labels(mst, pos, edge_labels=edge_weights)
-        plt.savefig(self.ligands.workdir / 'ties_map.png', dpi=300)
+        plt.savefig(self.ligands[0].workplace_root / 'ties_map.png', dpi=300)
 
         # sum the distances
         dst_sum = sum(item[1]['weight'] for item in mst.edges.items())
