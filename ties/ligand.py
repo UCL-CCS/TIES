@@ -20,7 +20,7 @@ class Ligand:
     ROOT = Path('prep')
     UNIQ_ATOM_NAME_DIR = ROOT / 'unique_atom_names'
     FRCMOD_DIR = ROOT / 'ligand_frcmods'
-    AC_CONVERT = ROOT / 'ac_to_mol2'
+    ACPREP_CONVERT = ROOT / 'acprep_to_mol2'
     MOL2 = ROOT / 'mol2'
 
     _USED_FILENAMES = set()
@@ -58,39 +58,38 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
-        self.convert_ac_to_mol2()
+        self.convert_acprep_to_mol2()
 
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
 
-    def convert_ac_to_mol2(self):
+    def convert_acprep_to_mol2(self):
         """
-        If the file is not a prepi file, this function does not do anything.
-        Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
-
-        @output_name: 'left' or 'right'
+        If the file is not a prep/ac file, this function does not do anything.
+        Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.
 
         Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
         """
-        if self.current.suffix.lower() is not '.ac':
+
+        if self.current.suffix.lower() not in ('.ac', '.prep'):
             return
 
-        print('Will convert .ac to a .mol2 file')
+        filetype = {'.ac': 'ac', '.prep': 'prepi'}[self.current.suffix.lower()]
 
-        cwd = self.workplace_root / Ligand.AC_CONVERT / self.internal_name
+        cwd = self.workplace_root / Ligand.ACPREP_CONVERT / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
         # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-        print('Antechamber: converting the .ac to .mol2')
+        print(f'Antechamber: converting {filetype} to mol2')
         new_current = cwd / (self.internal_name + '.mol2')
 
         log_filename = cwd / "antechamber_conversion.log"
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([self.config.ambertools_antechamber,
-                                '-i', self.current, '-fi', 'ac',
+                                '-i', self.current, '-fi', filetype,
                                 '-o', new_current, '-fo', 'mol2',
                                 '-dr', self.config.antechamber_dr],
                                stdout=LOG, stderr=LOG,

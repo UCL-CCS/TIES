@@ -114,8 +114,8 @@ class Config:
 
         # verify the files with MDAnalysis if possible
         for ligand in files:
-            if ligand.suffix.lower() == '.ac':
-                print(f'Cannot verify initially .ac file {ligand} with MDAnalysis. Skipping. ')
+            if ligand.suffix.lower() in ('.ac', '.prep'):
+                print(f'Cannot verify .ac/.prep {ligand} with MDAnalysis. Skipping. ')
             else:
                 print(f'Trying to open the ligand {ligand} with MDAnalysis..')
                 ligand_universe = load_MDAnalysis_atom_group(ligand)
@@ -294,7 +294,7 @@ class Config:
             self._ligands_contain_q = False
         elif boolean is None:
             # determine whether charges are provided using the file extensions
-            if ligand_ext in {'.mol2', '.ac'}:
+            if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 self._ligands_contain_q = True
                 print('Assuming that charges are provided based on the filetype .ac/.mol2')
             elif ligand_ext == '.pdb':

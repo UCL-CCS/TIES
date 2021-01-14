@@ -792,22 +792,26 @@ class SuperimposedTopology:
         for no_direction_pair in nondirectionals:
             corrected_pairs = []
             for A1, A2 in self.matched_pairs:
-                # check if it is a combination of CD and CD
+                # check if it is a combination of CD and CC
                 if not {A1.type, A2.type} == no_direction_pair or (A1, A2) in corrected_pairs:
                     continue
 
-                # check if there is a single neighbour with the same combination CC and CD
-                neigh_corresponding_pair = [(b1, b2) for (b1, b2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
-                              if {b1.type, b2.type} == no_direction_pair]
-                if len(neigh_corresponding_pair) > 1:
+                # check if there is a single neighbour with the opposite combination CC and CD
+                neigh_corresponding_pairs = [(b1, b2) for (b1, b2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
+                              if (b1.type, b2.type) == (A2.type, A1.type)]
+
+                # fixme filter out pairs that 1) were corrected already ?
+
+                if len(neigh_corresponding_pairs) > 1:
                     raise Exception(f'Error: Problem with the non-directional pair {no_direction_pair} mapping. '
-                                    'There appears to be a double bond twice in a raw?. ')
-                elif len(neigh_corresponding_pair) == 0:
-                    raise Exception(f'Error/Warning(?): Found {no_direction_pair} mismatch without '
-                                    f'a neighbouring corresponding pair? Investigate! ')
+                                    'There appears to be a double bond twice in a row?. ')
+                elif len(neigh_corresponding_pairs) == 0:
+                    # fixme - smyd3 c01-s01 has this and could be used as a study case to define this behaviour.
+                    print(f'Warning: Found {(A1, A2)} mismatch without a neighbouring corresponding opposite pair.')
+                    continue
 
                 # We found the two pairs, so we can carry out the swap.
-                b1, b2 = neigh_corresponding_pair[0]
+                b1, b2 = neigh_corresponding_pairs[0]
 
                 # ignore if they are already correct
                 if A2.type == A1.type and b2.type == b1.type:
