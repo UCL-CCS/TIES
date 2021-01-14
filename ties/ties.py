@@ -4,6 +4,7 @@ Exposes a basic terminal interace to TIES 20.
 
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
+import time
 import itertools
 
 from ties.generator import *
@@ -179,6 +180,7 @@ def command_line_script():
     morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the two topologies
+    start_time = time.time()
     for morph in morphs:
         print(f'Next ligand pair: {morph.internal_name}')
         # rename the atom names to ensure they are unique across the two molecules
@@ -206,6 +208,7 @@ def command_line_script():
         morph.write_superimposition_json()
         morph.write_morph_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
         morph.write_hybrid_mol2()
+    print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
     if config.use_hybrid_single_dual_top:
         raise NotImplementedError('Hybrid single-dual not done with LOMAP feature. ')
