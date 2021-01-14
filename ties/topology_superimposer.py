@@ -772,52 +772,59 @@ class SuperimposedTopology:
         self.mda_ligandL = ligand_l_mda
         self.mda_ligandR = ligand_r_mda
 
-    def match_cccd_to_cdcc(self):
+    def match_gaff2_nondirectional_bonds(self):
         """
         If needed, swap cc-cd with cd-cc.
         If two pairs are linked: (CC/CD) - (CD/CC),
-        replace them according to the left side: (CC/CC) - (CD/CD)
+        replace them according to the left side: (CC/CC) - (CD/CD).
+        Apply this rule to all other pairs in Table I (b) at http://ambermd.org/antechamber/gaff.html
 
-        These two define where the double bond is in a ring
-        GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
-        So with this interventions we ensure that we do not remove atoms based on an arbitrary order.
+        These two define where the double bond is in a ring.
+        GAFF decides on which one is cc or cd depending on the arbitrary atom order.
+        This intervention we ensure that we do not remove atoms based on that arbitrary order.
 
-        Note that this operation is idempotent.
+        This method is idempotent.
         """
-        corrected_pairs = []
-        for A1, A2 in self.matched_pairs:
-            # check if it is a combination of CD and CD
-            if not {A1.type, A2.type} == {'CC', 'CD'} or (A1, A2) in corrected_pairs:
-                continue
+        nondirectionals = ({'CC', 'CD'}, {'CE', 'CF'}, {'CP', 'CQ'},
+                             {'PC', 'PD'}, {'PE', 'PF'},
+                             {'NC', 'ND'})
 
-            # check if there is a single neighbour with the same combination CC and CD
-            neigh_cccd = [(b1, b2) for (b1, b2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
-                          if {b1.type, b2.type} == {'CC', 'CD'}]
-            if len(neigh_cccd) > 1:
-                raise Exception('Error: Problem with the CC-CD to CD-CC pair mapping. '
-                                'There appears to be a double bond twice in a raw?. ')
-            elif len(neigh_cccd) == 0:
-                raise Exception('Error(?): Found CC-CD mismatch without a neighbouring CD-CC? Investigate')
+        for no_direction_pair in nondirectionals:
+            corrected_pairs = []
+            for A1, A2 in self.matched_pairs:
+                # check if it is a combination of CD and CD
+                if not {A1.type, A2.type} == no_direction_pair or (A1, A2) in corrected_pairs:
+                    continue
 
-            # We found the two pairs, so we can carry out the swap.
-            b1, b2 = neigh_cccd[0]
+                # check if there is a single neighbour with the same combination CC and CD
+                neigh_corresponding_pair = [(b1, b2) for (b1, b2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
+                              if {b1.type, b2.type} == no_direction_pair]
+                if len(neigh_corresponding_pair) > 1:
+                    raise Exception(f'Error: Problem with the non-directional pair {no_direction_pair} mapping. '
+                                    'There appears to be a double bond twice in a raw?. ')
+                elif len(neigh_corresponding_pair) == 0:
+                    raise Exception(f'Error/Warning(?): Found {no_direction_pair} mismatch without '
+                                    f'a neighbouring corresponding pair? Investigate! ')
 
-            # ignore if they are already correct
-            if A2.type == A1.type and b2.type == b1.type:
-                continue
+                # We found the two pairs, so we can carry out the swap.
+                b1, b2 = neigh_corresponding_pair[0]
 
-            # fixme - temporary solution
-            # fixme - do we want to check if we are in a ring?
-            # for now we are simply rewriting the types here so that it passes the "specific atom type" checks later
-            # ie so that later CC-CC and CD-CD are compared
-            A2.type = A1.type
-            b2.type = b1.type
-            print(f'Ring double bond (arbitrary) order correction. '
-                  f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}), '
-                  f'Right atom type {b2.type} (in {b2}) overwritten with left atom type {b1.type} (in {b1}).')
+                # ignore if they are already correct
+                if A2.type == A1.type and b2.type == b1.type:
+                    continue
 
-            corrected_pairs.append((A1, A2))
-            corrected_pairs.append((b1, b2))
+                # fixme - temporary solution
+                # fixme - do we want to check if we are in a ring?
+                # for now we are simply rewriting the types here so that it passes the "specific atom type" checks later
+                # ie so that later CC-CC and CD-CD are compared
+                A2.type = A1.type
+                b2.type = b1.type
+                print(f'Arbitrary bond order correction. '
+                      f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}), '
+                      f'Right atom type {b2.type} (in {b2}) overwritten with left atom type {b1.type} (in {b1}).')
+
+                corrected_pairs.append((A1, A2))
+                corrected_pairs.append((b1, b2))
 
         return 0
 
@@ -2549,7 +2556,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # These two define where the double bond is in a ring
     # GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
     for st in suptops:
-        st.match_cccd_to_cdcc()
+        st.match_gaff2_nondirectional_bonds()
 
     # ensure the actual atom types is correct (general atom type can be used to match atoms)
     # fixme - this is going to be another stage
