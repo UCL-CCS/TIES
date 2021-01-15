@@ -98,6 +98,14 @@ def command_line_script():
     parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
+    # allow to overwrite the coordinates
+    parser.add_argument('-crd', '--coordinates', metavar='file', dest='coordinates_file',
+                        type=ArgparseChecker.existing_file, required=False,
+                        help='The protein file')
+    parser.add_argument('-o', '--output-file', metavar='str', dest='output_filename',
+                        type=str, required=False,
+                        help='Where to save the output file. The extension is necessary. ')
+
     # dev tools
     parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
                         type=ArgparseChecker.str2bool, required=False, default=False,
@@ -125,6 +133,7 @@ def command_line_script():
     config.ignore_charges_completely = args.ignore_charges_completely
     # coordinates
     config.align_molecules = args.align_mcs
+    config.coordinates_file = args.coordinates_file
     # superimposition
     config.allow_disjoint_components = args.allow_disjoint_components
     config.use_element_in_superimposition = args.use_element
@@ -154,6 +163,22 @@ def command_line_script():
         morph = Morph(ligands[0], ligands[1], config)
         morph.unique_atomres_names()
         sys.exit()
+    elif command == 'mergecrd':
+        print('Merging coordinates. Will add coordinates from an external file. ')
+        if len(ligands) > 1:
+            print('ERROR: too many ligands ligand (-l). '
+                  'Use one ligand when assigning coordinates from another file.')
+            sys.exit(1)
+        elif config.coordinates_file is None:
+            print('ERROR: no file with the coordinates found. Please add a file with coordinates (-crd). ')
+            sys.exit(1)
+        elif args.output_filename is None:
+            print('ERROR: no output file provided for the mergecrd. Please use (-o), e.g. -o output.mol2 ')
+            sys.exit(1)
+
+        # assign coordinates
+        ligands[0].overwrite_coordinates_with(config.coordinates_file, args.output_filename)
+        sys.exit(0)
     elif command == 'analyse':
         raise NotImplementedError('analysis is not yet implemented in the main TIES')
     elif command != 'create':

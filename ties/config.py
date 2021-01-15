@@ -35,6 +35,7 @@ class Config:
         # coordinates
         self._align_molecules = False
         self._use_original_coor = False
+        self._coordinates_file = None
 
         self._ligand_files = None
         self._manually_matched_atom_pairs = None
@@ -94,8 +95,8 @@ class Config:
                          ligands_have_q=None,
                          manually_matched_pairs=None,
                          manually_mismatched_pairs=None):
-        if len(files) < 2:
-            print('Please supply at least two ligand files with -l (--ligands). E.g. -l file1.pdb file2.pdb')
+        if len(files) < 1:
+            print('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
             sys.exit(1)
 
         # check if the ligands have the same extension
@@ -201,6 +202,20 @@ class Config:
 
         self._ligand_net_charge = net_charge
         print(f'Ligand net charge (-nc): {net_charge}')
+
+    @property
+    def coordinates_file(self):
+        return self._coordinates_file
+
+    @coordinates_file.setter
+    def coordinates_file(self, file):
+        if file is None:
+            return
+
+        print(f'MDAnalysis: verifying the coordinate file {file}')
+        load_MDAnalysis_atom_group(file)
+        # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
+        self._coordinates_file = file
 
     @property
     def atom_pair_q_atol(self):
