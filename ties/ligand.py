@@ -99,7 +99,7 @@ class Ligand:
                                check=True, text=True,
                                cwd=cwd, timeout=30)
             except subprocess.CalledProcessError as E:
-                print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
+                print('ERROR: An error occurred during the antechamber conversion from .ac to .mol2 data type. ')
                 print(f'ERROR: The output was saved in the directory: {cwd}')
                 print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
                 raise E
