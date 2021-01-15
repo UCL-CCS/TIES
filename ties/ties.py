@@ -4,6 +4,7 @@ Exposes a basic terminal interace to TIES 20.
 
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
+import time
 import itertools
 
 from ties.generator import *
@@ -97,10 +98,21 @@ def command_line_script():
     parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
+    # allow to overwrite the coordinates
+    parser.add_argument('-crd', '--coordinates', metavar='file', dest='coordinates_file',
+                        type=ArgparseChecker.existing_file, required=False,
+                        help='The protein file')
+    parser.add_argument('-o', '--output-file', metavar='str', dest='output_filename',
+                        type=str, required=False,
+                        help='Where to save the output file. The extension is necessary. ')
+
     # dev tools
     parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Ignore charges throughout. This is mainly for debugging. ')
+    parser.add_argument('-elements', '--compare-elements', metavar='boolean', dest='use_element',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Ignore the specific atom types in the superimposition. Use only the elements. ')
 
     args = parser.parse_args()
 
@@ -121,8 +133,10 @@ def command_line_script():
     config.ignore_charges_completely = args.ignore_charges_completely
     # coordinates
     config.align_molecules = args.align_mcs
+    config.coordinates_file = args.coordinates_file
     # superimposition
     config.allow_disjoint_components = args.allow_disjoint_components
+    config.use_element_in_superimposition = args.use_element
     # check the protein and the ligands
     config.protein = args.protein
     config.set_ligand_files(args.ligands, args.ligands_have_q,
@@ -149,6 +163,22 @@ def command_line_script():
         morph = Morph(ligands[0], ligands[1], config)
         morph.unique_atomres_names()
         sys.exit()
+    elif command == 'mergecrd':
+        print('Merging coordinates. Will add coordinates from an external file. ')
+        if len(ligands) > 1:
+            print('ERROR: too many ligands ligand (-l). '
+                  'Use one ligand when assigning coordinates from another file.')
+            sys.exit(1)
+        elif config.coordinates_file is None:
+            print('ERROR: no file with the coordinates found. Please add a file with coordinates (-crd). ')
+            sys.exit(1)
+        elif args.output_filename is None:
+            print('ERROR: no output file provided for the mergecrd. Please use (-o), e.g. -o output.mol2 ')
+            sys.exit(1)
+
+        # assign coordinates
+        ligands[0].overwrite_coordinates_with(config.coordinates_file, args.output_filename)
+        sys.exit(0)
     elif command == 'analyse':
         raise NotImplementedError('analysis is not yet implemented in the main TIES')
     elif command != 'create':
@@ -175,6 +205,7 @@ def command_line_script():
     morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the two topologies
+    start_time = time.time()
     for morph in morphs:
         print(f'Next ligand pair: {morph.internal_name}')
         # rename the atom names to ensure they are unique across the two molecules
@@ -194,13 +225,15 @@ def command_line_script():
                          net_charge_threshold=config.net_charge_threshold,
                          redistribute_charges_over_unmatched=config.redistribute_q_over_unmatched,
                          ignore_charges_completely=config.ignore_charges_completely,
-                         disjoint_components=config.allow_disjoint_components
+                         disjoint_components=config.allow_disjoint_components,
+                         use_only_gentype=config.use_element_in_superimposition,
                          )
 
         # save meta data
         morph.write_superimposition_json()
         morph.write_morph_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
         morph.write_hybrid_mol2()
+    print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
     if config.use_hybrid_single_dual_top:
         raise NotImplementedError('Hybrid single-dual not done with LOMAP feature. ')

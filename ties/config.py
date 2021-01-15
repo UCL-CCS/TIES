@@ -29,10 +29,13 @@ class Config:
         self._net_charge_threshold = 0.1
         self._redistribute_q_over_unmatched = True
         self._allow_disjoint_components = False
+        # use only the element in the superimposition rather than the specific atom type
+        self._use_element = False
 
         # coordinates
         self._align_molecules = False
         self._use_original_coor = False
+        self._coordinates_file = None
 
         self._ligand_files = None
         self._manually_matched_atom_pairs = None
@@ -92,8 +95,8 @@ class Config:
                          ligands_have_q=None,
                          manually_matched_pairs=None,
                          manually_mismatched_pairs=None):
-        if len(files) < 2:
-            print('Please supply at least two ligand files with -l (--ligands). E.g. -l file1.pdb file2.pdb')
+        if len(files) < 1:
+            print('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
             sys.exit(1)
 
         # check if the ligands have the same extension
@@ -112,8 +115,8 @@ class Config:
 
         # verify the files with MDAnalysis if possible
         for ligand in files:
-            if ligand.suffix.lower() == '.ac':
-                print(f'Cannot verify initially .ac file {ligand} with MDAnalysis. Skipping. ')
+            if ligand.suffix.lower() in ('.ac', '.prep'):
+                print(f'Cannot verify .ac/.prep {ligand} with MDAnalysis. Skipping. ')
             else:
                 print(f'Trying to open the ligand {ligand} with MDAnalysis..')
                 ligand_universe = load_MDAnalysis_atom_group(ligand)
@@ -201,6 +204,20 @@ class Config:
         print(f'Ligand net charge (-nc): {net_charge}')
 
     @property
+    def coordinates_file(self):
+        return self._coordinates_file
+
+    @coordinates_file.setter
+    def coordinates_file(self, file):
+        if file is None:
+            return
+
+        print(f'MDAnalysis: verifying the coordinate file {file}')
+        load_MDAnalysis_atom_group(file)
+        # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
+        self._coordinates_file = file
+
+    @property
     def atom_pair_q_atol(self):
         return self._atom_pair_q_atol
 
@@ -238,6 +255,17 @@ class Config:
     def allow_disjoint_components(self, boolean):
         self._allow_disjoint_components = boolean
         print(f'Allowing disjoint components: {self._allow_disjoint_components}')
+
+    @property
+    def use_element_in_superimposition(self):
+        return self._use_element_in_superimposition
+
+    @use_element_in_superimposition.setter
+    def use_element_in_superimposition(self, bool):
+        self._use_element_in_superimposition = bool
+        if bool:
+            print('Warning. Ignoring the specific atom types during superimposition. '
+                  'The results should not be used in production simulations.')
 
     @property
     def align_molecules(self):
@@ -281,7 +309,7 @@ class Config:
             self._ligands_contain_q = False
         elif boolean is None:
             # determine whether charges are provided using the file extensions
-            if ligand_ext in {'.mol2', '.ac'}:
+            if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 self._ligands_contain_q = True
                 print('Assuming that charges are provided based on the filetype .ac/.mol2')
             elif ligand_ext == '.pdb':
@@ -387,9 +415,9 @@ class Config:
             self._use_hybrid_single_dual_top = True
             self._ligand_tleap_in = 'leap_ligand_sdtop.in'
             self._complex_tleap_in = 'leap_complex_sdtop.in'
-            self._ignore_charges_completely = True
+            if self._ignore_charges_completely != True:
+                raise Exception('Charges have to be ignored completely when using hybrid single-dual topology.')
         else:
-            self._ignore_charges_completely = False
             self._ligand_tleap_in = 'leap_ligand.in'
             self._complex_tleap_in = 'leap_complex.in'
 

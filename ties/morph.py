@@ -456,10 +456,14 @@ class Morph():
             return
 
         # extract the missing angles/dihedrals
+        missing_bonds = set()
         missing_angles = []
         missing_dihedrals = []
         for line in tleap_process.stdout.splitlines():
-            if "Could not find angle parameter:" in line:
+            if "Could not find bond parameter for:" in line:
+                bond = line.split(':')[-1].strip()
+                missing_bonds.add(bond)
+            elif "Could not find angle parameter:" in line:
                 cols = line.split(':')
                 angle = cols[-1].strip()
                 if angle not in missing_angles:
@@ -479,6 +483,11 @@ class Morph():
             with open(modified_hybrid_frcmod, 'w') as NEW_FRCMOD:
                 for line in frcmod_lines:
                     NEW_FRCMOD.write(line)
+                    if 'BOND' in line:
+                        for bond  in missing_bonds:
+                            dummy_bond = f'{bond:<14}0  180  \t\t# Dummy bond\n'
+                            NEW_FRCMOD.write(dummy_bond)
+                            print(f'Added dummy bond: "{dummy_bond}"')
                     if 'ANGLE' in line:
                         for angle in missing_angles:
                             dummy_angle = f'{angle:<14}0  120.010  \t\t# Dummy angle\n'

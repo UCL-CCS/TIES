@@ -4,8 +4,11 @@ import subprocess
 import shutil
 from pathlib import Path
 
+import numpy as np
+
 from ties.helpers import are_correct_names, load_MDAnalysis_atom_group, rename_ligand
 from ties.config import Config
+from ties.topology_superimposer import element_from_type
 
 
 class Ligand:
@@ -20,7 +23,7 @@ class Ligand:
     ROOT = Path('prep')
     UNIQ_ATOM_NAME_DIR = ROOT / 'unique_atom_names'
     FRCMOD_DIR = ROOT / 'ligand_frcmods'
-    AC_CONVERT = ROOT / 'ac_to_mol2'
+    ACPREP_CONVERT = ROOT / 'acprep_to_mol2'
     MOL2 = ROOT / 'mol2'
 
     _USED_FILENAMES = set()
@@ -58,39 +61,38 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
-        self.convert_ac_to_mol2()
+        self.convert_acprep_to_mol2()
 
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
 
-    def convert_ac_to_mol2(self):
+    def convert_acprep_to_mol2(self):
         """
-        If the file is not a prepi file, this function does not do anything.
-        Otherwise, antechamber is called to conver the .prepi file into a .mol2 file.
-
-        @output_name: 'left' or 'right'
+        If the file is not a prep/ac file, this function does not do anything.
+        Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.
 
         Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
         """
-        if self.current.suffix.lower() is not '.ac':
+
+        if self.current.suffix.lower() not in ('.ac', '.prep'):
             return
 
-        print('Will convert .ac to a .mol2 file')
+        filetype = {'.ac': 'ac', '.prep': 'prepi'}[self.current.suffix.lower()]
 
-        cwd = self.workplace_root / Ligand.AC_CONVERT / self.internal_name
+        cwd = self.workplace_root / Ligand.ACPREP_CONVERT / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
         # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-        print('Antechamber: converting the .ac to .mol2')
+        print(f'Antechamber: converting {filetype} to mol2')
         new_current = cwd / (self.internal_name + '.mol2')
 
         log_filename = cwd / "antechamber_conversion.log"
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([self.config.ambertools_antechamber,
-                                '-i', self.current, '-fi', 'ac',
+                                '-i', self.current, '-fi', filetype,
                                 '-o', new_current, '-fo', 'mol2',
                                 '-dr', self.config.antechamber_dr],
                                stdout=LOG, stderr=LOG,
@@ -257,3 +259,67 @@ class Ligand:
 
         print(f'Parmchk2: created .frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
+
+    def overwrite_coordinates_with(self, file, output_file):
+        """
+        Load coordinates from another file and overwrite the coordinates in the current file.
+        """
+
+        # load the current atoms with MDAnalysis
+        mda_template = load_MDAnalysis_atom_group(self.current)
+
+        # load the file with the coordinates we want to use
+        coords = load_MDAnalysis_atom_group(file)
+
+        # fixme: use the atom names
+        by_atom_name = True
+        by_index = False
+        by_general_atom_type = False
+
+        # mol2_filename will be overwritten!
+        print(f'Writing to {self.current} the coordinates from {file}. ')
+
+        coords_sum = np.sum(coords.atoms.positions)
+
+        if by_atom_name and by_index:
+            raise ValueError('Cannot have both. They are exclusive')
+        elif not by_atom_name and not by_index:
+            raise ValueError('Either option has to be selected.')
+
+        if by_general_atom_type:
+            for mol2_atom in mda_template.atoms:
+                found_match = False
+                for ref_atom in coords.atoms:
+                    if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
+                        found_match = True
+                        mol2_atom.position = ref_atom.position
+                        break
+                assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
+        if by_atom_name:
+            for mol2_atom in mda_template.atoms:
+                found_match = False
+                for ref_atom in coords.atoms:
+                    if mol2_atom.name.upper() == ref_atom.name.upper():
+                        found_match = True
+                        mol2_atom.position = ref_atom.position
+                        break
+                assert found_match, "Could not find the following atom name across the two files: " + mol2_atom.name
+        elif by_index:
+            for mol2_atom, ref_atom in zip(mda_template.atoms, coords.atoms):
+                atype = element_from_type[mol2_atom.type.upper()]
+                reftype = element_from_type[ref_atom.type.upper()]
+                if atype != reftype:
+                    raise Exception(
+                        f"The found general type {atype} does not equal to the reference type {reftype} ")
+
+                mol2_atom.position = ref_atom.position
+
+        if np.testing.assert_almost_equal(coords_sum, np.sum(mda_template.atoms.positions), decimal=2):
+            print('Different positions sums:', coords_sum, np.sum(mda_template.atoms.positions))
+            raise Exception('Copying of the coordinates did not work correctly')
+
+        # save the output file
+        mda_template.atoms.write(output_file)
+
+        print('hi')
+        pass
