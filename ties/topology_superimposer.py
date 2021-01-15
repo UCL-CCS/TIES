@@ -792,43 +792,24 @@ class SuperimposedTopology:
         for no_direction_pair in nondirectionals:
             corrected_pairs = []
             for A1, A2 in self.matched_pairs:
-                # check if it is a combination of CD and CC
+                # check if it is the right combination
                 if not {A1.type, A2.type} == no_direction_pair or (A1, A2) in corrected_pairs:
                     continue
 
-                # check if there is a single neighbour with the opposite combination CC and CD
-                neigh_corresponding_pairs = [(b1, b2) for (b1, b2), (_, _) in self.matched_pairs_bonds[(A1, A2)]
-                              if (b1.type, b2.type) == (A2.type, A1.type)]
-
-                # fixme filter out pairs that 1) were corrected already ?
-
-                if len(neigh_corresponding_pairs) > 1:
-                    raise Exception(f'Error: Problem with the non-directional pair {no_direction_pair} mapping. '
-                                    'There appears to be a double bond twice in a row?. ')
-                elif len(neigh_corresponding_pairs) == 0:
-                    # fixme - smyd3 c01-s01 has this and could be used as a study case to define this behaviour.
-                    print(f'Warning: Found {(A1, A2)} mismatch without a neighbouring corresponding opposite pair.')
-                    continue
-
-                # We found the two pairs, so we can carry out the swap.
-                b1, b2 = neigh_corresponding_pairs[0]
-
-                # ignore if they are already correct
-                if A2.type == A1.type and b2.type == b1.type:
+                # ignore if they are already the same
+                if A2.type == A1.type:
                     continue
 
                 # fixme - temporary solution
                 # fixme - do we want to check if we are in a ring?
                 # for now we are simply rewriting the types here so that it passes the "specific atom type" checks later
                 # ie so that later CC-CC and CD-CD are compared
+                # fixme - check if .type is used when writing the final output.
                 A2.type = A1.type
-                b2.type = b1.type
-                print(f'Arbitrary bond order correction. '
-                      f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}), '
-                      f'Right atom type {b2.type} (in {b2}) overwritten with left atom type {b1.type} (in {b1}).')
+                print(f'Arbitrary atom type correction. '
+                      f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}). ')
 
                 corrected_pairs.append((A1, A2))
-                corrected_pairs.append((b1, b2))
 
         return 0
 
@@ -2559,6 +2540,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # allow to swap cc-cd with cd-cc
     # These two define where the double bond is in a ring
     # GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
+    # Ths GAFF idea should be more tested and the meaning of these atoms investigated further.
     for st in suptops:
         st.match_gaff2_nondirectional_bonds()
 
