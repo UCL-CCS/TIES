@@ -112,4 +112,7 @@ class LigandMap():
         print('LOMAP weights/similarities')
         numpy.set_printoptions(precision=2)
         print(self.map_weights)
-        # recreate the map
+
+        # save the map
+        print('Saving the map as a 2D array')
+        numpy.savetxt(self.ligands[0].workplace_root / 'map_weights.dat', self.map_weights, fmt='%10.5f')
