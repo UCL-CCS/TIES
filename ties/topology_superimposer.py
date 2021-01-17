@@ -1725,27 +1725,41 @@ class SuperimposedTopology:
 
         SuperimposedTopology.validate_charges(self.top1, self.top2)
 
+        # find the integral net charge of the molecule
+        net_charge = round(sum(a.charge for a in self.top1))
+        net_charge_test = round(sum(a.charge for a in self.top2))
+        if net_charge != net_charge_test:
+            raise Exception('The internally computed net charge of the molecules is different for the given')
+        # fixme - use the one passed by the user?
+        print(f'Internally computed net charge: {net_charge}')
+
         # the total charge in the matched region before the changes
         matched_total_charge_l = sum(left.charge for left, right in self.matched_pairs)
         matched_total_charge_r = sum(right.charge for left, right in self.matched_pairs)
 
-        # average charges between matched atoms
-        l_delta_charge_total = 0
-        r_delta_charge_total = 0
-        for left, r in self.matched_pairs:
-            if left.charge != r.charge:
-                avg_charge = (left.charge + r.charge) / 2.0
-                l_delta_charge_total += left.charge - avg_charge
-                r_delta_charge_total += r.charge - avg_charge
-                # this new charge is made to each molecule
-                left.charge = r.charge = avg_charge
-        print(f'Total charge imbalance in L={l_delta_charge_total:.2f} and R={r_delta_charge_total:.2f}')
-
-        # fixme should matched_total_chargeL be l_delta_charge_total?
-
-        # get the unmatched nodes in L and R
+        # get the unmatched atoms in L and R
         l_unmatched = self.get_disappearing_atoms()
         r_unmatched = self.get_appearing_atoms()
+
+        init_q_dis = sum(a.charge for a in l_unmatched)
+        init_q_app = sum(a.charge for a in r_unmatched)
+        print(f'Initial cumulative q app={init_q_app:.6f}, dis={init_q_dis:.6f}')
+
+        # average the charges between matched atoms
+        total_charge_matched = 0
+        for left, right in self.matched_pairs:
+            avg_charge = (left.charge + right.charge) / 2.0
+            # write the new charge
+            left.charge = right.charge = avg_charge
+            total_charge_matched += avg_charge
+        total_partial_charge_matched = total_charge_matched - net_charge
+        print(f'Total partial charge in matched = {total_partial_charge_matched:.6f}')
+
+        # calculate what the correction should be in the alchemical region
+        r_delta_charge_total = - (total_partial_charge_matched + init_q_app)
+        l_delta_charge_total = - (total_partial_charge_matched + init_q_dis)
+        print(f'Total charge imbalance to be distributed in '
+              f'dis={l_delta_charge_total:.6f} and app={r_delta_charge_total:.6f}')
 
         if len(l_unmatched) == 0 and l_delta_charge_total != 0:
             print('----------------------------------------------------------------------------------------------')
@@ -1762,19 +1776,29 @@ class SuperimposedTopology:
         if len(l_unmatched) != 0:
             l_delta_per_atom = float(l_delta_charge_total) / len(l_unmatched)
         else:
+            # fixme - no unmatching atoms, so there should be no charge to redistribute
             l_delta_per_atom = 0
 
         if len(r_unmatched) != 0:
             r_delta_per_atom = float(r_delta_charge_total) / len(r_unmatched)
         else:
             r_delta_per_atom = 0
-        print(f'Charge imbalance per app/dis atom in L={l_delta_per_atom:.2f} and R={r_delta_per_atom:.2f}')
+            # fixme - no matching atoms, so there should be no charge to redistribute
+        print(f'Charge imbalance per atom in dis={l_delta_per_atom:.6f} and app={r_delta_per_atom:.6f}')
 
         # redistribute that delta q over the atoms in the left and right molecule
         for atom in l_unmatched:
             atom.charge += l_delta_per_atom
         for atom in r_unmatched:
             atom.charge += r_delta_per_atom
+
+        # check if the appearing atoms and the disappearing atoms have the same net charge
+        dis_q_sum = sum(a.charge for a in l_unmatched)
+        app_q_sum = sum(a.charge for a in r_unmatched)
+        print(f'Final cumulative q app={app_q_sum:.6f}, dis={dis_q_sum:.6f}')
+        if not np.isclose(dis_q_sum, app_q_sum):
+            print('The partial charges in app/dis region are not equal to each other. ')
+            raise Exception('The alchemical region in app/dis do not have equal partial charges.')
 
         # note that we are really modifying right now the original nodes.
         SuperimposedTopology.validate_charges(self.top1, self.top2)
