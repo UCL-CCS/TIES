@@ -2728,8 +2728,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
-    # fixme - do this an option
-    disjointed_before_net_charge_filter = True
+    # fixme - future option? for now disabled
+    # Smart removal of atoms is now hardcoded to be
+    # disabled until verified to yield good results
+    smart = 0
+    disjointed_before_net_charge_filter = False
+
     if disjointed_before_net_charge_filter:
         # This might in itself help sort out the problem of net charges
         if not disjoint_components:
@@ -2752,7 +2756,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             # fixme this should be function within suptop
             while np.abs(suptop.get_net_charge()) > net_charge_threshold:
 
-                smart = 1
                 if smart:
                     largest_difference = suptop.smart_remove_charge_mismatch()
                 else:
