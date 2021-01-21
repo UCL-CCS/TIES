@@ -915,6 +915,7 @@ class SuperimposedTopology:
         # sort the pairs in order to be removed
         diff_sorted = self.__sort_pairs_for_removal(diff)
 
+        # get the most promising category
         pairs = diff_sorted[0]
         # remove the first pair
         pair_with_hydrogens = pairs[0]
@@ -956,10 +957,14 @@ class SuperimposedTopology:
         app_atoms = self.get_appearing_atoms()
         dis_atoms = self.get_disappearing_atoms()
 
-        for pair in pairs:
+        # we need to find out where is the cutoff here in terms of the sensible values
+        # let's take only the square root of the highest values
+        high_diff_cases = np.sqrt(len(pairs))
+
+        for pair in pairs[:round(high_diff_cases)]:
             # ignore hydrogens on their own
-            if pair[0].element == 'H':
-                continue
+            # if pair[0].element == 'H':
+            #     continue
 
             neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
 
@@ -997,6 +1002,17 @@ class SuperimposedTopology:
             # so these two should be considered as a group, lower priority
             # fixme - could be added
 
+        low_diff_cases = []
+        for pair in pairs[:round(high_diff_cases)]:
+            neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
+            # consider the attached hydrogens
+            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
+            # attach the hydrogens to be removed as well
+            to_remove = [pair]
+            to_remove.extend(hydrogens)
+
+            low_diff_cases.append(to_remove)
+
         combined = []
         if terminal_and_linked_alchemically:
             combined.append(terminal_and_linked_alchemically)
@@ -1006,6 +1022,9 @@ class SuperimposedTopology:
             combined.append(alchemical_linked)
         if leftovers:
             combined.append(leftovers)
+
+        # add the cases with small differences
+        combined.append(low_diff_cases)
 
         return combined
 
