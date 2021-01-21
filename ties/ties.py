@@ -248,7 +248,6 @@ def command_line_script():
     print('Ambertools parmchk2 generating .frcmod for morphs')
     [morph.join_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
                              config.protein_ff, config.ligand_ff) for morph in morphs]
-    #[morph.join_frcmod_files(ambertools_bin, ambertools_script_dir, amber_forcefield, ligand_ff) for morph in morphs]
 
     # decide on which pairs to compare in order to obtain the full ranking
     if len(ligands) == 2:
