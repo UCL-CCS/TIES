@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Exposes a basic terminal interace to TIES 20.
+Exposes a basic terminal interface to TIES 20.
 
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
@@ -119,11 +119,9 @@ def command_line_script():
     # ------------------ Configuration and checks
     config = Config()
     config.workdir = args.tiesdir
-
     # ambertools
     config.ambertools_home = args.ambertools_home
     config.antechamber_dr = args.antechamber_dr
-
     # TIES 20 settings
     # charges
     config.ligand_net_charge = args.ligand_net_charge
@@ -240,7 +238,6 @@ def command_line_script():
         rewrite_mol2_hybrid_top('left.mol2', list(matching_info["single_top_matched"].keys()))
         rewrite_mol2_hybrid_top('right.mol2', list(matching_info["single_top_matched"].values()))
 
-    # generate the frcmod for each ligand
     print('Ambertools parmchk2 generating .frcmod for ligands')
     [lig.generate_frcmod(config.ambertools_parmchk2, config.ligand_ff_name) for lig in ligands]
 
@@ -262,7 +259,6 @@ def command_line_script():
 
     ##########################################################
     # ------------------   Ligand ----------------------------
-
     # fixme - at this point you'd know which pairs to set up
     # fixme - rather than using this, we should be able to have morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
