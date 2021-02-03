@@ -98,6 +98,11 @@ def command_line_script():
     parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
+    parser.add_argument('-md', '--md-engine', metavar='bool', dest='md_engine',
+                        type=str, required=False, default='namd',
+                        help='Generate input files for the selected engine. '
+                             'Use value "no" if you do not want the MD input to be generated. '
+                             'Default is "namd". ')
     # allow to overwrite the coordinates
     parser.add_argument('-crd', '--coordinates', metavar='file', dest='coordinates_file',
                         type=ArgparseChecker.existing_file, required=False,
@@ -105,7 +110,6 @@ def command_line_script():
     parser.add_argument('-o', '--output-file', metavar='str', dest='output_filename',
                         type=str, required=False,
                         help='Where to save the output file. The extension is necessary. ')
-
     # dev tools
     parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
                         type=ArgparseChecker.str2bool, required=False, default=False,
@@ -143,6 +147,7 @@ def command_line_script():
     # ligand_ff_name is also referred to as "atom type", e.g. "gaff"
     config.set_ligand_ff(args.ligand_ff_name)
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
+    config.md_engine = args.md_engine
 
     # TIES
     # create ligands
@@ -276,7 +281,8 @@ def command_line_script():
                        ambertools_tleap=config.ambertools_tleap,
                        namd_prod=config.namd_prod,
                        hybrid_topology=config.use_hybrid_single_dual_top,
-                       vmd_vis_script=config.vmd_vis_script
+                       vmd_vis_script=config.vmd_vis_script,
+                       md_engine=config.md_engine,
                        )
         print(f'Ligand {morph} directory populated successfully')
 
@@ -303,7 +309,8 @@ def command_line_script():
                            ambertools_tleap=config.ambertools_tleap,
                            namd_prod=config.namd_prod,
                            hybrid_topology=config.use_hybrid_single_dual_top,
-                           vmd_vis_script=config.vmd_vis_script
+                           vmd_vis_script=config.vmd_vis_script,
+                           md_engine=config.md_engine,
                            )
 
     # prepare the post-analysis scripts

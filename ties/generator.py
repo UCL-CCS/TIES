@@ -29,7 +29,8 @@ def prepare_inputs(morph,
                    ambertools_tleap=None,
                    namd_prod=None,
                    hybrid_topology=False,
-                   vmd_vis_script=None):
+                   vmd_vis_script=None,
+                   md_engine=False):
 
     cwd = dir_prefix / f'{morph.internal_name}'
     if not cwd.is_dir():
@@ -100,49 +101,50 @@ def prepare_inputs(morph,
     solv_oct_boc = extract_PBC_oct_from_tleap_log(cwd / "leap.log")
 
     # prepare NAMD input files for min+eq+prod
-    init_namd_file_min(namd_script_loc, cwd, "min.namd",
-                       structure_name='sys_solv', pbc_box=solv_oct_boc)
-    eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", cwd)
-    shutil.copy(namd_script_loc / namd_prod, cwd / 'prod.namd')
+    if md_engine in ('NAMD', 'namd'):
+        init_namd_file_min(namd_script_loc, cwd, "min.namd",
+                           structure_name='sys_solv', pbc_box=solv_oct_boc)
+        eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", cwd)
+        shutil.copy(namd_script_loc / namd_prod, cwd / 'prod.namd')
 
-    # generate 4 different constraint .pdb files (it uses B column)
-    constraint_files = create_4_constraint_files(hybrid_solv, cwd)
+        # generate 4 different constraint .pdb files (it uses B column)
+        constraint_files = create_4_constraint_files(hybrid_solv, cwd)
 
-    # Generate the directory structure for all the lambdas, and copy the files
-    for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-        lambda_path = cwd / f'lambda_{lambda_step:.2f}'
-        if not os.path.exists(lambda_path):
-            os.makedirs(lambda_path)
+        # Generate the directory structure for all the lambdas, and copy the files
+        for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
+            lambda_path = cwd / f'lambda_{lambda_step:.2f}'
+            if not os.path.exists(lambda_path):
+                os.makedirs(lambda_path)
 
-        # for each lambda create 5 replicas
-        for replica_no in range(1, 5 + 1):
-            replica_dir = lambda_path / f'rep{replica_no}'
-            if not os.path.exists(replica_dir):
-                os.makedirs(replica_dir)
+            # for each lambda create 5 replicas
+            for replica_no in range(1, 5 + 1):
+                replica_dir = lambda_path / f'rep{replica_no}'
+                if not os.path.exists(replica_dir):
+                    os.makedirs(replica_dir)
 
-            # set the lambda value for the directory,
-            # this file is used by NAMD tcl scripts
-            open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+                # set the lambda value for the directory,
+                # this file is used by NAMD tcl scripts
+                open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
-            # copy the necessary files
-            prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
-            prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
-            # copy ambertools-generated topology
-            prepareFile(os.path.relpath(cwd / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
-            # copy the .pdb files with constraints in the B column
-            for constraint_file in constraint_files:
-                prepareFile(os.path.relpath(constraint_file, replica_dir),
-                            replica_dir / os.path.basename(constraint_file))
+                # copy the necessary files
+                prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
+                prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
+                # copy ambertools-generated topology
+                prepareFile(os.path.relpath(cwd / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
+                # copy the .pdb files with constraints in the B column
+                for constraint_file in constraint_files:
+                    prepareFile(os.path.relpath(constraint_file, replica_dir),
+                                replica_dir / os.path.basename(constraint_file))
 
-            # copy the NAMD protocol files
-            prepareFile(os.path.relpath(cwd / 'min.namd', replica_dir), replica_dir / 'min.namd')
-            [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
-                        for eq in eq_namd_filenames]
-            prepareFile(os.path.relpath(cwd / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
+                # copy the NAMD protocol files
+                prepareFile(os.path.relpath(cwd / 'min.namd', replica_dir), replica_dir / 'min.namd')
+                [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
+                            for eq in eq_namd_filenames]
+                prepareFile(os.path.relpath(cwd / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
 
-            # copy a submit script
-            if submit_script is not None:
-                shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
+                # copy a submit script
+                if submit_script is not None:
+                    shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
 
     # copy the visualisation script as hidden
     shutil.copy(vmd_vis_script, cwd / 'vis.vmd')
