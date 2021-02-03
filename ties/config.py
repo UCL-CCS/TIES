@@ -47,6 +47,7 @@ class Config:
 
         # MD/NAMD production input file
         self._md_engine = 'namd'
+        self._lambda_rep_dir_tree = False
         self._namd_prod = 'prod_2017.namd'  # Berendsen barostat ..
         print(f'The NAMD production file: {self._namd_prod}')
 
@@ -384,6 +385,14 @@ class Config:
             response = ArgparseChecker.str2bool(value)
             print(f'Generating files for an MD engine: {response}')
             self._md_engine = response
+
+    @property
+    def lambda_rep_dir_tree(self):
+        return self._lambda_rep_dir_tree
+
+    @lambda_rep_dir_tree.setter
+    def lambda_rep_dir_tree(self, value):
+        self._lambda_rep_dir_tree = value
 
     # fixme - allow providing another .namd file
     @property

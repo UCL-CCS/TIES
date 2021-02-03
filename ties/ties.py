@@ -103,6 +103,9 @@ def command_line_script():
                         help='Generate input files for the selected engine. '
                              'Use value "no" if you do not want the MD input to be generated. '
                              'Default is "namd". ')
+    parser.add_argument('-dirtree', '--engine-tree', metavar='bool', dest='lambda_rep_dir_tree',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Generate the directory tree structure for each lambda/replica directory. ')
     # allow to overwrite the coordinates
     parser.add_argument('-crd', '--coordinates', metavar='file', dest='coordinates_file',
                         type=ArgparseChecker.existing_file, required=False,
@@ -148,6 +151,7 @@ def command_line_script():
     config.set_ligand_ff(args.ligand_ff_name)
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
     config.md_engine = args.md_engine
+    config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
 
     # TIES
     # create ligands
@@ -283,6 +287,7 @@ def command_line_script():
                        hybrid_topology=config.use_hybrid_single_dual_top,
                        vmd_vis_script=config.vmd_vis_script,
                        md_engine=config.md_engine,
+                       lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
         print(f'Ligand {morph} directory populated successfully')
 
@@ -311,6 +316,7 @@ def command_line_script():
                            hybrid_topology=config.use_hybrid_single_dual_top,
                            vmd_vis_script=config.vmd_vis_script,
                            md_engine=config.md_engine,
+                           lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                            )
 
     # prepare the post-analysis scripts
