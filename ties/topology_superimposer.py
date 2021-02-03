@@ -3205,8 +3205,11 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         # generate each to each nodes
         if starting_pairs_heuristics:
             starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes)
+            print('Using heuristics to select the initial pairs for searching the maximum overlap.'
+                  'Could produce non-optimal results.')
         else:
             starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
+            print('Checking all possible initial pairs to find the optimal MCS. ')
 
     for node1, node2 in starting_node_pairs:
         # fixme - optimisation - reduce the number of starting nX and nY pairs
