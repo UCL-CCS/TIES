@@ -59,11 +59,11 @@ def prepare_inputs(morph,
     # set the number of ions manually
     assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
     if Na_num == 0:
-        tleap_Na_ions = ''
+        tleap_Na_ions = '# no Na+ added'
     elif Na_num > 0:
         tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
     if Cl_num == 0:
-        tleap_Cl_ions = ''
+        tleap_Cl_ions = '# no Cl- added'
     elif Cl_num > 0:
         tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 

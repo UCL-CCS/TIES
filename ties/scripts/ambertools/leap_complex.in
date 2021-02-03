@@ -14,7 +14,7 @@ sys = Combine {{lig protein}}
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
 solvateoct sys TIP3PBOX 14
-# fixme - this should be handled appropriately, ie the software won't understand dual topologies
+# generating charges manually:
 {NaIons}
 {ClIons}
 savepdb sys sys_solv.pdb
