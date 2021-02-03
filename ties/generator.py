@@ -58,7 +58,6 @@ def prepare_inputs(morph,
     # copy the protein tleap input file (ambertools)
     # set the number of ions manually
     assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
-    leap_in_conf = open(ambertools_script_dir / tleap_in).read()
     if Na_num == 0:
         tleap_Na_ions = ''
     elif Na_num > 0:
@@ -68,6 +67,7 @@ def prepare_inputs(morph,
     elif Cl_num > 0:
         tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 
+    leap_in_conf = open(ambertools_script_dir / tleap_in).read()
     open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
                                                               ligand_ff=ligand_ff,
                                                               NaIons=tleap_Na_ions,
