@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Exposes a basic terminal interace to TIES 20.
+Exposes a basic terminal interface to TIES 20.
 
 Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
 """
@@ -98,6 +98,14 @@ def command_line_script():
     parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
                         type=str, required=False, default='prod.namd',
                         help='This is a temporary solution. The name of the file to be used for the production. ')
+    parser.add_argument('-md', '--md-engine', metavar='bool', dest='md_engine',
+                        type=str, required=False, default='namd',
+                        help='Generate input files for the selected engine. '
+                             'Use value "no" if you do not want the MD input to be generated. '
+                             'Default is "namd". ')
+    parser.add_argument('-dirtree', '--engine-tree', metavar='bool', dest='lambda_rep_dir_tree',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Generate the directory tree structure for each lambda/replica directory. ')
     # allow to overwrite the coordinates
     parser.add_argument('-crd', '--coordinates', metavar='file', dest='coordinates_file',
                         type=ArgparseChecker.existing_file, required=False,
@@ -105,7 +113,6 @@ def command_line_script():
     parser.add_argument('-o', '--output-file', metavar='str', dest='output_filename',
                         type=str, required=False,
                         help='Where to save the output file. The extension is necessary. ')
-
     # dev tools
     parser.add_argument('-noq', '--ignore-charges', metavar='boolean', dest='ignore_charges_completely',
                         type=ArgparseChecker.str2bool, required=False, default=False,
@@ -119,11 +126,9 @@ def command_line_script():
     # ------------------ Configuration and checks
     config = Config()
     config.workdir = args.tiesdir
-
     # ambertools
     config.ambertools_home = args.ambertools_home
     config.antechamber_dr = args.antechamber_dr
-
     # TIES 20 settings
     # charges
     config.ligand_net_charge = args.ligand_net_charge
@@ -145,6 +150,8 @@ def command_line_script():
     # ligand_ff_name is also referred to as "atom type", e.g. "gaff"
     config.set_ligand_ff(args.ligand_ff_name)
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
+    config.md_engine = args.md_engine
+    config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
 
     # TIES
     # create ligands
@@ -240,7 +247,6 @@ def command_line_script():
         rewrite_mol2_hybrid_top('left.mol2', list(matching_info["single_top_matched"].keys()))
         rewrite_mol2_hybrid_top('right.mol2', list(matching_info["single_top_matched"].values()))
 
-    # generate the frcmod for each ligand
     print('Ambertools parmchk2 generating .frcmod for ligands')
     [lig.generate_frcmod(config.ambertools_parmchk2, config.ligand_ff_name) for lig in ligands]
 
@@ -248,7 +254,6 @@ def command_line_script():
     print('Ambertools parmchk2 generating .frcmod for morphs')
     [morph.join_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
                              config.protein_ff, config.ligand_ff) for morph in morphs]
-    #[morph.join_frcmod_files(ambertools_bin, ambertools_script_dir, amber_forcefield, ligand_ff) for morph in morphs]
 
     # decide on which pairs to compare in order to obtain the full ranking
     if len(ligands) == 2:
@@ -263,7 +268,6 @@ def command_line_script():
 
     ##########################################################
     # ------------------   Ligand ----------------------------
-
     # fixme - at this point you'd know which pairs to set up
     # fixme - rather than using this, we should be able to have morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
@@ -281,7 +285,9 @@ def command_line_script():
                        ambertools_tleap=config.ambertools_tleap,
                        namd_prod=config.namd_prod,
                        hybrid_topology=config.use_hybrid_single_dual_top,
-                       vmd_vis_script=config.vmd_vis_script
+                       vmd_vis_script=config.vmd_vis_script,
+                       md_engine=config.md_engine,
+                       lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
         print(f'Ligand {morph} directory populated successfully')
 
@@ -308,7 +314,9 @@ def command_line_script():
                            ambertools_tleap=config.ambertools_tleap,
                            namd_prod=config.namd_prod,
                            hybrid_topology=config.use_hybrid_single_dual_top,
-                           vmd_vis_script=config.vmd_vis_script
+                           vmd_vis_script=config.vmd_vis_script,
+                           md_engine=config.md_engine,
+                           lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                            )
 
     # prepare the post-analysis scripts

@@ -860,13 +860,23 @@ class SuperimposedTopology:
         Calculate the net charge difference across
         the matched pairs.
         """
-        return sum(n1.charge - n2.charge for n1, n2 in self.matched_pairs)
+        net_charge = sum(n1.charge - n2.charge for n1, n2 in self.matched_pairs)
+        assert abs(net_charge) < 1
+        return net_charge
 
     def get_worst_match_charge(self):
         """
         Returns the largest difference in charge found in the pairs.
         """
         return max(np.abs(n1.charge - n2.charge) for n1, n2 in self.matched_pairs)
+
+    def get_matched_with_diff_q(self):
+        """
+        Returns a list of matched atom pairs that have a different q,
+        sorted in the descending order (the first pair has the largest q diff).
+        """
+        diff_q = [(n1, n2) for n1, n2 in self.matched_pairs if np.abs(n1.charge - n2.charge) > 0]
+        return sorted(diff_q, key=lambda p: abs(p[0].charge - p[1].charge), reverse=True)
 
     def remove_worst_charge_match(self):
         """
@@ -885,6 +895,138 @@ class SuperimposedTopology:
         # add to the list of removed because of the net charge
         self._removed_due_to_net_charge.append([worst_match, largest_difference])
         return np.abs(largest_difference)
+
+    def smart_remove_charge_mismatch(self):
+        """
+        A smart version of "remove_worst_charge_match" function.
+
+        The appearing and disappearing alchemical region have their
+        cumulative q different by more than the netq (0.1 typically).
+        Find the next pair with q imbalance that contributes to it.
+        Instead of using the greedy strategy:
+          - avoid bottleneck atoms (if they remove other atoms in a cascading effect)
+          - use atoms that are close to the already mutating site
+        """
+        # get pairs with different charges
+        diff = self.get_matched_with_diff_q()
+        if diff == 0:
+            return 0
+
+        # sort the pairs in order to be removed
+        diff_sorted = self.__sort_pairs_for_removal(diff)
+
+        # get the most promising category
+        pairs = diff_sorted[0]
+        # remove the first pair
+        pair_with_hydrogens = pairs[0]
+
+        total_diff = 0
+        for pair in pair_with_hydrogens:
+            self.remove_node_pair(pair)
+            diff = abs(pair[0].charge - pair[1].charge)
+            # add to the list of removed because of the net charge
+            self._removed_due_to_net_charge.append([pair, diff])
+            total_diff += diff
+        return np.abs(total_diff)
+
+    def __sort_pairs_for_removal(self, pairs):
+        """
+        This is a helper function which sorts
+        matched pairs with different charges while
+        taking into account that some the removal of
+        some pairs will cascade and lead to the
+        removal of even more atoms.
+        """
+
+        print('Finding the best atoms to remove to meet the net charge rule. ')
+        print('Please remember to apply the disjointed rule before net charges, '
+              'because hydrogens on their own are ignored here. ')
+
+        # terminal pairs, defined as having only 1 heavy atom link
+        # for example, H atoms,
+        # or methyl group (hydrogens are ignored when checking heavy atoms)
+        terminal_pairs = []
+
+        # pairs that are linked to the alchemical region
+        # but that might be also linked to matched atoms
+        alchemical_linked = []
+
+        terminal_and_linked_alchemically = []
+        leftovers = []
+
+        app_atoms = self.get_appearing_atoms()
+        dis_atoms = self.get_disappearing_atoms()
+
+        # we need to find out where is the cutoff here in terms of the sensible values
+        # let's take only the square root of the highest values
+        high_diff_cases = np.sqrt(len(pairs))
+
+        for pair in pairs[:round(high_diff_cases)]:
+            # ignore hydrogens on their own
+            # if pair[0].element == 'H':
+            #     continue
+
+            neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
+
+            # ignore hydrogens in these connections (non-consequential),
+            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
+            heavy = [(a, b) for a, b in neighbours if a.element != 'H']
+
+            # check if the current pair is linked to the alchemical region
+            linked_to_alchemical = False
+            for A, bond in pair[0].bonds:
+                if A in dis_atoms:
+                    linked_to_alchemical = True
+            for B, bond in pair[1].bonds:
+                if B in app_atoms:
+                    linked_to_alchemical = True
+
+            # attach the hydrogens to be removed as well
+            to_remove = [pair]
+            to_remove.extend(hydrogens)
+
+            if len(heavy) == 1 and linked_to_alchemical:
+                terminal_and_linked_alchemically.append(to_remove)
+            elif len(heavy) == 1:
+                terminal_pairs.append(to_remove)
+            elif linked_to_alchemical:
+                alchemical_linked.append(to_remove)
+            else:
+                leftovers.append(to_remove)
+
+            # e.g. ring, it might be linked to two atoms,
+            # this could be fine, particularly if it is linked directly to the alchemical size
+            # fixme? this part however could create strains in the bonds if it is a ring
+            # 2 bonds and more that are not connected to alchemical region
+            # however, they are connected via 1 atom to the alchemical region
+            # so these two should be considered as a group, lower priority
+            # fixme - could be added
+
+        low_diff_cases = []
+        for pair in pairs[:round(high_diff_cases)]:
+            neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
+            # consider the attached hydrogens
+            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
+            # attach the hydrogens to be removed as well
+            to_remove = [pair]
+            to_remove.extend(hydrogens)
+
+            low_diff_cases.append(to_remove)
+
+        combined = []
+        if terminal_and_linked_alchemically:
+            combined.append(terminal_and_linked_alchemically)
+        if terminal_pairs:
+            combined.append(terminal_pairs)
+        if alchemical_linked:
+            combined.append(alchemical_linked)
+        if leftovers:
+            combined.append(leftovers)
+
+        # add the cases with small differences
+        combined.append(low_diff_cases)
+
+        return combined
 
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2
@@ -2605,16 +2747,41 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
+    # fixme - future option? for now disabled
+    # Smart removal of atoms is now hardcoded to be
+    # disabled until verified to yield good results
+    smart = 0
+    disjointed_before_net_charge_filter = False
+
+    if disjointed_before_net_charge_filter:
+        # This might in itself help sort out the problem of net charges
+        if not disjoint_components:
+            print(f'Checking for disjoint components in the {len(suptops)} suptops')
+            # ensure that each suptop represents one CC
+            # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
+            # fixme - add the log about which atoms are removed?
+            [st.largest_cc_survives() for st in suptops]
+
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.
         # This is because we are only keeping one suptop right now.
         # However, if disjointed components are allowed, these number might change.
         # ensure that each found component has net charge < 0.1
+        # Furthermore, disjointed components has not yet been applied,
+        # even though it might have an effect, fixme - should disjointed be applied first?
+        # to account for this implement #251
         print(f'Accounting for net charge limit of {net_charge_threshold:.3f}')
         for suptop in suptops[::-1]:
             # fixme this should be function within suptop
             while np.abs(suptop.get_net_charge()) > net_charge_threshold:
-                largest_difference = suptop.remove_worst_charge_match()
+
+                if smart:
+                    largest_difference = suptop.smart_remove_charge_mismatch()
+                else:
+                    # use the naive removal of the atoms that have the highest charge diff
+                    # (but lower than a pair diff).
+                    largest_difference = suptop.remove_worst_charge_match()
+
                 if largest_difference == 0:
                     raise Exception("How can there be net charge but no pair can be found that actually is different?")
 
@@ -3038,8 +3205,11 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         # generate each to each nodes
         if starting_pairs_heuristics:
             starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes)
+            print('Using heuristics to select the initial pairs for searching the maximum overlap.'
+                  'Could produce non-optimal results.')
         else:
             starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
+            print('Checking all possible initial pairs to find the optimal MCS. ')
 
     for node1, node2 in starting_node_pairs:
         # fixme - optimisation - reduce the number of starting nX and nY pairs

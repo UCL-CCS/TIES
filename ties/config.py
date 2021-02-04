@@ -4,7 +4,7 @@ import pathlib
 import csv
 
 import MDAnalysis
-from ties.helpers import load_MDAnalysis_atom_group
+from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
 
 class Config:
 
@@ -45,7 +45,9 @@ class Config:
         self._ligand_ff = 'leaprc.gaff'
         self._ligand_ff_name = 'gaff'
 
-        # NAMD production input file
+        # MD/NAMD production input file
+        self._md_engine = 'namd'
+        self._lambda_rep_dir_tree = False
         self._namd_prod = 'prod_2017.namd'  # Berendsen barostat ..
         print(f'The NAMD production file: {self._namd_prod}')
 
@@ -366,6 +368,31 @@ class Config:
     def protein_ff(self, ff):
         self._protein_ff = ff
         print(f'Protein force field name: {self._protein_ff}')
+
+    @property
+    def md_engine(self):
+        return self._md_engine
+
+    @md_engine.setter
+    def md_engine(self, value):
+        if type(value) == str and value.lower() == 'namd':
+            self._md_engine = value
+            print(f'MD Engine: {value}')
+        else:
+            print('MD engine is not NAMD (the only working engine now). '
+                  'Checking for a bool value in the response. ')
+            # check if it is a bool value
+            response = ArgparseChecker.str2bool(value)
+            print(f'Generating files for an MD engine: {response}')
+            self._md_engine = response
+
+    @property
+    def lambda_rep_dir_tree(self):
+        return self._lambda_rep_dir_tree
+
+    @lambda_rep_dir_tree.setter
+    def lambda_rep_dir_tree(self, value):
+        self._lambda_rep_dir_tree = value
 
     # fixme - allow providing another .namd file
     @property
