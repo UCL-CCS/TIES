@@ -107,10 +107,22 @@ def prepare_inputs(morph,
 
     # prepare NAMD input files for min+eq+prod
     if md_engine in ('NAMD', 'namd'):
-        init_namd_file_min(namd_script_loc, cwd, "min.namd",
-                           structure_name='sys_solv', pbc_box=solv_oct_boc)
-        eq_namd_filenames = generate_namd_eq(namd_script_loc / "eq.namd", cwd)
-        shutil.copy(namd_script_loc / namd_prod, cwd / 'prod.namd')
+        min_script = "min.namd"
+        eq_script = "eq.namd"
+        prod_script = "prod.namd"
+
+    elif md_engine in ('NAMD3', 'namd3'):
+        min_script = "min3.namd"
+        eq_script = "eq3.namd"
+        prod_script = "prod3.namd"
+
+    else:
+        raise ValueError('Unknown engine {}'.format(md_engine))
+
+    init_namd_file_min(namd_script_loc, cwd, min_script,
+                       structure_name='sys_solv', pbc_box=solv_oct_boc)
+    eq_namd_filenames = generate_namd_eq(namd_script_loc / eq_script, cwd)
+    shutil.copy(namd_script_loc / namd_prod, cwd / prod_script)
 
     # generate 4 different constraint .pdb files (it uses B column)
     constraint_files = create_4_constraint_files(hybrid_solv, cwd)
@@ -142,12 +154,11 @@ def prepare_inputs(morph,
                     prepareFile(os.path.relpath(constraint_file, replica_dir),
                                 replica_dir / os.path.basename(constraint_file))
 
-                # copy the NAMD protocol files
-                if md_engine in ('NAMD', 'namd'):
-                    prepareFile(os.path.relpath(cwd / 'min.namd', replica_dir), replica_dir / 'min.namd')
-                    [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
-                                for eq in eq_namd_filenames]
-                    prepareFile(os.path.relpath(cwd / 'prod.namd', replica_dir), replica_dir / 'prod.namd')
+                # copy the protocol specific files
+                prepareFile(os.path.relpath(cwd / min_script, replica_dir), replica_dir / min_script)
+                [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
+                            for eq in eq_namd_filenames]
+                prepareFile(os.path.relpath(cwd / prod_script, replica_dir), replica_dir / prod_script)
 
                 # copy a submit script
                 if submit_script is not None:

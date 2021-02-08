@@ -377,7 +377,8 @@ class Config:
     def md_engine(self, value):
         if type(value) == str and value.lower() == 'namd':
             self._md_engine = value
-            print(f'MD Engine: {value}')
+        elif type(value) == str and value.lower() == 'namd3':
+            self._md_engine = value
         else:
             print('MD engine is not NAMD (the only working engine now). '
                   'Checking for a bool value in the response. ')
@@ -385,6 +386,7 @@ class Config:
             response = ArgparseChecker.str2bool(value)
             print(f'Generating files for an MD engine: {response}')
             self._md_engine = response
+        print(f'MD Engine: {value}')
 
     @property
     def lambda_rep_dir_tree(self):
