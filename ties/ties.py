@@ -292,8 +292,8 @@ def command_line_script():
 
     ##########################################################
     # ------------------ Complex  ----------------------------
-    # calculate the charges of the protein (using ambertools)
     if config.protein is not None:
+        # calculate the charges of the protein (using ambertools)
         protein_net_charge = get_protein_net_charge(config.workdir, config.protein.absolute(),
                                config.ambertools_tleap, config.tleap_check_protein,
                                config.protein_ff)

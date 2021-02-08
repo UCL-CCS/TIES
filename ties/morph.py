@@ -260,7 +260,7 @@ class Morph():
                 """
                 # write all the atoms if they are matched, that's the common part
                 REMAINS = 0
-                if self.suptop.contains_left_atom_name(atom.name):
+                if self.suptop.contains_left_atom_name(atom.name.upper()):
                     line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                            f"{atom.resid:>4d}    " \
                            f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
@@ -280,7 +280,7 @@ class Morph():
             # add atoms from the right topology,
             # which are going to be created
             for atom in self.mda_l2.atoms:
-                if not self.suptop.contains_right_atom_name(atom.name):
+                if not self.suptop.contains_right_atom_name(atom.name.upper()):
                     APPEARING_ATOM = 1.0
                     line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
                            f"{atom.resid:>4d}    " \
