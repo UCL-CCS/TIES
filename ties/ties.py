@@ -237,8 +237,8 @@ def command_line_script():
                          )
 
         # save meta data
-        morph.write_superimposition_json()
-        morph.write_morph_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
+        morph.write_summary_json()
+        morph.write_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
         morph.write_hybrid_mol2()
     print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
@@ -255,7 +255,7 @@ def command_line_script():
     [morph.join_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
                              config.protein_ff, config.ligand_ff) for morph in morphs]
 
-    # decide on which pairs to compare in order to obtain the full ranking
+    # transformation hunter
     if len(ligands) == 2:
         selected_morphs = morphs
     else:
@@ -268,8 +268,7 @@ def command_line_script():
 
     ##########################################################
     # ------------------   Ligand ----------------------------
-    # fixme - at this point you'd know which pairs to set up
-    # fixme - rather than using this, we should be able to have morph.prepare_inputs instead.
+    # fixme - switch to morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
     for morph in selected_morphs:
         prepare_inputs(morph,

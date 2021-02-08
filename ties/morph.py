@@ -195,7 +195,7 @@ class Morph():
 
         return [list(json.load(matching_json.open())['matched'].items())[0]]
 
-    def write_superimposition_json(self):
+    def write_summary_json(self):
         """
         Writes a simple .json file with a summary of which atoms are classified as appearing, disappearing.
         """
@@ -221,7 +221,7 @@ class Morph():
 
         self.summary = summary
 
-    def write_morph_pdb(self, hybrid_single_dual_top):
+    def write_pdb(self, hybrid_single_dual_top):
         morph_pdb_path = self.workplace_root / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
 
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):

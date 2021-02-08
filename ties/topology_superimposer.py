@@ -2635,19 +2635,10 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            check_atom_names_unique=True,
                            starting_pairs_heuristics=True):
     """
-    A helper function that manages the entire process.
+    The main function that manages the entire process.
 
     TODO:
     - check if each molecule topology is connected
-    - run the superimpose while ignoring the charges
-    - run the superimpose with charges
-    - check if any charges components are subcomponent of a larger charge-ignoring component,
-    this would be useful with solving some dilemmas, assign them to each other
-
-    Other to think about:
-    - what would happen if you have mutation that separates the molecule? what happens when you multiple of them?
-    how do you match them together?
-
     """
 
     if not ignore_charges_completely:
@@ -2658,12 +2649,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
         assert len(same_atom_names) == 0, \
             f"The molecules have the same atom names. This is not allowed. They are: {same_atom_names}"
-
-    # align the 3D coordinates before applying further changes
-    # todo
-    # if align_molecules:
-    #     take_largest = lambda x, y: x if len(x) > len(y) else y
-    #     reduce(take_largest, suptops).alignLigandsUsingMatched()
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligand_l_mda, ligand_r_mda,
@@ -2682,12 +2667,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # ignore bond types
     # they are ignored when creating the run file with tleap anyway
     for st in suptops:
-        # fixme - do proper
+        # fixme - transition to config
         st.ignore_bond_types = ignore_bond_types
 
     # link the suptops to their original molecule data
     for suptop in suptops:
-        # fixme this should have been done in the constructor?
+        # fixme - transition to config
         suptop.set_tops(top1_nodes, top2_nodes)
         suptop.set_MDAnalysis_universes(ligand_l_mda, ligand_r_mda)
 
@@ -2703,25 +2688,25 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
 
-    # allow to swap cc-cd with cd-cc
-    # These two define where the double bond is in a ring
-    # GAFF decides on which one is cc or cd depending on the atom order (arbitrary choice)
-    # Ths GAFF idea should be more tested and the meaning of these atoms investigated further.
+    # introduce exceptions to the atom type types so that certain
+    # different atom types are seen as the same
+    # ie allow to swap cc-cd with cd-cc (and other pairs)
     for st in suptops:
         st.match_gaff2_nondirectional_bonds()
 
-    # ensure the actual atom types is correct (general atom type can be used to match atoms)
-    # fixme - this is going to be another stage
+    # remove matched atom pairs that have a different specific atom type
     if not use_only_element:
         for st in suptops:
+            # fixme - rename
             st.matched_atom_types_are_the_same()
 
-    # todo - ensure that the bonds are used correctly. If the bonds disagree, but atom types are the same,
-    # remove both bonded pairs
+    # ensure that the bonds are used correctly.
+    # If the bonds disagree, but atom types are the same, remove both bonded pairs
     # we cannot have A-B where the bonds are different. In this case, we have A-B=C and A=B-C in a ring,
     # we could in theory remove A,B,C which makes sense as these will show slightly different behaviour,
     # and this we we avoid tensions in the bonds, and represent both
     # fixme - apparently we are not relaying on these?
+    # turned off as this is reflected in the atom type
     if not ignore_bond_types and False:
         for st in suptops:
             removed = st.removeMatchedPairsWithDifferentBonds()
@@ -3212,11 +3197,6 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
             print('Checking all possible initial pairs to find the optimal MCS. ')
 
     for node1, node2 in starting_node_pairs:
-        # fixme - optimisation - reduce the number of starting nX and nY pairs
-
-        # if node1.get_id() != 10 or node2.get_id() != 25:
-        #     continue
-
         # with the given starting two nodes, generate the maximum common component
         suptop = SuperimposedTopology(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes)
         # fixme turn into a property
