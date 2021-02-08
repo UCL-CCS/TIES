@@ -37,6 +37,10 @@ def prepare_inputs(morph,
     if not cwd.is_dir():
         cwd.mkdir(parents=True, exist_ok=True)
 
+    # Agastya: simple format for appearing, disappearing atoms
+    open(cwd / 'disappearing_atoms.txt', 'w').write(' '.join([a.name for a in morph.suptop.get_disappearing_atoms()]))
+    open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in morph.suptop.get_appearing_atoms()]))
+
     # copy the protein complex .pdb
     if protein is not None:
         shutil.copy(protein, cwd / 'protein.pdb')
