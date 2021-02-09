@@ -408,7 +408,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
 
     u = load_mda_u(source_pdb_filename)
-    if 'mer' not in u.atoms.resnames:
+    if 'HYB' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
