@@ -6,6 +6,7 @@ Load two ligands, run the topology superimposer, and then using the results, gen
 """
 import time
 import itertools
+import glob
 
 from ties.generator import *
 from ties.helpers import *
@@ -152,6 +153,7 @@ def command_line_script():
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
     config.md_engine = args.md_engine
     config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
+    config.namd_prod = args.namd_prod
 
     # TIES
     # create ligands
@@ -271,6 +273,9 @@ def command_line_script():
     # fixme - switch to morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
     for morph in selected_morphs:
+        ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
+        if not os.path.exists(config.workdir / ligand_name):
+            os.makedirs(config.workdir / ligand_name)
         prepare_inputs(morph,
                        config.workdir / 'lig',
                        protein=None,
@@ -289,6 +294,10 @@ def command_line_script():
                        lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
         print(f'Ligand {morph} directory populated successfully')
+        shutil.move(config.workdir / 'lig' / morph.internal_name,
+                    config.workdir / ligand_name / 'lig')
+        os.rmdir(config.workdir / 'lig')
+
 
     ##########################################################
     # ------------------ Complex  ----------------------------
@@ -300,6 +309,9 @@ def command_line_script():
         print(f'Protein net charge: {protein_net_charge}')
 
         for morph in selected_morphs:
+            ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
+            if not os.path.exists(config.workdir / ligand_name):
+                os.makedirs(config.workdir / ligand_name)
             prepare_inputs(morph,
                            config.workdir / 'complex',
                            protein=config.protein,
@@ -317,6 +329,9 @@ def command_line_script():
                            md_engine=config.md_engine,
                            lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                            )
+            shutil.move(config.workdir / 'complex' / morph.internal_name,
+                        config.workdir / ligand_name / 'com')
+            os.rmdir(config.workdir / 'complex')
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)

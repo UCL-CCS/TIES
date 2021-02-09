@@ -396,11 +396,13 @@ class Config:
     def lambda_rep_dir_tree(self, value):
         self._lambda_rep_dir_tree = value
 
-    # fixme - allow providing another .namd file
     @property
     def namd_prod(self):
-        # fixme - add user support
         return self._namd_prod
+
+    @namd_prod.setter
+    def namd_prod(self, value):
+        self._namd_prod = value
 
     @property
     def ligand_ff(self):

@@ -119,18 +119,43 @@ def prepare_inputs(morph,
     else:
         raise ValueError('Unknown engine {}'.format(md_engine))
 
-    init_namd_file_min(namd_script_loc, cwd, min_script,
-                       structure_name='sys_solv', pbc_box=solv_oct_boc)
-    eq_namd_filenames = generate_namd_eq(namd_script_loc / eq_script, cwd)
-    shutil.copy(namd_script_loc / namd_prod, cwd / prod_script)
+    #Make build and replica_conf dirs
+    # replica_conf contains NAMD scripts
+    if not os.path.exists(cwd / 'replica_conf'):
+        os.makedirs(cwd / 'replica_conf')
+    else:
+        shutil.rmtree(cwd / 'replica_conf')
+        os.makedirs(cwd / 'replica_conf')
+    # build contains all input ie. positions, parameters and constraints
+    if not os.path.exists(cwd / 'build'):
+        os.makedirs(cwd / 'build')
+    else:
+        shutil.rmtree(cwd / 'build')
+        os.makedirs(cwd / 'build')
 
-    # generate 4 different constraint .pdb files (it uses B column)
-    constraint_files = create_4_constraint_files(hybrid_solv, cwd)
+    #populate the replica_conf dir with scripts
+    #minimization scripts
+    init_namd_file_min(namd_script_loc, cwd / 'replica_conf', min_script,
+                       structure_name='sys_solv', pbc_box=solv_oct_boc)
+    #equilibriation scripts, note eq_namd_filenames unused
+    eq_namd_filenames = generate_namd_eq(namd_script_loc / eq_script, cwd/ 'replica_conf')
+    #production script
+    shutil.copy(namd_script_loc / namd_prod, cwd / 'replica_conf' / prod_script)
+
+    # populate the build dir with positions, parameters and constraints
+    # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
+    constraint_files = create_4_constraint_files(hybrid_solv, cwd / 'build')
+    #pdb, positions
+    shutil.move(hybrid_solv, cwd / 'build')
+    #pdb.fep, alchemical atoms
+    shutil.move(complex_solvated_fep, cwd / 'build')
+    #prmtop, topology
+    shutil.move(cwd / "sys_solv.top", cwd / 'build')
 
     # Generate the directory structure for all the lambdas, and copy the files
     if lambda_rep_dir_tree:
         for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-            lambda_path = cwd / f'lambda_{lambda_step:.2f}'
+            lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
             if not os.path.exists(lambda_path):
                 os.makedirs(lambda_path)
 
@@ -144,21 +169,12 @@ def prepare_inputs(morph,
                 # this file is used by NAMD tcl scripts
                 open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
-                # copy the necessary files
-                prepareFile(os.path.relpath(hybrid_solv, replica_dir), replica_dir / 'sys_solv.pdb')
-                prepareFile(os.path.relpath(complex_solvated_fep, replica_dir), replica_dir / 'sys_solv_fep.pdb')
-                # copy ambertools-generated topology
-                prepareFile(os.path.relpath(cwd / "sys_solv.top", replica_dir), replica_dir / "sys_solv.top")
-                # copy the .pdb files with constraints in the B column
-                for constraint_file in constraint_files:
-                    prepareFile(os.path.relpath(constraint_file, replica_dir),
-                                replica_dir / os.path.basename(constraint_file))
+                #create output dirs equilibriation and simulation
+                if not os.path.exists(replica_dir / 'equilibration'):
+                    os.makedirs(replica_dir / 'equilibration')
 
-                # copy the protocol specific files
-                prepareFile(os.path.relpath(cwd / min_script, replica_dir), replica_dir / min_script)
-                [prepareFile(os.path.relpath(eq, replica_dir), replica_dir / os.path.basename(eq))
-                            for eq in eq_namd_filenames]
-                prepareFile(os.path.relpath(cwd / prod_script, replica_dir), replica_dir / prod_script)
+                if not os.path.exists(replica_dir / 'simulation'):
+                    os.makedirs(replica_dir / 'simulation')
 
                 # copy a submit script
                 if submit_script is not None:
