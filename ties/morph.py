@@ -304,7 +304,7 @@ class Morph():
 
             FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
             # name of the molecule
-            FOUT.write('merged ' + os.linesep)
+            FOUT.write('HYB ' + os.linesep)
             # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
             # fixme this is tricky
             FOUT.write(f'{self.suptop.get_unique_atom_count():d} '
@@ -346,22 +346,11 @@ class Morph():
             # reorder the list according to the ID
             all_atoms.sort(key=lambda atom: self.suptop.get_generated_atom_id(atom))
 
+            resname = 'HYB'
             for atom in all_atoms:
                 FOUT.write(f'{self.suptop.get_generated_atom_id(atom)} {atom.name} '
                            f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
-                           f'{atom.type.lower()} {subst_id} {atom.resname} {atom.charge:.6f} {os.linesep}')
-
-            # for left_atom, _ in suptop.matched_pairs:
-            #     # note that the atom id is the most important
-            #     FOUT.write(f'{suptop.get_generated_atom_ID(left_atom)} {left_atom.atomName} '
-            #                f'{left_atom.position[0]:.4f} {left_atom.position[1]:.4f} {left_atom.position[2]:.4f} '
-            #                f'{left_atom.type} {subst_id} {left_atom.resname} {left_atom.charge} {os.linesep}')
-
-            # write the IDs for the atoms which are appearing/disappearing
-            # for unmatched in suptop.get_unmatched_atoms():
-            #     FOUT.write(f'{suptop.get_generated_atom_ID(unmatched)} {unmatched.atomName} '
-            #                f'{unmatched.position[0]:.4f} {unmatched.position[1]:.4f} {unmatched.position[2]:.4f} '
-            #                f'{unmatched.type} {subst_id} {unmatched.resname} {unmatched.charge} {os.linesep}')
+                           f'{atom.type.lower()} {subst_id} {resname} {atom.charge:.6f} {os.linesep}')
 
             FOUT.write(os.linesep)
 
