@@ -66,7 +66,7 @@ class Config:
     def workdir(self, cwd):
         if cwd is not None:
             # user provided
-            self._workdir = cwd
+            self._workdir = cwd.absolute()
         else:
             # current directory
             self._workdir = pathlib.Path(os.getcwd()) / 'ties20'
