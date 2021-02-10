@@ -421,7 +421,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'mer':
+        if atom.resname != 'HYB':
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
