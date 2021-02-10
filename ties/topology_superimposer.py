@@ -182,22 +182,28 @@ class AtomPair:
     """
 
     def __init__(self, left_node, right_node):
-        self.left_node = left_node
-        self.right_node = right_node
+        self.left_atom = left_node
+        self.right_atom = right_node
         # generate the hash value for this match
         self.hash_value = self._gen_hash()
 
     def _gen_hash(self):
         m = hashlib.md5()
-        m.update(str(hash(self.left_node)).encode('utf-8'))
-        m.update(str(hash(self.right_node)).encode('utf-8'))
+        m.update(str(hash(self.left_atom)).encode('utf-8'))
+        m.update(str(hash(self.right_atom)).encode('utf-8'))
         return int(m.hexdigest(), 16)
 
     def __hash__(self):
         return self.hash_value
 
+    def is_heavy_atom(self):
+        if self.left_atom.element == 'H':
+            return False
+
+        return True
+
     def is_pair(self, old_pair_tuple):
-        if self.left_node is old_pair_tuple[0] and self.right_node is old_pair_tuple[1]:
+        if self.left_atom is old_pair_tuple[0] and self.right_atom is old_pair_tuple[1]:
             return True
 
         return False
@@ -581,6 +587,9 @@ class SuperimposedTopology:
         # is in a pair to which the new pair refers (the same rule that is used currently)
         return bonds
 
+    def get_heavy_atoms(self):
+        return [pair for pair in self.matched_pairs if pair[0].element != 'H']
+
     def largest_cc_survives(self):
         """
         CC - Connected Component.
@@ -616,29 +625,71 @@ class SuperimposedTopology:
 
         # check for connected components (CC)
         remove_ccs = []
-        ccs = list(nx.connected_components(g))
+        ccs = [g.subgraph(cc).copy() for cc in nx.connected_components(g)]
         largest_cc = max([len(cc) for cc in ccs])
+
+        # there are disjoint fragments, remove the smaller one
+        for cc in ccs[::-1]:
+            # remove the cc if it smaller than the largest component
+            if len(cc) < largest_cc:
+                remove_ccs.append(cc)
+                ccs.remove(cc)
+
+        # remove the cc that have a smaller number of heavy atoms
+        largest_heavy_atom_cc = max([len([p for p in cc.nodes() if p.is_heavy_atom()])
+                                                        for cc in ccs])
+        for cc in ccs[::-1]:
+            if len([p for p in cc if p.is_heavy_atom()]) < largest_heavy_atom_cc:
+                print('Found CC that had fewer heavy atoms. Removing. ')
+                remove_ccs.append(cc)
+                ccs.remove(cc)
+
+        # remove the cc that has a smaller number of rings
+        largest_cycle_num = max([len(nx.cycle_basis(cc)) for cc in ccs])
+        for cc in ccs[::-1]:
+            if len(nx.cycle_basis(cc)) < largest_cycle_num:
+                print('Found CC that had fewer cycles. Removing. ')
+                remove_ccs.append(cc)
+                ccs.remove(cc)
+
+        # remove cc that has a smaller number of heavy atoms across rings
+        most_heavy_atoms_in_cycles = 0
+        for cc in ccs[::-1]:
+            # count the heavy atoms across the cycles
+            heavy_atom_counter = 0
+            for cycle in nx.cycle_basis(cc):
+                for a in cycle:
+                    if a.is_heavy_atom():
+                        heavy_atom_counter += 1
+            if heavy_atom_counter > most_heavy_atoms_in_cycles:
+                most_heavy_atoms_in_cycles = heavy_atom_counter
+
+        for cc in ccs[::-1]:
+            # count the heavy atoms across the cycles
+            heavy_atom_counter = 0
+            for cycle in nx.cycle_basis(cc):
+                for a in cycle:
+                    if a.is_heavy_atom():
+                        heavy_atom_counter += 1
+
+            if heavy_atom_counter < most_heavy_atoms_in_cycles:
+                print('Found CC that had fewer heavy atoms in cycles. Removing. ')
+                remove_ccs.append(cc)
+                ccs.remove(cc)
+
         if len(ccs) > 1:
-            # there are disjoint fragments, remove the smaller one
-            for cc in ccs[::-1]:
-                # remove the cc if it smaller than the largest component
-                if len(cc) < largest_cc:
-                    remove_ccs.append(cc)
-                    ccs.remove(cc)
+            # there are equally large CCs
+            print("The Connected Components are equally large! Picking the first one")
+            for cc in ccs[1:]:
+                remove_ccs.append(cc)
+                ccs.remove(cc)
 
-            if len(ccs) > 1:
-                # there are equally large CCs
-                print("The Connected Components are equally large! Picking the first one")
-                for cc in ccs[1:]:
-                    remove_ccs.append(cc)
-                    ccs.remove(cc)
+        assert len(ccs) == 1, "At this point there should be left only one main component"
 
-            assert len(ccs) == 1, "At this point there should be left only one main component"
-
-        # remove the smaller ccs
+        # remove the worse cc
         for cc in remove_ccs:
             for atom_pair in cc:
-                atom_tuple = (atom_pair.left_node, atom_pair.right_node)
+                atom_tuple = (atom_pair.left_atom, atom_pair.right_atom)
                 self.remove_node_pair(atom_tuple)
                 self._removed_because_disjointed_cc.append(atom_tuple)
 
