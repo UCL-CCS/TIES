@@ -5,7 +5,6 @@ import zipfile
 import os
 
 from flask import Flask, render_template, request, redirect, send_file
-from iteration_utilities import deepflatten
 
 app = Flask(__name__)
 
