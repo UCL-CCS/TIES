@@ -6,7 +6,7 @@ Topology Superimposition based on joint graph traversal.
 Conda can be used to easily install ambertools:
 `conda install ambertools -c conda-forge`
 
-Note that `sqm` in ambertools might need `libgfortran`. This can be installed with `apt-get install libgfortran3`. However, the conda version `conda install libgfortran` should also work. 
+Note that `sqm` in ambertools might need `libgfortran`. This can be installed with `apt-get install libgfortran3`. However, the conda version `conda install libgfortran -c conda-forge` should also work. 
 
 This should set the variable AMBERHOME which will be picked up on the fly. 
 
