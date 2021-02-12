@@ -64,16 +64,15 @@ def create_app(storageties, ambertools, load_ties):
             # activate ties env
             loadties = load_ties
             # run it
-            command = f'cd {session_dir} ; eval "$(/home/ccsadmin/anaconda3/bin/conda shell.bash hook)" ;' \
+            command = f'cd {session_dir} ; source /home/ccsadmin/anaconda3/pkgs/ambertools-20.15-py39he1d1048_1/amber.sh ;' \
                       f'ties create ' \
                       f'-l {request.files["ligand_ini"].filename} ' \
                       f'{request.files["ligand_fin"].filename} ' \
                       f'-nc {net_charge}'
             print(f'About to try the command: {command}')
-            output = subprocess.check_output([command],
-                                             shell=True)
+            output = subprocess.check_output([command], shell=True)
             # todo apply the /n to be actually not escaped characters?
-            print('done', output)
+            print('OUTPUT', output)
 
             # zip altogether
             os.chdir(session_dir)
