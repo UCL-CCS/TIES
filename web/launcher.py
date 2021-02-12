@@ -65,7 +65,7 @@ def create_app(storageties, ambertools, load_ties):
             loadties = load_ties
             # run it
             try:
-                command = f'cd {session_dir} ; ' \
+                command = f'cd {session_dir} ; eval "$(/home/ccsadmin/anaconda3/bin/conda shell.bash hook)" ;' \
                           f'ties create ' \
                           f'-l {request.files["ligand_ini"].filename} ' \
                           f'{request.files["ligand_fin"].filename} ' \
