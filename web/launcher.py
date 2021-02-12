@@ -2,12 +2,12 @@ import datetime
 import pathlib
 import subprocess
 import zipfile
+import logging
 import os
 
 from flask import Flask, render_template, request, redirect, send_file
 
 def create_app(storageties, ambertools, load_ties):
-    import logging
     logger = logging.getLogger('waitress')
     logger.setLevel(logging.INFO)
 
@@ -33,7 +33,7 @@ def create_app(storageties, ambertools, load_ties):
 
             # net charge
             print('Verifying charge')
-            logger.log('Doing the charge -nc testing.')
+            logger.info('Doing the charge -nc testing.')
             not_validated_nc = request.form['net_charge']
             if not_validated_nc.startswith('-'):
                 nc_negative = True
