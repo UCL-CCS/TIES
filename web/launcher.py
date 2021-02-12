@@ -64,7 +64,7 @@ def create_app(storageties, ambertools, load_ties):
             # activate ties env
             loadties = load_ties
             # run it
-            command = f'ties create ' \
+            command = f'/home/ccsadmin/anaconda3/bin/ties create ' \
                       f'-l {request.files["ligand_ini"].filename} ' \
                       f'{request.files["ligand_fin"].filename} ' \
                       f'-nc {net_charge}'
