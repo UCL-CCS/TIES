@@ -224,6 +224,22 @@ class Morph():
     def write_pdb(self, hybrid_single_dual_top):
         morph_pdb_path = self.workplace_root / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
 
+        save_aligned_ends = True
+        if save_aligned_ends:
+            # a quick hack
+            # save original pos
+            orig_pos_L = self.suptop.mda_ligandL.atoms.positions
+            orig_pos_R = self.suptop.mda_ligandR.atoms.positions
+            # use the aligned pos
+            self.suptop.mda_ligandL.atoms.positions = self.suptop.mda_ligandL.aligned_positions
+            self.suptop.mda_ligandR.atoms.positions = self.suptop.mda_ligandR.aligned_positions
+            # save the aligned pos
+            self.suptop.mda_ligandL.atoms.write(self.workplace_root / f'{self.ligA.internal_name}_aligned.pdb')
+            self.suptop.mda_ligandR.atoms.write(self.workplace_root / f'{self.ligZ.internal_name}_aligned.pdb')
+            # put back the orig pos
+            self.suptop.mda_ligandL.atoms.positions = orig_pos_L
+            self.suptop.mda_ligandR.atoms.positions = orig_pos_R
+
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
         if hybrid_single_dual_top:
             # the NAMD hybrid single dual topology

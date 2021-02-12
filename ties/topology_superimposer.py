@@ -478,6 +478,10 @@ class SuperimposedTopology:
                         break
                 assert found
 
+        # save the aligned positions if ever needed
+        self.mda_ligandL.aligned_positions = self.mda_ligandL.atoms.positions
+        self.mda_ligandR.aligned_positions = self.mda_ligandR.atoms.positions
+
         # put back original pos
         self.mda_ligandL.atoms.positions = original_left_pos
         self.mda_ligandR.atoms.positions = original_right_pos
