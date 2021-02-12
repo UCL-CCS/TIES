@@ -64,7 +64,7 @@ def create_app(storageties, ambertools, load_ties):
             # activate ties env
             loadties = load_ties
             # run it
-            source_amber = "export AMBERHOME=/home/ccsadmin/anaconda3/pkgs/ambertools-20.15-py39he1d1048_1 ; "
+            source_amber = "export AMBERHOME=/home/ccsadmin/anaconda3 ; "
             command = f'{source_amber} /home/ccsadmin/anaconda3/bin/ties create ' \
                       f'-l {request.files["ligand_ini"].filename} ' \
                       f'{request.files["ligand_fin"].filename} ' \
