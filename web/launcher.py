@@ -20,6 +20,10 @@ def create_app(storageties, ambertools, load_ties):
     # the working directory
     work_dir = pathlib.Path(storageties)
 
+    @app.route('/test')
+    def test():
+        return 'simple'
+
     @app.route('/')
     def hello_world():
         return render_template('main.html')
