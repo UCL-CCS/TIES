@@ -65,7 +65,7 @@ def create_app(storageties, ambertools, load_ties):
             loadties = load_ties
             # run it
             try:
-                output = subprocess.check_output([f'{ambertools} ; cd {session_dir} && {loadties} ; '
+                output = subprocess.check_output([f'{ambertools} ; cd {session_dir} ; {loadties} ; '
                                                   f'ties create '
                                                   f'-l {request.files["ligand_ini"].filename} '
                                                   f'{request.files["ligand_fin"].filename} '
