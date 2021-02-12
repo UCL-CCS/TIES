@@ -13,9 +13,6 @@ def create_app(storageties, ambertools, load_ties):
 
     app = Flask(__name__)
     app.config['SECRET_KEY'] = b'\xe2D\xf9\x90\t\x89\xf9\xaa\x87\x02\xf5$\t\xc4\xd3\xa0'
-    # app.config['APPLICATION_ROOT'] = app_root
-    # app.config['SQLALCHEMY_DATABASE_URI'] = db_path
-    # db.init_app(app)
 
     # the working directory
     work_dir = pathlib.Path(storageties)
@@ -35,6 +32,8 @@ def create_app(storageties, ambertools, load_ties):
             #     return "Wrong Password"
 
             # net charge
+            print('Verifying charge')
+            logger.log('Doing the charge -nc testing.')
             not_validated_nc = request.form['net_charge']
             if not_validated_nc.startswith('-'):
                 nc_negative = True
@@ -45,6 +44,7 @@ def create_app(storageties, ambertools, load_ties):
                 net_charge = int(request.form['net_charge'])
             else:
                 return 'Net ligand charge is not an integer'
+            print('Charge verified')
 
             # check the files
             if request.files['ligand_ini'].filename == '' or request.files['ligand_fin'].filename == '':
