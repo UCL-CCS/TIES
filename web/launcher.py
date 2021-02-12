@@ -73,7 +73,7 @@ def create_app(storageties, ambertools, load_ties):
             output = subprocess.check_output([command],
                                              shell=True)
             # todo apply the /n to be actually not escaped characters?
-            print('done', output.stdout, output.stderr)
+            print('done', output)
 
             # zip altogether
             os.chdir(session_dir)
