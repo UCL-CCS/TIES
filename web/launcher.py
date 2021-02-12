@@ -65,11 +65,13 @@ def create_app(storageties, ambertools, load_ties):
             loadties = load_ties
             # run it
             try:
-                output = subprocess.check_output([f'cd {session_dir} ; {ambertools} ; {loadties} ; '
-                                                  f'ties create '
-                                                  f'-l {request.files["ligand_ini"].filename} '
-                                                  f'{request.files["ligand_fin"].filename} '
-                                                  f'-nc {net_charge}'],
+                command = f'cd {session_dir} ; {ambertools} ; {loadties} ; ' \
+                          f'ties create ' \
+                          f'-l {request.files["ligand_ini"].filename} ' \
+                          f'{request.files["ligand_fin"].filename} ' \
+                          f'-nc {net_charge}'
+                print(f'About to try the command: {command}')
+                output = subprocess.check_output([command],
                                                  shell=True)
                 # todo apply the /n to be actually not escaped characters?
                 print('done')
