@@ -82,7 +82,7 @@ def create_app(storageties, ambertools, load_ties):
                     print('rel', i.relative_to((session_dir / 'ties20')))
                     myzip.write(i.relative_to(session_dir))
                 # add the main log
-                myzip.write(session_dir / 'run.log')
+                # myzip.write(session_dir / 'run.log')
             zipped_output = session_dir / 'ties20.zip'
 
             return send_file(zipped_output, as_attachment=True,
