@@ -82,13 +82,13 @@ def create_app(storageties, ambertools, load_ties):
                     print('rel', i.relative_to((session_dir / 'ties20')))
                     myzip.write(i.relative_to(session_dir))
                 # add the main log
-                # myzip.write(session_dir / 'run.log')
+                myzip.write('run.log')
             zipped_output = session_dir / 'ties20.zip'
 
             return send_file(zipped_output, as_attachment=True,
                              attachment_filename=f'ties20_{request.files["ligand_ini"].filename}_{request.files["ligand_fin"].filename}.zip')
 
-        return render_template("public/upload_image.html")
+        return render_template("main.html")
 
     return app
 
