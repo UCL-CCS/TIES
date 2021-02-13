@@ -8,27 +8,27 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
 
-    <title>TIES 20 (sketch)</title>
+    <title>TIES 20 (beta)</title>
 </head>
 <body>
 <div class="container">
     <div class="row">
         <div class="col">
 
-            <h1>Upload files for TIES20 </h1>
+            <h1>TIES20 (beta) </h1>
             <hr>
 
             <form action="/" method="POST" enctype="multipart/form-data">
 
                 <div class="form-group">
-                    <label>Select image</label>
+                    <label>Upload ligands</label>
                     <div class="custom-file">
-                        <input type="file" class="custom-file-input" name="ligand_ini" id="INI">
                         <label class="custom-file-label" for="INI">Select INI file (.mol2, .ac, .pdb)</label>
+                        <input type="file" class="custom-file-input" name="ligand_ini" id="INI">
                     </div>
                     <div class="custom-file">
-                        <input type="file" class="custom-file-input" name="ligand_fin" id="FIN">
                         <label class="custom-file-label" for="FIN">Select FIN file (.mol2, .ac, .pdb)</label>
+                        <input type="file" class="custom-file-input" name="ligand_fin" id="FIN">
                     </div>
                 </div>
 
