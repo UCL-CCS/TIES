@@ -24,8 +24,8 @@ def create_app(storageties, tiesenv):
     @app.route("/", methods=["GET", "POST"])
     def upload_image():
         if request.method == "POST":
-            # if request.form['password'] != 'haslo':
-            #     return "Wrong Password"
+            if request.form['password'] != 'xQUqUzAO':
+                return "Wrong Password"
 
             # net charge
             print('Verifying charge')
