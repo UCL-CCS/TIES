@@ -27,7 +27,6 @@ def prepare_inputs(morph,
                    net_charge=None,
                    ambertools_script_dir=None,
                    ambertools_tleap=None,
-                   namd_prod=None,
                    hybrid_topology=False,
                    vmd_vis_script=None,
                    md_engine=False,
@@ -105,7 +104,7 @@ def prepare_inputs(morph,
     # calculate PBC for an octahedron
     solv_oct_boc = extract_PBC_oct_from_tleap_log(cwd / "leap.log")
 
-    # prepare NAMD input files for min+eq+prod
+    #these are the names for the source of the input, output names are fixed
     if md_engine in ('NAMD', 'namd'):
         min_script = "min.namd"
         eq_script = "eq.namd"
@@ -116,16 +115,37 @@ def prepare_inputs(morph,
         eq_script = "eq3.namd"
         prod_script = "prod3.namd"
 
+    elif md_engine in ('OpenMM', 'openmm'):
+        min_script = None
+        eq_script = None
+        prod_script = None
+
     else:
         raise ValueError('Unknown engine {}'.format(md_engine))
 
     #Make build and replica_conf dirs
     # replica_conf contains NAMD scripts
-    if not os.path.exists(cwd / 'replica_conf'):
-        os.makedirs(cwd / 'replica_conf')
-    else:
-        shutil.rmtree(cwd / 'replica_conf')
-        os.makedirs(cwd / 'replica_conf')
+    if 'namd' in md_engine.lower():
+        if not os.path.exists(cwd / 'replica_conf'):
+            os.makedirs(cwd / 'replica_conf')
+        else:
+            shutil.rmtree(cwd / 'replica_conf')
+            os.makedirs(cwd / 'replica_conf')
+
+        # populate the replica_conf dir with scripts
+        # minimization scripts
+        init_namd_file_min(namd_script_loc, cwd / 'replica_conf', min_script,
+                           structure_name='sys_solv', pbc_box=solv_oct_boc)
+        # equilibriation scripts, note eq_namd_filenames unused
+        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica_conf', structure_name='sys_solv')
+        # production script
+        generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica_conf/sim1.conf', structure_name='sys_solv')
+
+    elif 'openmm' in md_engine.lower():
+        ties_script = open(scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
+                                                                              cons_file='cons.pdb', **solv_oct_boc)
+        open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
+
     # build contains all input ie. positions, parameters and constraints
     if not os.path.exists(cwd / 'build'):
         os.makedirs(cwd / 'build')
@@ -133,18 +153,9 @@ def prepare_inputs(morph,
         shutil.rmtree(cwd / 'build')
         os.makedirs(cwd / 'build')
 
-    #populate the replica_conf dir with scripts
-    #minimization scripts
-    init_namd_file_min(namd_script_loc, cwd / 'replica_conf', min_script,
-                       structure_name='sys_solv', pbc_box=solv_oct_boc)
-    #equilibriation scripts, note eq_namd_filenames unused
-    eq_namd_filenames = generate_namd_eq(namd_script_loc / eq_script, cwd/ 'replica_conf')
-    #production script
-    shutil.copy(namd_script_loc / namd_prod, cwd / 'replica_conf' / prod_script)
-
     # populate the build dir with positions, parameters and constraints
     # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
-    constraint_files = create_4_constraint_files(hybrid_solv, cwd / 'build')
+    create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
     #pdb, positions
     shutil.move(hybrid_solv, cwd / 'build')
     #pdb.fep, alchemical atoms
@@ -152,10 +163,22 @@ def prepare_inputs(morph,
     #prmtop, topology
     shutil.move(cwd / "sys_solv.top", cwd / 'build')
 
+    #copy replic-conf scripts
+    rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
+    for f in rep_conf_scripts:
+        shutil.copy(namd_script_loc / f, cwd / 'replica_conf')
+
     # Generate the directory structure for all the lambdas, and copy the files
+    if 'namd' in md_engine.lower():
+        lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
+    else:
+        lambdas = range(13)
     if lambda_rep_dir_tree:
-        for lambda_step in [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]:
-            lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
+        for lambda_step in lambdas:
+            if 'namd' in md_engine.lower():
+                lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
+            else:
+                lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
             if not os.path.exists(lambda_path):
                 os.makedirs(lambda_path)
 
@@ -784,77 +807,104 @@ def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, con
     # write to the file
     open(namd_filename, 'w').write(reformatted_namd_in)
 
+def create_constraint_files(original_pdb, output):
+    '''
 
-def create_4_constraint_files(original_pdb, location):
-    # Generate 4 constraint files and return the filenames
-    """
-coordinates  complex.pdb
-constraints  on
-consexp  2
-consref  complex.pdb ;#need all positions
-conskfile  constraint_f4.pdb
-conskcol  B
-    """
-
-    def create_constraint(mda_universe, output, constraint):
-        # for each atom, give the B column the right value
-        for atom in mda_universe.atoms:
-            # ignore water
-            if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3']:
-                continue
-
-            # set each atom depending on whether it is a H or not
-            if atom.name.upper().startswith('H'):
-                atom.tempfactor = 0
-            else:
-                # restrain the heavy atom
-                atom.tempfactor = constraint
-
-        mda_universe.atoms.write(output)
-
-    # create the 4 constraint files
-    filenames = []
+    :param original_pdb:
+    :param output:
+    :return:
+    '''
     u = mda.Universe(original_pdb)
-    for i in range(1, 4 + 1):
-        next_constraint_filename = location / f'constraint_f{i:d}.pdb'
-        create_constraint(u, next_constraint_filename, i)
-        filenames.append(next_constraint_filename)
+    # for each atom, give the B column the right value
+    for atom in u.atoms:
+        # ignore water
+        if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3']:
+            continue
 
-    return filenames
+        # set each atom depending on whether it is a H or not
+        if atom.name.upper().startswith('H'):
+            atom.tempfactor = 0
+        else:
+            # restrain the heavy atom
+            atom.tempfactor = 4
+
+    u.atoms.write(output)
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
+    '''
+
+    :param from_dir:
+    :param to_dir:
+    :param filename:
+    :param structure_name:
+    :param pbc_box:
+    :return:
+    '''
     min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
         .format(structure_name=structure_name, **pbc_box)
-    open(os.path.join(to_dir, filename), 'w').write(min_namd_initialised)
+    out_name = 'eq0.conf'
+    open(os.path.join(to_dir, out_name), 'w').write(min_namd_initialised)
+
+def generate_namd_prod(namd_prod, dst_dir, structure_name):
+    '''
+
+    :param namd_prod:
+    :param dst_dir:
+    :param structure_name:
+    :return:
+    '''
+    input_data = open(namd_prod).read()
+    reformatted_namd_in = input_data.format(output='sim1', structure_name=structure_name)
+    open(dst_dir, 'w').write(reformatted_namd_in)
 
 
-def generate_namd_eq(namd_eq, dst_dir, structure_name='sys_solv'):
+def generate_namd_eq(namd_eq, dst_dir, structure_name):
+    '''
+
+    :param namd_eq:
+    :param dst_dir:
+    :param structure_name:
+    :return:
+    '''
     input_data = open(namd_eq).read()
-    eq_namd_filenames = []
-    for i in range(4):
+    for i in range(1,3):
+
+        if i == 1:
+            run = """
+constraintScaling 1
+run 10000
+            """
+        else:
+            run = """
+while {$n <= $nall} {
+   constraintScaling $factor
+   run 40000
+   set n [expr $n + 1]
+   set factor [expr $factor * 0.5]
+}
+
+constraintScaling 0
+run 600000
+            """
+
         constraints = f"""
 constraints  on
 consexp  2
 # use the same file for the position reference and the B column
-consref  constraint_f{4 - i}.pdb ;#need all positions
-conskfile  constraint_f{4 - i}.pdb
+consref  ../build/{structure_name}.pdb ;#need all positions
+conskfile  ../build/cons.pdb
 conskcol  B
         """
-        if i == 0:
-            prev_output = 'min_out'
-        else:
-            # take the output from the previous run
-            prev_output = 'eq_out_%d' % i
+
+        prev_output = 'eq{}'.format(i-1)
 
         reformatted_namd_in = input_data.format(
-            constraints=constraints, output='eq_out_%d' % (i + 1),
-            prev_output=prev_output, structure_name=structure_name)
-        # write to the file, start eq files count from 1
-        next_eq_step_filename = dst_dir / ("eq_step%d.namd" % (i + 1))
+            constraints=constraints, output='eq%d' % (i),
+            prev_output=prev_output, structure_name=structure_name, run=run)
+
+        next_eq_step_filename = dst_dir / ("eq%d.conf" % (i))
         open(next_eq_step_filename, 'w').write(reformatted_namd_in)
-        eq_namd_filenames.append(next_eq_step_filename)
-    return eq_namd_filenames
 
 
 def redistribute_charges(mda):

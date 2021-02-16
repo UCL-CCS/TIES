@@ -96,9 +96,6 @@ def command_line_script():
     parser.add_argument('-lff', '--ligand-ff', metavar='str', dest='ligand_ff_name',
                         type=str, required=False, default='gaff',
                         help='Either "gaff" or "gaff2"')
-    parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
-                        type=str, required=False, default='prod.namd',
-                        help='This is a temporary solution. The name of the file to be used for the production. ')
     parser.add_argument('-md', '--md-engine', metavar='bool', dest='md_engine',
                         type=str, required=False, default='namd',
                         help='Generate input files for the selected engine. '
@@ -153,7 +150,6 @@ def command_line_script():
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
     config.md_engine = args.md_engine
     config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
-    config.namd_prod = args.namd_prod
 
     # TIES
     # create ligands
@@ -287,7 +283,6 @@ def command_line_script():
                        net_charge=config.ligand_net_charge,
                        ambertools_script_dir=config.ambertools_script_dir,
                        ambertools_tleap=config.ambertools_tleap,
-                       namd_prod=config.namd_prod,
                        hybrid_topology=config.use_hybrid_single_dual_top,
                        vmd_vis_script=config.vmd_vis_script,
                        md_engine=config.md_engine,
@@ -323,7 +318,6 @@ def command_line_script():
                            net_charge=config.ligand_net_charge + protein_net_charge,
                            ambertools_script_dir=config.ambertools_script_dir,
                            ambertools_tleap=config.ambertools_tleap,
-                           namd_prod=config.namd_prod,
                            hybrid_topology=config.use_hybrid_single_dual_top,
                            vmd_vis_script=config.vmd_vis_script,
                            md_engine=config.md_engine,
