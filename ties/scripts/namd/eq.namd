@@ -31,11 +31,6 @@ outputPressure      1000
 # Protocol specific information
 ################################################################################
 
-# get the coordinates from the previous run (or min)
-bincoordinates     ./equilibration/{prev_output}.coor;    # coordinates from last run (binary)
-binvelocities      ./equilibration/{prev_output}.vel;     # velocities from last run (binary)
-extendedSystem     ./equilibration/{prev_output}.xsc;     # cell dimensions from last run
-
 PME                 yes
 PMEGridSpacing     1.0;
 
@@ -45,37 +40,42 @@ PMEGridSpacing     1.0;
 # Langevin temperature
 langevin            on    ;# do langevin dynamics
 langevinDamping     1     ;# damping coefficient (gamma) of 5/ps
-langevinTemp        $temp 
+langevinTemp        300
 langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
 
 # pressure
-useGroupPressure      yes ;# needed for 2fs steps
-useFlexibleCell       no  ;# no for water box, yes for membrane
-useConstantArea       no  ;# no for water box, yes for membrane
-BerendsenPressure                       on
-BerendsenPressureTarget                 1.0
-BerendsenPressureCompressibility        4.57e-5
-BerendsenPressureRelaxationTime         100
-BerendsenPressureFreq
+{pressure}
 
 # Output and restart
+set lambda [lindex $argv 0]
+set replica_id [lindex $argv 1]
+set restart_root "../LAMBDA_%s/rep%s/equilibration/{prev_output}" ; # directory must exist
+set output_root "../LAMBDA_%s/rep%s/equilibration/{output}" ; # directory must exist
+
 binaryoutput        yes
 binaryrestart       yes
-restartfreq         500000
+restartfreq         5000
 xstFreq             5000
+stdout [format $output_root.log $lambda $replica_id]
+outputname [format $output_root $lambda $replica_id]
+restartname [format $output_root $lambda $replica_id]
+XSTfile [format $output_root.xst $lambda $replica_id]
 
 dcdfreq  5000
 DCDUnitcell  yes
 
+# Coordinates, velocities and cell size
+bincoordinates [format $restart_root.coor $lambda $replica_id]
+binvelocities [format $restart_root.vel $lambda $replica_id]
+extendedSystem [format $restart_root.xsc $lambda $replica_id]
 
 # alchemical
-source          fep.tcl
 alch            on
 alchType        ti
 alchLambda          $lambda
 alchFile        ../build/{structure_name}.pdb
 alchCol         B
-
+alchOutFile [format $output_root.alch $lambda $replica_id]
 alchOutFreq     1000
 
 alchVdwShiftCoeff       5

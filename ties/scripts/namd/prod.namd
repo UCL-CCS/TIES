@@ -35,10 +35,20 @@ PME                 yes
 PMEGridSpacing      1.0
 
 # Output and restart
+set lambda [lindex $argv 0]
+set replica_id [lindex $argv 1]
+set restart_root "../LAMBDA_%s/rep%s/equilibration/eq2" ; # directory must exist
+set output_root "../LAMBDA_%s/rep%s/simulation/sim1" ; # directory must exist
+
+# Output and restart
 binaryoutput        yes
 binaryrestart       yes
 restartfreq         500000
 xstFreq             5000
+stdout [format $output_root.log $lambda $replica_id]
+outputname [format $output_root $lambda $replica_id]
+restartname [format $output_root $lambda $replica_id]
+XSTfile [format $output_root.xst $lambda $replica_id]
 
 # Constant-T
 langevin            on    ;# do langevin dynamics
@@ -66,7 +76,7 @@ alchType        ti
 alchLambda      $lambda
 alchFile        ../build/{structure_name}.pdb
 alchCol         B
-
+alchOutFile [format $output_root.alch $lambda $replica_id]
 alchOutFreq     1000
 
 alchVdwShiftCoeff       5

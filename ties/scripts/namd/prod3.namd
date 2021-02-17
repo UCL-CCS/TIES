@@ -1,171 +1,90 @@
 #NAMD3
 CUDASOAintegrate on
 
-# http://ambermd.org/namd/namd_amber.html
-amber on
-coordinates        sys_solv.pdb
-parmfile           sys_solv.top
+# Forcefield/Topology Information
+paraTypeCharmm      off
+amber yes
+coordinates        ../build/{structure_name}.pdb
+parmfile           ../build/{structure_name}.top
+readexclusions no
 
-set temp           300;
-set outputname     prod;               # base name for output from this run
-                                       # NAMD writes two files at the end, final coord and vel
-                                       # in the format of first-dyn.coor and first-dyn.vel
-outputName         $outputname
-set inputname      eq_out_4;
-# do not set these if this is an extension script
-set xsc_filename "prod.restart.xsc"
-if { [file exists $xsc_filename] == 0} {
-    bincoordinates     $inputname.coor;    # coordinates from last run (binary)
-    binvelocities      $inputname.vel;     # velocities from last run (binary)
-    extendedSystem     $inputname.xsc;     # cell dimensions from last run
-}
-restartfreq        50000;              # 500 steps = every 1ps
-dcdfreq            10000;
-binaryoutput       yes;
-binaryrestart      yes;
-dcdUnitCell        yes;                # the file will contain unit cell info in the style of
-                                       # charmm dcd files. if yes, the dcd files will contain
-                                       # unit cell information in the style of charmm DCD files.
-xstFreq            50000;               # XSTFreq: control how often the extended systen configuration
-                                       # will be appended to the XST file
-outputEnergies     50000;                # 125 steps = every 0.25ps
-                                       # The number of timesteps between each energy output of NAMD
-outputTiming       50000;                # The number of timesteps between each timing output shows
-                                       # time per step and time to completion
-
+# Unchanging information
+################################################################################
 # Force-Field Parameters
-exclude             scaled1-4          # non-bonded exclusion policy to use "none,1-2,1-3,1-4,or scaled1-4"
-                                       # 1-2: all atoms pairs that are bonded are going to be ignored
-                                       # 1-3: 3 consecutively bonded are excluded
-                                       # scaled1-4: include all the 1-3, and modified 1-4 interactions
-                                       # electrostatic scaled by 1-4scaling factor 1.0
-                                       # vdW special 1-4 parameters in charmm parameter file.
+exclude             scaled1-4
 1-4scaling          0.833333
+cutoff              12.
 switching           on
-vdwForceSwitching   yes;               # New option for force-based switching of vdW
-readexclusions      no;                # if both switching and vdwForceSwitching are on CHARMM force
-                                       # switching is used for vdW forces.
-
-# You have some freedom choosing the cutoff
-cutoff              12.0;              # may use smaller, maybe 10., with PME
-switchdist          10.0;              # cutoff - 2.
-                                       # switchdist - where you start to switch
-                                       # cutoff - where you stop accounting for nonbond interactions.
-                                       # correspondence in charmm:
-                                       # (cutnb,ctofnb,ctonnb = pairlistdist,cutoff,switchdist)
-pairlistdist        13.5;              # stores the all the pairs with in the distance it should be larger
-                                       # than cutoff( + 2.)
-stepspercycle       10;                # 20 redo pairlists every ten steps
-pairlistsPerCycle    2;                # 2 is the default
-                                       # cycle represents the number of steps between atom reassignments
-                                       # this means every 20/2=10 steps the pairlist will be updated
-
+switchdist          10.
+pairlistdist        13.5
 # Integrator Parameters
-timestep            2.0;               # fs/step
-rigidBonds          all;               # Bound constraint all bonds involving H are fixed in length
-nonbondedFreq       1;                 # nonbonded forces every step
-fullElectFrequency  2;                 # PME every step
+timestep            2.0  ;# 2fs/step
+rigidBonds          all  ;# needed for 2fs steps
+rigidtolerance      0.00001
+rigidIterations     100
+nonbondedFreq       1
+fullElectFrequency  2
+stepspercycle       10
+wrapWater           on
+wrapAll             on
+# Output
+outputEnergies      1000
+outputPressure      5000
 
-wrapWater           on;                # wrap water to central cell
-wrapAll             on;                # wrap other molecules too
-wrapNearest         off;               # use for non-rectangular cells (wrap to the nearest image)
+# Protocol specific information
+################################################################################
 
-# PME (for full-system periodic electrostatics)
-PME                yes;
-PMEGridSpacing       1;
-# PMEInterpOrder       4;                # interpolation order (spline order 6 in charmm)
-# Constant Pressure Control (variable volume)
-useGroupPressure       yes;            # use a hydrogen-group based pseudo-molecular viral to calcualte pressure and
-                                       # has less fluctuation, is needed for rigid bonds (rigidBonds/SHAKE)
-useFlexibleCell        no;             # yes for anisotropic system like membrane
+PME                 yes
+PMEGridSpacing      1.0
 
-langevinPiston          on;            # Nose-Hoover Langevin piston pressure control
-langevinPistonTarget  1.01325;         # target pressure in bar 1atm = 1.01325bar
-langevinPistonPeriod  50.0;            # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
-                                       # f=1/T=20.0(pgamma)
-langevinPistonDecay   25.0;            # oscillation decay time. smaller value correspons to larger random
+# Output and restart
+set lambda [lindex $argv 0]
+set replica_id [lindex $argv 1]
+set restart_root "../LAMBDA_%s/rep%s/equilibration/eq2" ; # directory must exist
+set output_root "../LAMBDA_%s/rep%s/simulation/sim1" ; # directory must exist
+
+# Output and restart
+binaryoutput        yes
+binaryrestart       yes
+restartfreq         500000
+xstFreq             5000
+stdout [format $output_root.log $lambda $replica_id]
+outputname [format $output_root $lambda $replica_id]
+restartname [format $output_root $lambda $replica_id]
+XSTfile [format $output_root.xst $lambda $replica_id]
+
+# Constant-T
+langevin            on    ;# do langevin dynamics
+langevinDamping     5     ;# damping coefficient (gamma) of 5/ps
+langevinTemp        300
+langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
+
+# pressure - NAMD3 cant use Berendsen
+langevinPiston          on             # Nose-Hoover Langevin piston pressure control
+langevinPistonTarget  1.01325          # target pressure in bar 1atm = 1.01325bar
+langevinPistonPeriod  50.0             # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
+langevinPistonTemp    300              # f=1/T=20.0(pgamma)
+langevinPistonDecay   25.0             # oscillation decay time. smaller value correspons to larger random
                                        # forces and increased coupling to the Langevin temp bath.
                                        # Equall or smaller than piston period
-langevinPistonTemp   $temp;            # coupled to heat bath
 
-# Constant Temperature Control
-langevin                on;            # langevin dynamics
-langevinDamping        1.0;            # damping coefficient of 1/ps (keep low)
-langevinTemp         $temp;            # random noise at this level
-langevinHydrogen       off;            # don't couple bath to hydrogens
+# Output trajectories
+dcdfreq  5000
+DCDUnitcell  yes
 
-# run Alchemistry
+# alchemical
 alch            on
 alchType        ti
-alchFile        sys_solv_fep.pdb
+alchLambda      $lambda
+alchFile        ../build/{structure_name}.pdb
 alchCol         B
-# do not set if it this is an extension script
-if { [file exists $xsc_filename] == 0} {
-    alchOutFile     $outputname.alch
-}
+alchOutFile [format $output_root.alch $lambda $replica_id]
 alchOutFreq     1000
 
-alchVdwShiftCoeff       5       ;# Enable soft-core vdW potential,
+alchVdwShiftCoeff       5
 alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
 
-# read which lambda we are working on
-set lambda_f [open "lambda" r]
-set lambda_value [read $lambda_f]
-puts "Lambda value is $lambda_value"
-close $lambda_f
-
-set total_sim_time 3000000  ; # total time 6ns
-
-# check if this is a restart, if so, continue form the last point
-set xsc_filename "prod.restart.xsc"
-if { [file exists $xsc_filename] == 1} {
-	puts "The production simulation was run before"
-	puts "Restarting the simulation"
-
-	# read the xsc file
-	set restart_xsc [open $xsc_filename r]
-	set xsc_content [read $restart_xsc]
-	close $restart_xsc
-
-	# split on new line
-	set lines [split $xsc_content "\n"] ;
-	foreach line $lines {
-		# ignore comment lines starting with "#"
-		if {[string match "#*" $line]} {
-			continue
-		}
-		if {[string trim $line] == ""} {
-		    continue
-		}
-		# extract the timestep of the restart
-		regexp {^([0-9]*)} $line timestep
-		puts "Previous simulation finished at timestep: $timestep"
-		if {$total_sim_time != $timestep} {
-			puts "Extension needed"
-			set run_time [expr {$total_sim_time - $timestep}]
-			puts "Will run additionall $run_time timesteps"
-
-			binCoordinates prod.restart.coor ;# coordinates from last run (binary)
-			binVelocities prod.restart.vel ;# velocities from last run (binary)
-			extendedSystem prod.restart.xsc ;# cell dimensions from last run
-			firsttimestep   $timestep
-			# do not overwrite the existing file
-			alchOutFile     ${outputname}_$timestep.alch
-		} else {
-			puts "Simulation was finished previosly"
-			puts "Aborting"
-			exit
-		}
-	}
-} else {
-	puts "No restart file found."
-	puts "A new production simulation will be start."
-	set run_time $total_sim_time
-	puts "Will run $run_time timesteps"
-	firsttimestep       0
-}
-
-alchLambda          $lambda_value
-run                 $run_time;             # 6 ns
+# protocol - MD
+run 2000000
