@@ -7,6 +7,19 @@ import os
 
 from flask import Flask, render_template, request, redirect, send_file
 
+def is_number(n):
+    try:
+        float(n)
+        return True
+    except:
+        return False
+
+def is_integer(n):
+    if is_number(n) and float(n) == int(n):
+        return True
+
+    return False
+
 def create_app(storageties, tiesenv):
     logger = logging.getLogger('waitress')
     logger.setLevel(logging.INFO)
@@ -30,17 +43,23 @@ def create_app(storageties, tiesenv):
             # net charge
             print('Verifying charge')
             logger.info('Doing the charge -nc testing.')
-            not_validated_nc = request.form['net_charge']
-            if not_validated_nc.startswith('-'):
-                nc_negative = True
-                not_validated_nc = not_validated_nc[1:]
-            else:
-                nc_negative = False
-            if not_validated_nc.isdigit():
+            if is_integer(request.form['net_charge']):
                 net_charge = int(request.form['net_charge'])
             else:
                 return 'Net ligand charge is not an integer'
-            print('Charge verified')
+            print(f'Net Ligand Charge verified: {net_charge}')
+
+            # q tol
+            if is_number(request.form['q_tol']):
+                q_tol = float(request.form['q_tol'])
+            else:
+                return 'Q tol is not a number'
+
+            # Net q tol
+            if is_number(request.form['net_q_tol']):
+                net_q_tol = float(request.form['net_q_tol'])
+            else:
+                return 'Net q tol is not a number'
 
             # check the files
             if request.files['ligand_ini'].filename == '' or request.files['ligand_fin'].filename == '':
@@ -56,8 +75,10 @@ def create_app(storageties, tiesenv):
             request.files['ligand_fin'].save(session_dir / request.files['ligand_fin'].filename)
 
             command = f'{tiesenv} ties create ' \
-                      f'-l {request.files["ligand_ini"].filename} {request.files["ligand_fin"].filename} ' \
-                      f'-nc {net_charge}'
+                      f'--ligands {request.files["ligand_ini"].filename} {request.files["ligand_fin"].filename} ' \
+                      f'--ligand-net-charge {net_charge} ' \
+                      f'--q-pair-tolerance {q_tol} ' \
+                      f'--q-net-tolerance {net_q_tol} '
             print(f'About to run the command: {command}')
             with open(session_dir / 'ties20.log', 'w') as LOG:
                 subprocess.run([command], shell=True, stdout=LOG, stderr=LOG, cwd=session_dir)
@@ -83,7 +104,7 @@ def create_app(storageties, tiesenv):
 
 if __name__ == '__main__':
     app = create_app('/home/dresio/tiesclients',
-                     'source /home/dresio/software/amber18install/amber.sh',
-                     'source /home/dresio/software/virtualenvs/tiesdev/bin/activate '
+                     'source /home/dresio/software/amber18install/amber.sh ; ' +
+                     'source /home/dresio/software/virtualenvs/tiesdev/bin/activate ; '
                      )
     app.run()
