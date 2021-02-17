@@ -137,7 +137,7 @@ def prepare_inputs(morph,
         init_namd_file_min(namd_script_loc, cwd / 'replica_conf', min_script,
                            structure_name='sys_solv', pbc_box=solv_oct_boc)
         # equilibriation scripts, note eq_namd_filenames unused
-        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica_conf', structure_name='sys_solv')
+        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica_conf', structure_name='sys_solv', engine=md_engine)
         # production script
         generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica_conf/sim1.conf', structure_name='sys_solv')
 
@@ -164,9 +164,9 @@ def prepare_inputs(morph,
     shutil.move(cwd / "sys_solv.top", cwd / 'build')
 
     #copy replic-conf scripts
-    rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
-    for f in rep_conf_scripts:
-        shutil.copy(namd_script_loc / f, cwd / 'replica_conf')
+    #rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
+    #for f in rep_conf_scripts:
+    #    shutil.copy(namd_script_loc / f, cwd / 'replica_conf')
 
     # Generate the directory structure for all the lambdas, and copy the files
     if 'namd' in md_engine.lower():
@@ -190,7 +190,8 @@ def prepare_inputs(morph,
 
                 # set the lambda value for the directory,
                 # this file is used by NAMD tcl scripts
-                open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+                if 'namd' in md_engine.lower():
+                    open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
                 #create output dirs equilibriation and simulation
                 if not os.path.exists(replica_dir / 'equilibration'):
@@ -859,12 +860,13 @@ def generate_namd_prod(namd_prod, dst_dir, structure_name):
     open(dst_dir, 'w').write(reformatted_namd_in)
 
 
-def generate_namd_eq(namd_eq, dst_dir, structure_name):
+def generate_namd_eq(namd_eq, dst_dir, structure_name, engine):
     '''
 
     :param namd_eq:
     :param dst_dir:
     :param structure_name:
+    :param engine
     :return:
     '''
     input_data = open(namd_eq).read()
@@ -875,8 +877,14 @@ def generate_namd_eq(namd_eq, dst_dir, structure_name):
 constraintScaling 1
 run 10000
             """
+            pressure = ''
         else:
             run = """
+# protocol - minimization
+set factor 1
+set nall 10
+set n 1
+
 while {$n <= $nall} {
    constraintScaling $factor
    run 40000
@@ -887,6 +895,30 @@ while {$n <= $nall} {
 constraintScaling 0
 run 600000
             """
+            if engine.lower() == 'namd' or engine.lower() == 'namd2':
+                pressure = """
+useGroupPressure      yes ;# needed for 2fs steps
+useFlexibleCell       no  ;# no for water box, yes for membrane
+useConstantArea       no  ;# no for water box, yes for membrane
+BerendsenPressure                       on
+BerendsenPressureTarget                 1.0
+BerendsenPressureCompressibility        4.57e-5
+BerendsenPressureRelaxationTime         100
+BerendsenPressureFreq                   2
+                """
+            else:
+                pressure = """
+useGroupPressure      yes ;# needed for 2fs steps
+useFlexibleCell       no  ;# no for water box, yes for membrane
+useConstantArea       no  ;# no for water box, yes for membrane
+langevinPiston          on             # Nose-Hoover Langevin piston pressure control
+langevinPistonTarget  1.01325          # target pressure in bar 1atm = 1.01325bar
+langevinPistonPeriod  50.0             # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
+langevinPistonTemp    300              # f=1/T=20.0(pgamma)
+langevinPistonDecay   25.0             # oscillation decay time. smaller value correspons to larger random
+                                       # forces and increased coupling to the Langevin temp bath.
+                                       # Equall or smaller than piston period
+                """
 
         constraints = f"""
 constraints  on
@@ -901,7 +933,7 @@ conskcol  B
 
         reformatted_namd_in = input_data.format(
             constraints=constraints, output='eq%d' % (i),
-            prev_output=prev_output, structure_name=structure_name, run=run)
+            prev_output=prev_output, structure_name=structure_name, pressure=pressure, run=run)
 
         next_eq_step_filename = dst_dir / ("eq%d.conf" % (i))
         open(next_eq_step_filename, 'w').write(reformatted_namd_in)
