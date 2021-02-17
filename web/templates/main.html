@@ -13,7 +13,7 @@
 <body>
 <div class="container">
     <div class="row">
-        <div class="col">
+        <div class="col-md-7">
 
             <h1>TIES20 (beta) </h1>
             <hr>
@@ -40,7 +40,8 @@
 
                 <div class="form-group">
                     <label>Net ligand charge (integer):</label>
-                    <input type="number" class="form-control" name="net_charge" id="net_charge" aria-describedby="basic-addon3" required>
+                    <input type="number" step=1 class="form-control" name="net_charge" id="net_charge"
+                           aria-describedby="basic-addon3" required>
                     <div class="valid-feedback">
                         Looks good!
                     </div>
@@ -51,7 +52,7 @@
                         The maximum allowed difference in charge between any two atoms in electrons.
                         Any two paired atoms with a larger charge than this tolerance will be added to the alchemical region.
                     </label>
-                    <input type="number" class="form-control" name="q_tol" id="q_tol" value="0.1"
+                    <input type="number" step="0.05" value="0.1" class="form-control" name="q_tol" id="q_tol"
                            aria-describedby="basic-addon3" required>
                     <div class="invalid-feedback">
                         Use a decimal number below around 0.1 .
@@ -65,7 +66,7 @@
                         Paired atoms with different charges will be continually removed until
                         this tolerance is met.
                     </label>
-                    <input type="number" class="form-control" name="net_q_tol" id="net_q_tol" value="0.1"
+                    <input type="number" step="0.05" class="form-control" name="net_q_tol" id="net_q_tol" value="0.1"
                            aria-describedby="basic-addon3" required>
                 </div>
 
