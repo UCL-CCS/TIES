@@ -13,36 +13,70 @@
 <body>
 <div class="container">
     <div class="row">
-        <div class="col">
+        <div class="col-md-7">
 
             <h1>TIES20 (beta) </h1>
             <hr>
 
-            <form action="/" method="POST" enctype="multipart/form-data">
+            <form action="/" method="POST" enctype="multipart/form-data" class="needs-validation">
 
                 <div class="form-group">
-                    <label>Upload ligands</label>
-                    <div class="custom-file">
-                        <label class="custom-file-label" for="INI">Select INI file (.mol2, .ac, .pdb)</label>
-                        <input type="file" class="custom-file-input" name="ligand_ini" id="INI">
+
+                    <div class="col-xs-3 text-right">
+                        <label>Ligands</label>
                     </div>
-                    <div class="custom-file">
-                        <label class="custom-file-label" for="FIN">Select FIN file (.mol2, .ac, .pdb)</label>
-                        <input type="file" class="custom-file-input" name="ligand_fin" id="FIN">
+                    <div class="col-xs-9">
+                            <div class="custom-file">
+                            <label class="custom-file-label" for="INI">Select INI file (.mol2, .ac)</label>
+                            <input type="file" class="custom-file-input" name="ligand_ini" id="INI" required>
+                        </div>
+                        <div class="custom-file">
+                            <label class="custom-file-label" for="FIN">Select FIN file (.mol2, .ac)</label>
+                            <input type="file" class="custom-file-input" name="ligand_fin" id="FIN" required>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label>Net ligand charge (integer):</label>
+                    <input type="number" step=1 class="form-control" name="net_charge" id="net_charge"
+                           aria-describedby="basic-addon3" required>
+                    <div class="valid-feedback">
+                        Looks good!
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Net molecule charge (integer):</label>
-                    <input type="text" class="form-control" name="net_charge" id="net_charge" aria-describedby="basic-addon3">
+                    <label for="q_tol">Q-Tol (float, 0.1e):
+                        The maximum allowed difference in charge between any two atoms in electrons.
+                        Any two paired atoms with a larger charge than this tolerance will be added to the alchemical region.
+                    </label>
+                    <input type="number" step="0.05" value="0.1" class="form-control" name="q_tol" id="q_tol"
+                           aria-describedby="basic-addon3" required>
+                    <div class="invalid-feedback">
+                        Use a decimal number below around 0.1 .
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="net_q_tol">Net-Q-Tol (float, 0.1e):
+                        The maximum imbalance that can be introduced by averaging charges,
+                        which will be distributed over the alchemical regions.
+                        Paired atoms with different charges will be continually removed until
+                        this tolerance is met.
+                    </label>
+                    <input type="number" step="0.05" class="form-control" name="net_q_tol" id="net_q_tol" value="0.1"
+                           aria-describedby="basic-addon3" required>
                 </div>
 
                 <div class="form-group">
                     <label>Password:</label>
-                    <input type="password" id="password" name="password" class="form-control" data-toggle="password">
+                    <input type="password" id="password" name="password"
+                           class="form-control" data-toggle="password" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Upload And Download Results </button>
+                <button type="submit" class="btn btn-primary">Compute and Download Results </button>
 
             </form>
 
@@ -55,6 +89,27 @@
 <!-- Option 1: Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
 <!-- Option 2: Separate Popper and Bootstrap JS -->
+<script>
+(function () {
+'use strict'
+
+// Fetch all the forms we want to apply custom Bootstrap validation styles to
+var forms = document.querySelectorAll('.needs-validation')
+
+// Loop over them and prevent submission
+Array.prototype.slice.call(forms)
+.forEach(function (form) {
+  form.addEventListener('submit', function (event) {
+    if (!form.checkValidity()) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    form.classList.add('was-validated')
+  }, false)
+})
+})()
+</script>
 </body>
 </html>
 
