@@ -50,6 +50,11 @@ outputname [format $output_root $lambda $replica_id]
 restartname [format $output_root $lambda $replica_id]
 XSTfile [format $output_root.xst $lambda $replica_id]
 
+# Coordinate, velocities, Cell size
+bincoordinates [format $restart_root.coor $lambda $replica_id]
+binvelocities [format $restart_root.vel $lambda $replica_id]
+extendedSystem [format $restart_root.xsc $lambda $replica_id]
+
 # Constant-T
 langevin            on    ;# do langevin dynamics
 langevinDamping     5     ;# damping coefficient (gamma) of 5/ps

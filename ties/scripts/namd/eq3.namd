@@ -42,7 +42,7 @@ PMEGridSpacing     1.0;
 
 # Langevin temperature
 langevin            on    ;# do langevin dynamics
-langevinDamping     1     ;# damping coefficient (gamma) of 5/ps
+langevinDamping     5     ;# damping coefficient (gamma) of 5/ps
 langevinTemp        300
 langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
 
