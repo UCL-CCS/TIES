@@ -38,11 +38,10 @@ cellOrigin		 0.000  0.000  0.000
 PME                 yes
 PMEGridSpacing      1.0
 
-temperature 300
 # Langevin temperature
 langevin            on    ;# do langevin dynamics
 langevinDamping     5     ;# damping coefficient (gamma) of 5/ps
-langevinTemp        $temp
+langevinTemp        300
 langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
 
 # pressure
