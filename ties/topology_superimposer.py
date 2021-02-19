@@ -964,10 +964,13 @@ class SuperimposedTopology:
         approaches = ['greedy', 'terminal_alch_linked', 'terminal', 'alch_linked', 'leftovers', 'smart']
         # greedy, remove the pair with the large q difference
 
+        best_approach = None
+        suptop_size = 0
         for approach in approaches:
             # make a shallow copy of the suptop
             next_approach = copy.copy(self)
 
+            total_diff = 0
             while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
                 # use the naive removal of the atoms that have the highest charge diff
                 # (but lower than a pair diff).
@@ -978,14 +981,29 @@ class SuperimposedTopology:
                 best_candidate_with_h = next_approach._smart_netqtol_pair_picker(approach)
 
                 # remove it
-                total_diff = 0
                 for pair in best_candidate_with_h:
-                    self.remove_node_pair(pair)
+                    next_approach.remove_node_pair(pair)
                     diff_q_pairs = abs(pair[0].charge - pair[1].charge)
                     # add to the list of removed because of the net charge
-                    self._removed_due_to_net_charge.append([pair, diff_q_pairs])
+                    next_approach._removed_due_to_net_charge.append([pair, diff_q_pairs])
                     total_diff += diff_q_pairs
-                return np.abs(total_diff)
+
+            if len(next_approach) > suptop_size:
+                suptop_size = len(next_approach)
+                best_approach = approach
+
+        # apply the best strategy
+        total_diff = 0
+        while np.abs(self.get_net_charge()) > net_charge_threshold:
+            best_candidate_with_h = self._smart_netqtol_pair_picker(best_approach)
+
+            # remove them
+            for pair in best_candidate_with_h:
+                self.remove_node_pair(pair)
+                diff_q_pairs = abs(pair[0].charge - pair[1].charge)
+                # add to the list of removed because of the net charge
+                self._removed_due_to_net_charge.append([pair, diff_q_pairs])
+                total_diff += diff_q_pairs
 
 
     def _smart_netqtol_pair_picker(self, strategy):
@@ -1004,29 +1022,33 @@ class SuperimposedTopology:
         if len(diff_q_pairs) == 0:
             raise Exception('Did not find any pairs with a different q even though the net tol is not met? ')
 
+        greedy_pair = diff_q_pairs[0]
+        # get the attached hydrogens
+        greedy_neighbours = [p for p, bonds in self.matched_pairs_bonds[greedy_pair]]
+        greedy_hydrogens = [(a, b) for a, b in greedy_neighbours if a.element == 'H']
         if strategy == 'greedy':
-            greedy_pair = diff_q_pairs[0]
-            # get the attached hydrogens
-            neighbours = [p for p, bonds in self.matched_pairs_bonds[greedy_pair]]
-            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
-
-            return [greedy_pair] + hydrogens
+            return [greedy_pair] + greedy_hydrogens
 
         # sort the pairs in order of removal priority
         diff_sorted = self._sort_pairs_for_removal(diff_q_pairs)
 
         if strategy == 'smart':
             # get the most promising category
-            pairs = list(diff_sorted.items())[0]
+            category = list(diff_sorted.items())[0]
 
             # remove the first pair
-            pair_with_hydrogens = pairs[0]
-            return pair_with_hydrogens
+            pairs_with_hydrogens = category[1]
+            return pairs_with_hydrogens[0]
+
+        diff_sorted = self._sort_pairs_for_removal(diff_q_pairs, best_cases_num=len(self))
 
         # for other strategies, take the key directly, but only if there is one
         if strategy in diff_sorted:
             cat = diff_sorted[strategy]
-            return
+            return cat[0]
+        else:
+            # revert to greedy
+            return [greedy_pair] + greedy_hydrogens
 
     def _sort_pairs_for_removal(self, pairs, best_cases_num=5):
         """
@@ -1127,7 +1149,7 @@ class SuperimposedTopology:
         return combined
 
     def remove_node_pair(self, node_pair):
-        assert len(node_pair) == 2
+        assert len(node_pair) == 2, node_pair
         # remove the pair
         self.matched_pairs.remove(node_pair)
         # remove from the current set
