@@ -2855,7 +2855,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # fixme - future option? for now disabled
     # Smart removal of atoms is now hardcoded to be
     # disabled until verified to yield good results
-    disjointed_before_net_charge_filter = True
+    disjointed_before_net_charge_filter = False
 
     if disjointed_before_net_charge_filter:
         # This might in itself help sort out the problem of net charges
