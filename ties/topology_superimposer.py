@@ -962,7 +962,6 @@ class SuperimposedTopology:
         """
 
         approaches = ['greedy', 'terminal_alch_linked', 'terminal', 'alch_linked', 'leftovers', 'smart']
-        # greedy, remove the pair with the large q difference
 
         best_approach = None
         suptop_size = 0
@@ -970,29 +969,18 @@ class SuperimposedTopology:
             # make a shallow copy of the suptop
             next_approach = copy.copy(self)
 
-            total_diff = 0
+            # try the strategy
             while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
-                # use the naive removal of the atoms that have the highest charge diff
-                # (but lower than a pair diff).
-                # largest_difference = next_approach.remove_worst_charge_match()
-
-                # if largest_difference == 0:
-                #     raise Exception("How can there be net charge but no pair can be found that actually is different?")
                 best_candidate_with_h = next_approach._smart_netqtol_pair_picker(approach)
-
-                # remove it
                 for pair in best_candidate_with_h:
                     next_approach.remove_node_pair(pair)
-                    diff_q_pairs = abs(pair[0].charge - pair[1].charge)
-                    # add to the list of removed because of the net charge
-                    next_approach._removed_due_to_net_charge.append([pair, diff_q_pairs])
-                    total_diff += diff_q_pairs
 
             if len(next_approach) > suptop_size:
                 suptop_size = len(next_approach)
                 best_approach = approach
 
-        # apply the best strategy
+        # apply the best strategy to this suptop
+        print(f'Chosen strategy for pair removal to meet q net tol: {best_approach}')
         total_diff = 0
         while np.abs(self.get_net_charge()) > net_charge_threshold:
             best_candidate_with_h = self._smart_netqtol_pair_picker(best_approach)
@@ -1004,6 +992,8 @@ class SuperimposedTopology:
                 # add to the list of removed because of the net charge
                 self._removed_due_to_net_charge.append([pair, diff_q_pairs])
                 total_diff += diff_q_pairs
+
+        return total_diff
 
 
     def _smart_netqtol_pair_picker(self, strategy):
@@ -1022,65 +1012,56 @@ class SuperimposedTopology:
         if len(diff_q_pairs) == 0:
             raise Exception('Did not find any pairs with a different q even though the net tol is not met? ')
 
-        greedy_pair = diff_q_pairs[0]
-        # get the attached hydrogens
-        greedy_neighbours = [p for p, bonds in self.matched_pairs_bonds[greedy_pair]]
-        greedy_hydrogens = [(a, b) for a, b in greedy_neighbours if a.element == 'H']
-        if strategy == 'greedy':
-            return [greedy_pair] + greedy_hydrogens
-
-        # sort the pairs in order of removal priority
-        diff_sorted = self._sort_pairs_for_removal(diff_q_pairs)
+        # sort the pairs into categories
+        # use 5 pairs with the largest difference
+        diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=5)
 
         if strategy == 'smart':
             # get the most promising category
-            category = list(diff_sorted.items())[0]
-
+            for cat in diff_sorted.keys():
+                if diff_sorted[cat]:
+                    category = diff_sorted[cat]
+                    break
             # remove the first pair
-            pairs_with_hydrogens = category[1]
-            return pairs_with_hydrogens[0]
+            # fixme - double check this
+            return category[0]
 
-        diff_sorted = self._sort_pairs_for_removal(diff_q_pairs, best_cases_num=len(self))
+        # allow removal of pairs even if the differences are small
+        diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=len(self))
 
         # for other strategies, take the key directly, but only if there is one
-        if strategy in diff_sorted:
-            cat = diff_sorted[strategy]
-            return cat[0]
+        if diff_sorted[strategy]:
+            pairs_in_category = diff_sorted[strategy]
         else:
-            # revert to greedy
-            return [greedy_pair] + greedy_hydrogens
+            # if there is no option in that category, revert to greedy
+            pairs_in_category = diff_sorted['greedy']
+        return pairs_in_category[0]
 
-    def _sort_pairs_for_removal(self, pairs, best_cases_num=5):
+    def _sort_pairs_into_categories_qnettol(self, pairs, best_cases_num=6):
         """
         This is a helper function which sorts
-        matched pairs with different charges while
-        taking into account that some the removal of
-        some pairs will cascade and lead to the
-        removal of even more atoms.
+        matched pairs with different charges into categories, which are:
+         - terminal_alch_linked
+         - terminal: at most one heavy atom bonded
+         - alch_linked: at least one bond to the alchemical region
+         - leftovers: not terminal or alch_linked,
+         - low_diff
+
+        Returns: Ordered Dictionary
         """
 
-        print('Finding the best atoms to remove to meet the net charge rule. ')
-        print('Please remember to apply the disjointed rule before net charges, '
-              'because hydrogens on their own are ignored here. ')
-
-        # terminal pairs, defined as having only 1 heavy atom link
-        # or methyl group (hydrogens are ignored when checking heavy atoms)
-        terminal_pairs = []
-
-        # pairs that are linked to the alchemical region
-        # but that might be also linked to matched atoms
-        alchemical_linked = []
-
-        terminal_and_linked_alchemically = []
-        leftovers = []
+        sorted_categories = OrderedDict()
+        sorted_categories['terminal_alch_linked'] = []
+        sorted_categories['terminal'] = []
+        sorted_categories['alch_linked'] = []
+        sorted_categories['greedy'] = []
+        sorted_categories['leftovers'] = []
+        sorted_categories['low_diff'] = []
 
         app_atoms = self.get_appearing_atoms()
         dis_atoms = self.get_disappearing_atoms()
 
-        # we need to find out where is the cutoff here in terms of the sensible values
-        # let's take only the square root number of pairs the highest differences
-        # todo: this value could consider how far we are from the limit (ie is removing more good?)
-
+        # fixme: maybe use a threshold rather than a number of cases?
         for pair in pairs[:best_cases_num]:
             # ignore hydrogens on their own
             # if pair[0].element == 'H':
@@ -1092,6 +1073,11 @@ class SuperimposedTopology:
             hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
             heavy = [(a, b) for a, b in neighbours if a.element != 'H']
 
+            # attach the hydrogens to be removed as well
+            to_remove = [pair] + hydrogens
+
+            sorted_categories['greedy'].append(to_remove)
+
             # check if the current pair is linked to the alchemical region
             linked_to_alchemical = False
             for A, bond in pair[0].bonds:
@@ -1101,52 +1087,26 @@ class SuperimposedTopology:
                 if B in app_atoms:
                     linked_to_alchemical = True
 
-            # attach the hydrogens to be removed as well
-            to_remove = [pair]
-            to_remove.extend(hydrogens)
-
             if len(heavy) == 1 and linked_to_alchemical:
-                terminal_and_linked_alchemically.append(to_remove)
-            elif len(heavy) == 1:
-                terminal_pairs.append(to_remove)
-            elif linked_to_alchemical:
-                alchemical_linked.append(to_remove)
-            else:
-                leftovers.append(to_remove)
+                sorted_categories['terminal_alch_linked'].append(to_remove)
+            if len(heavy) == 1:
+                sorted_categories['terminal'].append(to_remove)
+            if linked_to_alchemical:
+                sorted_categories['alch_linked'].append(to_remove)
+            if len(heavy) != 1 and not linked_to_alchemical:
+                sorted_categories['leftovers'].append(to_remove)
 
-            # e.g. ring, it might be linked to two atoms,
-            # this could be fine, particularly if it is linked directly to the alchemical size
-            # fixme? this part however could create strains in the bonds if it is a ring
-            # 2 bonds and more that are not connected to alchemical region
-            # however, they are connected via 1 atom to the alchemical region
-            # so these two should be considered as a group, lower priority
-            # fixme - could be added
-
-        low_diff_cases = []
+        # carry out for the pairs that have a smaller Q diff
         for pair in pairs[best_cases_num:]:
             neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
             # consider the attached hydrogens
             hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
             # attach the hydrogens to be removed as well
-            to_remove = [pair]
-            to_remove.extend(hydrogens)
+            to_remove = [pair] + hydrogens
 
-            low_diff_cases.append(to_remove)
+            sorted_categories['low_diff'].append(to_remove)
 
-        combined = OrderedDict()
-        if terminal_and_linked_alchemically:
-            combined['terminal_alch_linked'] = terminal_and_linked_alchemically
-        if terminal_pairs:
-            combined['terminal'] = terminal_pairs
-        if alchemical_linked:
-            combined['alch_linked'] = alchemical_linked
-        if leftovers:
-            combined['leftovers'] = leftovers
-
-        # add the cases with small differences
-        combined['low_diff'] = low_diff_cases
-
-        return combined
+        return sorted_categories
 
     def remove_node_pair(self, node_pair):
         assert len(node_pair) == 2, node_pair
