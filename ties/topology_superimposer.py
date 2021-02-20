@@ -4,8 +4,8 @@ The main module responsible for the superimposition.
 import hashlib
 import copy
 import itertools
-import warnings
 import math
+import random
 from functools import reduce
 from collections import OrderedDict
 
@@ -962,26 +962,44 @@ class SuperimposedTopology:
         """
 
         approaches = ['greedy', 'terminal_alch_linked', 'terminal', 'alch_linked', 'leftovers', 'smart']
+        rm_disjoint_at_each_step = [True, False]
 
+        # best configuration info
         best_approach = None
         suptop_size = 0
-        for approach in approaches:
-            # make a shallow copy of the suptop
-            next_approach = copy.copy(self)
+        rm_disjoint_each_step_conf = False
 
-            # try the strategy
-            while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
-                best_candidate_with_h = next_approach._smart_netqtol_pair_picker(approach)
-                for pair in best_candidate_with_h:
-                    next_approach.remove_node_pair(pair)
+        # try all confs
+        for rm_disjoint_each_step in rm_disjoint_at_each_step:
+            for approach in approaches:
+                # make a shallow copy of the suptop
+                next_approach = copy.copy(self)
+                # first overall
+                if rm_disjoint_each_step:
+                    next_approach.largest_cc_survives()
 
-            if len(next_approach) > suptop_size:
-                suptop_size = len(next_approach)
-                best_approach = approach
+                # try the strategy
+                while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
+
+                    best_candidate_with_h = next_approach._smart_netqtol_pair_picker(approach)
+                    for pair in best_candidate_with_h:
+                        next_approach.remove_node_pair(pair)
+
+                    if rm_disjoint_each_step:
+                        next_approach.largest_cc_survives()
+
+                if len(next_approach) > suptop_size:
+                    suptop_size = len(next_approach)
+                    best_approach = approach
+                    rm_disjoint_each_step_conf = rm_disjoint_each_step
 
         # apply the best strategy to this suptop
-        print(f'Chosen strategy for pair removal to meet q net tol: {best_approach}')
+        print(f'Pair removal strategy (q net tol): {best_approach} with disjoint CC removed at each step: {rm_disjoint_each_step_conf}')
+        print(f'To meet q net tol: {best_approach}')
+
         total_diff = 0
+        if rm_disjoint_each_step_conf:
+            self.largest_cc_survives()
         while np.abs(self.get_net_charge()) > net_charge_threshold:
             best_candidate_with_h = self._smart_netqtol_pair_picker(best_approach)
 
@@ -992,6 +1010,9 @@ class SuperimposedTopology:
                 # add to the list of removed because of the net charge
                 self._removed_due_to_net_charge.append([pair, diff_q_pairs])
                 total_diff += diff_q_pairs
+
+            if rm_disjoint_each_step_conf:
+                self.largest_cc_survives()
 
         return total_diff
 
