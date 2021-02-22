@@ -81,7 +81,7 @@ DCDUnitcell  yes
 alch            on
 alchType        ti
 alchLambda      $lambda
-alchFile        ../build/{structure_name}.pdb
+alchFile        ../build/{structure_name}_fep.pdb
 alchCol         B
 alchOutFile [format $output_root.alch $lambda $replica_id]
 alchOutFreq     1000
