@@ -602,6 +602,10 @@ class SuperimposedTopology:
         Generates the graph where each pair is a single node, connecting the nodes if the bonds exist.
         Uses then networkx to find CCs.
         """
+
+        if len(self) == 0:
+            return self, []
+
         def lookup_up(pairs, tuple_pair):
             for pair in pairs:
                 if pair.is_pair(tuple_pair):
