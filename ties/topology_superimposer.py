@@ -899,7 +899,7 @@ class SuperimposedTopology:
             different = set(si_top.matched_pairs).difference(set(self.matched_pairs))
             print(different)
 
-    def matched_atom_types_are_the_same(self):
+    def enforce_matched_atom_types_are_the_same(self):
         # in order to get the best superimposition, the algorithm will rely on the
         # general atom type. Ie CA and CD might be matched together to maximise
         # the size of the superimposition.
@@ -1610,14 +1610,12 @@ class SuperimposedTopology:
 
         remove_dangling_h: After removing any pair it also removes any bound hydrogen(s).
         """
+        removed_hydrogen_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
             if node1.eq(node2, atol=atol):
                 continue
-
-            # Removed functionality: remove the dangling hydrogens
-            if remove_dangling_h is True:
-                # fixme - needs work and test cases
-                removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            elif (node1, node2) in removed_hydrogen_pairs:
+                continue
 
             # remove this pair
             # use full logging for this kind of information
@@ -1627,6 +1625,14 @@ class SuperimposedTopology:
             # keep track of the removed atoms due to the charge
             self._removed_pairs_with_charge_difference.append(
                 ((node1, node2), math.fabs(node2.charge - node1.charge)))
+
+            # Removed functionality: remove the dangling hydrogens
+            if remove_dangling_h is True:
+                removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+                removed_hydrogen_pairs.extend(removed_h_pairs)
+                for h_pair in removed_h_pairs:
+                    self._removed_pairs_with_charge_difference.append(
+                        (h_pair, 'dangling'))
 
         # sort the removed in a descending order
         self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
@@ -2803,7 +2809,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     if not use_only_element:
         for st in suptops:
             # fixme - rename
-            st.matched_atom_types_are_the_same()
+            st.enforce_matched_atom_types_are_the_same()
 
     # ensure that the bonds are used correctly.
     # If the bonds disagree, but atom types are the same, remove both bonded pairs
