@@ -992,6 +992,11 @@ class SuperimposedTopology:
                     if rm_disjoint_each_step:
                         next_approach.largest_cc_survives()
 
+                # regardless of whether the continuous disjoint removal is being tried or not,
+                # it will be applied at the end
+                # so apply it here at the end in order to make this comparison equivalent
+                next_approach.largest_cc_survives()
+
                 if len(next_approach) > suptop_size:
                     suptop_size = len(next_approach)
                     best_approach = approach
