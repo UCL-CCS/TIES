@@ -905,11 +905,19 @@ class SuperimposedTopology:
         # the size of the superimposition.
         # This function removes atom types that are not exactly the same.
         for a1, a2 in self.matched_pairs[::-1]:
-            if not a1.same_type(a2):
-                # remove this pair now. It served its purpose to get the best superimposition.
-                # but the atoms "might" have been mutated.
-                self.remove_node_pair((a1, a2))
-                print(f'Removed earlier matched general type:{a1}-{a2}')
+            # hydrogens might be removed out of order
+            if (a1, a2) not in self.matched_pairs:
+                continue
+
+            if a1.same_type(a2):
+                continue
+
+            # remove this pair now in this refining stage
+            self.remove_node_pair((a1, a2))
+            # get dangling hydrogens
+
+            removed_hydrogens = self.remove_attached_hydrogens((a1, a2))
+            print(f'Removed earlier general-match general type:{a1}-{a2} with dangling hydrogens: {removed_hydrogens}')
 
     def get_net_charge(self):
         """
