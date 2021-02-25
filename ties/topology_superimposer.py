@@ -1191,11 +1191,11 @@ class SuperimposedTopology:
         removed_pairs = []
         for pair, bond_types in list(attached_pairs):
             # ignore non hydrogens
-            if not pair[0].name.startswith('H'):
+            if not pair[0].element == 'H':
                 continue
 
             self.remove_node_pair(pair)
-            log('Removed attached hydrogen pair: ', pair)
+            log('Removed dangling hydrogen pair: ', pair)
             removed_pairs.append(pair)
         return removed_pairs
 
@@ -1616,7 +1616,7 @@ class SuperimposedTopology:
                 # if node_b leads to the same node X
         return overall_score
 
-    def refine_against_charges(self, atol, remove_dangling_h=False):
+    def refine_against_charges(self, atol):
         """
         Removes the matched pairs where atom charges are more different
         than the provided absolute tolerance atol (units in Electrons).
@@ -1625,9 +1625,7 @@ class SuperimposedTopology:
         """
         removed_hydrogen_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
-            if node1.eq(node2, atol=atol):
-                continue
-            elif (node1, node2) in removed_hydrogen_pairs:
+            if node1.eq(node2, atol=atol) or (node1, node2) in removed_hydrogen_pairs:
                 continue
 
             # remove this pair
@@ -1640,12 +1638,11 @@ class SuperimposedTopology:
                 ((node1, node2), math.fabs(node2.charge - node1.charge)))
 
             # Removed functionality: remove the dangling hydrogens
-            if remove_dangling_h is True:
-                removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
-                removed_hydrogen_pairs.extend(removed_h_pairs)
-                for h_pair in removed_h_pairs:
-                    self._removed_pairs_with_charge_difference.append(
-                        (h_pair, 'dangling'))
+            removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            removed_hydrogen_pairs.extend(removed_h_pairs)
+            for h_pair in removed_h_pairs:
+                self._removed_pairs_with_charge_difference.append(
+                    (h_pair, 'dangling'))
 
         # sort the removed in a descending order
         self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
