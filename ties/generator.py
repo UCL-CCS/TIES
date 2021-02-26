@@ -126,20 +126,20 @@ def prepare_inputs(morph,
     #Make build and replica_conf dirs
     # replica_conf contains NAMD scripts
     if 'namd' in md_engine.lower():
-        if not os.path.exists(cwd / 'replica_conf'):
-            os.makedirs(cwd / 'replica_conf')
+        if not os.path.exists(cwd / 'replica-confs'):
+            os.makedirs(cwd / 'replica-confs')
         else:
-            shutil.rmtree(cwd / 'replica_conf')
-            os.makedirs(cwd / 'replica_conf')
+            shutil.rmtree(cwd / 'replica-confs')
+            os.makedirs(cwd / 'replica-confs')
 
         # populate the replica_conf dir with scripts
         # minimization scripts
-        init_namd_file_min(namd_script_loc, cwd / 'replica_conf', min_script,
+        init_namd_file_min(namd_script_loc, cwd / 'replica-confs', min_script,
                            structure_name='sys_solv', pbc_box=solv_oct_boc)
         # equilibriation scripts, note eq_namd_filenames unused
-        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica_conf', structure_name='sys_solv', engine=md_engine)
+        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica-confs', structure_name='sys_solv', engine=md_engine)
         # production script
-        generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica_conf/sim1.conf', structure_name='sys_solv')
+        generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica-confs/sim1.conf', structure_name='sys_solv')
 
     elif 'openmm' in md_engine.lower():
         ties_script = open(scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
@@ -166,7 +166,7 @@ def prepare_inputs(morph,
     #copy replic-conf scripts
     #rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
     #for f in rep_conf_scripts:
-    #    shutil.copy(namd_script_loc / f, cwd / 'replica_conf')
+    #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
 
     # Generate the directory structure for all the lambdas, and copy the files
     if 'namd' in md_engine.lower():
