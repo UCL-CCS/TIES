@@ -41,6 +41,8 @@ class Config:
         self._manually_matched_atom_pairs = None
         self._ligands_contain_q = None
 
+        self._superimposition_starting_pair = None
+
         self._protein_ff = None
         self._ligand_ff = 'leaprc.gaff'
         self._ligand_ff_name = 'gaff'
@@ -327,6 +329,18 @@ class Config:
             self.antechamber_charge_type = []
 
         print(f'Ligand files already contain charges: {self._ligands_contain_q}')
+
+    @property
+    def superimposition_starting_pair(self):
+        return self._superimposition_starting_pair
+
+    @superimposition_starting_pair.setter
+    def superimposition_starting_pair(self, value):
+        if value == None:
+            self._superimposition_starting_pair = None
+        else:
+            atom_name_disappearing, atom_name_appearing = value.split('-')
+            self. _superimposition_starting_pair = (atom_name_disappearing, atom_name_appearing)
 
     @property
     def manually_matched_atom_pairs(self):

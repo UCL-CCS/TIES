@@ -2754,7 +2754,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            use_general_type=True,
                            use_only_element=False,
                            check_atom_names_unique=True,
-                           starting_pairs_heuristics=True):
+                           starting_pairs_heuristics=True,
+                           starting_pair_seed=None):
     """
     The main function that manages the entire process.
 
@@ -2777,7 +2778,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                                       ignore_coords=ignore_coords,
                                       left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type,
-                                      starting_pairs_heuristics=starting_pairs_heuristics)
+                                      starting_pairs_heuristics=starting_pairs_heuristics,
+                                      starting_pair_seed=starting_pair_seed)
     if not suptops:
         raise Exception('Error: Did not find a single superimposition state.'
                         'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
@@ -3276,7 +3278,8 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                             ignore_coords=False,
                             left_coords_are_ref=True,
                             use_general_type=True,
-                            starting_pairs_heuristics=True):
+                            starting_pairs_heuristics=True,
+                            starting_pair_seed=None):
     """
     Superimpose two molecules.
 
@@ -3299,7 +3302,11 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     #   pick a starting point from each component
     if not starting_node_pairs:
         # generate each to each nodes
-        if starting_pairs_heuristics:
+        if starting_pair_seed:
+            left_atom = [a for a in list(top1_nodes) if a.name == starting_pair_seed[0]][0]
+            right_atom = [a for a in list(top2_nodes) if a.name == starting_pair_seed[1]][0]
+            starting_node_pairs = [(left_atom, right_atom), ]
+        elif starting_pairs_heuristics:
             starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes)
             print('Using heuristics to select the initial pairs for searching the maximum overlap.'
                   'Could produce non-optimal results.')
