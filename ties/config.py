@@ -41,6 +41,8 @@ class Config:
         self._manually_matched_atom_pairs = None
         self._ligands_contain_q = None
 
+        self._superimposition_starting_pair = None
+
         self._protein_ff = None
         self._ligand_ff = 'leaprc.gaff'
         self._ligand_ff_name = 'gaff'
@@ -48,8 +50,6 @@ class Config:
         # MD/NAMD production input file
         self._md_engine = 'namd'
         self._lambda_rep_dir_tree = False
-        self._namd_prod = 'prod_2017.namd'  # Berendsen barostat ..
-        print(f'The NAMD production file: {self._namd_prod}')
 
         # experimental
         self._use_hybrid_single_dual_top = False
@@ -329,6 +329,18 @@ class Config:
         print(f'Ligand files already contain charges: {self._ligands_contain_q}')
 
     @property
+    def superimposition_starting_pair(self):
+        return self._superimposition_starting_pair
+
+    @superimposition_starting_pair.setter
+    def superimposition_starting_pair(self, value):
+        if value == None:
+            self._superimposition_starting_pair = None
+        else:
+            atom_name_disappearing, atom_name_appearing = value.split('-')
+            self. _superimposition_starting_pair = (atom_name_disappearing, atom_name_appearing)
+
+    @property
     def manually_matched_atom_pairs(self):
         return self._manually_matched_atom_pairs
 
@@ -375,16 +387,20 @@ class Config:
 
     @md_engine.setter
     def md_engine(self, value):
+        supported = ['NAMD(2)', 'NAMD3', 'OpenMM']
         if type(value) == str and value.lower() == 'namd':
             self._md_engine = value
-            print(f'MD Engine: {value}')
+        elif type(value) == str and value.lower() == 'namd3':
+            self._md_engine = value
+        elif type(value) == str and value.lower() == 'openmm':
+            self._md_engine = value
         else:
-            print('MD engine is not NAMD (the only working engine now). '
-                  'Checking for a bool value in the response. ')
+            print('Unknown engine {}. Supported engines {}'.format(value, supported))
             # check if it is a bool value
             response = ArgparseChecker.str2bool(value)
             print(f'Generating files for an MD engine: {response}')
             self._md_engine = response
+        print(f'MD Engine: {value}')
 
     @property
     def lambda_rep_dir_tree(self):
@@ -393,12 +409,6 @@ class Config:
     @lambda_rep_dir_tree.setter
     def lambda_rep_dir_tree(self, value):
         self._lambda_rep_dir_tree = value
-
-    # fixme - allow providing another .namd file
-    @property
-    def namd_prod(self):
-        # fixme - add user support
-        return self._namd_prod
 
     @property
     def ligand_ff(self):

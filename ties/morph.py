@@ -136,7 +136,8 @@ class Morph():
                                          check_atom_names_unique=check_atom_names_unique,
                                          net_charge_threshold=net_charge_threshold,
                                          redistribute_charges_over_unmatched=redistribute_charges_over_unmatched,
-                                         starting_pairs_heuristics=starting_pairs_heuristics)
+                                         starting_pairs_heuristics=starting_pairs_heuristics,
+                                         starting_pair_seed=morph.config.superimposition_starting_pair)
 
         assert len(suptops) == 1
         morph.set_suptop(suptops[0], mda_l1, mda_l2)
