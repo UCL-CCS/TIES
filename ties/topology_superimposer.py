@@ -323,7 +323,7 @@ class SuperimposedTopology:
         Return: matched atoms (even if they were unmatched for any reason)
         """
         # strip the pairs of the exact information about the charge differences
-        removed_pairs_with_charge_difference = [(n1, n2) for (n1, n2), q_diff in
+        removed_pairs_with_charge_difference = [(rm[0][0], rm[0][1]) for rm in
                                                 self._removed_pairs_with_charge_difference]
 
         # fixme: this should not work with disjointed cc and others?
@@ -1636,21 +1636,20 @@ class SuperimposedTopology:
             if node1.united_eq(node2, atol=atol) or (node1, node2) in removed_hydrogen_pairs:
                 continue
 
+            # remove the dangling hydrogens
+            removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
+            removed_hydrogen_pairs.extend(removed_h_pairs)
+
             # remove this pair
-            # use full logging for this kind of information
-            # print('Q: removing nodes', (node1, node2)) # to do - consider making this into a logging feature
             self.remove_node_pair((node1, node2))
 
             # keep track of the removed atoms due to the charge
             self._removed_pairs_with_charge_difference.append(
                 ((node1, node2), math.fabs(node2.united_charge - node1.united_charge)))
 
-            # Removed functionality: remove the dangling hydrogens
-            removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
-            removed_hydrogen_pairs.extend(removed_h_pairs)
-            for h_pair in removed_h_pairs:
+            for h1, h2 in removed_h_pairs:
                 self._removed_pairs_with_charge_difference.append(
-                    (h_pair, 'dangling'))
+                    ((h1, h2), math.fabs(h1.united_charge - h2.united_charge)))
 
         # sort the removed in a descending order
         self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
