@@ -1,3 +1,6 @@
+#NAMD3
+CUDASOAintegrate on
+
 # Forcefield/Topology Information
 paraTypeCharmm      off
 amber yes
@@ -61,15 +64,14 @@ langevinDamping     5     ;# damping coefficient (gamma) of 5/ps
 langevinTemp        300
 langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
 
-# Constant-P
-useGroupPressure      yes ;# needed for 2fs steps
-useFlexibleCell       no  ;# no for water box, yes for membrane
-useConstantArea       no  ;# no for water box, yes for membrane
-BerendsenPressure                       on
-BerendsenPressureTarget                 1.01325
-BerendsenPressureCompressibility        4.57e-5
-BerendsenPressureRelaxationTime         100
-BerendsenPressureFreq
+# pressure - NAMD3 cant use Berendsen
+langevinPiston          on             # Nose-Hoover Langevin piston pressure control
+langevinPistonTarget  1.01325          # target pressure in bar 1atm = 1.01325bar
+langevinPistonPeriod  50.0             # oscillation period in fs. correspond to pgamma T=50fs=0.05ps
+langevinPistonTemp    300              # f=1/T=20.0(pgamma)
+langevinPistonDecay   25.0             # oscillation decay time. smaller value correspons to larger random
+                                       # forces and increased coupling to the Langevin temp bath.
+                                       # Equall or smaller than piston period
 
 # Output trajectories
 dcdfreq  5000

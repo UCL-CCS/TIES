@@ -48,8 +48,6 @@ class Config:
         # MD/NAMD production input file
         self._md_engine = 'namd'
         self._lambda_rep_dir_tree = False
-        self._namd_prod = 'prod_2017.namd'  # Berendsen barostat ..
-        print(f'The NAMD production file: {self._namd_prod}')
 
         # experimental
         self._use_hybrid_single_dual_top = False
@@ -375,16 +373,20 @@ class Config:
 
     @md_engine.setter
     def md_engine(self, value):
+        supported = ['NAMD(2)', 'NAMD3', 'OpenMM']
         if type(value) == str and value.lower() == 'namd':
             self._md_engine = value
-            print(f'MD Engine: {value}')
+        elif type(value) == str and value.lower() == 'namd3':
+            self._md_engine = value
+        elif type(value) == str and value.lower() == 'openmm':
+            self._md_engine = value
         else:
-            print('MD engine is not NAMD (the only working engine now). '
-                  'Checking for a bool value in the response. ')
+            print('Unknown engine {}. Supported engines {}'.format(value, supported))
             # check if it is a bool value
             response = ArgparseChecker.str2bool(value)
             print(f'Generating files for an MD engine: {response}')
             self._md_engine = response
+        print(f'MD Engine: {value}')
 
     @property
     def lambda_rep_dir_tree(self):
@@ -393,12 +395,6 @@ class Config:
     @lambda_rep_dir_tree.setter
     def lambda_rep_dir_tree(self, value):
         self._lambda_rep_dir_tree = value
-
-    # fixme - allow providing another .namd file
-    @property
-    def namd_prod(self):
-        # fixme - add user support
-        return self._namd_prod
 
     @property
     def ligand_ff(self):

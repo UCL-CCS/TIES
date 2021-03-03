@@ -1,9 +1,12 @@
+#NAMD3
+CUDASOAintegrate on
+
 # Forcefield/Topology Information
 paraTypeCharmm      off
 amber yes
-coordinates        ../build/{structure_name}.pdb
 parmfile           ../build/{structure_name}.top
 readexclusions no
+coordinates        ../build/{structure_name}.pdb
 
 # Unchanging information
 ################################################################################
@@ -26,59 +29,52 @@ wrapWater           on
 wrapAll             on
 # Output
 outputEnergies      1000
-outputPressure      5000
+outputPressure      1000
 
 # Protocol specific information
 ################################################################################
 
 PME                 yes
-PMEGridSpacing      1.0
+PMEGridSpacing     1.0;
 
-# Output and restart
-set lambda [lindex $argv 0]
-set replica_id [lindex $argv 1]
-set restart_root "../LAMBDA_%s/rep%s/equilibration/eq2" ; # directory must exist
-set output_root "../LAMBDA_%s/rep%s/simulation/sim1" ; # directory must exist
+# Constraints
+{constraints}
 
-# Output and restart
-binaryoutput        yes
-binaryrestart       yes
-restartfreq         500000
-xstFreq             5000
-stdout [format $output_root.log $lambda $replica_id]
-outputname [format $output_root $lambda $replica_id]
-restartname [format $output_root $lambda $replica_id]
-XSTfile [format $output_root.xst $lambda $replica_id]
-
-# Coordinate, velocities, Cell size
-bincoordinates [format $restart_root.coor $lambda $replica_id]
-binvelocities [format $restart_root.vel $lambda $replica_id]
-extendedSystem [format $restart_root.xsc $lambda $replica_id]
-
-# Constant-T
+# Langevin temperature
 langevin            on    ;# do langevin dynamics
 langevinDamping     5     ;# damping coefficient (gamma) of 5/ps
 langevinTemp        300
 langevinHydrogen    no    ;# dont couple langevin bath to hydrogens
 
-# Constant-P
-useGroupPressure      yes ;# needed for 2fs steps
-useFlexibleCell       no  ;# no for water box, yes for membrane
-useConstantArea       no  ;# no for water box, yes for membrane
-BerendsenPressure                       on
-BerendsenPressureTarget                 1.01325
-BerendsenPressureCompressibility        4.57e-5
-BerendsenPressureRelaxationTime         100
-BerendsenPressureFreq
+# pressure - NAMD3 cant use Berendsen
+{pressure}
 
-# Output trajectories
+# Output and restart
+set lambda [lindex $argv 0]
+set replica_id [lindex $argv 1]
+set restart_root "../LAMBDA_%s/rep%s/equilibration/{prev_output}" ; # directory must exist
+set output_root "../LAMBDA_%s/rep%s/equilibration/{output}" ; # directory must exist
+
+binaryoutput        yes
+binaryrestart       yes
+restartfreq         5000
+xstFreq             5000
+stdout [format $output_root.log $lambda $replica_id]
+outputname [format $output_root $lambda $replica_id]
+restartname [format $output_root $lambda $replica_id]
+XSTfile [format $output_root.xst $lambda $replica_id]
 dcdfreq  5000
 DCDUnitcell  yes
+
+# Coordinates, velocities and cell size
+bincoordinates [format $restart_root.coor $lambda $replica_id]
+binvelocities [format $restart_root.vel $lambda $replica_id]
+extendedSystem [format $restart_root.xsc $lambda $replica_id]
 
 # alchemical
 alch            on
 alchType        ti
-alchLambda      $lambda
+alchLambda          $lambda
 alchFile        ../build/{structure_name}_fep.pdb
 alchCol         B
 alchOutFile [format $output_root.alch $lambda $replica_id]
@@ -89,5 +85,4 @@ alchElecLambdaStart     0.45
 alchVdwLambdaEnd        1.0
 alchDecouple            on
 
-# protocol - MD
-run 2000000
+{run}

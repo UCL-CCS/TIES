@@ -6,6 +6,7 @@ Load two ligands, run the topology superimposer, and then using the results, gen
 """
 import time
 import itertools
+import glob
 
 from ties.generator import *
 from ties.helpers import *
@@ -95,9 +96,6 @@ def command_line_script():
     parser.add_argument('-lff', '--ligand-ff', metavar='str', dest='ligand_ff_name',
                         type=str, required=False, default='gaff',
                         help='Either "gaff" or "gaff2"')
-    parser.add_argument('-namd_prod', '--namd-prod', metavar='file', dest='namd_prod',
-                        type=str, required=False, default='prod.namd',
-                        help='This is a temporary solution. The name of the file to be used for the production. ')
     parser.add_argument('-md', '--md-engine', metavar='bool', dest='md_engine',
                         type=str, required=False, default='namd',
                         help='Generate input files for the selected engine. '
@@ -271,6 +269,9 @@ def command_line_script():
     # fixme - switch to morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
     for morph in selected_morphs:
+        ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
+        if not os.path.exists(config.workdir / ligand_name):
+            os.makedirs(config.workdir / ligand_name)
         prepare_inputs(morph,
                        config.workdir / 'lig',
                        protein=None,
@@ -282,13 +283,16 @@ def command_line_script():
                        net_charge=config.ligand_net_charge,
                        ambertools_script_dir=config.ambertools_script_dir,
                        ambertools_tleap=config.ambertools_tleap,
-                       namd_prod=config.namd_prod,
                        hybrid_topology=config.use_hybrid_single_dual_top,
                        vmd_vis_script=config.vmd_vis_script,
                        md_engine=config.md_engine,
                        lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
         print(f'Ligand {morph} directory populated successfully')
+        shutil.move(config.workdir / 'lig' / morph.internal_name,
+                    config.workdir / ligand_name / 'lig')
+        os.rmdir(config.workdir / 'lig')
+
 
     ##########################################################
     # ------------------ Complex  ----------------------------
@@ -300,6 +304,9 @@ def command_line_script():
         print(f'Protein net charge: {protein_net_charge}')
 
         for morph in selected_morphs:
+            ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
+            if not os.path.exists(config.workdir / ligand_name):
+                os.makedirs(config.workdir / ligand_name)
             prepare_inputs(morph,
                            config.workdir / 'complex',
                            protein=config.protein,
@@ -311,12 +318,14 @@ def command_line_script():
                            net_charge=config.ligand_net_charge + protein_net_charge,
                            ambertools_script_dir=config.ambertools_script_dir,
                            ambertools_tleap=config.ambertools_tleap,
-                           namd_prod=config.namd_prod,
                            hybrid_topology=config.use_hybrid_single_dual_top,
                            vmd_vis_script=config.vmd_vis_script,
                            md_engine=config.md_engine,
                            lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                            )
+            shutil.move(config.workdir / 'complex' / morph.internal_name,
+                        config.workdir / ligand_name / 'com')
+            os.rmdir(config.workdir / 'complex')
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)
