@@ -612,7 +612,7 @@ class SuperimposedTopology:
     def get_heavy_atoms(self):
         return [pair for pair in self.matched_pairs if pair[0].element != 'H']
 
-    def largest_cc_survives(self):
+    def largest_cc_survives(self, verbose=True):
         """
         CC - Connected Component.
 
@@ -666,7 +666,8 @@ class SuperimposedTopology:
                                                         for cc in ccs])
         for cc in ccs[::-1]:
             if len([p for p in cc if p.is_heavy_atom()]) < largest_heavy_atom_cc:
-                print('Found CC that had fewer heavy atoms. Removing. ')
+                if verbose:
+                    print('Found CC that had fewer heavy atoms. Removing. ')
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
@@ -674,7 +675,8 @@ class SuperimposedTopology:
         largest_cycle_num = max([len(nx.cycle_basis(cc)) for cc in ccs])
         for cc in ccs[::-1]:
             if len(nx.cycle_basis(cc)) < largest_cycle_num:
-                print('Found CC that had fewer cycles. Removing. ')
+                if verbose:
+                    print('Found CC that had fewer cycles. Removing. ')
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
@@ -699,13 +701,15 @@ class SuperimposedTopology:
                         heavy_atom_counter += 1
 
             if heavy_atom_counter < most_heavy_atoms_in_cycles:
-                print('Found CC that had fewer heavy atoms in cycles. Removing. ')
+                if verbose:
+                    print('Found CC that had fewer heavy atoms in cycles. Removing. ')
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
         if len(ccs) > 1:
             # there are equally large CCs
-            print("The Connected Components are equally large! Picking the first one")
+            if verbose:
+                print("The Connected Components are equally large! Picking the first one")
             for cc in ccs[1:]:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
@@ -985,7 +989,7 @@ class SuperimposedTopology:
                 next_approach = copy.copy(self)
                 # first overall
                 if rm_disjoint_each_step:
-                    next_approach.largest_cc_survives()
+                    next_approach.largest_cc_survives(verbose=False)
 
                 # try the strategy
                 while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
@@ -995,12 +999,12 @@ class SuperimposedTopology:
                         next_approach.remove_node_pair(pair)
 
                     if rm_disjoint_each_step:
-                        next_approach.largest_cc_survives()
+                        next_approach.largest_cc_survives(verbose=False)
 
                 # regardless of whether the continuous disjoint removal is being tried or not,
                 # it will be applied at the end
                 # so apply it here at the end in order to make this comparison equivalent
-                next_approach.largest_cc_survives()
+                next_approach.largest_cc_survives(verbose=False)
 
                 if len(next_approach) > suptop_size:
                     suptop_size = len(next_approach)
@@ -1317,6 +1321,13 @@ class SuperimposedTopology:
         # copy the mirrors
         new_one.mirrors = copy.copy(self.mirrors)
         new_one.alternative_mappings = copy.copy(self.alternative_mappings)
+
+        # make a shallow copy of the removed lists
+        new_one._removed_because_disjointed_cc = copy.copy(self._removed_because_disjointed_cc)
+        new_one._removed_pairs_with_charge_difference = copy.copy(self._removed_pairs_with_charge_difference)
+        new_one._removed_due_to_net_charge = copy.copy(self._removed_due_to_net_charge)
+        new_one._removed_because_unmatched_rings = copy.copy(self._removed_because_unmatched_rings)
+        new_one._removed_because_diff_bonds = copy.copy(self._removed_because_diff_bonds)
 
         # fixme - check any other lists that you keep track of
         return new_one
