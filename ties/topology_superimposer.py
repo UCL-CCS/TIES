@@ -2855,21 +2855,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                     n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
                     suptop.remove_node_pair((n1, n2))
 
-    # fixme - future option? for now disabled
-    # Smart removal of atoms is now hardcoded to be
-    # disabled until verified to yield good results
-    disjointed_before_net_charge_filter = False
-
-    if disjointed_before_net_charge_filter:
-        # This might in itself help sort out the problem of net charges
-        if not disjoint_components:
-            print(f'Checking for disjoint components in the {len(suptops)} suptops')
-            # ensure that each suptop represents one CC
-            # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
-            # fixme - add the log about which atoms are removed?
-            [st.largest_cc_survives() for st in suptops]
-
-
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.
         # This is because we are only keeping one suptop right now.
