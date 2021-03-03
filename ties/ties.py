@@ -66,6 +66,13 @@ def command_line_script():
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom will be transformed to BR2 atom.')
+    parser.add_argument('-supseed', '--superimposition-starting-pair', metavar='pair', dest='superimposition_starting_pair',
+                        type=str, required=False,
+                        help='A starting seed for the superimposition. '
+                             'This is the pair from which the superimposition algorithm will start the '
+                             'traversal to find the superimposition. '
+                             'Example: "C1-C34" where C1 is in the disappearing molecule, '
+                             'and C34 is in the appearing molecule. ')
     parser.add_argument('-mismatch', '--manual-mismatch', metavar='file or pair', dest='manually_mismatched_pairs',
                         type=Path, required=False, # fixme - implement
                         help='A path to a file that contains atom-pairs (one per line).'
@@ -149,6 +156,7 @@ def command_line_script():
     config.set_ligand_ff(args.ligand_ff_name)
     config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
     config.md_engine = args.md_engine
+    config.superimposition_starting_pair = args.superimposition_starting_pair
     config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
 
     # TIES
@@ -232,6 +240,7 @@ def command_line_script():
                          ignore_charges_completely=config.ignore_charges_completely,
                          disjoint_components=config.allow_disjoint_components,
                          use_only_gentype=config.use_element_in_superimposition,
+                         starting_pairs_heuristics=True,
                          )
 
         # save meta data
