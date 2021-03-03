@@ -111,6 +111,13 @@ class AtomNode:
 
         return False
 
+    @property
+    def united_charge(self):
+        '''
+        United atom charge: summed charges of this atom and the bonded hydrogens.
+        '''
+        return self.charge + sum(a.charge for a, b in self.bonds if a.is_hydrogen())
+
     def __hash__(self):
         # Compute the hash key once
         if self.hash_value is not None:
@@ -139,14 +146,28 @@ class AtomNode:
 
     def eq(self, atom, atol=0):
         """
-        What does it mean that two atoms are the same? They are the same type and charge.
-        5 % tolerance by default
+        Check if the atoms are the same type and charge within a tolerance.
+
+        fixme - add exception to the type (gaff2) and use CLASS.EXCEPTIONS in order to reimplement it
         """
         if self.type == atom.type and \
                 np.isclose(self.charge, atom.charge, atol=atol):
             return True
 
         return False
+
+    def united_eq(self, atom, atol=0):
+        """
+        Like eq, check if the atoms have the same atom type, and if their charges are within the tolerance.
+        If the atoms have hydrogens, add up the attached hydrogens and use a united atom representation.
+        """
+        if self.type != atom.type:
+            return False
+
+        if not np.isclose(self.united_charge, atom.united_charge, atol=atol):
+            return False
+
+        return True
 
     def same_element(self, atom):
         # check if the atoms are the same elements
@@ -928,37 +949,13 @@ class SuperimposedTopology:
         assert abs(net_charge) < 1
         return net_charge
 
-    def get_worst_match_charge(self):
-        """
-        Returns the largest difference in charge found in the pairs.
-        """
-        return max(np.abs(n1.charge - n2.charge) for n1, n2 in self.matched_pairs)
-
     def get_matched_with_diff_q(self):
         """
         Returns a list of matched atom pairs that have a different q,
         sorted in the descending order (the first pair has the largest q diff).
         """
-        diff_q = [(n1, n2) for n1, n2 in self.matched_pairs if np.abs(n1.charge - n2.charge) > 0]
-        return sorted(diff_q, key=lambda p: abs(p[0].charge - p[1].charge), reverse=True)
-
-    def remove_worst_charge_match(self):
-        """
-        Find a match for which the charge difference is the worst. Then remove it.
-        If there is no charge differences, return 0.
-        Otherwise, return the charge difference of the removed pair.
-        """
-        largest_difference = self.get_worst_match_charge()
-        if largest_difference == 0:
-            return 0
-
-        # find the pair with the largest difference
-        worst_match = [(n1, n2) for n1, n2 in self.matched_pairs
-                       if np.abs(n1.charge - n2.charge) == largest_difference][0]
-        self.remove_node_pair(worst_match)
-        # add to the list of removed because of the net charge
-        self._removed_due_to_net_charge.append([worst_match, largest_difference])
-        return np.abs(largest_difference)
+        diff_q = [(n1, n2) for n1, n2 in self.matched_pairs if np.abs(n1.united_charge - n2.united_charge) > 0]
+        return sorted(diff_q, key=lambda p: abs(p[0].united_charge - p[1].united_charge), reverse=True)
 
     def apply_net_charge_filter(self, net_charge_threshold):
         """
@@ -1625,7 +1622,7 @@ class SuperimposedTopology:
         """
         removed_hydrogen_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
-            if node1.eq(node2, atol=atol) or (node1, node2) in removed_hydrogen_pairs:
+            if node1.united_eq(node2, atol=atol) or (node1, node2) in removed_hydrogen_pairs:
                 continue
 
             # remove this pair
