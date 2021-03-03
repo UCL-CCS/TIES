@@ -99,7 +99,7 @@ class AtomNode:
         self.position = corrected_type
 
     def is_hydrogen(self):
-        if self.type == 'H':
+        if self.element == 'H':
             return True
 
         return False
@@ -1643,7 +1643,7 @@ class SuperimposedTopology:
 
             # keep track of the removed atoms due to the charge
             self._removed_pairs_with_charge_difference.append(
-                ((node1, node2), math.fabs(node2.charge - node1.charge)))
+                ((node1, node2), math.fabs(node2.united_charge - node1.united_charge)))
 
             # Removed functionality: remove the dangling hydrogens
             removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
