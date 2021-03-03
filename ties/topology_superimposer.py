@@ -1024,7 +1024,7 @@ class SuperimposedTopology:
             # remove them
             for pair in best_candidate_with_h:
                 self.remove_node_pair(pair)
-                diff_q_pairs = abs(pair[0].charge - pair[1].charge)
+                diff_q_pairs = abs(pair[0].united_charge - pair[1].united_charge)
                 # add to the list of removed because of the net charge
                 self._removed_due_to_net_charge.append([pair, diff_q_pairs])
                 total_diff += diff_q_pairs
