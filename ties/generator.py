@@ -461,7 +461,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
 
     u = load_mda_u(source_pdb_filename)
-    if 'mer' not in u.atoms.resnames:
+    if 'HYB' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
@@ -474,7 +474,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'mer':
+        if atom.resname != 'HYB':
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
