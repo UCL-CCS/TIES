@@ -135,9 +135,10 @@ def prepare_inputs(morph,
         # populate the replica_conf dir with scripts
         # minimization scripts
         init_namd_file_min(namd_script_loc, cwd / 'replica-confs', min_script,
-                           structure_name='sys_solv', pbc_box=solv_oct_boc)
+                           structure_name='sys_solv', pbc_box=solv_oct_boc, protein=protein)
         # equilibriation scripts, note eq_namd_filenames unused
-        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica-confs', structure_name='sys_solv', engine=md_engine)
+        generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica-confs', structure_name='sys_solv', engine=md_engine,
+                         protein = protein)
         # production script
         generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica-confs/sim1.conf', structure_name='sys_solv')
 
@@ -155,7 +156,8 @@ def prepare_inputs(morph,
 
     # populate the build dir with positions, parameters and constraints
     # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
-    create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
+    if protein is not None:
+        create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
     #pdb, positions
     shutil.move(hybrid_solv, cwd / 'build')
     #pdb.fep, alchemical atoms
@@ -459,7 +461,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
 
     u = load_mda_u(source_pdb_filename)
-    if 'HYB' not in u.atoms.resnames:
+    if 'mer' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
@@ -472,7 +474,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'HYB':
+        if atom.resname != 'mer':
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
@@ -832,7 +834,7 @@ def create_constraint_files(original_pdb, output):
     u.atoms.write(output)
 
 
-def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
+def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, protein):
     '''
 
     :param from_dir:
@@ -840,10 +842,23 @@ def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box):
     :param filename:
     :param structure_name:
     :param pbc_box:
+    :param protein:
     :return:
     '''
+    if protein is not None:
+        cons = f"""
+constraints  on
+consexp  2
+# use the same file for the position reference and the B column
+consref  ../build/{structure_name}.pdb ;#need all positions
+conskfile  ../build/cons.pdb
+conskcol  B
+        """
+    else:
+        cons = 'constraints  off'
+
     min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
-        .format(structure_name=structure_name, **pbc_box)
+        .format(structure_name=structure_name, constraints=cons, **pbc_box)
     out_name = 'eq0.conf'
     open(os.path.join(to_dir, out_name), 'w').write(min_namd_initialised)
 
@@ -860,13 +875,14 @@ def generate_namd_prod(namd_prod, dst_dir, structure_name):
     open(dst_dir, 'w').write(reformatted_namd_in)
 
 
-def generate_namd_eq(namd_eq, dst_dir, structure_name, engine):
+def generate_namd_eq(namd_eq, dst_dir, structure_name, engine, protein):
     '''
 
     :param namd_eq:
     :param dst_dir:
     :param structure_name:
-    :param engine
+    :param engine:
+    :param protein:
     :return:
     '''
     input_data = open(namd_eq).read()
@@ -920,19 +936,22 @@ langevinPistonDecay   25.0             # oscillation decay time. smaller value c
                                        # Equall or smaller than piston period
                 """
 
-        constraints = f"""
-constraints  on
-consexp  2
-# use the same file for the position reference and the B column
-consref  ../build/{structure_name}.pdb ;#need all positions
-conskfile  ../build/cons.pdb
-conskcol  B
-        """
+        if protein is not None:
+            cons = f"""
+        constraints  on
+        consexp  2
+        # use the same file for the position reference and the B column
+        consref  ../build/{structure_name}.pdb ;#need all positions
+        conskfile  ../build/cons.pdb
+        conskcol  B
+                """
+        else:
+            cons = 'constraints  off'
 
         prev_output = 'eq{}'.format(i-1)
 
         reformatted_namd_in = input_data.format(
-            constraints=constraints, output='eq%d' % (i),
+            constraints=cons, output='eq%d' % (i),
             prev_output=prev_output, structure_name=structure_name, pressure=pressure, run=run)
 
         next_eq_step_filename = dst_dir / ("eq%d.conf" % (i))
