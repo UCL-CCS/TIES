@@ -71,12 +71,7 @@ xstFreq             1000
 #DCDUnitcell  yes
 
 # Constraints
-constraints  on
-consexp  2
-# use the same file for the position reference and the B column
-consref     ../build/{structure_name}.pdb ;#need all positions
-conskfile  ../build/cons.pdb
-conskcol  B
+{constraints}
 
 # alchemical
 alch            on
