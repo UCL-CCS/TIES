@@ -357,6 +357,28 @@ class SuperimposedTopology:
 
         return app, dis
 
+    def ringring(self):
+        """
+        Rings can only be matched to rings.
+        """
+        l_circles, r_circles = self.get_original_circles()
+        removed_h = []
+        ringring_removed = []
+        for l, r in self.matched_pairs[::-1]:
+            if (l, r) in removed_h:
+                continue
+
+            l_ring = any([l in c for c in l_circles])
+            r_ring = any([r in c for c in r_circles])
+            if l_ring + r_ring == 1:
+                removed_h.extend(self.remove_attached_hydrogens((l, r)))
+                self.remove_node_pair((l, r))
+                ringring_removed.append((l,r))
+
+        if ringring_removed:
+            print(f'Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}')
+        return ringring_removed, removed_h
+
     def is_or_was_matched(self, atom_name1, atom_name2):
         """
         A helper function. For whatever reasons atoms get discarded.
@@ -2819,6 +2841,10 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # if useCoords:
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
+
+    # ensure that ring-atoms are not matched to non-ring atoms
+    for st in suptops:
+        st.ringring()
 
     # introduce exceptions to the atom type types so that certain
     # different atom types are seen as the same
