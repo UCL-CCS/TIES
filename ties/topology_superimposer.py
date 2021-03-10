@@ -41,6 +41,7 @@ element_from_type = {
     'I': 'I',
     'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S',
     'S6': 'S', 'SX': 'S', 'SY': 'S', 'SP': 'S', 'SQ': 'S',
+    'SI': 'SI',
 }
 
 
