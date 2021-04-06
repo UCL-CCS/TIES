@@ -18,15 +18,15 @@ from ties.config import Config
 
 def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
-    parser.add_argument('action', metavar='command', type=str,
-                        help='Action to be performed. E.g. "ties rename, ties create, .." ')
+    parser.add_argument('command', metavar='str', type=str,
+                        help='Action to be performed. E.g. "rename, ties create, .." ')
     parser.add_argument('-l', '--ligands', metavar='files ', dest='ligands',
                         nargs='+',
                         type=ArgparseChecker.existing_file, #required=True,
                         help='A list of uniquely named ligand files. '
                              'If more than 2 ligands are provided, '
                              'Lead Optimisation Mapping (TIES MAP) will be used.')
-    parser.add_argument('-dir', '--ties-output-dir', metavar='directory', dest='tiesdir',
+    parser.add_argument('-dir', '--ties-output-dir', metavar='directory', dest='workdir',
                         type=Path, required=False,
                         help='If not provided, "ties20" directory will be created in the current directory. ')
     parser.add_argument('-nc', '--ligand-net-charge', metavar='integer', dest='ligand_net_charge',
