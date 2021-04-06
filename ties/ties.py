@@ -36,7 +36,7 @@ def command_line_script():
     parser.add_argument('-p', '--protein', metavar='file', dest='protein',
                         type=ArgparseChecker.existing_file, required=False,
                         help='The protein file')
-    parser.add_argument('-qtol', '--q-pair-tolerance', metavar='decimal', dest='qtol',
+    parser.add_argument('-qtol', '--q-pair-tolerance', metavar='decimal', dest='atom_pair_q_atol',
                         type=float, required=False, default=0.1,
                         help='The maximum difference in charge between any two paired atoms (electron unit). '
                              'Default 0.1e')
@@ -44,12 +44,12 @@ def command_line_script():
                         type=float, required=False, default=0.1,
                         help='The maximum difference in charge between two ligands. '
                              'Default 0.1e')
-    parser.add_argument('-use-input-q', '--use-ligand-charges', metavar='boolean', dest='ligands_have_q',
+    parser.add_argument('-use-input-q', '--use-ligand-charges', metavar='boolean', dest='ligands_contain_q',
                         type=ArgparseChecker.str2bool, required=False, default=None,
                         help='Use charges provided with the ligand files (with .mol2). '
                              'Default: If .mol2 is given, using the given charges will be attempted. ' # fixme - test if this agrees with the files
                              'Default: If .pdb is given, then BCC charges are computed with antechamber. ')
-    parser.add_argument('-align-mcs', '--align-ligands-mcs', metavar='boolean', dest='align_mcs',
+    parser.add_argument('-align-mcs', '--align-ligands-mcs', metavar='boolean', dest='align_molecules_using_mcs',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
                              'the generated maximum common substructure (MCS).')
@@ -61,7 +61,7 @@ def command_line_script():
                         type=ArgparseChecker.ambertools_home, required=False,
                         help='Path to the home directory of ambertools '
                              '(the one that contains "bin" directory which contains "antechamber" file)')
-    parser.add_argument('-match', '--manual-match', metavar='file or pair', dest='manually_matched_pairs',
+    parser.add_argument('-match', '--manual-match', metavar='file or pair', dest='manually_matched_atom_pairs',
                         type=Path, required=False, # fixme - how multiple pairs affect it?
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
@@ -80,7 +80,7 @@ def command_line_script():
                              'For example a line with CL2-BR2 means that CL2 atom cannot be matched to BR2 atom.'
                              'Note that this option might have undesired consequences. ')
     parser.add_argument('-redist-q', '--redistribute-q-over-unmatched', metavar='boolean',
-                        dest='redistribute_charges_over_unmatched',
+                        dest='redistribute_q_over_unmatched',
                         type=ArgparseChecker.str2bool, required=False, default=True,
                         help='Averaging the charges in a pair of matched atoms (see --q-pair-tolerance) '
                              'changes the overall molecule charge slightly. '
@@ -96,14 +96,14 @@ def command_line_script():
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Allow the molecules to be divided by "disappearing/appearing" atoms.')
     # temporary # fixme - list the FFs here
-    parser.add_argument('-pff', '--protein-ff', metavar='str', dest='protein_forcefield',
+    parser.add_argument('-pff', '--protein-ff', metavar='str', dest='protein_ff',
                         type=str, required=False, default='leaprc.protein.ff14SB',
                         help='This is a temporary solution. E.g. "leaprc.protein.ff14SB", '
                              ', "leaprc.ff99SBildn", etc.')
     parser.add_argument('-lff', '--ligand-ff', metavar='str', dest='ligand_ff_name',
                         type=str, required=False, default='gaff',
                         help='Either "gaff" or "gaff2"')
-    parser.add_argument('-md', '--md-engine', metavar='bool', dest='md_engine',
+    parser.add_argument('-md', '--md-engine', metavar='str', dest='md_engine',
                         type=str, required=False, default='namd',
                         help='Generate input files for the selected engine. '
                              'Use value "no" if you do not want the MD input to be generated. '
@@ -127,43 +127,15 @@ def command_line_script():
                         help='Ignore the specific atom types in the superimposition. Use only the elements. ')
 
     args = parser.parse_args()
-
-    # ------------------ Configuration and checks
-    config = Config()
-    config.workdir = args.tiesdir
-    # ambertools
-    config.ambertools_home = args.ambertools_home
-    config.antechamber_dr = args.antechamber_dr
-    # TIES 20 settings
-    # charges
-    config.ligand_net_charge = args.ligand_net_charge
-    config.atom_pair_q_atol = args.qtol
-    config.net_charge_threshold = args.net_charge_threshold
-    config.redistribute_q_over_unmatched = args.redistribute_charges_over_unmatched
-    config.ignore_charges_completely = args.ignore_charges_completely
-    # coordinates
-    config.align_molecules = args.align_mcs
-    config.coordinates_file = args.coordinates_file
-    # superimposition
-    config.allow_disjoint_components = args.allow_disjoint_components
-    config.use_element_in_superimposition = args.use_element
-    # check the protein and the ligands
-    config.protein = args.protein
-    config.set_ligand_files(args.ligands, args.ligands_have_q,
-                            args.manually_matched_pairs, args.manually_mismatched_pairs)
-    config.protein_ff = args.protein_forcefield
-    # ligand_ff_name is also referred to as "atom type", e.g. "gaff"
-    config.set_ligand_ff(args.ligand_ff_name)
-    config.use_hybrid_single_dual_top = args.hybrid_single_dual_top
-    config.md_engine = args.md_engine
-    config.superimposition_starting_pair = args.superimposition_starting_pair
-    config.lambda_rep_dir_tree = args.lambda_rep_dir_tree
+    command = args.command
+    delattr(args, 'command')
+    # assign all the parsed arguments to the Config class
+    config = Config(**args.__dict__)
 
     # TIES
     # create ligands
     ligands = [Ligand(lig, config) for lig in args.ligands]
 
-    command = args.action
     if command == 'rename':
         # fixme - redo renaming?
         # this case assumes that there are only two ligands given

@@ -8,9 +8,10 @@ from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
 
 class Config:
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         # set the path to the scripts
         code_root = pathlib.Path(os.path.dirname(__file__))
+
         # scripts/input files
         self.script_dir = code_root / 'scripts'
         self.namd_script_dir = self.script_dir / 'namd'
@@ -31,15 +32,18 @@ class Config:
         self._allow_disjoint_components = False
         # use only the element in the superimposition rather than the specific atom type
         self._use_element = False
+        self._use_element_in_superimposition = True
 
         # coordinates
-        self._align_molecules = False
+        self._align_molecules_using_mcs = False
         self._use_original_coor = False
         self._coordinates_file = None
 
         self._ligand_files = None
         self._manually_matched_atom_pairs = None
         self._ligands_contain_q = None
+
+        self._ligand_tleap_in = None
 
         self._superimposition_starting_pair = None
 
@@ -54,6 +58,10 @@ class Config:
         # experimental
         self._use_hybrid_single_dual_top = False
         self._ignore_charges_completely = False
+
+        # assign all the initial configuration values
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     @property
     def workdir(self):
@@ -93,10 +101,8 @@ class Config:
     def ligand_files(self):
         return self._ligand_files
 
-    def set_ligand_files(self, files,
-                         ligands_have_q=None,
-                         manually_matched_pairs=None,
-                         manually_mismatched_pairs=None):
+    @ligand_files.setter
+    def ligand_files(self, files):
         if len(files) < 1:
             print('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
             sys.exit(1)
@@ -129,20 +135,6 @@ class Config:
         # TODO - ensure that it is a connected component and there is no extra atoms
 
         self._ligand_files = files
-
-        # whether the ligands have their own charges
-        self.ligands_contain_q = ligands_have_q
-        # the manually matched pairs must be delivered after
-        self.manually_matched_atom_pairs = manually_matched_pairs
-
-        # fixme
-        # todo
-        # force_mismatch = []
-        # if manually_mismatched_pairs is not None:
-        #     with open(manually_mismatched_pairs) as IN:
-        #         for left_atom, right_atom in csv.reader(IN, delimiter='-'):
-        #             force_mismatch.append((left_atom, right_atom))
-            # fixme - check that there is no overlap between match and mismatch lists
 
     # --------------- ambertools
     @property
@@ -270,13 +262,13 @@ class Config:
                   'The results should not be used in production simulations.')
 
     @property
-    def align_molecules(self):
+    def align_molecules_using_mcs(self):
         return self._align_molecules
 
-    @align_molecules.setter
-    def align_molecules(self, boolean):
+    @align_molecules_using_mcs.setter
+    def align_molecules_using_mcs(self, boolean):
         # align the coordinates in ligZ to the ligA using the MCS
-        self._align_molecules = boolean
+        self._align_molecules_using_mcs = boolean
         # fixme - should be using the MCS before charges change
         print(f'Will align the coordinates using the final MCS: {boolean}')
 
@@ -291,25 +283,21 @@ class Config:
 
     @property
     def ligands_contain_q(self):
-        return self._ligands_contain_q
-
-    @ligands_contain_q.setter
-    def ligands_contain_q(self, boolean):
         if self._ligand_files is None:
-            raise ValueError('Wrong use of the Config class. Please set the ._ligand_files attribute first. ')
+            raise ValueError('The variable ligands_contain_q is used but _ligand_files are not configured. ')
 
         # does the file type contain charges?
         ligand_ext = self._ligand_files[0].suffix.lower()
-        if boolean is True:
+        if self._ligands_contain_q is True:
             if ligand_ext in {'.mol2', '.ac'}:
                 self._ligands_contain_q = True
             else:
                 print('ERROR: If charges are provided with the ligands, '
                       'the filetypes .mol2 or .ac have to be used.')
                 sys.exit(1)
-        elif boolean is False:
+        elif self._ligands_contain_q is False:
             self._ligands_contain_q = False
-        elif boolean is None:
+        elif self._ligands_contain_q is None:
             # determine whether charges are provided using the file extensions
             if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 self._ligands_contain_q = True
@@ -324,9 +312,16 @@ class Config:
         # fixme?
         if self._ligands_contain_q:
             # leave charges the way they are in the files
+            # TODO - ensure that when antechamber_charge_type is accessed ,this function is used? implement in another
             self.antechamber_charge_type = []
 
         print(f'Ligand files already contain charges: {self._ligands_contain_q}')
+
+        return self._ligands_contain_q
+
+    @ligands_contain_q.setter
+    def ligands_contain_q(self, boolean):
+        self._ligands_contain_q = boolean
 
     @property
     def superimposition_starting_pair(self):
@@ -418,7 +413,8 @@ class Config:
     def ligand_ff_name(self):
         return self._ligand_ff_name
 
-    def set_ligand_ff(self, atom_type):
+    @ligand_ff_name.setter
+    def ligand_ff_name(self, atom_type):
         # save also the atom type
         if atom_type == 'gaff':
             # they both use the same ff
@@ -450,23 +446,25 @@ class Config:
     def use_hybrid_single_dual_top(self, boolean):
         if boolean:
             self._use_hybrid_single_dual_top = True
-            self._ligand_tleap_in = 'leap_ligand_sdtop.in'
             self._complex_tleap_in = 'leap_complex_sdtop.in'
             if self._ignore_charges_completely != True:
                 raise Exception('Charges have to be ignored completely when using hybrid single-dual topology.')
         else:
-            self._ligand_tleap_in = 'leap_ligand.in'
             self._complex_tleap_in = 'leap_complex.in'
 
         self._use_hybrid_single_dual_top = boolean
 
     @property
     def ligand_tleap_in(self):
-        if self._ligand_tleap_in is None:
-            # assume that hybrid single-dual topology is not used
-            # this will initiate the standard leap_ligand.in
-            self.use_hybrid_single_dual_top = False
-        return self._ligand_tleap_in
+        if self._ligand_tleap_in is not None:
+            # return the user provided filename
+            return self._ligand_tleap_in
+        if self.use_hybrid_single_dual_top:
+            # return the default option for the hybrid
+            return 'leap_ligand_sdtop.in'
+
+        # return the default
+        return 'leap_ligand.in'
 
     @property
     def complex_tleap_in(self):
