@@ -6,14 +6,15 @@ Load two ligands, run the topology superimposer, and then using the results, gen
 """
 import time
 import itertools
-import glob
+import pathlib
+import shutil
 
-from ties.generator import *
+import ties.generator
 from ties.helpers import *
-from ties.ligand import Ligand
-from ties.morph import Morph
-from ties.ligandmap import LigandMap
-from ties.config import Config
+from ties import LigandMap
+from ties import Config
+from ties import Ligand
+from ties import Morph
 
 
 def command_line_script():
@@ -27,7 +28,7 @@ def command_line_script():
                              'If more than 2 ligands are provided, '
                              'Lead Optimisation Mapping (TIES MAP) will be used.')
     parser.add_argument('-dir', '--ties-output-dir', metavar='directory', dest='workdir',
-                        type=Path, required=False,
+                        type=pathlib.Path, required=False,
                         help='If not provided, "ties20" directory will be created in the current directory. ')
     parser.add_argument('-nc', '--ligand-net-charge', metavar='integer', dest='ligand_net_charge',
                         type=int, required=False,
@@ -62,7 +63,7 @@ def command_line_script():
                         help='Path to the home directory of ambertools '
                              '(the one that contains "bin" directory which contains "antechamber" file)')
     parser.add_argument('-match', '--manual-match', metavar='file or pair', dest='manually_matched_atom_pairs',
-                        type=Path, required=False, # fixme - how multiple pairs affect it?
+                        type=pathlib.Path, required=False, # fixme - how multiple pairs affect it?
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom will be transformed to BR2 atom.')
@@ -74,7 +75,7 @@ def command_line_script():
                              'Example: "C1-C34" where C1 is in the disappearing molecule, '
                              'and C34 is in the appearing molecule. ')
     parser.add_argument('-mismatch', '--manual-mismatch', metavar='file or pair', dest='manually_mismatched_pairs',
-                        type=Path, required=False, # fixme - implement
+                        type=pathlib.Path, required=False, # fixme - implement
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom cannot be matched to BR2 atom.'
@@ -126,8 +127,9 @@ def command_line_script():
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Ignore the specific atom types in the superimposition. Use only the elements. ')
 
+    # initialise the config class
     args = parser.parse_args()
-    command = args.command
+    command = args.command.lower()
     delattr(args, 'command')
     # assign all the parsed arguments to the Config class
     config = Config(**args.__dict__)
@@ -180,6 +182,7 @@ def command_line_script():
         for lig in ligands]
 
     # when the user provides charges, BCC and minimisation is not carried out, so the coordinates are correct
+    # fixme - needs a test case
     if config.use_original_coor and not config.use_provided_charges:
         # todo - make this part of the lig.antechamber_prepare_mol2
         print(f'Copying coordinates from {ligands[0]} and {ligands[1]} since antechamber changes them slightly')
@@ -253,7 +256,7 @@ def command_line_script():
         ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
         if not os.path.exists(config.workdir / ligand_name):
             os.makedirs(config.workdir / ligand_name)
-        prepare_inputs(morph,
+        ties.generator.prepare_inputs(morph,
                        config.workdir / 'lig',
                        protein=None,
                        namd_script_loc=config.namd_script_dir,
@@ -288,7 +291,7 @@ def command_line_script():
             ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
             if not os.path.exists(config.workdir / ligand_name):
                 os.makedirs(config.workdir / ligand_name)
-            prepare_inputs(morph,
+            ties.generator.prepare_inputs(morph,
                            config.workdir / 'complex',
                            protein=config.protein,
                            namd_script_loc=config.namd_script_dir,

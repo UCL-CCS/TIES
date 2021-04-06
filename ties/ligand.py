@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ties.helpers import are_correct_names, load_MDAnalysis_atom_group, rename_ligand
+import ties.helpers
 from ties.config import Config
 from ties.topology_superimposer import element_from_type
 
@@ -126,16 +126,16 @@ class Ligand:
         os.makedirs(self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
 
         # load the ligand with MDAnalysis
-        ligand_universe = load_MDAnalysis_atom_group(self.current)
+        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
 
         # ensure that all the atom names are unique
         atom_names = [a.name for a in ligand_universe.atoms]
         names_unique = len(set(atom_names)) == len(atom_names)
 
-        if not names_unique or not are_correct_names(atom_names):
+        if not names_unique or not ties.helpers.are_correct_names(atom_names):
             print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
                   f'or do not follow NameDigit format (e.g. C15). Renaming')
-            rename_ligand(ligand_universe.atoms)
+            ties.helpers.rename_ligand(ligand_universe.atoms)
 
         ligand_with_uniq_atom_names = self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR / \
                                       (self.internal_name + self.current.suffix)
@@ -216,7 +216,7 @@ class Ligand:
         They are only created if you reuse existing charges.
         They appear to be a side effect. We remove the dummy atoms therefore.
         """
-        mol2_u = load_MDAnalysis_atom_group(self.current)
+        mol2_u = ties.helpers.load_MDAnalysis_atom_group(self.current)
         # check if there are any DU atoms
         has_DU = any(a.type == 'DU' for a in mol2_u.atoms)
         if not has_DU:
@@ -266,10 +266,10 @@ class Ligand:
         """
 
         # load the current atoms with MDAnalysis
-        mda_template = load_MDAnalysis_atom_group(self.current)
+        mda_template = ties.helpers.load_MDAnalysis_atom_group(self.current)
 
         # load the file with the coordinates we want to use
-        coords = load_MDAnalysis_atom_group(file)
+        coords = ties.helpers.load_MDAnalysis_atom_group(file)
 
         # fixme: use the atom names
         by_atom_name = True

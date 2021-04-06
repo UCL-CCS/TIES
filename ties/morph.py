@@ -4,7 +4,7 @@ import copy
 import subprocess
 from pathlib import Path
 
-from ties.helpers import load_MDAnalysis_atom_group, get_atom_names_counter, rename_ligand, parse_frcmod_sections
+import ties.helpers
 from ties.generator import get_atoms_bonds_from_mol2
 from ties.topology_superimposer import superimpose_topologies
 
@@ -160,15 +160,15 @@ class Morph():
         fixme - rewrite this to be LigA.unique_names(LigZ) so that they can do it internally themselves?
         """
         # load both ligands
-        left = load_MDAnalysis_atom_group(self.ligA.current)
-        right = load_MDAnalysis_atom_group(self.ligZ.current)
+        left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
+        right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
 
         ligands_atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
 
         if ligands_atom_names_overlap:
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
-            name_counter_L_nodes = get_atom_names_counter(left.atoms)
-            rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
+            name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
+            ties.helpers.rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
 
         # rename the residue names to INI and FIN
         left.residues.resnames = ['INI']
@@ -380,8 +380,8 @@ class Morph():
 
         Note that we are also testing the .frcmod here with the specific user FF.
         """
-        frcmod_info1 = parse_frcmod_sections(self.ligA.frcmod)
-        frcmod_info2 = parse_frcmod_sections(self.ligZ.frcmod)
+        frcmod_info1 = ties.helpers.parse_frcmod_sections(self.ligA.frcmod)
+        frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
 
         # prep directory
         cwd = self.FRCMOD_DIR
