@@ -7,6 +7,8 @@ from pathlib import Path
 import ties.helpers
 from ties.generator import get_atoms_bonds_from_mol2
 from ties.topology_superimposer import superimpose_topologies
+import ties.config
+import ties.ligand
 
 
 class Morph():
@@ -23,17 +25,27 @@ class Morph():
     FRCMOD_TEST_DIR_name = FRCMOD_DIR_name / 'tests'
     UNIQUE_ATOM_NAMES_name = ROOT / Path('morph_unique_atom_names')
 
-    def __init__(self, ligA, ligZ, config):
-        self.ligA = ligA
-        self.ligZ = ligZ
-        self.config = config
+    def __init__(self, ligA, ligZ, config=None):
+        # create ligands if they're just paths
+        if not isinstance(ligA, ties.ligand.Ligand):
+            self.ligA = ties.ligand.Ligand(ligA)
+        else:
+            self.ligA = ligA
+        if not isinstance(ligZ, ties.ligand.Ligand):
+            self.ligZ = ties.ligand.Ligand(ligZ)
+        else:
+            self.ligZ = ligZ
+
+        # create a new config if there is none
+        self.config = ties.config.Config() if config is None else config
+
         # fixme rm?
-        self.workplace_root = config.workdir
+        self.workplace_root = self.config.workdir
         self.UNIQUE_ATOM_NAMES = self.workplace_root / Morph.UNIQUE_ATOM_NAMES_name
         self.FRCMOD_DIR = self.workplace_root / Morph.FRCMOD_DIR_name
         self.FRCMOD_TEST_DIR = self.workplace_root / Morph.FRCMOD_TEST_DIR_name
 
-        self.internal_name = f'{ligA.internal_name}_{ligZ.internal_name}'
+        self.internal_name = f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         self.mol2 = None
         self.pdb = None
         self.summary = None
@@ -51,30 +63,19 @@ class Morph():
     def set_distance(self, value):
         self.distance = value
 
-    def get_suptop(self, morph, manual_match=None, force_mismatch=None,
-                   disjoint_components=False, net_charge_filter=True,
-                   ignore_charges_completely=False,
-                   use_general_type=True,
-                   ignore_bond_types=True,
-                   ignore_coords=False,
-                   left_coords_are_ref=True,
-                   align_molecules=True,
-                   use_only_gentype=False,
-                   check_atom_names_unique=True,
-                   pair_charge_atol=0.1,
-                   net_charge_threshold=0.1,
-                   redistribute_charges_over_unmatched=True,
-                   starting_pairs_heuristics=True):
+    def compute_suptop(self, **kwargs):
+
         # use MDAnalysis to load the files
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
         leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
-            get_atoms_bonds_from_mol2(morph.renamed_ligA, morph.renamed_ligZ, use_general_type=use_general_type)
+            get_atoms_bonds_from_mol2(self.renamed_ligA, self.renamed_ligZ,
+                                      use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
 
         # empty lists count as None
-        if not force_mismatch:
-            force_mismatch = None
+        # if not force_mismatch:
+        force_mismatch = None
 
         # assign
         # fixme - Ideally I would reuse the mdanalysis data for this,
@@ -95,7 +96,7 @@ class Morph():
 
         # fixme - this should be moved out of here,
         #  ideally there would be a function in the main interface for this
-        manual_match = [] if manual_match is None else manual_match
+        manual_match = [] if self.config.manually_matched_atom_pairs is None else self.config.manually_matched_atom_pairs
         starting_node_pairs = []
         for l_aname, r_aname in manual_match:
             # find the starting node pairs, ie the manually matched pair(s)
@@ -120,27 +121,28 @@ class Morph():
 
         # fixme - simplify to only take the mdanalysis as input
         suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
+                                         disjoint_components=self.config.allow_disjoint_components,
+                                         net_charge_filter=True,
+                                         pair_charge_atol=self.config.atom_pair_q_atol,
+                                         net_charge_threshold=self.config.net_charge_threshold,
+                                         redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
+                                         ignore_charges_completely=self.config.ignore_charges_completely,
+                                         ignore_bond_types=True,
+                                         ignore_coords=False,
+                                         left_coords_are_ref=True,
+                                         align_molecules=self.config.align_molecules_using_mcs,
+                                         use_general_type=self.config.use_element_in_superimposition,
+                                         # fixme - not the same ... use_element_in_superimposition,
+                                         use_only_element=False,
+                                         check_atom_names_unique=True, # fixme - remove?
+                                         starting_pairs_heuristics=True, # fixme - add to config
+                                         force_mismatch=None, # fixme - add to config
                                          starting_node_pairs=starting_node_pairs,
-                                         force_mismatch=force_mismatch,
-                                         disjoint_components=disjoint_components,
-                                         net_charge_filter=net_charge_filter,
-                                         pair_charge_atol=pair_charge_atol,
                                          ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
-                                         ignore_charges_completely=ignore_charges_completely,
-                                         ignore_bond_types=ignore_bond_types,
-                                         ignore_coords=ignore_coords,
-                                         left_coords_are_ref=left_coords_are_ref,
-                                         align_molecules=align_molecules,
-                                         use_general_type=use_general_type,
-                                         use_only_element=use_only_gentype,
-                                         check_atom_names_unique=check_atom_names_unique,
-                                         net_charge_threshold=net_charge_threshold,
-                                         redistribute_charges_over_unmatched=redistribute_charges_over_unmatched,
-                                         starting_pairs_heuristics=starting_pairs_heuristics,
-                                         starting_pair_seed=morph.config.superimposition_starting_pair)
+                                         starting_pair_seed=self.config.superimposition_starting_pair)
 
         assert len(suptops) == 1
-        morph.set_suptop(suptops[0], mda_l1, mda_l2)
+        self.set_suptop(suptops[0], mda_l1, mda_l2)
 
     def set_suptop(self, suptop, mda_l1, mda_l2):
         self.suptop = suptop
@@ -222,7 +224,7 @@ class Morph():
 
         self.summary = summary
 
-    def write_pdb(self, hybrid_single_dual_top):
+    def write_pdb(self, hybrid_single_dual_top=False):
         morph_pdb_path = self.workplace_root / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
 
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):

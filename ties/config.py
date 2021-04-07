@@ -263,7 +263,7 @@ class Config:
 
     @property
     def align_molecules_using_mcs(self):
-        return self._align_molecules
+        return self._align_molecules_using_mcs
 
     @align_molecules_using_mcs.setter
     def align_molecules_using_mcs(self, boolean):

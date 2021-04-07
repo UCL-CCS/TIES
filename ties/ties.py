@@ -206,17 +206,8 @@ def command_line_script():
         if manually_matched is not None:
             print(f'Optimisation: reusing the preexisting .json file for {morph} as the starting point. ')
 
-        morph.get_suptop(morph,
-                         pair_charge_atol=config.atom_pair_q_atol,
-                         manual_match=config.manually_matched_atom_pairs,
-                         force_mismatch=None,
-                         net_charge_threshold=config.net_charge_threshold,
-                         redistribute_charges_over_unmatched=config.redistribute_q_over_unmatched,
-                         ignore_charges_completely=config.ignore_charges_completely,
-                         disjoint_components=config.allow_disjoint_components,
-                         use_only_gentype=config.use_element_in_superimposition,
-                         starting_pairs_heuristics=True,
-                         )
+        # superimpose the topologies
+        morph.compute_suptop()
 
         # save meta data
         morph.write_summary_json()
