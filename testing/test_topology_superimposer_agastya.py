@@ -43,13 +43,13 @@ def load_problem_from_dir(liglig_path):
     # create the nodes and add edges for the other ligand
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
-        ligand1_nodes[atomNode.get_id()] = atomNode
+        ligand1_nodes[atomNode.id] = atomNode
     for nfrom, nto in leftlig_bonds:
         ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], 'bondType1')
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
-        ligand2_nodes[atomNode.get_id()] = atomNode
+        ligand2_nodes[atomNode.id] = atomNode
     for nfrom, nto in rightlig_bonds:
         ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], 'bondType1')
 
