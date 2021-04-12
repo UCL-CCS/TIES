@@ -148,7 +148,7 @@ def command_line_script():
             sys.exit()
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
         morph = Morph(ligands[0], ligands[1], config)
-        morph.unique_atomres_names()
+        morph.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
         print('Merging coordinates. Will add coordinates from an external file. ')
@@ -199,7 +199,7 @@ def command_line_script():
         # rename the atom names to ensure they are unique across the two molecules
         # we need to execute our pipeline for every pair and create the directories
         # which means we'll end up with a set of pairs
-        morph.unique_atomres_names()
+        morph.make_atom_names_unique()
 
         # optimisation: check if the .json was created before, and use that to create the starting pair
         manually_matched = morph.check_json_file()

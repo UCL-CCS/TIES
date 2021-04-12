@@ -39,11 +39,9 @@ class Morph():
         # create a new config if there is none
         self.config = ties.config.Config() if config is None else config
 
-        # fixme rm?
-        self.workplace_root = self.config.workdir
-        self.UNIQUE_ATOM_NAMES = self.workplace_root / Morph.UNIQUE_ATOM_NAMES_name
-        self.FRCMOD_DIR = self.workplace_root / Morph.FRCMOD_DIR_name
-        self.FRCMOD_TEST_DIR = self.workplace_root / Morph.FRCMOD_TEST_DIR_name
+        self.UNIQUE_ATOM_NAMES = self.config.workdir / Morph.UNIQUE_ATOM_NAMES_name
+        self.FRCMOD_DIR = self.config.workdir / Morph.FRCMOD_DIR_name
+        self.FRCMOD_TEST_DIR = self.config.workdir / Morph.FRCMOD_TEST_DIR_name
 
         self.internal_name = f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         self.mol2 = None
@@ -143,13 +141,14 @@ class Morph():
 
         assert len(suptops) == 1
         self.set_suptop(suptops[0], mda_l1, mda_l2)
+        return suptops[0]
 
     def set_suptop(self, suptop, mda_l1, mda_l2):
         self.suptop = suptop
         self.mda_l1 = mda_l1
         self.mda_l2 = mda_l2
 
-    def unique_atomres_names(self):
+    def make_atom_names_unique(self):
         """
         Ensure that each has a name that is unique to both ligands.
 
@@ -177,7 +176,7 @@ class Morph():
         right.residues.resnames = ['FIN']
 
         # prepare the destination directory
-        cwd = self.workplace_root / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+        cwd = self.config.workdir / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         cwd.mkdir(parents=True, exist_ok=True)
 
         # save the updated atom names
@@ -192,7 +191,7 @@ class Morph():
         # An optimisation for testing
         # Check if the json was produced before, use it to
         # find the starting point to speed up the testing
-        matching_json = self.workplace_root / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
+        matching_json = self.config.workdir / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
         if not matching_json.is_file():
             return None
 
@@ -204,7 +203,7 @@ class Morph():
         """
 
         # store at the root for now
-        matching_json = self.workplace_root / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
+        matching_json = self.config.workdir / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
 
         with open(matching_json, 'w') as FOUT:
             # use json format, only use atomNames
@@ -225,7 +224,7 @@ class Morph():
         self.summary = summary
 
     def write_pdb(self, hybrid_single_dual_top=False):
-        morph_pdb_path = self.workplace_root / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
+        morph_pdb_path = self.config.workdir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
 
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
         if hybrid_single_dual_top:
@@ -294,7 +293,7 @@ class Morph():
                     FOUT.write(line)
 
     def write_hybrid_mol2(self, use_left_charges=True, use_left_coords=True):
-        hybrid_mol2 = self.workplace_root / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.mol2'
+        hybrid_mol2 = self.config.workdir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.mol2'
 
         # fixme - make this as a method of suptop as well
         # recreate the mol2 file that is merged and contains the correct atoms from both
@@ -422,7 +421,7 @@ class Morph():
         Returns the corrected .frcmod content, otherwise throws an exception.
         """
         # prepare the working directory
-        cwd = self.workplace_root / self.FRCMOD_TEST_DIR / self.internal_name
+        cwd = self.config.workdir / self.FRCMOD_TEST_DIR / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
