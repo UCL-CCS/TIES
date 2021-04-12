@@ -36,7 +36,7 @@ class Morph():
         else:
             self.ligZ = ligZ
 
-        # create a new config if there is none
+        # create a new config if it is not provided
         self.config = ties.config.Config() if config is None else config
 
         self.UNIQUE_ATOM_NAMES = self.config.workdir / Morph.UNIQUE_ATOM_NAMES_name
@@ -81,14 +81,14 @@ class Morph():
         # map atom IDs to their objects
         ligand1_nodes = {}
         for atomNode in leftlig_atoms:
-            ligand1_nodes[atomNode.get_id()] = atomNode
+            ligand1_nodes[atomNode.id] = atomNode
         # link them together
         for nfrom, nto, btype in leftlig_bonds:
             ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
 
         ligand2_nodes = {}
         for atomNode in rightlig_atoms:
-            ligand2_nodes[atomNode.get_id()] = atomNode
+            ligand2_nodes[atomNode.id] = atomNode
         for nfrom, nto, btype in rightlig_bonds:
             ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
 
@@ -334,7 +334,7 @@ class Morph():
             # note - we are modifying in place our atoms
             for left, right in self.suptop.matched_pairs:
                 print(
-                    f'Aligned {left.originalAtomName} id {left.atomId} with {right.originalAtomName} id {right.atomId}')
+                    f'Aligned {left.original_name} id {left.id} with {right.original_name} id {right.id}')
                 if not use_left_charges:
                     left.charge = right.charge
                 if not use_left_coords:

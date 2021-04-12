@@ -45,59 +45,91 @@ element_from_type = {
 }
 
 
-class AtomNode:
+class Atom:
     counter = 1
 
     def __init__(self, name, atom_type, charge=0, use_general_type=False):
-        self.atomId = None
-        # this atom name might change
-        self.name = name.upper()
-        self.originalAtomName = self.name
-        self.resname = None
-        self.resId = None
+        self._original_name = None
+        self._original_charge = None
+
+        self._id = None
+        self.name = name
+        self._original_name = name.upper()
+        self.type = atom_type
+
+        self._resname = None
         self.charge = charge
-        self.type = atom_type.upper()
+        self._original_charge = charge
+
+        self.resid = None
         self.bonds = set()
         self.use_general_type = use_general_type
-
-        # save the general type
-        self.element = element_from_type[self.type]
-
-        self.unique_counter = AtomNode.counter
-        AtomNode.counter += 1
-
         self.hash_value = None
 
-    def set_name(self, name):
-        self.name = name
+        self._unique_counter = Atom.counter
+        Atom.counter += 1
 
-    def set_id(self, atom_id):
-        self.atomId = atom_id
+    @property
+    def original_name(self):
+        # This atom name remains the same. It is never modified.
+        return self._original_name
 
-    def get_id(self):
-        return self.atomId
+    @property
+    def name(self):
+        return self._name
 
-    def set_resname(self, resname):
-        self.resname = resname
+    @name.setter
+    def name(self, name):
+        self._name = name.upper()
 
-    def set_resid(self, res_id):
-        self.resId = res_id
+    @property
+    def id(self):
+        return self._id
 
-    def set_charge(self, charge):
-        self.charge = charge
+    @id.setter
+    def id(self, id):
+        self._id = id
 
-    def set_original_charge(self, charge):
-        # this charge should never change and should only be
-        # used once.  This is for a test.
-        # ie that appearing and disappearing atoms keep their charges intact.
-        self.original_charge = charge
+    @property
+    def resname(self):
+        return self._resname
 
-    def set_type(self, amber_type):
-        self.amber_type = amber_type
+    @resname.setter
+    def resname(self, resname):
+        self._resname = resname
 
-    def set_position(self, x, y, z):
-        corrected_type = np.array([x, y, z], dtype='float32')
-        self.position = corrected_type
+    @property
+    def charge(self):
+        return self._charge
+
+    @charge.setter
+    def charge(self, charge):
+        self._charge = charge
+
+    @property
+    def original_charge(self):
+        return self._original_charge
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, atom_type):
+        self._type = atom_type.upper()
+
+        # save the general type
+        # fixme - ideally it would use the config class that would use the right mapping
+        self.element = element_from_type[self.type]
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, pos):
+        # switch the type to float32 for any coordinate work with MDAnalysis
+        self._position = np.array([pos[0], pos[1], pos[2]], dtype='float32')
 
     def is_hydrogen(self):
         if self.element == 'H':
@@ -125,14 +157,14 @@ class AtomNode:
             return self.hash_value
 
         m = hashlib.md5()
-        # fixme - ensure that each node is characterised by its chemical info,
-        # fixme - the atomId might not be unique, so check before the input data
+        # fixme - ensure that each node is characterised by its chemistry,
+        # fixme - id might not be unique, so check before the input data
         m.update(str(self.charge).encode('utf-8'))
-        m.update(str(self.unique_counter).encode('utf-8'))
-        # so include the number of bonds which is basically an atom type
+        # use the unique counter to distinguish between created atoms
+        m.update(str(self._unique_counter).encode('utf-8'))
+        # include the number of bonds
         m.update(str(len(self.bonds)).encode('utf-8'))
         self.hash_value = int(m.hexdigest(), 16)
-
         return self.hash_value
 
     def __str__(self):
@@ -147,19 +179,18 @@ class AtomNode:
 
     def eq(self, atom, atol=0):
         """
-        Check if the atoms are the same type and charge within a tolerance.
-
-        fixme - add exception to the type (gaff2) and use CLASS.EXCEPTIONS in order to reimplement it
+        Check if the atoms are of the same type and have a charge within the given absolute tolerance.
         """
-        if self.type == atom.type and \
-                np.isclose(self.charge, atom.charge, atol=atol):
+        if self.type == atom.type and np.isclose(self.charge, atom.charge, atol=atol):
             return True
 
         return False
 
     def united_eq(self, atom, atol=0):
         """
-        Like eq, check if the atoms have the same atom type, and if their charges are within the tolerance.
+        Like .eq, but treat the atoms as united atoms.
+        Check if the atoms have the same atom type, and
+        if if their charges are within the absolute tolerance.
         If the atoms have hydrogens, add up the attached hydrogens and use a united atom representation.
         """
         if self.type != atom.type:
@@ -170,33 +201,17 @@ class AtomNode:
 
         return True
 
-    def same_element(self, atom):
+    def same_element(self, other):
         # check if the atoms are the same elements
-        # fixme - this one or other? some other configuration system?
-        if self.use_general_type:
-            if self.element == atom.element:
-                return True
-            return False
-
-        if self.type == atom.type.upper():
+        if self.element == other.element:
             return True
-
         return False
 
     def same_type(self, atom):
-        if self.type == atom.type.upper():
+        if self.type == atom.type:
             return True
 
         return False
-
-    def __deepcopy__(self, memodict={}):
-        # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
-        # it is a shallow copy, as this object should be in the future immutable
-        return self
-
-    def deepCopy(self):
-        # Generate a new object of this class
-        return AtomNode(self.name, self.type, self.charge)
 
 
 class AtomPair:
@@ -455,8 +470,8 @@ class SuperimposedTopology:
 
         # extract the IDs and use them to pick the atoms in MDAnalysis
         # note that the order matters
-        matched_l_ids = [left.atomId for left, right in self.matched_pairs]
-        matched_r_ids = [right.atomId for left, right in self.matched_pairs]
+        matched_l_ids = [left.id for left, right in self.matched_pairs]
+        matched_r_ids = [right.id for left, right in self.matched_pairs]
 
         # save the original positions (deep copy)
         original_left_pos = np.empty_like(self.mda_ligandL.atoms.positions)
@@ -3624,7 +3639,7 @@ def get_atoms_bonds_from_ac(ac_file):
         charge = float(charge)
         res_id = int(res_id)
         atom_id = int(atom_id)
-        atom = AtomNode(name=atom_name, atom_type=atom_colloq)
+        atom = Atom(name=atom_name, atom_type=atom_colloq)
         atom.set_charge(charge)
         atom.set_id(atom_id)
         atom.set_position(x, y, z)
@@ -3645,47 +3660,31 @@ def get_atoms_bonds_from_ac(ac_file):
 
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
     """
-    Use MDAnalysis to load the .mol2 files.
+    Use MDAnalysis to load the files.
 
-    Use MDAnalysis to superimpose the second structure onto the first structure.
-    Examples: https://www.mdanalysis.org/MDAnalysisTutorial/analysismodule.html
-    """
     # returns
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
-
+    """
     universe_ref = load_MDAnalysis_atom_group(ref_filename)
     universe_mobile = load_MDAnalysis_atom_group(mob_filename)
 
-    # this RMSD superimposition requires the same number of atoms to be superimposed
-    # find out the RMSD between them and the rotation matrix
-    # universe_ref0 = universe_ref.atoms.positions - universe_ref.atoms.center_of_geometry()
-    # universe_mob0 = universe_mob.atoms.positions - universe_mob.atoms.center_of_geometry()
-    #
-    # # get the rotation matrix and rmsd
-    # # fixme - make use of rmsd
-    # R, rmsd = MDAnalysis.analysis.align.rotation_matrix(universe_mob0, universe_ref0)
-    #
-    # # update the universe_mob atoms, the new coordinates is what we want to rely on
-    # universe_mob.atoms.translate(-universe_mob.atoms.center_of_geometry())
-    # universe_mob.atoms.rotate(R)
-    # universe_mob.atoms.translate(universe_ref.atoms.center_of_geometry())
-
-    # create the atoms for left ligands
     def create_atoms(mda_atoms):
+        """
+        # convert the MDAnalysis atoms into Atom objects.
+        """
         atoms = []
         for mda_atom in mda_atoms:
-            atom = AtomNode(name=mda_atom.name, atom_type=mda_atom.type, use_general_type=use_general_type)
+            atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, use_general_type=use_general_type)
             try:
-                atom.set_charge(mda_atom.charge)
-                atom.set_original_charge(mda_atom.charge)
+                # charges might not be present
+                atom.charge = mda_atom.charge
             except AttributeError:
-                # fixme - expand on the message
-                print('Missing charge attribute, setting to N/A')
-                atom.set_charge('N/A')
-            atom.set_id(mda_atom.id)
-            atom.set_position(mda_atom.position[0], mda_atom.position[1], mda_atom.position[2])
-            atom.set_resname(mda_atom.resname)
+                print('WARNING: One of the input files is missing charges. Setting the charge to N/A')
+                atom.charge = 'N/A'
+            atom.id = mda_atom.id
+            atom.position = mda_atom.position
+            atom.resname = mda_atom.resname
             atoms.append(atom)
         return atoms
 
