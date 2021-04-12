@@ -16,33 +16,7 @@ from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
 from ties.helpers import load_MDAnalysis_atom_group
-
-
-element_from_type = {
-    # Source http://ambermd.org/antechamber/gaff.html#atomtype
-    # However, some general atom types were added separately
-    # Furthermore, GAFF2 is being added in stages
-    'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
-    'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C', 'C1': 'C',
-    'H': 'H', 'HA': 'H', 'HN': 'H', 'H4': 'H', 'HC': 'H', 'H1': 'H', 'HX': 'H',
-    'HO': 'H', 'HS': 'H', 'HP': 'H',  'H2': 'H', 'H3': 'H',  'H5': 'H',
-    'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
-    'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
-    'O': 'O', 'OH': 'O', 'OS': 'O', 'OP': 'O', 'OQ': 'O',
-    'N': 'N', 'NB': 'N', 'NS': 'N', 'N1': 'N', 'N2': 'N', 'N3': 'N',
-    'N4': 'N', 'NA': 'N', 'NH': 'N', 'NO': 'N', 'NC': 'N',  'ND': 'N', 'NU': 'N',
-    'NE': 'N', 'NF': 'N', 'NT': 'N', 'NX': 'N', 'NY': 'N', 'NZ': 'N', 'N+': 'N',
-    'NV': 'N', 'N7': 'N', 'N8': 'N', 'N9': 'N', 'NI': 'N', 'NJ': 'N', 'NK': 'N',
-    'NL': 'N', 'NM': 'N', 'NN': 'N', 'NP': 'N', 'NQ': 'N', 'N5': 'N', 'N6': 'N',
-    'CL': 'CL',
-    'F': 'F',
-    'BR': 'BR', 'B': 'BR',
-    'I': 'I',
-    'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S',
-    'S6': 'S', 'SX': 'S', 'SY': 'S', 'SP': 'S', 'SQ': 'S',
-    'SI': 'SI',
-}
+import ties.config
 
 
 class Atom:
@@ -120,7 +94,8 @@ class Atom:
 
         # save the general type
         # fixme - ideally it would use the config class that would use the right mapping
-        self.element = element_from_type[self.type]
+        element_map = ties.config.Config.get_element_map()
+        self.element = element_map[self.type]
 
     @property
     def position(self):

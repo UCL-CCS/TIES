@@ -12,7 +12,7 @@ import MDAnalysis as mda
 import numpy as np
 
 from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
-    superimpose_topologies, element_from_type, get_atoms_bonds_from_ac
+    superimpose_topologies, get_atoms_bonds_from_ac
 
 
 def prepare_inputs(morph,

@@ -10,10 +10,10 @@ class Config:
 
     def __init__(self, **kwargs):
         # set the path to the scripts
-        code_root = pathlib.Path(os.path.dirname(__file__))
+        self.code_root = pathlib.Path(os.path.dirname(__file__))
 
         # scripts/input files
-        self.script_dir = code_root / 'scripts'
+        self.script_dir = self.code_root / 'scripts'
         self.namd_script_dir = self.script_dir / 'namd'
         self.ambertools_script_dir = self.script_dir / 'ambertools'
         self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
@@ -473,6 +473,23 @@ class Config:
             # this will initiate the standard leap_ligand.in
             self.use_hybrid_single_dual_top = False
         return self._complex_tleap_in
+
+    @staticmethod
+    def get_element_map():
+        # Get the mapping of atom types to elements
+        element_map_filename = pathlib.Path(os.path.dirname(__file__)) / 'data' / 'element_atom_type_map.txt'
+        # remove the comments lines with #
+        lines = filter(lambda l: not l.strip().startswith('#') and not l.strip() == '', open(element_map_filename).readlines())
+        # convert into a dictionary
+
+        element_map = {}
+        for line in lines:
+            element, atom_types = line.split('=')
+
+            for atom_type in atom_types.split():
+                element_map[atom_type.strip()] = element.strip()
+
+        return element_map
 
     # fixme - this should be determined at the location where it is relevant rather than here in the conf
     # antechamber parameters, by default compute AM1-BCC charges

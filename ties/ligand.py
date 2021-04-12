@@ -8,7 +8,6 @@ import numpy as np
 
 import ties.helpers
 from ties.config import Config
-from ties.topology_superimposer import element_from_type
 
 
 class Ligand:
