@@ -1,0 +1,15 @@
+# Mapped elements to atom types. 
+# Contains http://ambermd.org/antechamber/gaff.html#atomtype
+# GAFF2 is being added in stages
+
+C = C CA CB C3 CX C1 C2 CC CD CE CF CP CQ CU CV CY CZ CG CS CH C1
+H = H HA HN H4 HC H1 HX HO HS HP H2 H3 H5
+P = P P2 P3 P4 P5 PB PC PD PE PF PX PY
+O = O OH OS OP OQ
+N = N NB NS N1 N2 N3 N4 NA NH NO NC ND NU NE NF NT NX NY NZ N+ NV N7 N8 N9 NI NJ NK NL NM NN NP NQ N5 N6
+CL = CL
+F = F
+BR = BR B
+I = I
+S = S S2 SH SS S4 S6 SX SY SP SQ
+SI = SI
