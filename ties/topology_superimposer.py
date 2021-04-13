@@ -3615,10 +3615,10 @@ def get_atoms_bonds_from_ac(ac_file):
         res_id = int(res_id)
         atom_id = int(atom_id)
         atom = Atom(name=atom_name, atom_type=atom_colloq)
-        atom.set_charge(charge)
-        atom.set_id(atom_id)
-        atom.set_position(x, y, z)
-        atom.set_resname(res_name)
+        atom.charge = charge
+        atom.id = atom_id
+        atom.position = (x, y, z)
+        atom.resname = res_name
         atoms.append(atom)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
@@ -3689,7 +3689,7 @@ def assign_coords_from_pdb(atoms, pdb_atoms):
             if pdb_atom.name.upper() == atom.name.upper():
                 # assign the charges
                 pos = pdb_atom.position
-                atom.set_position(pos[0], pos[1], pos[2])
+                atom.position = (pos[0], pos[1], pos[2])
                 found_match = True
                 break
         if not found_match:
