@@ -253,7 +253,10 @@ def test_mcl1_l32_l42():
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
 
-    # this pair of hydrogens has actually a different atom_type, so it is not found
+    # these correctly paired hydrogens have a different type
+    assert suptop.contains_atom_name_pair('H13', 'H31')
+    # after checking the exact type (not just element) it should be removed
+    suptop.enforce_matched_atom_types_are_the_same()
     assert not suptop.contains_atom_name_pair('H13', 'H31')
 
     # check the linker hydrogens
