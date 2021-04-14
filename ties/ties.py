@@ -181,14 +181,6 @@ def command_line_script():
                                   config.antechamber_dr, config.antechamber_charge_type)
         for lig in ligands]
 
-    # when the user provides charges, BCC and minimisation is not carried out, so the coordinates are correct
-    # fixme - needs a test case
-    if config.use_original_coor and not config.use_provided_charges:
-        # todo - make this part of the lig.antechamber_prepare_mol2
-        print(f'Copying coordinates from {ligands[0]} and {ligands[1]} since antechamber changes them slightly')
-        # copy the files before applying the coordinates
-        ligands[0].set_coor_from_ref(by_atom_name=True)
-
     # generate all pairings
     morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
