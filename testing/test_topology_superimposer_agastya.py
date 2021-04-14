@@ -199,15 +199,7 @@ def test_mcl1_l8l18():
     # check non-hydrogen atoms
     removed_non_hydrogens = list(filter(lambda x: not x[0].upper().startswith('H'), removed_atom_names))
     # fixme - united charge changed the results
-    # assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
-    #                        ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')}
-
-    # prepare hydrogens
-    # fixme this will require a bit of work, ie disconnected components, we do not remove dangling hydrogens any more
-    # removed_dangling_hydrogens = list(filter(lambda x: x[0].upper().startswith('H'), removed_atom_names))
-    # # check if the dangling hydrogens were removed
-    # assert removed_dangling_hydrogens == [('H3', 'H19'), ('H1', 'H17')]
-
+    assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C3', 'C25'), ('C2', 'C24')}
 
 def test_mcl1_l32_l42():
     # Agastya's cases
