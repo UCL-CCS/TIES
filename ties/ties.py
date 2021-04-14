@@ -188,11 +188,6 @@ def command_line_script():
         # rename the atom names to ensure they are unique across the two molecules
         morph.make_atom_names_unique()
 
-        # optimisation: check if the .json was created before, and use that to create the starting pair
-        manually_matched = morph.check_json_file()
-        if manually_matched is not None:
-            print(f'Optimisation: reusing the preexisting .json file for {morph} as the starting point. ')
-
         # superimpose the topologies
         morph.compute_suptop()
 
