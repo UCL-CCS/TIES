@@ -186,7 +186,9 @@ class Config:
     @property
     def ligand_net_charge(self):
         if self._ligand_net_charge is None:
-            raise ValueError('Ligand net charge (-nc) was not configured but is needed. ')
+            print(f'WARNING: Ligand net charge not provided (-nc) by the user. Assuming 0. ')
+            self._ligand_net_charge = 0
+
         return self._ligand_net_charge
 
     @ligand_net_charge.setter
