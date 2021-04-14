@@ -190,7 +190,7 @@ def command_line_script():
 
         # save meta data
         morph.write_summary_json()
-        morph.write_pdb(hybrid_single_dual_top=config.use_hybrid_single_dual_top)
+        morph.write_pdb()
         morph.write_hybrid_mol2()
     print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
