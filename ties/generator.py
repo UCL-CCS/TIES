@@ -32,7 +32,12 @@ def prepare_inputs(morph,
                    md_engine=False,
                    lambda_rep_dir_tree=False):
 
-    cwd = dir_prefix / f'{morph.internal_name}'
+    if protein is None:
+        ligcom = 'lig'
+    else:
+        ligcom = 'com'
+
+    cwd = dir_prefix / f'ties-{morph.ligA.internal_name}-{morph.ligZ.internal_name}' / ligcom
     if not cwd.is_dir():
         cwd.mkdir(parents=True, exist_ok=True)
 

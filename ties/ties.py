@@ -223,11 +223,8 @@ def command_line_script():
     # fixme - switch to morph.prepare_inputs instead.
     # this way we could reuse a lot of this information
     for morph in selected_morphs:
-        ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
-        if not os.path.exists(config.workdir / ligand_name):
-            os.makedirs(config.workdir / ligand_name)
         ties.generator.prepare_inputs(morph,
-                       config.workdir / 'lig',
+                       config.workdir,
                        protein=None,
                        namd_script_loc=config.namd_script_dir,
                        scripts_loc=config.script_dir,
@@ -243,26 +240,19 @@ def command_line_script():
                        lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
         print(f'Ligand {morph} directory populated successfully')
-        shutil.move(config.workdir / 'lig' / morph.internal_name,
-                    config.workdir / ligand_name / 'lig')
-        os.rmdir(config.workdir / 'lig')
-
 
     ##########################################################
     # ------------------ Complex  ----------------------------
     if config.protein is not None:
         # calculate the charges of the protein (using ambertools)
-        protein_net_charge = get_protein_net_charge(config.workdir, config.protein.absolute(),
+        protein_net_charge = ties.generator.get_protein_net_charge(config.workdir, config.protein.absolute(),
                                config.ambertools_tleap, config.tleap_check_protein,
                                config.protein_ff)
         print(f'Protein net charge: {protein_net_charge}')
 
         for morph in selected_morphs:
-            ligand_name = 'ties-{}-{}'.format(morph.ligA.internal_name, morph.ligZ.internal_name)
-            if not os.path.exists(config.workdir / ligand_name):
-                os.makedirs(config.workdir / ligand_name)
             ties.generator.prepare_inputs(morph,
-                           config.workdir / 'complex',
+                           config.workdir / 'com',
                            protein=config.protein,
                            namd_script_loc=config.namd_script_dir,
                            scripts_loc=config.script_dir,
@@ -277,9 +267,6 @@ def command_line_script():
                            md_engine=config.md_engine,
                            lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                            )
-            shutil.move(config.workdir / 'complex' / morph.internal_name,
-                        config.workdir / ligand_name / 'com')
-            os.rmdir(config.workdir / 'complex')
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)
