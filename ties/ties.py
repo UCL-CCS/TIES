@@ -8,6 +8,7 @@ import time
 import itertools
 import pathlib
 import shutil
+import sys
 
 import ties.generator
 from ties.helpers import *
@@ -172,10 +173,6 @@ def command_line_script():
         print('Please provide action (rename/create)')
         sys.exit()
 
-    # TIES
-    # ensure that each atom name is unique
-    [lig.make_atom_names_unique() for lig in ligands]
-
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     [lig.antechamber_prepare_mol2(config.ligand_ff_name, config.ligand_net_charge,
                                   config.antechamber_dr, config.antechamber_charge_type)
@@ -184,13 +181,11 @@ def command_line_script():
     # generate all pairings
     morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
-    # superimpose the two topologies
+    # superimpose the paired topologies
     start_time = time.time()
     for morph in morphs:
         print(f'Next ligand pair: {morph.internal_name}')
         # rename the atom names to ensure they are unique across the two molecules
-        # we need to execute our pipeline for every pair and create the directories
-        # which means we'll end up with a set of pairs
         morph.make_atom_names_unique()
 
         # optimisation: check if the .json was created before, and use that to create the starting pair
