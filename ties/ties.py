@@ -204,8 +204,8 @@ def command_line_script():
 
     # join the .frcmod files for each pair
     print('Ambertools parmchk2 generating .frcmod for morphs')
-    [morph.join_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
-                             config.protein_ff, config.ligand_ff) for morph in morphs]
+    [morph.merge_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
+                              config.protein_ff, config.ligand_ff) for morph in morphs]
 
     # transformation hunter
     if len(ligands) == 2:

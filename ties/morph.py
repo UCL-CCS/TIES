@@ -223,11 +223,11 @@ class Morph():
 
         self.summary = summary
 
-    def write_pdb(self, hybrid_single_dual_top=False):
+    def write_pdb(self):
         morph_pdb_path = self.config.workdir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.pdb'
 
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
-        if hybrid_single_dual_top:
+        if self.config.use_hybrid_single_dual_top:
             # the NAMD hybrid single dual topology
             # rename the ligand on the left to INI
             # and the ligand on the right to END
@@ -374,10 +374,9 @@ class Morph():
 
         self.mol2 = hybrid_mol2
 
-    def join_frcmod_files(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
+    def merge_frcmod_files(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
         """
-        Copied from the previous TIES. It's simpler and this appears to work fine.
-        I tested the duplication and that seemed to have no effect on the final results.
+        I tested the duplication and that had no effect on the final results (the .top file was identical).
 
         Note that we are also testing the .frcmod here with the specific user FF.
         """
