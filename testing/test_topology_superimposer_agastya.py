@@ -89,10 +89,9 @@ def test_mcl1_l18l39():
     # ie remove the matches that change due to charge rather than spieces
     all_removed_pairs = suptop.refine_against_charges(atol=0.1)
     print(all_removed_pairs)
-    removed_pairs = [('C5', 'C27'), ('C4', 'C26')]
-    # fixme - .united_charge changed the results
-    # for atomName1, atomname2 in removed_pairs:
-    #     assert not suptop.contains_atom_name_pair(atomName1, atomname2)
+    removed_pairs = [('C4', 'C26')]
+    for atomName1, atomname2 in removed_pairs:
+        assert not suptop.contains_atom_name_pair(atomName1, atomname2)
 
 
 def test_mcl1_l17l9():
@@ -198,7 +197,6 @@ def test_mcl1_l8l18():
 
     # check non-hydrogen atoms
     removed_non_hydrogens = list(filter(lambda x: not x[0].upper().startswith('H'), removed_atom_names))
-    # fixme - united charge changed the results
     assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C3', 'C25'), ('C2', 'C24')}
 
 def test_mcl1_l32_l42():
@@ -264,28 +262,15 @@ def test_mcl1_l32_l42():
     # ie remove the matches due to charge difference
     removed_pairs = suptop.refine_against_charges(atol=0.1)
     print('removed', removed_pairs)
-    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'),
-        ('C20', 'C42'), ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'),
-        ('C14', 'C35'), ('C11', 'C32')]
+    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'), ('C20', 'C42'),
+                           ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'), ('C14', 'C35')]
     for (n1, n2), q in removed_pairs:
         should_remove_pairs.remove((n1.name, n2.name))
-    # fixme - united charge changed the results
-    # assert len(should_remove_pairs) == 0, should_remove_pairs
+    assert len(should_remove_pairs) == 0, should_remove_pairs
 
     # remove the dangling hydrogens by using "no disconnected components"
     # fixme requires parsing the CC survives output
     toGoThrough = suptop.largest_cc_survives()
-    # check if the lonely hydrogens were removed together with charges
-    removed_lonely_hydrogens = [('H15', 'H33'), ('H14', 'H32'),
-                   ('H12', 'H29'), ('H8', 'H24'), ('H7', 'H25')]
-    # for (n1, n2), q in removed_pairs:
-    #     # only tests the hydrogens
-    #     if not n1.atomName.upper().startswith('H'):
-    #         continue
-    #     removed_lonely_hydrogens.remove((n1.atomName, n2.atomName))
-    # assert len(removed_lonely_hydrogens) == 0, removed_lonely_hydrogens
-
-
 
 def test_tyk2_l11l14():
     # Agastya's cases
