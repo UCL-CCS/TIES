@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Exposes a basic terminal interface to TIES 20.
-
-Load two ligands, run the topology superimposer, and then using the results, generate the NAMD input files.
+Exposes a terminal interface to TIES 20.
 """
 import time
 import itertools
@@ -24,7 +22,7 @@ def command_line_script():
                         help='Action to be performed. E.g. "rename, ties create, .." ')
     parser.add_argument('-l', '--ligands', metavar='files ', dest='ligands',
                         nargs='+',
-                        type=ArgparseChecker.existing_file, #required=True,
+                        type=ArgparseChecker.existing_file,
                         help='A list of uniquely named ligand files. '
                              'If more than 2 ligands are provided, '
                              'Lead Optimisation Mapping (TIES MAP) will be used.')
@@ -64,11 +62,12 @@ def command_line_script():
                         help='Path to the home directory of ambertools '
                              '(the one that contains "bin" directory which contains "antechamber" file)')
     parser.add_argument('-match', '--manual-match', metavar='file or pair', dest='manually_matched_atom_pairs',
-                        type=pathlib.Path, required=False, # fixme - how multiple pairs affect it?
+                        type=pathlib.Path, required=False,
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom will be transformed to BR2 atom.')
-    parser.add_argument('-supseed', '--superimposition-starting-pair', metavar='pair', dest='superimposition_starting_pair',
+    parser.add_argument('-supseed', '--superimposition-starting-pair', metavar='pair',
+                        dest='superimposition_starting_pair',
                         type=str, required=False,
                         help='A starting seed for the superimposition. '
                              'This is the pair from which the superimposition algorithm will start the '
@@ -76,7 +75,7 @@ def command_line_script():
                              'Example: "C1-C34" where C1 is in the disappearing molecule, '
                              'and C34 is in the appearing molecule. ')
     parser.add_argument('-mismatch', '--manual-mismatch', metavar='file or pair', dest='manually_mismatched_pairs',
-                        type=pathlib.Path, required=False, # fixme - implement
+                        type=pathlib.Path, required=False,  # fixme - implement
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom cannot be matched to BR2 atom.'
@@ -135,12 +134,10 @@ def command_line_script():
     # assign all the parsed arguments to the Config class
     config = Config(**args.__dict__)
 
-    # TIES
     # create ligands
     ligands = [Ligand(lig, config) for lig in args.ligands]
 
     if command == 'rename':
-        # fixme - redo renaming?
         # this case assumes that there are only two ligands given
         if len(ligands) != 2:
             print('ERROR: to rename atoms to be unique across two ligands, '
