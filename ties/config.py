@@ -67,6 +67,7 @@ class Config:
     def workdir(self):
         if self._workdir is None:
             self._workdir = pathlib.Path(os.getcwd()) / 'ties'
+            self._workdir.mkdir(exist_ok=True)
 
         return self._workdir
 

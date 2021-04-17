@@ -36,6 +36,10 @@ class Morph():
         else:
             self.ligZ = ligZ
 
+        # initialise the handles to the molecules that morph
+        self.current_ligA = self.ligA.current
+        self.current_ligZ = self.ligZ.current
+
         # create a new config if it is not provided
         self.config = ties.config.Config() if config is None else config
 
@@ -67,7 +71,7 @@ class Morph():
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
         leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
-            get_atoms_bonds_from_mol2(self.renamed_ligA, self.renamed_ligZ,
+            get_atoms_bonds_from_mol2(self.current_ligA, self.current_ligZ,
                                       use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
 
@@ -180,10 +184,11 @@ class Morph():
         cwd.mkdir(parents=True, exist_ok=True)
 
         # save the updated atom names
-        self.renamed_ligA = cwd / (self.ligA.internal_name + '.mol2')
-        left.atoms.write(self.renamed_ligA)
-        self.renamed_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
-        right.atoms.write(self.renamed_ligZ)
+        # fixme - write only when requested
+        self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
+        left.atoms.write(self.current_ligA)
+        self.current_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
+        right.atoms.write(self.current_ligZ)
 
         # update the Ligands to use the renamed version
 

@@ -2790,8 +2790,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # ensure that none of the atom names across the two molecules are the different
     if check_atom_names_unique:
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
-        assert len(same_atom_names) == 0, \
-            f"The molecules have the same atom names. This is not allowed. They are: {same_atom_names}"
+        if len(same_atom_names) != 0:
+            print(f"WARNING: The atoms across the two ligands have the same atom names. "
+                  f"This will make it harder to trace back any problems. "
+                  f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
+
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligand_l_mda, ligand_r_mda,
