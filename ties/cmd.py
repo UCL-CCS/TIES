@@ -10,10 +10,10 @@ import sys
 
 import ties.generator
 from ties.helpers import *
-from ties import LigandMap
-from ties import Config
-from ties import Ligand
-from ties import Morph
+import ties.config
+import ties.ligand
+import ties.morph
+import ties.ligandmap
 
 
 def command_line_script():
@@ -132,10 +132,10 @@ def command_line_script():
     command = args.command.lower()
     delattr(args, 'command')
     # assign all the parsed arguments to the Config class
-    config = Config(**args.__dict__)
+    config = ties.config.Config(**args.__dict__)
 
     # create ligands
-    ligands = [Ligand(lig, config) for lig in args.ligands]
+    ligands = [ties.ligand.Ligand(lig, config) for lig in args.ligands]
 
     if command == 'rename':
         # this case assumes that there are only two ligands given
@@ -145,7 +145,7 @@ def command_line_script():
                   'E.g. ties rename -l init.mol2 final.mol2')
             sys.exit()
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
-        morph = Morph(ligands[0], ligands[1], config)
+        morph = ties.morph.Morph(ligands[0], ligands[1], config)
         morph.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
@@ -176,7 +176,7 @@ def command_line_script():
         for lig in ligands]
 
     # generate all pairings
-    morphs = [Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
+    morphs = [ties.morph.Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the paired topologies
     start_time = time.time()
@@ -186,12 +186,12 @@ def command_line_script():
         morph.make_atom_names_unique()
 
         # superimpose the topologies
-        morph.compute_suptop()
+        hybrid = morph.compute_suptop()
 
         # save meta data
-        morph.write_summary_json()
-        morph.write_pdb()
-        morph.write_hybrid_mol2()
+        hybrid.write_summary_json()
+        hybrid.write_pdb()
+        hybrid.write_mol2()
     print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
     if config.use_hybrid_single_dual_top:

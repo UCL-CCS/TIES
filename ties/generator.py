@@ -50,7 +50,7 @@ def prepare_inputs(morph,
         shutil.copy(protein, cwd / 'protein.pdb')
 
     # copy the hybrid ligand (topology and .frcmod)
-    shutil.copy(morph.mol2, cwd / 'morph.mol2')
+    shutil.copy(morph.suptop.mol2, cwd / 'morph.mol2')
     shutil.copy(morph.frcmod, cwd / 'morph.frcmod')
 
     # determine the number of ions to neutralise the ligand charge
@@ -101,7 +101,7 @@ def prepare_inputs(morph,
 
     # generate the merged .fep file
     complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
-    correct_fep_tempfactor(morph.summary, hybrid_solv, complex_solvated_fep,
+    correct_fep_tempfactor(morph.suptop.summary, hybrid_solv, complex_solvated_fep,
                            hybrid_topology)
 
     # fixme - check that the protein does not have the same resname?

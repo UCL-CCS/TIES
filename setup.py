@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'ties = ties:ties.command_line_script'
+            'ties = ties:cmd.command_line_script'
         ]
     }
 )

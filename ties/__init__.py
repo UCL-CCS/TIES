@@ -1,4 +1,4 @@
-# from . import ties
+from . import cmd
 
 from .ligand import Ligand
 from .morph import Morph

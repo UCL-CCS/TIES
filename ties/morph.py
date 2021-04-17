@@ -261,7 +261,7 @@ class Morph():
         leap_in_test = 'leap_test_morph.in'
         leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
         open(cwd / leap_in_test, 'w').write(leap_in_conf.format(
-                                mol2=os.path.relpath(self.mol2, cwd),
+                                mol2=os.path.relpath(self.suptop.mol2, cwd),
                                 frcmod=os.path.relpath(self.frcmod, cwd),
                                 protein_ff=protein_ff, ligand_ff=ligand_ff))
 
