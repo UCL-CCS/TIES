@@ -35,7 +35,6 @@ jobs:
       run: |
         cd testing
         $CONDA/bin/python3 -m pytest
-        cd ..
     - name: Use min API
       run: |
         cd examples/mol2_2files
@@ -45,5 +44,6 @@ jobs:
         cd examples/mol2_2files
         $CONDA/bin/python3 api.py
     - name: Use CMD
+      run: |
         cd example/mol2_2files
         ties create -l MCL1_lig_02.mol2 MCL1_lig_03.mol2 -nc -1 -dir cmdties
