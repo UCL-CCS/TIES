@@ -38,5 +38,6 @@ jobs:
         cd ..
     - name: Use API
       run: |
-        cd example/mol2_2files
+        cd example
+        cd mol2_2files
         $CONDA/bin/python3 api.py
