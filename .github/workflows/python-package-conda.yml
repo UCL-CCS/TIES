@@ -35,3 +35,7 @@ jobs:
       run: |
         cd testing
         $CONDA/bin/python3 -m pytest
+    - name: Use API
+      run: |
+        cd example/mol2_2files
+        $CONDA/bin/python3 api.py
