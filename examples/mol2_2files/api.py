@@ -2,9 +2,9 @@ from ties import Morph
 
 morph = Morph('MCL1_lig_02.mol2', 'MCL1_lig_03.mol2')
 morph.make_atom_names_unique()
-suptop = morph.compute_suptop()
+hybrid = morph.compute_suptop()
 
 # save meta data
-morph.write_summary_json()
-morph.write_pdb()
-morph.write_hybrid_mol2()
+hybrid.write_summary_json()
+hybrid.write_pdb()
+hybrid.write_mol2()
