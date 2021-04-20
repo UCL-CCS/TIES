@@ -1,6 +1,6 @@
 from . import cmd
 
 from .ligand import Ligand
-from .morph import Morph
+from .pair import Pair
 from .config import Config
 from .ligandmap import LigandMap

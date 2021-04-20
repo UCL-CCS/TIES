@@ -12,7 +12,7 @@ import ties.generator
 from ties.helpers import *
 import ties.config
 import ties.ligand
-import ties.morph
+import ties.pair
 import ties.ligandmap
 
 
@@ -145,7 +145,7 @@ def command_line_script():
                   'E.g. ties rename -l init.mol2 final.mol2')
             sys.exit()
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
-        morph = ties.morph.Morph(ligands[0], ligands[1], config)
+        morph = ties.morph.Pair(ligands[0], ligands[1], config)
         morph.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
@@ -176,7 +176,7 @@ def command_line_script():
         for lig in ligands]
 
     # generate all pairings
-    morphs = [ties.morph.Morph(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
+    morphs = [ties.morph.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the paired topologies
     start_time = time.time()

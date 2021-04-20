@@ -11,7 +11,7 @@ import ties.config
 import ties.ligand
 
 
-class Morph():
+class Pair():
     """
     A convenience class to help organise morphs.
     It offers functionality related to a pair of ligands (a transformation).
@@ -43,9 +43,9 @@ class Morph():
         # create a new config if it is not provided
         self.config = ties.config.Config() if config is None else config
 
-        self.UNIQUE_ATOM_NAMES = self.config.workdir / Morph.UNIQUE_ATOM_NAMES_name
-        self.FRCMOD_DIR = self.config.workdir / Morph.FRCMOD_DIR_name
-        self.FRCMOD_TEST_DIR = self.config.workdir / Morph.FRCMOD_TEST_DIR_name
+        self.UNIQUE_ATOM_NAMES = self.config.workdir / Pair.UNIQUE_ATOM_NAMES_name
+        self.FRCMOD_DIR = self.config.workdir / Pair.FRCMOD_DIR_name
+        self.FRCMOD_TEST_DIR = self.config.workdir / Pair.FRCMOD_TEST_DIR_name
 
         self.internal_name = f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         self.mol2 = None
