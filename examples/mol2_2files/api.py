@@ -1,8 +1,8 @@
-from ties import Morph
+from ties import Pair
 
-morph = Morph('MCL1_lig_02.mol2', 'MCL1_lig_03.mol2')
-morph.make_atom_names_unique()
-hybrid = morph.compute_suptop()
+pair = Pair('MCL1_lig_02.mol2', 'MCL1_lig_03.mol2')
+pair.make_atom_names_unique()
+hybrid = pair.compute_suptop()
 
 # save meta data
 hybrid.write_summary_json()
