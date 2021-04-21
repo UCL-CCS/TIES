@@ -186,7 +186,7 @@ def command_line_script():
         pair.make_atom_names_unique()
 
         # superimpose the topologies
-        hybrid = pair.compute_suptop()
+        hybrid = pair.superimpose()
 
         # save meta data
         hybrid.write_summary_json()

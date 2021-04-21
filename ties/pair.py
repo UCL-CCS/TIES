@@ -65,7 +65,7 @@ class Pair():
     def set_distance(self, value):
         self.distance = value
 
-    def compute_suptop(self, **kwargs):
+    def superimpose(self, **kwargs):
 
         # use MDAnalysis to load the files
         # fixme - move this to the Morph class instead of this place,
