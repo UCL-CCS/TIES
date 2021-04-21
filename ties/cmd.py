@@ -145,8 +145,8 @@ def command_line_script():
                   'E.g. ties rename -l init.mol2 final.mol2')
             sys.exit()
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
-        morph = ties.morph.Pair(ligands[0], ligands[1], config)
-        morph.make_atom_names_unique()
+        pair = ties.pair.Pair(ligands[0], ligands[1], config)
+        pair.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
         print('Merging coordinates. Will add coordinates from an external file. ')
@@ -176,17 +176,17 @@ def command_line_script():
         for lig in ligands]
 
     # generate all pairings
-    morphs = [ties.morph.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
+    pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the paired topologies
     start_time = time.time()
-    for morph in morphs:
-        print(f'Next ligand pair: {morph.internal_name}')
+    for pair in pairs:
+        print(f'Next ligand pair: {pair.internal_name}')
         # rename the atom names to ensure they are unique across the two molecules
-        morph.make_atom_names_unique()
+        pair.make_atom_names_unique()
 
         # superimpose the topologies
-        hybrid = morph.compute_suptop()
+        hybrid = pair.compute_suptop()
 
         # save meta data
         hybrid.write_summary_json()
@@ -203,27 +203,27 @@ def command_line_script():
     [lig.generate_frcmod(config.ambertools_parmchk2, config.ligand_ff_name) for lig in ligands]
 
     # join the .frcmod files for each pair
-    print('Ambertools parmchk2 generating .frcmod for morphs')
-    [morph.merge_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
-                              config.protein_ff, config.ligand_ff) for morph in morphs]
+    print('Ambertools parmchk2 generating .frcmod for pairs')
+    [pair.merge_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
+                              config.protein_ff, config.ligand_ff) for pair in pairs]
 
     # transformation hunter
     if len(ligands) == 2:
-        selected_morphs = morphs
+        selected_pairs = pairs
     else:
-        lm = LigandMap(ligands, morphs)
+        lm = LigandMap(ligands, pairs)
         lm.generate_map()
         lm.print_map()
         lm.generate_graph()
-        # selected_morphs = lm.traveling_salesmen()
-        selected_morphs = lm.kruskal()
+        # selected_pairs = lm.traveling_salesmen()
+        selected_pairs = lm.kruskal()
 
     ##########################################################
     # ------------------   Ligand ----------------------------
-    # fixme - switch to morph.prepare_inputs instead.
+    # fixme - switch to pair.prepare_inputs instead.
     # this way we could reuse a lot of this information
-    for morph in selected_morphs:
-        ties.generator.prepare_inputs(morph,
+    for pair in selected_pairs:
+        ties.generator.prepare_inputs(pair,
                        config.workdir,
                        protein=None,
                        namd_script_loc=config.namd_script_dir,
@@ -239,7 +239,7 @@ def command_line_script():
                        md_engine=config.md_engine,
                        lambda_rep_dir_tree=config.lambda_rep_dir_tree,
                        )
-        print(f'Ligand {morph} directory populated successfully')
+        print(f'Ligand {pair} directory populated successfully')
 
     ##########################################################
     # ------------------ Complex  ----------------------------
@@ -250,8 +250,8 @@ def command_line_script():
                                config.protein_ff)
         print(f'Protein net charge: {protein_net_charge}')
 
-        for morph in selected_morphs:
-            ties.generator.prepare_inputs(morph,
+        for pair in selected_pairs:
+            ties.generator.prepare_inputs(pair,
                            config.workdir / 'com',
                            protein=config.protein,
                            namd_script_loc=config.namd_script_dir,
