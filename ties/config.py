@@ -168,6 +168,11 @@ class Config:
                 print('Option 1: source your ambertools script amber.sh')
                 print('Option 2: specify manually the path to amberhome with -ambertools option')
                 sys.exit()
+        else:
+            path = pathlib.Path(path)
+            if not path.exists():
+                print('Error: The provided ambertools home path does not point towards the directory.'
+                      f'{path}')
 
         self._ambertools_home = path
 
@@ -372,6 +377,11 @@ class Config:
 
     @property
     def protein_ff(self):
+        if self._protein_ff is None:
+            print('Warning: Protein FF is not configured in the config.protein_ff. '
+                  'Setting the default leaprc.ff99SBildn')
+            # fixme - update to a later ff
+            self._protein_ff = 'leaprc.ff99SBildn'
         return self._protein_ff
 
     @protein_ff.setter

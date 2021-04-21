@@ -8,6 +8,8 @@ import itertools
 import math
 import random
 import json
+import shutil
+import subprocess
 from functools import reduce
 from collections import OrderedDict
 
@@ -383,6 +385,239 @@ class SuperimposedTopology:
                            (' ' * 11) + \
                            '  ' + '  ' + '\n'
                     FOUT.write(line)
+
+    def prepare_inputs(self,
+                       # dir_prefix=None,
+                       protein=None,
+                       # namd_script_loc=None,
+                       # submit_script=None,
+                       # scripts_loc=None,
+                       # tleap_in=None,
+                       # protein_ff=None,
+                       # ligand_ff=None,
+                       # net_charge=None,
+                       # ambertools_script_dir=None,
+                       # ambertools_tleap=None,
+                       # hybrid_topology=False,
+                       # vmd_vis_script=None,
+                       # md_engine=False,
+                       # lambda_rep_dir_tree=False
+                       ):
+
+        # config.workdir,
+        # namd_script_loc = config.namd_script_dir,
+        # scripts_loc = config.script_dir,
+        # tleap_in = config.ligand_tleap_in,
+        # protein_ff = config.protein_ff,
+        # ligand_ff = config.ligand_ff,
+        # net_charge = config.ligand_net_charge,
+        # ambertools_script_dir = config.ambertools_script_dir,
+        # ambertools_tleap = config.ambertools_tleap,
+        # hybrid_topology = config.use_hybrid_single_dual_top,
+        # vmd_vis_script = config.vmd_vis_script,
+        # md_engine = config.md_engine,
+        # lambda_rep_dir_tree = config.lambda_rep_dir_tree,
+
+        print('Ambertools parmchk2 generating .frcmod for ligands')
+        self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
+        self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
+
+        # join the .frcmod files for each pair
+        print('Ambertools parmchk2 generating .frcmod for pairs')
+        self.morph.merge_frcmod_files(self.config.ambertools_tleap, self.config.ambertools_script_dir,
+                                 self.config.protein_ff, self.config.ligand_ff)
+
+        if protein is None:
+            ligcom = 'lig'
+            tleap_in = self.config.ligand_tleap_in
+        else:
+            ligcom = 'com'
+            tleap_in = self.config.complex_tleap_in
+
+        cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / ligcom
+        if not cwd.is_dir():
+            cwd.mkdir(parents=True, exist_ok=True)
+
+        # Agastya: simple format for appearing, disappearing atoms
+        open(cwd / 'disappearing_atoms.txt', 'w').write(
+            ' '.join([a.name for a in self.morph.suptop.get_disappearing_atoms()]))
+        open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in self.morph.suptop.get_appearing_atoms()]))
+
+        # copy the protein complex .pdb
+        if protein is not None:
+            shutil.copy(protein, cwd / 'protein.pdb')
+
+        # copy the hybrid ligand (topology and .frcmod)
+        shutil.copy(self.morph.suptop.mol2, cwd / 'morph.mol2')
+        shutil.copy(self.morph.frcmod, cwd / 'morph.frcmod')
+
+        # determine the number of ions to neutralise the ligand charge
+        if self.config.ligand_net_charge < 0:
+            Na_num = math.fabs(self.config.ligand_net_charge)
+            Cl_num = 0
+        elif self.config.ligand_net_charge > 0:
+            Cl_num = self.config.ligand_net_charge
+            Na_num = 0
+        else:
+            Cl_num = Na_num = 0
+
+        # copy the protein tleap input file (ambertools)
+        # set the number of ions manually
+        assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
+        if Na_num == 0:
+            tleap_Na_ions = '# no Na+ added'
+        elif Na_num > 0:
+            tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
+        if Cl_num == 0:
+            tleap_Cl_ions = '# no Cl- added'
+        elif Cl_num > 0:
+            tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+
+        leap_in_conf = open(self.config.ambertools_script_dir / tleap_in).read()
+        open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=self.config.protein_ff,
+                                                             ligand_ff=self.config.ligand_ff,
+                                                             NaIons=tleap_Na_ions,
+                                                             ClIons=tleap_Cl_ions))
+
+        # ambertools tleap: combine ligand+complex, solvate, generate amberparm
+        log_filename = cwd / 'generate_sys_top.log'
+        with open(log_filename, 'w') as LOG:
+            try:
+                subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
+                               stdout=LOG, stderr=LOG,
+                               cwd=cwd,
+                               check=True, text=True, timeout=30)
+                hybrid_solv = cwd / 'sys_solv.pdb'  # generated
+                # check if the solvation is correct
+            except subprocess.CalledProcessError as E:
+                print('ERROR: occurred when trying to parse the protein.pdb with tleap. ')
+                print(f'ERROR: The output was saved in the directory: {cwd}')
+                print(f'ERROR: can be found in the file: {log_filename}')
+                raise E
+
+        # for hybrid single-dual topology approach, we have to use a different approach
+
+        # generate the merged .fep file
+        complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
+        correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
+                               hybrid_topology)
+
+        # fixme - check that the protein does not have the same resname?
+
+        # calculate PBC for an octahedron
+        solv_oct_boc = extract_PBC_oct_from_tleap_log(cwd / "leap.log")
+
+        # these are the names for the source of the input, output names are fixed
+        if md_engine in ('NAMD', 'namd'):
+            min_script = "min.namd"
+            eq_script = "eq.namd"
+            prod_script = "prod.namd"
+
+        elif md_engine in ('NAMD3', 'namd3'):
+            min_script = "min3.namd"
+            eq_script = "eq3.namd"
+            prod_script = "prod3.namd"
+
+        elif md_engine in ('OpenMM', 'openmm'):
+            min_script = None
+            eq_script = None
+            prod_script = None
+
+        else:
+            raise ValueError('Unknown engine {}'.format(md_engine))
+
+        # Make build and replica_conf dirs
+        # replica_conf contains NAMD scripts
+        if 'namd' in md_engine.lower():
+            if not os.path.exists(cwd / 'replica-confs'):
+                os.makedirs(cwd / 'replica-confs')
+            else:
+                shutil.rmtree(cwd / 'replica-confs')
+                os.makedirs(cwd / 'replica-confs')
+
+            # populate the replica_conf dir with scripts
+            # minimization scripts
+            init_namd_file_min(namd_script_loc, cwd / 'replica-confs', min_script,
+                               structure_name='sys_solv', pbc_box=solv_oct_boc, protein=protein)
+            # equilibriation scripts, note eq_namd_filenames unused
+            generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica-confs', structure_name='sys_solv',
+                             engine=md_engine,
+                             protein=protein)
+            # production script
+            generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica-confs/sim1.conf',
+                               structure_name='sys_solv')
+
+        elif 'openmm' in md_engine.lower():
+            ties_script = open(scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
+                                                                                  cons_file='cons.pdb', **solv_oct_boc)
+            open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
+
+        # build contains all input ie. positions, parameters and constraints
+        if not os.path.exists(cwd / 'build'):
+            os.makedirs(cwd / 'build')
+        else:
+            shutil.rmtree(cwd / 'build')
+            os.makedirs(cwd / 'build')
+
+        # populate the build dir with positions, parameters and constraints
+        # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
+        if protein is not None:
+            create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
+        # pdb, positions
+        shutil.move(hybrid_solv, cwd / 'build')
+        # pdb.fep, alchemical atoms
+        shutil.move(complex_solvated_fep, cwd / 'build')
+        # prmtop, topology
+        shutil.move(cwd / "sys_solv.top", cwd / 'build')
+
+        # copy replic-conf scripts
+        # rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
+        # for f in rep_conf_scripts:
+        #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
+
+        # Generate the directory structure for all the lambdas, and copy the files
+        if 'namd' in md_engine.lower():
+            lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
+        else:
+            lambdas = range(13)
+        if lambda_rep_dir_tree:
+            for lambda_step in lambdas:
+                if 'namd' in md_engine.lower():
+                    lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
+                else:
+                    lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
+                if not os.path.exists(lambda_path):
+                    os.makedirs(lambda_path)
+
+                # for each lambda create 5 replicas
+                for replica_no in range(1, 5 + 1):
+                    replica_dir = lambda_path / f'rep{replica_no}'
+                    if not os.path.exists(replica_dir):
+                        os.makedirs(replica_dir)
+
+                    # set the lambda value for the directory,
+                    # this file is used by NAMD tcl scripts
+                    if 'namd' in md_engine.lower():
+                        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+
+                    # create output dirs equilibriation and simulation
+                    if not os.path.exists(replica_dir / 'equilibration'):
+                        os.makedirs(replica_dir / 'equilibration')
+
+                    if not os.path.exists(replica_dir / 'simulation'):
+                        os.makedirs(replica_dir / 'simulation')
+
+                    # copy a submit script
+                    if submit_script is not None:
+                        shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
+
+        # copy the visualisation script as hidden
+        shutil.copy(vmd_vis_script, cwd / 'vis.vmd')
+        # simplify the vis.vmd use
+        vis_sh = Path(cwd / 'vis.sh')
+        vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
+        vis_sh.chmod(0o755)
+
 
     def write_mol2(self, use_left_charges=True, use_left_coords=True):
         hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
