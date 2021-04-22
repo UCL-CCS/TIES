@@ -206,7 +206,7 @@ def command_line_script():
     if len(ligands) == 2:
         selected_pairs = pairs
     else:
-        lm = LigandMap(ligands, pairs)
+        lm = ties.ligandmap.LigandMap(ligands, pairs)
         lm.generate_map()
         lm.print_map()
         lm.generate_graph()
