@@ -223,7 +223,7 @@ def command_line_script():
     # fixme - switch to pair.prepare_inputs instead.
     # this way we could reuse a lot of this information
     for pair in selected_pairs:
-        pair.prepare_inputs(protein=None)
+        pair.suptop.prepare_inputs(protein=None)
         print(f'Ligand {pair} directory populated successfully')
 
     ##########################################################

@@ -1,4 +1,4 @@
-from . import cmd
+from . import cmdties
 
 from .ligand import Ligand
 from .pair import Pair
