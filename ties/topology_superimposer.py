@@ -21,6 +21,7 @@ from MDAnalysis.analysis.align import rotation_matrix
 
 from ties.helpers import load_MDAnalysis_atom_group
 import ties.config
+import ties.generator
 
 
 class Atom:
@@ -499,36 +500,36 @@ class SuperimposedTopology:
 
         # generate the merged .fep file
         complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
-        correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
-                               hybrid_topology)
+        ties.generator.correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
+                               hybrid_topology=self.config.use_hybrid_single_dual_top)
 
         # fixme - check that the protein does not have the same resname?
 
         # calculate PBC for an octahedron
-        solv_oct_boc = extract_PBC_oct_from_tleap_log(cwd / "leap.log")
+        solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(cwd / "leap.log")
 
         # these are the names for the source of the input, output names are fixed
-        if md_engine in ('NAMD', 'namd'):
+        if self.config.md_engine.lower() == 'namd':
             min_script = "min.namd"
             eq_script = "eq.namd"
             prod_script = "prod.namd"
 
-        elif md_engine in ('NAMD3', 'namd3'):
+        elif self.config.md_engine.lower() == 'namd3':
             min_script = "min3.namd"
             eq_script = "eq3.namd"
             prod_script = "prod3.namd"
 
-        elif md_engine in ('OpenMM', 'openmm'):
+        elif self.config.md_engine.lower() == 'openmm':
             min_script = None
             eq_script = None
             prod_script = None
 
         else:
-            raise ValueError('Unknown engine {}'.format(md_engine))
+            raise ValueError('Unknown engine {}'.format(self.config.md_engine))
 
         # Make build and replica_conf dirs
         # replica_conf contains NAMD scripts
-        if 'namd' in md_engine.lower():
+        if 'namd' in self.config.md_engine.lower():
             if not os.path.exists(cwd / 'replica-confs'):
                 os.makedirs(cwd / 'replica-confs')
             else:
@@ -537,18 +538,18 @@ class SuperimposedTopology:
 
             # populate the replica_conf dir with scripts
             # minimization scripts
-            init_namd_file_min(namd_script_loc, cwd / 'replica-confs', min_script,
+            ties.generator.init_namd_file_min(self.config.namd_script_dir, cwd / 'replica-confs', min_script,
                                structure_name='sys_solv', pbc_box=solv_oct_boc, protein=protein)
             # equilibriation scripts, note eq_namd_filenames unused
-            generate_namd_eq(namd_script_loc / eq_script, cwd / 'replica-confs', structure_name='sys_solv',
-                             engine=md_engine,
+            ties.generator.generate_namd_eq(self.config.namd_script_dir / eq_script, cwd / 'replica-confs', structure_name='sys_solv',
+                             engine=self.config.md_engine,
                              protein=protein)
             # production script
-            generate_namd_prod(namd_script_loc / prod_script, cwd / 'replica-confs/sim1.conf',
+            ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs/sim1.conf',
                                structure_name='sys_solv')
 
-        elif 'openmm' in md_engine.lower():
-            ties_script = open(scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
+        elif 'openmm' in self.config.md_engine.lower():
+            ties_script = open(self.config.scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
                                                                                   cons_file='cons.pdb', **solv_oct_boc)
             open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
 
@@ -562,7 +563,7 @@ class SuperimposedTopology:
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
         if protein is not None:
-            create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
+            ties.generator.create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
         # pdb, positions
         shutil.move(hybrid_solv, cwd / 'build')
         # pdb.fep, alchemical atoms
@@ -576,13 +577,13 @@ class SuperimposedTopology:
         #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
 
         # Generate the directory structure for all the lambdas, and copy the files
-        if 'namd' in md_engine.lower():
+        if 'namd' in self.config.md_engine.lower():
             lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
         else:
             lambdas = range(13)
-        if lambda_rep_dir_tree:
+        if self.config.lambda_rep_dir_tree:
             for lambda_step in lambdas:
-                if 'namd' in md_engine.lower():
+                if 'namd' in self.config.md_engine.lower():
                     lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
                 else:
                     lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
@@ -597,7 +598,7 @@ class SuperimposedTopology:
 
                     # set the lambda value for the directory,
                     # this file is used by NAMD tcl scripts
-                    if 'namd' in md_engine.lower():
+                    if 'namd' in self.config.md_engine.lower():
                         open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
                     # create output dirs equilibriation and simulation
@@ -607,14 +608,10 @@ class SuperimposedTopology:
                     if not os.path.exists(replica_dir / 'simulation'):
                         os.makedirs(replica_dir / 'simulation')
 
-                    # copy a submit script
-                    if submit_script is not None:
-                        shutil.copy(namd_script_loc / submit_script, replica_dir / 'submit.sh')
-
         # copy the visualisation script as hidden
-        shutil.copy(vmd_vis_script, cwd / 'vis.vmd')
+        shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
         # simplify the vis.vmd use
-        vis_sh = Path(cwd / 'vis.sh')
+        vis_sh = cwd / 'vis.sh'
         vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
         vis_sh.chmod(0o755)
 
