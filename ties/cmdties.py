@@ -194,11 +194,6 @@ def command_line_script():
         hybrid.write_mol2()
     print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
-    if config.use_hybrid_single_dual_top:
-        raise NotImplementedError('Hybrid single-dual not done with LOMAP feature. ')
-        rewrite_mol2_hybrid_top('left.mol2', list(matching_info["single_top_matched"].keys()))
-        rewrite_mol2_hybrid_top('right.mol2', list(matching_info["single_top_matched"].values()))
-
     print('Ambertools parmchk2 generating .frcmod for ligands')
     [lig.generate_frcmod(config.ambertools_parmchk2, config.ligand_ff_name) for lig in ligands]
 
