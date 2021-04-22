@@ -140,24 +140,8 @@ class Config:
     # --------------- ambertools
     @property
     def ambertools_home(self):
-        return self._ambertools_home
-
-    @property
-    def ambertools_antechamber(self):
-        return self._ambertools_home / 'bin' / 'antechamber'
-
-    @property
-    def ambertools_parmchk2(self):
-        return self._ambertools_home / 'bin' / 'parmchk2'
-
-    @property
-    def ambertools_tleap(self):
-        return self._ambertools_home / 'bin' / 'tleap'
-
-    @ambertools_home.setter
-    def ambertools_home(self, path):
         # ambertools path given?
-        if path is None:
+        if self._ambertools_home is None:
             # otherwise check env paths
             if os.getenv('AMBERHOME'):
                 path = pathlib.Path(os.getenv('AMBERHOME'))
@@ -168,11 +152,30 @@ class Config:
                 print('Option 1: source your ambertools script amber.sh')
                 print('Option 2: specify manually the path to amberhome with -ambertools option')
                 sys.exit()
-        else:
-            path = pathlib.Path(path)
-            if not path.exists():
-                print('Error: The provided ambertools home path does not point towards the directory.'
-                      f'{path}')
+
+            assert path.exists()
+            self._ambertools_home = path
+
+        return self._ambertools_home
+
+    @property
+    def ambertools_antechamber(self):
+        return self.ambertools_home / 'bin' / 'antechamber'
+
+    @property
+    def ambertools_parmchk2(self):
+        return self.ambertools_home / 'bin' / 'parmchk2'
+
+    @property
+    def ambertools_tleap(self):
+        return self.ambertools_home / 'bin' / 'tleap'
+
+    @ambertools_home.setter
+    def ambertools_home(self, path):
+        path = pathlib.Path(path)
+        if not path.exists():
+            print('Error: The provided ambertools home path does not point towards the directory.'
+                  f'{path}')
 
         self._ambertools_home = path
 
