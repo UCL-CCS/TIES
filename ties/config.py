@@ -172,6 +172,10 @@ class Config:
 
     @ambertools_home.setter
     def ambertools_home(self, path):
+        if path is None:
+            self._ambertools_home = None
+            return
+
         path = pathlib.Path(path)
         if not path.exists():
             print('Error: The provided ambertools home path does not point towards the directory.'
