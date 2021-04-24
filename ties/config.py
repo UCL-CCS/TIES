@@ -151,6 +151,7 @@ class Config:
                 print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
                 print('Option 1: source your ambertools script amber.sh')
                 print('Option 2: specify manually the path to amberhome with -ambertools option')
+                raise Exception('No ambertools')
                 sys.exit()
 
             assert path.exists()
