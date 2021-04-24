@@ -393,7 +393,8 @@ class Config:
         path = pathlib.Path(value)
         if not path.is_file():
             print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
-            os.system('env')
+            import subprocess
+            print(subprocess.check_output(['env']))
             raise Exception('Could not find the file. ')
 
         mismatch = []
