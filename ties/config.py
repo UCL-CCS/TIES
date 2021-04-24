@@ -387,6 +387,9 @@ class Config:
 
     @property
     def manually_mismatched_pairs(self):
+        if self._manually_mismatched_pairs is None:
+            return []
+
         return self._manually_mismatched_pairs
 
     @manually_mismatched_pairs.setter
