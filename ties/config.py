@@ -384,6 +384,27 @@ class Config:
         self._manually_matched_atom_pairs = manually_matched
 
     @property
+    def manually_mismatched_pairs(self):
+        return self._manually_mismatched_pairs
+
+    @manually_mismatched_pairs.setter
+    def manually_mismatched_pairs(self, value):
+        # only allow the file for now
+        path = pathlib.Path(value)
+        if not path.is_file():
+            print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
+            os.system('env')
+            raise Exception('Could not find the file. ')
+
+        mismatch = []
+        with open(path) as IN:
+            for left_atom, right_atom in csv.reader(IN, delimiter='-'):
+                mismatch.append((left_atom.strip(), right_atom.strip()))
+
+        self._manually_mismatched_pairs = mismatch
+        return self._manually_mismatched_pairs
+
+    @property
     def protein_ff(self):
         if self._protein_ff is None:
             print('Warning: Protein FF is not configured in the config.protein_ff. '
