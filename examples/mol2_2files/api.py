@@ -14,5 +14,3 @@ hybrid.write_pdb()
 hybrid.write_mol2()
 
 hybrid.prepare_inputs()
-
-print('done')

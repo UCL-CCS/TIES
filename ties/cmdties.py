@@ -74,7 +74,7 @@ def command_line_script():
                              'traversal to find the superimposition. '
                              'Example: "C1-C34" where C1 is in the disappearing molecule, '
                              'and C34 is in the appearing molecule. ')
-    parser.add_argument('-mismatch', '--manual-mismatch', metavar='file or pair', dest='manually_mismatched_pairs',
+    parser.add_argument('-unmatch', '--manual-unmatch', metavar='file or pair', dest='manually_mismatched_pairs',
                         type=pathlib.Path, required=False,  # fixme - implement
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
