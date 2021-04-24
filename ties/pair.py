@@ -138,7 +138,7 @@ class Pair():
                                          use_only_element=False,
                                          check_atom_names_unique=True, # fixme - remove?
                                          starting_pairs_heuristics=True, # fixme - add to config
-                                         force_mismatch=None, # fixme - add to config
+                                         force_mismatch=self.config.manually_mismatched_pairs, # fixme - add to config
                                          starting_node_pairs=starting_node_pairs,
                                          ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
                                          starting_pair_seed=self.config.superimposition_starting_pair)

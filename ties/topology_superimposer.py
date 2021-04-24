@@ -3248,6 +3248,14 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
 
+    # mismatch atoms as requested
+    if force_mismatch:
+        for sp in suptops:
+            for (a1, a2) in sp.matched_pairs[::-1]:
+                if (a1.name, a2.name) in force_mismatch:
+                    sp.remove_node_pair((a1, a2))
+                    print(f'Removing the pair: {((a1, a2))}, as requested')
+
     # ensure that ring-atoms are not matched to non-ring atoms
     for st in suptops:
         st.ringring()
@@ -3286,15 +3294,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if removed:
                 print(f'Removed pairs with charge incompatibility: '
                       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
-
-    # apply the force mismatch at the end
-    # this is an interactive feature
-    if force_mismatch is not None:
-        for suptop in suptops:
-            for an1, an2 in force_mismatch:
-                if suptop.contains_atomNamePair(an1, an2):
-                    n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
-                    suptop.remove_node_pair((n1, n2))
 
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.

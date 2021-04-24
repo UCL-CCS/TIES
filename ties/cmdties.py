@@ -19,7 +19,7 @@ import ties.ligandmap
 def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
     parser.add_argument('command', metavar='str', type=str,
-                        help='Action to be performed. E.g. "rename, ties create, .." ')
+                        help='Action to be performed. E.g. "rename, create, .." ')
     parser.add_argument('-l', '--ligands', metavar='files ', dest='ligands',
                         nargs='+',
                         type=ArgparseChecker.existing_file,
@@ -87,6 +87,10 @@ def command_line_script():
                              'changes the overall molecule charge slightly. '
                              'Redistribute the lost/gained charges over the unmatched area '
                              'to make the charges equal. ')
+    parser.add_argument('-uniq-a', '--rename-atoms-unique', metavar='boolean',
+                        dest='unique_atom_names', required=False, default=False,
+                        type=ArgparseChecker.str2bool,
+                        help='Assign unique atom names for each hybrid pair ')
     parser.add_argument('-hybrid-top', '--hybrid-singe-dual-top', metavar='boolean',
                         dest='hybrid_single_dual_top',
                         type=ArgparseChecker.str2bool, required=False, default=False,
@@ -182,8 +186,10 @@ def command_line_script():
     start_time = time.time()
     for pair in pairs:
         print(f'Next ligand pair: {pair.internal_name}')
+
         # rename the atom names to ensure they are unique across the two molecules
-        pair.make_atom_names_unique()
+        if args.unique_atom_names:
+            pair.make_atom_names_unique()
 
         # superimpose the topologies
         hybrid = pair.superimpose()
@@ -231,6 +237,7 @@ def command_line_script():
         print(f'Protein net charge: {protein_net_charge}')
 
         for pair in selected_pairs:
+            # fixme pair.suptop.prepare_inputs(protein=None)
             ties.generator.prepare_inputs(pair,
                            config.workdir / 'com',
                            protein=config.protein,
