@@ -151,6 +151,8 @@ class Config:
                 print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
                 print('Option 1: source your ambertools script amber.sh')
                 print('Option 2: specify manually the path to amberhome with -ambertools option')
+                import subprocess
+                print(subprocess.check_output(['env']))
                 raise Exception('No ambertools')
                 sys.exit()
 
@@ -393,8 +395,6 @@ class Config:
         path = pathlib.Path(value)
         if not path.is_file():
             print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
-            import subprocess
-            print(subprocess.check_output(['env']))
             raise Exception('Could not find the file. ')
 
         mismatch = []
