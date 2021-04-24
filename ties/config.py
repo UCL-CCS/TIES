@@ -41,6 +41,7 @@ class Config:
 
         self._ligand_files = None
         self._manually_matched_atom_pairs = None
+        self._manually_mismatched_pairs = None
         self._ligands_contain_q = None
 
         self._ligand_tleap_in = None
