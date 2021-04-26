@@ -395,16 +395,18 @@ class Config:
 
     @manually_mismatched_pairs.setter
     def manually_mismatched_pairs(self, value):
-        # only allow the file for now
-        path = pathlib.Path(value)
-        if not path.is_file():
-            print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
-            raise Exception('Could not find the file. ')
-
         mismatch = []
-        with open(path) as IN:
-            for left_atom, right_atom in csv.reader(IN, delimiter='-'):
-                mismatch.append((left_atom.strip(), right_atom.strip()))
+
+        # only allow the file for now
+        if value is not None:
+            path = pathlib.Path(value)
+            if not path.is_file():
+                print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
+                raise Exception('Could not find the file. ')
+
+            with open(path) as IN:
+                for left_atom, right_atom in csv.reader(IN, delimiter='-'):
+                    mismatch.append((left_atom.strip(), right_atom.strip()))
 
         self._manually_mismatched_pairs = mismatch
         return self._manually_mismatched_pairs

@@ -325,7 +325,7 @@ class Pair():
             # update our tleap input test to use the corrected file
             leap_in_test_corrected = cwd / 'leap_test_morph_corrected.in'
             open(leap_in_test_corrected, 'w').write(leap_in_conf.format(
-                                mol2=os.path.relpath(self.mol2, cwd),
+                                mol2=os.path.relpath(self.suptop.mol2, cwd),
                                 frcmod=os.path.relpath(modified_hybrid_frcmod, cwd),
                                 protein_ff=protein_ff, ligand_ff=ligand_ff))
 
