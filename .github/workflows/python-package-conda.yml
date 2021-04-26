@@ -35,6 +35,10 @@ jobs:
       run: |
         cd testing
         $CONDA/bin/python3 -m pytest
+    - name: Use antechamber
+      run: antechamber -h 
+    - name: Use antechamber 2
+      run: $CONDA/bin/antechamber
     - name: Use min API
       run: |
         cd examples/mol2_2files
@@ -48,7 +52,3 @@ jobs:
       run: |
         cd examples/mol2_2files
         $CONDA/bin/ties create -l MCL1_lig_02.mol2 MCL1_lig_03.mol2 -nc -1 -dir cmdties
-    - name: Use antechamber
-      run: antechamber -h 
-    - name: Use antechamber 2
-      run: $CONDA/bin/antechamber
