@@ -152,7 +152,9 @@ class Config:
             else:
                 # try to deduce the env from the location of antechamber binary
                 proc = subprocess.run(['which', 'antechamber'], capture_output=True)
-                ant_path = pathlib.Path(proc.stdout.decode('utf-8'))
+                decode = proc.stdout.decode('utf-8')
+                print('Decoded', decode)
+                ant_path = pathlib.Path(decode)
                 if ant_path.is_file():
                     path = ant_path.parent.parent
                 else:
