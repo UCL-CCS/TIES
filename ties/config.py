@@ -152,12 +152,14 @@ class Config:
             else:
                 # try to deduce the env from the location of antechamber binary
                 proc = subprocess.run(['which', 'antechamber'], capture_output=True)
-                print(proc.stdout.decode('utf-8'))
-
-                print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-                print('Option 1: source your ambertools script amber.sh')
-                print('Option 2: specify manually the path to amberhome with -ambertools option')
-                raise Exception('No ambertools')
+                ant_path = pathlib.Path(proc.stdout.decode('utf-8'))
+                if ant_path.is_file():
+                    path = ant_path.parent.parent
+                else:
+                    print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
+                    print('Option 1: source your ambertools script amber.sh')
+                    print('Option 2: specify manually the path to amberhome with -ambertools option')
+                    raise Exception('No ambertools')
 
             assert path.exists()
             self._ambertools_home = path
