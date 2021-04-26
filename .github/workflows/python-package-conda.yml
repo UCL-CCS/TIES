@@ -39,6 +39,7 @@ jobs:
       run: |
         cd examples/mol2_2files
         $CONDA/bin/python3 min_api.py
+        $CONDA/bin/python3 .test_min_api.py
     - name: Use API
       run: |
         cd examples/mol2_2files
