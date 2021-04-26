@@ -2,6 +2,7 @@ import os
 import sys
 import pathlib
 import csv
+import subprocess
 
 import MDAnalysis
 from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
@@ -149,13 +150,14 @@ class Config:
             elif os.getenv('AMBER_PREFIX'):
                 path = pathlib.Path(os.getenv('AMBER_PREFIX'))
             else:
+                # try to deduce the env from the location of antechamber binary
+                proc = subprocess.run(['which', 'antechamber'], capture_output=True)
+                print(proc.stdout.decode('utf-8'))
+
                 print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
                 print('Option 1: source your ambertools script amber.sh')
                 print('Option 2: specify manually the path to amberhome with -ambertools option')
-                import subprocess
-                print(subprocess.check_output(['env']))
                 raise Exception('No ambertools')
-                sys.exit()
 
             assert path.exists()
             self._ambertools_home = path
