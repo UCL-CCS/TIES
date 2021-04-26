@@ -35,8 +35,11 @@ jobs:
       run: |
         cd testing
         $CONDA/bin/python3 -m pytest
-    - name: Use antechamber 2
-      run: $CONDA/bin/antechamber
+    - name: Use antechamber
+      run: |
+        $CONDA/bin/conda init
+        env
+        $CONDA/bin/antechamber
     - name: Use min API
       run: |
         cd examples/mol2_2files
