@@ -8,7 +8,7 @@ jobs:
     strategy:
       max-parallel: 5
     env:
-      AMBERHOME: $CONDA
+      AMBERHOME: /usr/share/miniconda
 
     steps:
     - uses: actions/checkout@v2
@@ -24,8 +24,8 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         $CONDA/bin/conda env update --file environment.yml --name base
-#     - name: Lint with flake8
-#       run: |
+#   - name: Lint with flake8
+#     run: |
 #         $CONDA/bin/conda install flake8
 #         # stop the build if there are Python syntax errors or undefined names
 #         $CONDA/bin/flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
@@ -44,6 +44,7 @@ jobs:
     - name: Use antechamber
       run: |
         which antechamber
+        antechamber -h
     - name: Use min API
       run: |
         cd examples/mol2_2files
