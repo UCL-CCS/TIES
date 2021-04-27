@@ -267,9 +267,15 @@ class Pair():
 
         # attempt generating the .top
         print('Create amber7 topology .top')
-        tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test],
-                                       cwd=cwd, text=True, timeout=20,
-                                       capture_output=True, check=True)
+        try:
+            tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test],
+                                           cwd=cwd, text=True, timeout=20,
+                                           capture_output=True, check=True)
+        except subprocess.CalledProcessError as err:
+            print(f'ERROR:  testing the topology with tleap broke. Return code: {err.returncode}')
+            print(f'ERROR: stdout content: {err.stdout}')
+            print(f'ERROR: stdout content: {err.stderr}')
+            raise err
 
         # save stdout and stderr
         open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
