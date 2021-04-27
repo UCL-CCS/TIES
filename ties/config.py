@@ -426,7 +426,7 @@ class Config:
             print('Warning: Protein FF is not configured in the config.protein_ff. '
                   'Setting the default leaprc.ff19SB')
             # fixme - update to a later ff
-            self._protein_ff = 'leaprc.ff19SB'
+            self._protein_ff = 'leaprc.protein.ff19SB'
         return self._protein_ff
 
     @protein_ff.setter

@@ -45,7 +45,7 @@ jobs:
       run: |
         which antechamber
         antechamber -h
-        find /usr/share/miniconda -name leaprc.ff19SB
+        find /usr/share/miniconda -name leaprc.protein.ff19SB
     - name: Use min API
       run: |
         cd examples/mol2_2files
