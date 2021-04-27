@@ -239,7 +239,6 @@ class Ligand:
 
         log_filename = cwd / "parmchk2.log"
         target_frcmod = f'{self.internal_name}.frcmod'
-        print(f'Using parmchk2: {parmchk2}')
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([parmchk2.parent / 'wrapped_progs' / 'parmchk2',
