@@ -41,10 +41,11 @@ jobs:
       run: |
         cd testing
         python3 -m pytest
-    - name: Use antechamber
+    - name: Ambertools checks
       run: |
         which antechamber
         antechamber -h
+        find /usr/share/miniconda -name leaprc.ff99SBildn
     - name: Use min API
       run: |
         cd examples/mol2_2files
