@@ -102,9 +102,9 @@ def command_line_script():
                         help='Allow the molecules to be divided by "disappearing/appearing" atoms.')
     # temporary # fixme - list the FFs here
     parser.add_argument('-pff', '--protein-ff', metavar='str', dest='protein_ff',
-                        type=str, required=False, default='leaprc.protein.ff14SB',
-                        help='This is a temporary solution. E.g. "leaprc.protein.ff14SB", '
-                             ', "leaprc.ff99SBildn", etc.')
+                        type=str, required=False, default='leaprc.protein.ff19SB',
+                        help='This is a temporary solution. E.g. "leaprc.protein.ff19SB", '
+                             ', "leaprc.ff19SB", etc.')
     parser.add_argument('-lff', '--ligand-ff', metavar='str', dest='ligand_ff_name',
                         type=str, required=False, default='gaff',
                         help='Either "gaff" or "gaff2"')
