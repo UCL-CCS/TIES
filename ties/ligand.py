@@ -241,7 +241,7 @@ class Ligand:
         target_frcmod = f'{self.internal_name}.frcmod'
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([parmchk2.parent / 'wrapped_progs' / 'parmchk2',
+                subprocess.run([parmchk2,
                                 '-i', self.current,
                                 '-o', target_frcmod,
                                 '-f', 'mol2',
