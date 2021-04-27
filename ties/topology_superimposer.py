@@ -565,11 +565,11 @@ class SuperimposedTopology:
         if protein is not None:
             ties.generator.create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
         # pdb, positions
-        shutil.move(hybrid_solv, cwd / 'build')
+        shutil.move(str(hybrid_solv), str(cwd / 'build'))
         # pdb.fep, alchemical atoms
-        shutil.move(complex_solvated_fep, cwd / 'build')
+        shutil.move(str(complex_solvated_fep), str(cwd / 'build'))
         # prmtop, topology
-        shutil.move(cwd / "sys_solv.top", cwd / 'build')
+        shutil.move(str(cwd / "sys_solv.top"), str(cwd / 'build'))
 
         # copy replic-conf scripts
         # rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
