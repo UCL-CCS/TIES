@@ -143,6 +143,7 @@ class Config:
     @property
     def ambertools_home(self):
         # ambertools path given?
+        path = None
         if self._ambertools_home is None:
             # otherwise check env paths
             if os.getenv('AMBERHOME'):
@@ -151,17 +152,19 @@ class Config:
                 path = pathlib.Path(os.getenv('AMBER_PREFIX'))
             else:
                 # try to deduce the env from the location of antechamber binary
+                print('WARNING: $AMBERHOME not found. Guessing the location by looking up antechamber. ')
                 proc = subprocess.run(['which', 'antechamber'], capture_output=True)
-                decode = proc.stdout.decode('utf-8')
-                print(f'Decoded: "{decode}"', )
-                ant_path = pathlib.Path(decode.strip())
-                if ant_path.is_file():
-                    path = ant_path.parent.parent
-                else:
-                    print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-                    print('Option 1: source your ambertools script amber.sh')
-                    print('Option 2: specify manually the path to amberhome with -ambertools option')
-                    raise Exception('No ambertools')
+                decode = proc.stdout.decode('utf-8').strip()
+                if "not found" not in decode:
+                    ant_path = pathlib.Path(decode)
+                    if ant_path.is_file():
+                        path = ant_path.parent.parent
+
+            if path is None:
+                print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
+                print('Option 1: source your ambertools script amber.sh')
+                print('Option 2: specify manually the path to amberhome with -ambertools option')
+                raise Exception('No ambertools')
 
             assert path.exists()
             self._ambertools_home = path
