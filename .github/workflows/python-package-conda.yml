@@ -41,11 +41,6 @@ jobs:
       run: |
         cd testing
         python3 -m pytest
-    - name: Ambertools checks
-      run: |
-        which antechamber
-        antechamber -h
-        find /usr/share/miniconda -name leaprc.protein.ff19SB
     - name: Use min API
       run: |
         cd examples/mol2_2files
