@@ -387,47 +387,11 @@ class SuperimposedTopology:
                            '  ' + '  ' + '\n'
                     FOUT.write(line)
 
-    def prepare_inputs(self,
-                       # dir_prefix=None,
-                       protein=None,
-                       # namd_script_loc=None,
-                       # submit_script=None,
-                       # scripts_loc=None,
-                       # tleap_in=None,
-                       # protein_ff=None,
-                       # ligand_ff=None,
-                       # net_charge=None,
-                       # ambertools_script_dir=None,
-                       # ambertools_tleap=None,
-                       # hybrid_topology=False,
-                       # vmd_vis_script=None,
-                       # md_engine=False,
-                       # lambda_rep_dir_tree=False
-                       ):
-
-        # config.workdir,
-        # namd_script_loc = config.namd_script_dir,
-        # scripts_loc = config.script_dir,
-        # tleap_in = config.ligand_tleap_in,
-        # protein_ff = config.protein_ff,
-        # ligand_ff = config.ligand_ff,
-        # net_charge = config.ligand_net_charge,
-        # ambertools_script_dir = config.ambertools_script_dir,
-        # ambertools_tleap = config.ambertools_tleap,
-        # hybrid_topology = config.use_hybrid_single_dual_top,
-        # vmd_vis_script = config.vmd_vis_script,
-        # md_engine = config.md_engine,
-        # lambda_rep_dir_tree = config.lambda_rep_dir_tree,
-
+    def prepare_inputs(self, protein=None):
         print('Ambertools parmchk2 generating .frcmod for ligands')
         # fixme: ensure the function does not do it if it's already been done (ie cmdties)
         self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
         self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
-
-        if self.config.protein is None:
-            protein_ff = None
-        else:
-            protein_ff = self.config.protein_ff
 
         # join the .frcmod files for each pair
         print('Ambertools parmchk2 generating .frcmod for pairs')
@@ -479,8 +443,8 @@ class SuperimposedTopology:
         elif Cl_num > 0:
             tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 
-        if self.config.protein is None:
-            protein_ff = '# no protein ff needed'
+        if self.config.protein_ff is None:
+            protein_ff = '# no protein ff'
         else:
             protein_ff = 'source ' + self.config.protein_ff
 

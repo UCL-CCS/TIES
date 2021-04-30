@@ -422,8 +422,13 @@ class Config:
 
     @property
     def protein_ff(self):
+        if self.protein is None:
+            print('INFO: Protein FF was requested even though protein was not provided. '
+                  'Ignoring the protein ff request.')
+            return None
+
         if self._protein_ff is None:
-            print('Warning: Protein FF is not configured in the config.protein_ff. '
+            print('WARNING: Protein FF is not configured in the config.protein_ff. '
                   'Setting the default leaprc.ff19SB')
             # fixme - update to a later ff
             self._protein_ff = 'leaprc.protein.ff19SB'
