@@ -14,6 +14,7 @@ import ties.config
 import ties.ligand
 import ties.pair
 import ties.ligandmap
+import ties.protein
 
 
 def command_line_script():
@@ -47,7 +48,8 @@ def command_line_script():
     parser.add_argument('-use-input-q', '--use-ligand-charges', metavar='boolean', dest='ligands_contain_q',
                         type=ArgparseChecker.str2bool, required=False, default=None,
                         help='Use charges provided with the ligand files (with .mol2). '
-                             'Default: If .mol2 is given, using the given charges will be attempted. ' # fixme - test if this agrees with the files
+                             'Default: If .mol2 is given, using the given charges will be attempted. '  
+                              # fixme - test if this agrees with the files, add CI tests for this
                              'Default: If .pdb is given, then BCC charges are computed with antechamber. ')
     parser.add_argument('-align-mcs', '--align-ligands-mcs', metavar='boolean', dest='align_molecules_using_mcs',
                         type=ArgparseChecker.str2bool, required=False, default=False,
@@ -94,7 +96,7 @@ def command_line_script():
     parser.add_argument('-hybrid-top', '--hybrid-singe-dual-top', metavar='boolean',
                         dest='hybrid_single_dual_top',
                         type=ArgparseChecker.str2bool, required=False, default=False,
-                        help='Use hybrid single-dual topology in NAMD. See NAMD manual and '
+                        help='Use hybrid single-dual topology in NAMD (EXPERIMENTAL). See NAMD manual and '
                              'https://pubs.acs.org/doi/10.1021/acs.jcim.9b00362')
     parser.add_argument('-disjoint-allowed', '--disjoint-appearing-disappearing', metavar='boolean',
                         dest='allow_disjoint_components',
@@ -200,14 +202,6 @@ def command_line_script():
         hybrid.write_mol2()
     print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
 
-    print('Ambertools parmchk2 generating .frcmod for ligands')
-    [lig.generate_frcmod(config.ambertools_parmchk2, config.ligand_ff_name) for lig in ligands]
-
-    # join the .frcmod files for each pair
-    print('Ambertools parmchk2 generating .frcmod for pairs')
-    [pair.merge_frcmod_files(config.ambertools_tleap, config.ambertools_script_dir,
-                              config.protein_ff, config.ligand_ff) for pair in pairs]
-
     # transformation hunter
     if len(ligands) == 2:
         selected_pairs = pairs
@@ -221,8 +215,6 @@ def command_line_script():
 
     ##########################################################
     # ------------------   Ligand ----------------------------
-    # fixme - switch to pair.prepare_inputs instead.
-    # this way we could reuse a lot of this information
     for pair in selected_pairs:
         pair.suptop.prepare_inputs(protein=None)
         print(f'Ligand {pair} directory populated successfully')
@@ -230,36 +222,16 @@ def command_line_script():
     ##########################################################
     # ------------------ Complex  ----------------------------
     if config.protein is not None:
-        # calculate the charges of the protein (using ambertools)
-        protein_net_charge = ties.generator.get_protein_net_charge(config.workdir, config.protein.absolute(),
-                               config.ambertools_tleap, config.tleap_check_protein,
-                               config.protein_ff)
-        print(f'Protein net charge: {protein_net_charge}')
-
+        protein = ties.protein.Protein(config.protein, config)
         for pair in selected_pairs:
-            # fixme pair.suptop.prepare_inputs(protein=None)
-            ties.generator.prepare_inputs(pair,
-                           config.workdir / 'com',
-                           protein=config.protein,
-                           namd_script_loc=config.namd_script_dir,
-                           scripts_loc=config.script_dir,
-                           tleap_in=config.complex_tleap_in,
-                           protein_ff=config.protein_ff,
-                           ligand_ff=config.ligand_ff,
-                           net_charge=config.ligand_net_charge + protein_net_charge,
-                           ambertools_script_dir=config.ambertools_script_dir,
-                           ambertools_tleap=config.ambertools_tleap,
-                           hybrid_topology=config.use_hybrid_single_dual_top,
-                           vmd_vis_script=config.vmd_vis_script,
-                           md_engine=config.md_engine,
-                           lambda_rep_dir_tree=config.lambda_rep_dir_tree,
-                           )
+            pair.suptop.prepare_inputs(protein=protein)
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)
     shutil.copy(config.namd_script_dir / "ddg.py", config.workdir)
 
     print('TIES 20 Finished')
+
 
 if __name__ == '__main__':
     command_line_script()

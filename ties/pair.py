@@ -207,12 +207,21 @@ class Pair():
 
         return [list(json.load(matching_json.open())['matched'].items())[0]]
 
-    def merge_frcmod_files(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
+    def merge_frcmod_files(self):
         """
         I tested the duplication and that had no effect on the final results (the .top file was identical).
 
         Note that we are also testing the .frcmod here with the specific user FF.
         """
+        ambertools_tleap = self.config.ambertools_tleap
+        ambertools_script_dir = self.config.ambertools_script_dir
+        if self.config.protein is None:
+            protein_ff = None
+        else:
+            protein_ff = self.config.protein_ff
+
+        ligand_ff = self.config.ligand_ff
+
         frcmod_info1 = ties.helpers.parse_frcmod_sections(self.ligA.frcmod)
         frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
 
@@ -256,6 +265,11 @@ class Pair():
         cwd = self.config.workdir / self.FRCMOD_TEST_DIR / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
+
+        if protein_ff is None:
+            protein_ff = '# no protein ff needed'
+        else:
+            protein_ff = 'source ' + protein_ff
 
         # prepare tleap input
         leap_in_test = 'leap_test_morph.in'

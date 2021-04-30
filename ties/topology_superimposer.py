@@ -420,13 +420,18 @@ class SuperimposedTopology:
         # lambda_rep_dir_tree = config.lambda_rep_dir_tree,
 
         print('Ambertools parmchk2 generating .frcmod for ligands')
+        # fixme: ensure the function does not do it if it's already been done (ie cmdties)
         self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
         self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
 
+        if self.config.protein is None:
+            protein_ff = None
+        else:
+            protein_ff = self.config.protein_ff
+
         # join the .frcmod files for each pair
         print('Ambertools parmchk2 generating .frcmod for pairs')
-        self.morph.merge_frcmod_files(self.config.ambertools_tleap, self.config.ambertools_script_dir,
-                                 self.config.protein_ff, self.config.ligand_ff)
+        self.morph.merge_frcmod_files()
 
         if protein is None:
             ligcom = 'lig'
@@ -474,8 +479,13 @@ class SuperimposedTopology:
         elif Cl_num > 0:
             tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 
+        if self.config.protein is None:
+            protein_ff = '# no protein ff needed'
+        else:
+            protein_ff = 'source ' + self.config.protein_ff
+
         leap_in_conf = open(self.config.ambertools_script_dir / tleap_in).read()
-        open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=self.config.protein_ff,
+        open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
                                                              ligand_ff=self.config.ligand_ff,
                                                              NaIons=tleap_Na_ions,
                                                              ClIons=tleap_Cl_ions))
