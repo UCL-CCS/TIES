@@ -185,7 +185,7 @@ def command_line_script():
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the paired topologies
-    start_time = time.time()
+    start_time = time.perf_counter()
     for pair in pairs:
         print(f'Next ligand pair: {pair.internal_name}')
 
@@ -193,14 +193,13 @@ def command_line_script():
         if args.unique_atom_names:
             pair.make_atom_names_unique()
 
-        # superimpose the topologies
         hybrid = pair.superimpose()
 
-        # save meta data
+        # save metadata
         hybrid.write_summary_json()
         hybrid.write_pdb()
         hybrid.write_mol2()
-    print(f'Compared ligands to each other in: {time.time() - start_time:.1f} s')
+    print(f'Compared ligands to each other in: {time.perf_counter() - start_time:.1f} s')
 
     # transformation hunter
     if len(ligands) == 2:
