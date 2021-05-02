@@ -52,5 +52,5 @@ jobs:
         python3 api.py
     - name: Use CMD
       run: |
-        cd examples/mol2_2files
+        cd examples/mol2_2ligands_MCL1
         ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties
