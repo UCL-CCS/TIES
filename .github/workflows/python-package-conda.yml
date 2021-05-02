@@ -53,4 +53,4 @@ jobs:
     - name: Use CMD
       run: |
         cd examples/mol2_2files
-        ties create -l MCL1_lig_02.mol2 MCL1_lig_03.mol2 -nc -1 -dir cmdties
+        ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties

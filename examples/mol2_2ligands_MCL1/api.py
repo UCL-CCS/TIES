@@ -4,7 +4,7 @@ from ties import Config
 config = Config()
 config.ligand_net_charge = -1
 
-pair = Pair('MCL1_lig_02.mol2', 'MCL1_lig_03.mol2', config=config)
+pair = Pair('l02.mol2', 'l03.mol2', config=config)
 pair.make_atom_names_unique()
 hybrid = pair.superimpose()
 
