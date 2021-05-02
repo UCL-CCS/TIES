@@ -146,32 +146,26 @@ def command_line_script():
     if command == 'rename':
         # this case assumes that there are only two ligands given
         if len(ligands) != 2:
-            print('ERROR: to rename atoms to be unique across two ligands, '
+            raise Exception('ERROR: to rename atoms to be unique across two ligands, '
                   'you have to provide exactly two ligands with -l.'
                   'E.g. ties rename -l init.mol2 final.mol2')
-            sys.exit()
         print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
         pair = ties.pair.Pair(ligands[0], ligands[1], config)
         pair.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
-        print('Merging coordinates. Will add coordinates from an external file. ')
+        print('Merging coordinates. Will add coordinates from an external file.')
         if len(ligands) > 1:
-            print('ERROR: too many ligands ligand (-l). '
+            raise Exception('ERROR: too many ligands ligand (-l). '
                   'Use one ligand when assigning coordinates from another file.')
-            sys.exit(1)
         elif config.coordinates_file is None:
-            print('ERROR: no file with the coordinates found. Please add a file with coordinates (-crd). ')
-            sys.exit(1)
+            raise Exception('ERROR: no file with the coordinates found. Please add a file with coordinates (-crd).')
         elif args.output_filename is None:
-            print('ERROR: no output file provided for the mergecrd. Please use (-o), e.g. -o output.mol2 ')
-            sys.exit(1)
+            raise Exception('ERROR: no output file provided for the mergecrd. Please use (-o), e.g. -o output.mol2 .')
 
         # assign coordinates
         ligands[0].overwrite_coordinates_with(config.coordinates_file, args.output_filename)
         sys.exit(0)
-    elif command == 'analyse':
-        raise NotImplementedError('analysis is not yet implemented in the main TIES')
     elif command != 'create':
         print('Please provide action (rename/create)')
         sys.exit()
