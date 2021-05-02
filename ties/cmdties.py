@@ -218,6 +218,7 @@ def command_line_script():
         protein = ties.protein.Protein(config.protein, config)
         for pair in selected_pairs:
             pair.suptop.prepare_inputs(protein=protein)
+            print(f'Protein {pair} directory populated successfully')
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)

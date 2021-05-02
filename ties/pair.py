@@ -286,10 +286,9 @@ class Pair():
                                            cwd=cwd, text=True, timeout=20,
                                            capture_output=True, check=True)
         except subprocess.CalledProcessError as err:
-            print(f'ERROR:  testing the topology with tleap broke. Return code: {err.returncode}')
-            print(f'ERROR: stdout content: {err.stdout}')
-            print(f'ERROR: stdout content: {err.stderr}')
-            raise err
+            raise Exception(
+                f'ERROR: Testing the topology with tleap broke. Return code: {err.returncode} '
+                f'ERROR: Ambertools output: {err.stdout}') from err
 
         # save stdout and stderr
         open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
