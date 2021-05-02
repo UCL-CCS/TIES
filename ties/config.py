@@ -46,6 +46,7 @@ class Config:
         self._ligands_contain_q = None
 
         self._ligand_tleap_in = None
+        self._complex_tleap_in = None
 
         self._superimposition_starting_pair = None
 
@@ -534,7 +535,10 @@ class Config:
         if self._complex_tleap_in is None:
             # assume that hybrid single-dual topology is not used
             # this will initiate the standard leap_ligand.in
+            # self._complex_tleap_in = 'leap_complex_sdtop.in'
             self.use_hybrid_single_dual_top = False
+
+            self._complex_tleap_in = 'leap_complex.in'
         return self._complex_tleap_in
 
     @staticmethod

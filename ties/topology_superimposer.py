@@ -416,7 +416,7 @@ class SuperimposedTopology:
 
         # copy the protein complex .pdb
         if protein is not None:
-            shutil.copy(protein, cwd / 'protein.pdb')
+            shutil.copy(str(protein.get_path()), str(cwd / 'protein.pdb'))
 
         # copy the hybrid ligand (topology and .frcmod)
         shutil.copy(self.morph.suptop.mol2, cwd / 'morph.mol2')
@@ -459,17 +459,16 @@ class SuperimposedTopology:
         log_filename = cwd / 'generate_sys_top.log'
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
+                proc = subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
                                stdout=LOG, stderr=LOG,
                                cwd=cwd,
                                check=True, text=True, timeout=30)
                 hybrid_solv = cwd / 'sys_solv.pdb'  # generated
                 # check if the solvation is correct
             except subprocess.CalledProcessError as E:
-                print('ERROR: occurred when trying to parse the protein.pdb with tleap. ')
-                print(f'ERROR: The output was saved in the directory: {cwd}')
-                print(f'ERROR: can be found in the file: {log_filename}')
-                raise E
+                raise Exception('ERROR: occurred when trying to parse the protein.pdb with tleap. \n'
+                                f'ERROR: The output was saved in the directory: {cwd}'
+                                f'ERROR: can be found in the file: {log_filename}') from E
 
         # for hybrid single-dual topology approach, we have to use a different approach
 
