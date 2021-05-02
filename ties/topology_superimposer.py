@@ -291,9 +291,10 @@ class SuperimposedTopology:
         if self.top1 is not None and self.top2 is not None:
             self._init_nonoverlapping_cycles()
 
-    def write_summary_json(self):
+    def write_metadata(self):
         """
-        Writes a simple .json file with a summary of which atoms are classified as appearing, disappearing.
+        Writes a .json file with a summary of which atoms are classified as appearing, disappearing
+        as well as all other metadata relevant to this superimposition/hybrid.
         """
 
         # store at the root for now

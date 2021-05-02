@@ -9,7 +9,7 @@ pair.make_atom_names_unique()
 hybrid = pair.superimpose()
 
 # save meta data
-hybrid.write_summary_json()
+hybrid.write_metadata()
 hybrid.write_pdb()
 hybrid.write_mol2()
 

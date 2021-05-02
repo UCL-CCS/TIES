@@ -196,7 +196,7 @@ def command_line_script():
         hybrid = pair.superimpose()
 
         # save metadata
-        hybrid.write_summary_json()
+        hybrid.write_metadata()
         hybrid.write_pdb()
         hybrid.write_mol2()
     print(f'Compared ligands to each other in: {time.perf_counter() - start_time:.1f} s')
