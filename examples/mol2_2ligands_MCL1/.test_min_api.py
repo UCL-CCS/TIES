@@ -7,6 +7,6 @@ tiesdir = pathlib.Path('ties')
 assert tiesdir.exists()
 
 # the files have been saved
-assert (tiesdir / 'fep_l02_l03.json').exists()
+assert (tiesdir / 'meta_l02_l03.json').exists()
 assert (tiesdir / 'l02_l03_morph.mol2').exists()
 assert (tiesdir / 'l02_l03_morph.pdb').exists()

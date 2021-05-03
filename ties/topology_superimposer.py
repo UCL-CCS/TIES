@@ -299,7 +299,7 @@ class SuperimposedTopology:
 
         # store at the root for now
         # fixme - should either be created or generated API
-        matching_json = self.config.workdir / f'fep_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
+        matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
 
         with open(matching_json, 'w') as FOUT:
             # use json format, only use atomNames
