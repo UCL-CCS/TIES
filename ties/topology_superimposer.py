@@ -390,7 +390,6 @@ class SuperimposedTopology:
 
     def prepare_inputs(self, protein=None):
         print('Ambertools parmchk2 generating .frcmod for ligands')
-        # fixme: ensure the function does not do it if it's already been done (ie cmdties)
         self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
         self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
 
