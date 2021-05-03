@@ -389,26 +389,26 @@ class SuperimposedTopology:
                     FOUT.write(line)
 
     def prepare_inputs(self, protein=None):
-        print('Ambertools parmchk2 generating .frcmod for ligands')
+        print('Ambertools parmchk2 generating frcmod files for ligands')
         self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
         self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
 
-        # join the .frcmod files for each pair
-        print('Ambertools parmchk2 generating .frcmod for pairs')
+        print('Joining frcmod files from ligands and checking parmchk2')
         self.morph.merge_frcmod_files()
 
+        # select the right tleap input file and directory
         if protein is None:
-            ligcom = 'lig'
+            dir_ligcom = 'lig'
             tleap_in = self.config.ligand_tleap_in
         else:
-            ligcom = 'com'
+            dir_ligcom = 'com'
             tleap_in = self.config.complex_tleap_in
 
-        cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / ligcom
+        cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / dir_ligcom
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
-        # Agastya: simple format for appearing, disappearing atoms
+        # Agastya: simple format for appearing and disappearing atoms
         open(cwd / 'disappearing_atoms.txt', 'w').write(
             ' '.join([a.name for a in self.morph.suptop.get_disappearing_atoms()]))
         open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in self.morph.suptop.get_appearing_atoms()]))
@@ -431,9 +431,7 @@ class SuperimposedTopology:
         else:
             Cl_num = Na_num = 0
 
-        # copy the protein tleap input file (ambertools)
         # set the number of ions manually
-        assert Na_num == 0 or Cl_num == 0, 'At this point the number of ions should have be resolved'
         if Na_num == 0:
             tleap_Na_ions = '# no Na+ added'
         elif Na_num > 0:
@@ -443,6 +441,7 @@ class SuperimposedTopology:
         elif Cl_num > 0:
             tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
 
+        # prepare protein ff
         if self.config.protein_ff is None:
             protein_ff = '# no protein ff'
         else:
@@ -458,7 +457,7 @@ class SuperimposedTopology:
         log_filename = cwd / 'generate_sys_top.log'
         with open(log_filename, 'w') as LOG:
             try:
-                proc = subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
+                subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
                                stdout=LOG, stderr=LOG,
                                cwd=cwd,
                                check=True, text=True, timeout=30)
@@ -469,9 +468,7 @@ class SuperimposedTopology:
                                 f'ERROR: The output was saved in the directory: {cwd}'
                                 f'ERROR: can be found in the file: {log_filename}') from E
 
-        # for hybrid single-dual topology approach, we have to use a different approach
-
-        # generate the merged .fep file
+        # generate the merged fep file
         complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
         ties.generator.correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
                                hybrid_topology=self.config.use_hybrid_single_dual_top)
@@ -486,17 +483,14 @@ class SuperimposedTopology:
             min_script = "min.namd"
             eq_script = "eq.namd"
             prod_script = "prod.namd"
-
         elif self.config.md_engine.lower() == 'namd3':
             min_script = "min3.namd"
             eq_script = "eq3.namd"
             prod_script = "prod3.namd"
-
         elif self.config.md_engine.lower() == 'openmm':
             min_script = None
             eq_script = None
             prod_script = None
-
         else:
             raise ValueError('Unknown engine {}'.format(self.config.md_engine))
 
@@ -554,6 +548,7 @@ class SuperimposedTopology:
             lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
         else:
             lambdas = range(13)
+
         if self.config.lambda_rep_dir_tree:
             for lambda_step in lambdas:
                 if 'namd' in self.config.md_engine.lower():
@@ -587,7 +582,6 @@ class SuperimposedTopology:
         vis_sh = cwd / 'vis.sh'
         vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
         vis_sh.chmod(0o755)
-
 
     def write_mol2(self, use_left_charges=True, use_left_coords=True):
         hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
