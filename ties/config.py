@@ -566,4 +566,13 @@ class Config:
         """
         pathlib.Path is not JSON serializable, so replace it with str
         """
-        return {k: str(v) if type(v) is pathlib.PosixPath else v for k, v in self.__dict__.items()}
+        ser = {}
+        for k, v in self.__dict__.items():
+            if type(v) is pathlib.PosixPath:
+                v = str(v)
+            if k == 'ligands':
+                v = [str(l) for l in v]
+
+            ser[k] = v
+
+        return ser
