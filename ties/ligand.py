@@ -56,7 +56,6 @@ class Ligand:
         self.index = Ligand.LIG_COUNTER
         Ligand.LIG_COUNTER += 1
 
-        self.frcmod = None
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
@@ -229,6 +228,10 @@ class Ligand:
         print('Removed dummy atoms with type "DU"')
 
     def generate_frcmod(self, parmchk2, atom_type):
+        print(f'INFO: frcmod for {self} was computed before. Not repeating.')
+        if hasattr(self, 'frcmod'):
+            return
+
         # fixme - work on the file handles instaed of the constant stitching
         print(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
 
@@ -237,8 +240,8 @@ class Ligand:
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
-        log_filename = cwd / "parmchk2.log"
         target_frcmod = f'{self.internal_name}.frcmod'
+        log_filename = cwd / "parmchk2.log"
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([parmchk2,
