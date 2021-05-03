@@ -295,6 +295,11 @@ class SuperimposedTopology:
         """
         Writes a .json file with a summary of which atoms are classified as appearing, disappearing
         as well as all other metadata relevant to this superimposition/hybrid.
+        TODO add information:
+         - config class in general
+         -- relative paths to ligand 1, ligand 2 (the latest copies, ie renamed etc)
+         -- general settings used
+         - pair? bonds? these can be restractured, so not necessary?
         """
 
         # store at the root for now
@@ -309,6 +314,7 @@ class SuperimposedTopology:
                 'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
                 'appearing': list(map(str, self.get_appearing_atoms())),
                 'disappearing': list(map(str, self.get_disappearing_atoms())),
+                'config' : self.config.get_serializable(),
                 # single topology information
                 'single_top_matched': {str(n1): str(n2) for n1, n2 in self.get_single_topology_region()},
                 # NAMD hybrid single-dual topology info

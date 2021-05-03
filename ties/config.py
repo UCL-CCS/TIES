@@ -561,3 +561,9 @@ class Config:
     # fixme - this should be determined at the location where it is relevant rather than here in the conf
     # antechamber parameters, by default compute AM1-BCC charges
     antechamber_charge_type = ['-c', 'bcc']
+
+    def get_serializable(self):
+        """
+        pathlib.Path is not JSON serializable, so replace it with str
+        """
+        return {k: str(v) if type(v) is pathlib.PosixPath else v for k, v in self.__dict__.items()}
