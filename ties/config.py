@@ -578,3 +578,8 @@ class Config:
             ser[k] = v
 
         return ser
+
+    def set_configs(self, **kwargs):
+        # set all the configs one by one
+        for k,v in kwargs.items():
+            setattr(self, k, v)

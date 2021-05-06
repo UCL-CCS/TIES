@@ -25,9 +25,17 @@ class Pair():
     FRCMOD_TEST_DIR_name = FRCMOD_DIR_name / 'tests'
     UNIQUE_ATOM_NAMES_name = ROOT / Path('morph_unique_atom_names')
 
-    def __init__(self, ligA, ligZ, config=None):
+    def __init__(self, ligA, ligZ, config=None, **kwargs):
+        """
+        Please use the Config class for the documentation of the possible kwargs.
+        Each kwarg is passed to the config class.
+        """
+
         # create a new config if it is not provided
         self.config = ties.config.Config() if config is None else config
+
+        # channel all config variables to the config class
+        self.config.set_configs(**kwargs)
 
         # tell Config about the ligands if necessary
         if self.config.ligands is None:
@@ -161,7 +169,7 @@ class Pair():
         self.mda_l1 = mda_l1
         self.mda_l2 = mda_l2
 
-    def make_atom_names_unique(self):
+    def make_atom_names_unique(self, filename1=None, filename2=None, save=True):
         """
         Ensure that each has a name that is unique to both ligands.
 
@@ -172,6 +180,9 @@ class Pair():
         Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
 
         fixme - rewrite this to be LigA.unique_names(LigZ) so that they can do it internally themselves?
+
+            param filename1 and filename2: str, if not provided, standard path is used. Have to be provided together.
+            param save: bool, whether to save to the disk the renamed ligand
         """
         # load both ligands
         left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
@@ -189,14 +200,21 @@ class Pair():
         right.residues.resnames = ['FIN']
 
         # prepare the destination directory
-        cwd = self.config.workdir / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
-        cwd.mkdir(parents=True, exist_ok=True)
+        if not save:
+            return
+
+        if filename1 is None:
+            cwd = self.config.workdir / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+            cwd.mkdir(parents=True, exist_ok=True)
+
+            self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
+            self.current_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
+        else:
+            self.current_ligA = filename1
+            self.current_ligZ = filename2
 
         # save the updated atom names
-        # fixme - write only when requested
-        self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
         left.atoms.write(self.current_ligA)
-        self.current_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
         right.atoms.write(self.current_ligZ)
 
         # update the Ligands to use the renamed version

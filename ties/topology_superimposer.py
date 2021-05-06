@@ -291,7 +291,7 @@ class SuperimposedTopology:
         if self.top1 is not None and self.top2 is not None:
             self._init_nonoverlapping_cycles()
 
-    def write_metadata(self):
+    def write_metadata(self, filename=None):
         """
         Writes a .json file with a summary of which atoms are classified as appearing, disappearing
         as well as all other metadata relevant to this superimposition/hybrid.
@@ -300,11 +300,16 @@ class SuperimposedTopology:
          -- relative paths to ligand 1, ligand 2 (the latest copies, ie renamed etc)
          -- general settings used
          - pair? bonds? these can be restractured, so not necessary?
+
+            param filename: a location where the metadata should be saved
         """
 
         # store at the root for now
         # fixme - should either be created or generated API
-        matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
+        if filename is None:
+            matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
+        else:
+            matching_json = filename
 
         with open(matching_json, 'w') as FOUT:
             # use json format, only use atomNames
@@ -325,8 +330,14 @@ class SuperimposedTopology:
 
         self.summary = summary
 
-    def write_pdb(self):
-        morph_pdb_path = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb'
+    def write_pdb(self, filename=None):
+        """
+            param filename: name or a filepath of the new file. If None, standard preconfigured pattern will be used.
+        """
+        if filename is None:
+            morph_pdb_path = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb'
+        else:
+            morph_pdb_path = filename
 
         # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
         if self.config.use_hybrid_single_dual_top:
@@ -589,8 +600,14 @@ class SuperimposedTopology:
         vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
         vis_sh.chmod(0o755)
 
-    def write_mol2(self, use_left_charges=True, use_left_coords=True):
-        hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
+    def write_mol2(self, filename=None, use_left_charges=True, use_left_coords=True):
+        """
+            param filename: str location where the .mol2 file should be saved.
+        """
+        if filename is None:
+            hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
+        else:
+            hybrid_mol2 = filename
 
         # fixme - make this as a method of suptop as well
         # recreate the mol2 file that is merged and contains the correct atoms from both
