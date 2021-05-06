@@ -66,6 +66,8 @@ class Config:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+        self.ligands = None
+
     @property
     def workdir(self):
         if self._workdir is None:

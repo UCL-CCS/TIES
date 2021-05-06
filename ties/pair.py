@@ -26,22 +26,26 @@ class Pair():
     UNIQUE_ATOM_NAMES_name = ROOT / Path('morph_unique_atom_names')
 
     def __init__(self, ligA, ligZ, config=None):
+        # create a new config if it is not provided
+        self.config = ties.config.Config() if config is None else config
+
+        # tell Config about the ligands if necessary
+        if self.config.ligands is None:
+            self.config.ligands = [ligA, ligZ]
+
         # create ligands if they're just paths
-        if not isinstance(ligA, ties.ligand.Ligand):
-            self.ligA = ties.ligand.Ligand(ligA)
-        else:
+        if isinstance(ligA, ties.ligand.Ligand):
             self.ligA = ligA
-        if not isinstance(ligZ, ties.ligand.Ligand):
-            self.ligZ = ties.ligand.Ligand(ligZ)
         else:
+            self.ligA = ties.ligand.Ligand(ligA)
+        if isinstance(ligZ, ties.ligand.Ligand):
             self.ligZ = ligZ
+        else:
+            self.ligZ = ties.ligand.Ligand(ligZ)
 
         # initialise the handles to the molecules that morph
         self.current_ligA = self.ligA.current
         self.current_ligZ = self.ligZ.current
-
-        # create a new config if it is not provided
-        self.config = ties.config.Config() if config is None else config
 
         self.UNIQUE_ATOM_NAMES = self.config.workdir / Pair.UNIQUE_ATOM_NAMES_name
         self.FRCMOD_DIR = self.config.workdir / Pair.FRCMOD_DIR_name
