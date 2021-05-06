@@ -29,6 +29,10 @@ class Pair():
         """
         Please use the Config class for the documentation of the possible kwargs.
         Each kwarg is passed to the config class.
+
+        fixme - list all relevant kwargs here
+
+            param ligand_net_charge: integer, net charge of each ligand (has to be the same)
         """
 
         # create a new config if it is not provided
@@ -80,6 +84,14 @@ class Pair():
     def superimpose(self, **kwargs):
         """
         Please see Config class for the documentation of the possible kwargs, which are used here indirectly.
+
+        fixme - list all relevant kwargs here
+
+            param use_element_in_superimposition: bool whether the superimposition should rely on the element initially,
+                before refining the results with a more specific check of the atom type.
+            param manually_matched_atom_pairs
+            param manually_mismatched_pairs
+            param redistribute_q_over_unmatched
         """
         self.config.set_configs(**kwargs)
 
