@@ -567,6 +567,10 @@ class Config:
     def get_serializable(self):
         """
         pathlib.Path is not JSON serializable, so replace it with str
+
+        todo - consider capturing all information about the system here,
+        including each suptop.get_serializable() so that you can record
+        specific information such as the charge changes etc.
         """
         ser = {}
         for k, v in self.__dict__.items():
