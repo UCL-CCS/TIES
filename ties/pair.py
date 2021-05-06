@@ -78,6 +78,10 @@ class Pair():
         self.distance = value
 
     def superimpose(self, **kwargs):
+        """
+        Please see Config class for the documentation of the possible kwargs, which are used here indirectly.
+        """
+        self.config.set_configs(**kwargs)
 
         # use MDAnalysis to load the files
         # fixme - move this to the Morph class instead of this place,
