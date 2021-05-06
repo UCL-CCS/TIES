@@ -572,6 +572,8 @@ class Config:
         for k, v in self.__dict__.items():
             if type(v) is pathlib.PosixPath:
                 v = str(v)
+
+            # account for the ligands being pathlib objects
             if k == 'ligands':
                 v = [str(l) for l in v]
 
