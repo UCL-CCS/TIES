@@ -20,10 +20,6 @@ class Pair():
     This distinction could be removed easily in the future.
     However, way to simplify SupTop might be worth some effort.
     """
-    ROOT = Path('prep')
-    FRCMOD_DIR_name = ROOT / Path('morph_frcmods')
-    FRCMOD_TEST_DIR_name = FRCMOD_DIR_name / 'tests'
-    UNIQUE_ATOM_NAMES_name = ROOT / Path('morph_unique_atom_names')
 
     def __init__(self, ligA, ligZ, config=None, **kwargs):
         """
@@ -49,19 +45,16 @@ class Pair():
         if isinstance(ligA, ties.ligand.Ligand):
             self.ligA = ligA
         else:
-            self.ligA = ties.ligand.Ligand(ligA)
+            self.ligA = ties.ligand.Ligand(ligA, self.config)
+
         if isinstance(ligZ, ties.ligand.Ligand):
             self.ligZ = ligZ
         else:
-            self.ligZ = ties.ligand.Ligand(ligZ)
+            self.ligZ = ties.ligand.Ligand(ligZ, self.config)
 
         # initialise the handles to the molecules that morph
         self.current_ligA = self.ligA.current
         self.current_ligZ = self.ligZ.current
-
-        self.UNIQUE_ATOM_NAMES = self.config.workdir / Pair.UNIQUE_ATOM_NAMES_name
-        self.FRCMOD_DIR = self.config.workdir / Pair.FRCMOD_DIR_name
-        self.FRCMOD_TEST_DIR = self.config.workdir / Pair.FRCMOD_TEST_DIR_name
 
         self.internal_name = f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
         self.mol2 = None
@@ -220,7 +213,7 @@ class Pair():
             return
 
         if filename1 is None:
-            cwd = self.config.workdir / self.UNIQUE_ATOM_NAMES / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+            cwd = self.config.pair_unique_atom_names / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
             cwd.mkdir(parents=True, exist_ok=True)
 
             self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
@@ -264,7 +257,7 @@ class Pair():
         frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
 
         # prep directory
-        cwd = self.FRCMOD_DIR
+        cwd = self.config.pair_morphfrcmods
         if not cwd.is_dir():
             cwd.mkdir(exist_ok=True)
 
@@ -300,7 +293,7 @@ class Pair():
         Returns the corrected .frcmod content, otherwise throws an exception.
         """
         # prepare the working directory
-        cwd = self.config.workdir / self.FRCMOD_TEST_DIR / self.internal_name
+        cwd = self.config.pair_morphfrmocs_tests / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 

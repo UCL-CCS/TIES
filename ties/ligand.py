@@ -31,7 +31,6 @@ class Ligand:
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
-        self.workplace_root = self.config.workdir
         self.original_input = Path(ligand).absolute()
 
         # check if the input files exist
@@ -78,7 +77,7 @@ class Ligand:
 
         filetype = {'.ac': 'ac', '.prep': 'prepi'}[self.current.suffix.lower()]
 
-        cwd = self.workplace_root / Ligand.ACPREP_CONVERT / self.internal_name
+        cwd = self.config.workdir / Ligand.ACPREP_CONVERT / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
@@ -121,7 +120,7 @@ class Ligand:
         """
 
         # save the output here
-        os.makedirs(self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
+        os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
 
         # load the ligand with MDAnalysis
         ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
@@ -135,7 +134,7 @@ class Ligand:
                   f'or do not follow NameDigit format (e.g. C15). Renaming')
             ties.helpers.rename_ligand(ligand_universe.atoms)
 
-        ligand_with_uniq_atom_names = self.workplace_root / Ligand.UNIQ_ATOM_NAME_DIR / \
+        ligand_with_uniq_atom_names = self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR / \
                                       (self.internal_name + self.current.suffix)
         if self.save:
             ligand_universe.atoms.write(ligand_with_uniq_atom_names)
@@ -164,7 +163,7 @@ class Ligand:
         else:
             print('Antechamber: Generating BCC charges')
 
-        mol2_cwd = self.workplace_root / self.MOL2 / self.internal_name
+        mol2_cwd = self.config.workdir / self.MOL2 / self.internal_name
 
         # prepare the directory
         if not mol2_cwd.is_dir():
@@ -236,7 +235,7 @@ class Ligand:
         print(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
 
         # prepare cwd
-        cwd = self.workplace_root / Ligand.FRCMOD_DIR / self.internal_name
+        cwd = self.config.workdir / Ligand.FRCMOD_DIR / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 

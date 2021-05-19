@@ -543,6 +543,23 @@ class Config:
             self._complex_tleap_in = 'leap_complex.in'
         return self._complex_tleap_in
 
+    # PAIR constants configuration
+    @property
+    def pair_root(self):
+        return self.workdir /  pathlib.Path('prep')
+
+    @property
+    def pair_morphfrcmods(self):
+        return self.workdir / self.pair_root / 'morph_frcmods'
+
+    @property
+    def pair_morphfrmocs_tests(self):
+        return self.workdir / self.pair_morphfrcmods / 'tests'
+
+    @property
+    def pair_unique_atom_names(self):
+        return self.workdir / self.pair_root / 'morph_unique_atom_names'
+
     @staticmethod
     def get_element_map():
         # Get the mapping of atom types to elements
