@@ -175,6 +175,9 @@ def command_line_script():
                                   config.antechamber_dr, config.antechamber_charge_type)
         for lig in ligands]
 
+    # make atom names unique in each ligand
+    [lig.make_atom_names_unique() for lig in ligands]
+
     # generate all pairings
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
