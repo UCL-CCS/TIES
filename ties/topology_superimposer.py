@@ -496,15 +496,17 @@ class SuperimposedTopology:
         solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(cwd / "leap.log")
 
         # these are the names for the source of the input, output names are fixed
-        if self.config.md_engine.lower() == 'namd':
+        if self.config.md_engine == False:
+            pass
+        elif self.config.md_engine == 'namd':
             min_script = "min.namd"
             eq_script = "eq.namd"
             prod_script = "prod.namd"
-        elif self.config.md_engine.lower() == 'namd3':
+        elif self.config.md_engine == 'namd3':
             min_script = "min3.namd"
             eq_script = "eq3.namd"
             prod_script = "prod3.namd"
-        elif self.config.md_engine.lower() == 'openmm':
+        elif self.config.md_engine == 'openmm':
             min_script = None
             eq_script = None
             prod_script = None
@@ -513,7 +515,7 @@ class SuperimposedTopology:
 
         # Make build and replica_conf dirs
         # replica_conf contains NAMD scripts
-        if 'namd' in self.config.md_engine.lower():
+        if self.config.md_engine == 'namd':
             if not os.path.exists(cwd / 'replica-confs'):
                 os.makedirs(cwd / 'replica-confs')
             else:
@@ -532,7 +534,7 @@ class SuperimposedTopology:
             ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs/sim1.conf',
                                structure_name='sys_solv')
 
-        elif 'openmm' in self.config.md_engine.lower():
+        elif self.config.md_engine == 'openmm':
             ties_script = open(self.config.scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
                                                                                   cons_file='cons.pdb', **solv_oct_boc)
             open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
@@ -561,14 +563,14 @@ class SuperimposedTopology:
         #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
 
         # Generate the directory structure for all the lambdas, and copy the files
-        if 'namd' in self.config.md_engine.lower():
+        if self.config.md_engine == 'namd':
             lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
         else:
             lambdas = range(13)
 
         if self.config.lambda_rep_dir_tree:
             for lambda_step in lambdas:
-                if 'namd' in self.config.md_engine.lower():
+                if 'namd' in self.config.md_engine:
                     lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
                 else:
                     lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
@@ -583,7 +585,7 @@ class SuperimposedTopology:
 
                     # set the lambda value for the directory,
                     # this file is used by NAMD tcl scripts
-                    if 'namd' in self.config.md_engine.lower():
+                    if 'namd' in self.config.md_engine:
                         open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
 
                     # create output dirs equilibriation and simulation

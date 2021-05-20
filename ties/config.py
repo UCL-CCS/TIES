@@ -450,11 +450,11 @@ class Config:
     def md_engine(self, value):
         supported = ['NAMD(2)', 'NAMD3', 'OpenMM']
         if type(value) == str and value.lower() == 'namd':
-            self._md_engine = value
+            self._md_engine = 'namd'
         elif type(value) == str and value.lower() == 'namd3':
-            self._md_engine = value
+            self._md_engine = 'namd3'
         elif type(value) == str and value.lower() == 'openmm':
-            self._md_engine = value
+            self._md_engine = 'openmm'
         else:
             print('Unknown engine {}. Supported engines {}'.format(value, supported))
             # check if it is a bool value
