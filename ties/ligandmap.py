@@ -55,6 +55,9 @@ class LigandMap():
 
         self.graph = graph
 
+    def load_map(self, filename):
+        self.map = numpy.loadtxt(filename)
+
     def traveling_salesmen(self):
         print('Traveling Salesmen (QUBO approximation): ')
         ts = dwave_networkx.traveling_salesperson(self.graph, dimod.ExactSolver())
@@ -82,9 +85,11 @@ class LigandMap():
         plt.savefig(self.ligands[0].workplace_root / 'ties_map.png', dpi=300)
 
         # sum the distances
-        dst_sum = sum(item[1]['weight'] for item in mst.edges.items())
-        print(mst.edges)
-        print(f'Sum: {dst_sum:.2f}')
+        mst_dsts = [item[1]['weight'] for item in mst.edges.items()]
+        print(f'MST Average: {numpy.mean(mst_dsts):.2f}')
+        print(f'MST Max: {numpy.max(mst_dsts):.2f}')
+        print(f'Worst cases: {sorted(mst_dsts)[-10:]}')
+        print("MST Pairs: \n" + '\n'.join([f'{e1} {e2} dst {w["weight"]}' for (e1, e2), w in mst.edges.items()]))
 
         # look up the selected MST morphs
         chosen_transformations = []

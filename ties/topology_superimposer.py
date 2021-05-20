@@ -1,11 +1,15 @@
 """
 The main module responsible for the superimposition.
 """
+import os
 import hashlib
 import copy
 import itertools
 import math
 import random
+import json
+import shutil
+import subprocess
 from functools import reduce
 from collections import OrderedDict
 
@@ -16,87 +20,96 @@ from MDAnalysis.analysis.distances import distance_array
 from MDAnalysis.analysis.align import rotation_matrix
 
 from ties.helpers import load_MDAnalysis_atom_group
+import ties.config
+import ties.generator
 
 
-element_from_type = {
-    # Source http://ambermd.org/antechamber/gaff.html#atomtype
-    # However, some general atom types were added separately
-    # Furthermore, GAFF2 is being added in stages
-    'C': 'C', 'CA': 'C', 'CB': 'C', 'C3': 'C', 'CX': 'C', 'C1': 'C', 'C2': 'C', 'CC': 'C',
-    'CD': 'C', 'CE': 'C', 'CF': 'C', 'CP': 'C', 'CQ': 'C', 'CU': 'C', 'CV': 'C', 'CY': 'C',
-    'CZ': 'C', 'CG': 'C', 'CS': 'C', 'CH': 'C', 'C1': 'C',
-    'H': 'H', 'HA': 'H', 'HN': 'H', 'H4': 'H', 'HC': 'H', 'H1': 'H', 'HX': 'H',
-    'HO': 'H', 'HS': 'H', 'HP': 'H',  'H2': 'H', 'H3': 'H',  'H5': 'H',
-    'P2': 'P', 'P3': 'P', 'P4': 'P', 'P5': 'P', 'PB': 'P', 'PC': 'P',
-    'PD': 'P', 'PE': 'P', 'PF': 'P', 'PX': 'P', 'PY': 'P',
-    'O': 'O', 'OH': 'O', 'OS': 'O', 'OP': 'O', 'OQ': 'O',
-    'N': 'N', 'NB': 'N', 'NS': 'N', 'N1': 'N', 'N2': 'N', 'N3': 'N',
-    'N4': 'N', 'NA': 'N', 'NH': 'N', 'NO': 'N', 'NC': 'N',  'ND': 'N', 'NU': 'N',
-    'NE': 'N', 'NF': 'N', 'NT': 'N', 'NX': 'N', 'NY': 'N', 'NZ': 'N', 'N+': 'N',
-    'NV': 'N', 'N7': 'N', 'N8': 'N', 'N9': 'N', 'NI': 'N', 'NJ': 'N', 'NK': 'N',
-    'NL': 'N', 'NM': 'N', 'NN': 'N', 'NP': 'N', 'NQ': 'N', 'N5': 'N', 'N6': 'N',
-    'CL': 'CL',
-    'F': 'F',
-    'BR': 'BR', 'B': 'BR',
-    'I': 'I',
-    'S': 'S', 'S2': 'S', 'SH': 'S', 'SS': 'S', 'S4': 'S',
-    'S6': 'S', 'SX': 'S', 'SY': 'S', 'SP': 'S', 'SQ': 'S',
-}
-
-
-class AtomNode:
+class Atom:
     counter = 1
 
     def __init__(self, name, atom_type, charge=0, use_general_type=False):
-        self.atomId = None
-        # this atom name might change
-        self.name = name.upper()
-        self.originalAtomName = self.name
-        self.resname = None
-        self.resId = None
+        self._original_name = None
+        self._original_charge = None
+
+        self._id = None
+        self.name = name
+        self._original_name = name.upper()
+        self.type = atom_type
+
+        self._resname = None
         self.charge = charge
-        self.type = atom_type.upper()
+        self._original_charge = charge
+
+        self.resid = None
         self.bonds = set()
         self.use_general_type = use_general_type
-
-        # save the general type
-        self.element = element_from_type[self.type]
-
-        self.unique_counter = AtomNode.counter
-        AtomNode.counter += 1
-
         self.hash_value = None
 
-    def set_name(self, name):
-        self.name = name
+        self._unique_counter = Atom.counter
+        Atom.counter += 1
 
-    def set_id(self, atom_id):
-        self.atomId = atom_id
+    @property
+    def original_name(self):
+        # This atom name remains the same. It is never modified.
+        return self._original_name
 
-    def get_id(self):
-        return self.atomId
+    @property
+    def name(self):
+        return self._name
 
-    def set_resname(self, resname):
-        self.resname = resname
+    @name.setter
+    def name(self, name):
+        self._name = name.upper()
 
-    def set_resid(self, res_id):
-        self.resId = res_id
+    @property
+    def id(self):
+        return self._id
 
-    def set_charge(self, charge):
-        self.charge = charge
+    @id.setter
+    def id(self, id):
+        self._id = id
 
-    def set_original_charge(self, charge):
-        # this charge should never change and should only be
-        # used once.  This is for a test.
-        # ie that appearing and disappearing atoms keep their charges intact.
-        self.original_charge = charge
+    @property
+    def resname(self):
+        return self._resname
 
-    def set_type(self, amber_type):
-        self.amber_type = amber_type
+    @resname.setter
+    def resname(self, resname):
+        self._resname = resname
 
-    def set_position(self, x, y, z):
-        corrected_type = np.array([x, y, z], dtype='float32')
-        self.position = corrected_type
+    @property
+    def charge(self):
+        return self._charge
+
+    @charge.setter
+    def charge(self, charge):
+        self._charge = charge
+
+    @property
+    def original_charge(self):
+        return self._original_charge
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, atom_type):
+        self._type = atom_type.upper()
+
+        # save the general type
+        # fixme - ideally it would use the config class that would use the right mapping
+        element_map = ties.config.Config.get_element_map()
+        self.element = element_map[self.type]
+
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, pos):
+        # switch the type to float32 for any coordinate work with MDAnalysis
+        self._position = np.array([pos[0], pos[1], pos[2]], dtype='float32')
 
     def is_hydrogen(self):
         if self.element == 'H':
@@ -124,14 +137,14 @@ class AtomNode:
             return self.hash_value
 
         m = hashlib.md5()
-        # fixme - ensure that each node is characterised by its chemical info,
-        # fixme - the atomId might not be unique, so check before the input data
+        # fixme - ensure that each node is characterised by its chemistry,
+        # fixme - id might not be unique, so check before the input data
         m.update(str(self.charge).encode('utf-8'))
-        m.update(str(self.unique_counter).encode('utf-8'))
-        # so include the number of bonds which is basically an atom type
+        # use the unique counter to distinguish between created atoms
+        m.update(str(self._unique_counter).encode('utf-8'))
+        # include the number of bonds
         m.update(str(len(self.bonds)).encode('utf-8'))
         self.hash_value = int(m.hexdigest(), 16)
-
         return self.hash_value
 
     def __str__(self):
@@ -146,19 +159,18 @@ class AtomNode:
 
     def eq(self, atom, atol=0):
         """
-        Check if the atoms are the same type and charge within a tolerance.
-
-        fixme - add exception to the type (gaff2) and use CLASS.EXCEPTIONS in order to reimplement it
+        Check if the atoms are of the same type and have a charge within the given absolute tolerance.
         """
-        if self.type == atom.type and \
-                np.isclose(self.charge, atom.charge, atol=atol):
+        if self.type == atom.type and np.isclose(self.charge, atom.charge, atol=atol):
             return True
 
         return False
 
     def united_eq(self, atom, atol=0):
         """
-        Like eq, check if the atoms have the same atom type, and if their charges are within the tolerance.
+        Like .eq, but treat the atoms as united atoms.
+        Check if the atoms have the same atom type, and
+        if if their charges are within the absolute tolerance.
         If the atoms have hydrogens, add up the attached hydrogens and use a united atom representation.
         """
         if self.type != atom.type:
@@ -169,33 +181,17 @@ class AtomNode:
 
         return True
 
-    def same_element(self, atom):
+    def same_element(self, other):
         # check if the atoms are the same elements
-        # fixme - this one or other? some other configuration system?
-        if self.use_general_type:
-            if self.element == atom.element:
-                return True
-            return False
-
-        if self.type == atom.type.upper():
+        if self.element == other.element:
             return True
-
         return False
 
     def same_type(self, atom):
-        if self.type == atom.type.upper():
+        if self.type == atom.type:
             return True
 
         return False
-
-    def __deepcopy__(self, memodict={}):
-        # https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
-        # it is a shallow copy, as this object should be in the future immutable
-        return self
-
-    def deepCopy(self):
-        # Generate a new object of this class
-        return AtomNode(self.name, self.type, self.charge)
 
 
 class AtomPair:
@@ -295,6 +291,404 @@ class SuperimposedTopology:
         if self.top1 is not None and self.top2 is not None:
             self._init_nonoverlapping_cycles()
 
+    def write_metadata(self, filename=None):
+        """
+        Writes a .json file with a summary of which atoms are classified as appearing, disappearing
+        as well as all other metadata relevant to this superimposition/hybrid.
+        TODO add information:
+         - config class in general
+         -- relative paths to ligand 1, ligand 2 (the latest copies, ie renamed etc)
+         -- general settings used
+         - pair? bonds? these can be restractured, so not necessary?
+
+            param filename: a location where the metadata should be saved
+        """
+
+        # store at the root for now
+        # fixme - should either be created or generated API
+        if filename is None:
+            matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
+        else:
+            matching_json = filename
+
+        with open(matching_json, 'w') as FOUT:
+            # use json format, only use atomNames
+            app, dis = self.get_single_topology_app()
+            summary = {
+                # the dual topology information
+                'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
+                'appearing': list(map(str, self.get_appearing_atoms())),
+                'disappearing': list(map(str, self.get_disappearing_atoms())),
+                'config' : self.config.get_serializable(),
+                # single topology information
+                'single_top_matched': {str(n1): str(n2) for n1, n2 in self.get_single_topology_region()},
+                # NAMD hybrid single-dual topology info
+                'single_top_appearing': list(map(str, app)),
+                'single_top_disappearing': list(map(str, dis)),
+            }
+            FOUT.write(json.dumps(summary, indent=4))
+
+        self.summary = summary
+
+    def write_pdb(self, filename=None):
+        """
+            param filename: name or a filepath of the new file. If None, standard preconfigured pattern will be used.
+        """
+        if filename is None:
+            morph_pdb_path = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb'
+        else:
+            morph_pdb_path = filename
+
+        # def write_morph_top_pdb(filepath, mda_l1, mda_l2, suptop, hybrid_single_dual_top=False):
+        if self.config.use_hybrid_single_dual_top:
+            # the NAMD hybrid single dual topology
+            # rename the ligand on the left to INI
+            # and the ligand on the right to END
+
+            # make a copy of the suptop here to ensure that the modifications won't affect it
+            st = copy.copy(self)
+
+            # first, set all the matched pairs to -2 and 2 (single topology)
+            # regardless of how they were mismatched
+            raise NotImplementedError('Cannot yet write hybrid single dual topology .pdb file')
+
+            # then, set the different atoms to -1 and 1 (dual topology)
+
+            # save in a single PDB file
+            # Note that the atoms from left to right
+            # in the single topology region have to
+            # be separated by the same number
+            # fixme - make a check for that
+            return
+        # fixme - find another library that can handle writing to a PDB file, MDAnalysis
+        # save the ligand with all the appropriate atomic positions, write it using the pdb format
+        # pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
+        # write a dual .pdb file
+        with open(morph_pdb_path, 'w') as FOUT:
+            for atom in self.mda_ligandL.atoms:
+                """
+                There is only one forcefield which is shared across the two topologies. 
+                Basically, we need to check whether the atom is in both topologies. 
+                If that is the case, then the atom should have the same name, and therefore appear only once. 
+                However, if there is a new atom, it should be specfically be outlined 
+                that it is 1) new and 2) the right type
+                """
+                # write all the atoms if they are matched, that's the common part
+                REMAINS = 0
+                if self.contains_left_atom_name(atom.name.upper()):
+                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                           f"{atom.resid:>4d}    " \
+                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                           f"{1.0:>6.2f}{REMAINS:>6.2f}" + (' ' * 11) + \
+                           '  ' + '  ' + '\n'
+                    FOUT.write(line)
+                else:
+                    # this atom was not found, this means it disappears, so we should update the
+                    DISAPPEARING_ATOM = -1.0
+                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                           f"{atom.resid:>4d}    " \
+                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                           f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}" + \
+                           (' ' * 11) + \
+                           '  ' + '  ' + '\n'
+                    FOUT.write(line)
+            # add atoms from the right topology,
+            # which are going to be created
+            for atom in self.mda_ligandR.atoms:
+                if not self.contains_right_atom_name(atom.name.upper()):
+                    APPEARING_ATOM = 1.0
+                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
+                           f"{atom.resid:>4d}    " \
+                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                           f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}" + \
+                           (' ' * 11) + \
+                           '  ' + '  ' + '\n'
+                    FOUT.write(line)
+
+    def prepare_inputs(self, protein=None):
+        print('Ambertools parmchk2 generating frcmod files for ligands')
+        self.morph.ligA.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
+        self.morph.ligZ.generate_frcmod(self.config.ambertools_parmchk2, self.config.ligand_ff_name)
+
+        print('Joining frcmod files from ligands and checking parmchk2')
+        self.morph.merge_frcmod_files()
+
+        # select the right tleap input file and directory
+        if protein is None:
+            dir_ligcom = 'lig'
+            tleap_in = self.config.ligand_tleap_in
+        else:
+            dir_ligcom = 'com'
+            tleap_in = self.config.complex_tleap_in
+
+        cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / dir_ligcom
+        if not cwd.is_dir():
+            cwd.mkdir(parents=True, exist_ok=True)
+
+        # Agastya: simple format for appearing and disappearing atoms
+        open(cwd / 'disappearing_atoms.txt', 'w').write(
+            ' '.join([a.name for a in self.morph.suptop.get_disappearing_atoms()]))
+        open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in self.morph.suptop.get_appearing_atoms()]))
+
+        # copy the protein complex .pdb
+        if protein is not None:
+            shutil.copy(str(protein.get_path()), str(cwd / 'protein.pdb'))
+
+        # copy the hybrid ligand (topology and .frcmod)
+        shutil.copy(self.morph.suptop.mol2, cwd / 'morph.mol2')
+        shutil.copy(self.morph.frcmod, cwd / 'morph.frcmod')
+
+        # determine the number of ions to neutralise the ligand charge
+        if self.config.ligand_net_charge < 0:
+            Na_num = math.fabs(self.config.ligand_net_charge)
+            Cl_num = 0
+        elif self.config.ligand_net_charge > 0:
+            Cl_num = self.config.ligand_net_charge
+            Na_num = 0
+        else:
+            Cl_num = Na_num = 0
+
+        # set the number of ions manually
+        if Na_num == 0:
+            tleap_Na_ions = '# no Na+ added'
+        elif Na_num > 0:
+            tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
+        if Cl_num == 0:
+            tleap_Cl_ions = '# no Cl- added'
+        elif Cl_num > 0:
+            tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+
+        # prepare protein ff
+        if self.config.protein_ff is None:
+            protein_ff = '# no protein ff'
+        else:
+            protein_ff = 'source ' + self.config.protein_ff
+
+        leap_in_conf = open(self.config.ambertools_script_dir / tleap_in).read()
+        open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+                                                             ligand_ff=self.config.ligand_ff,
+                                                             NaIons=tleap_Na_ions,
+                                                             ClIons=tleap_Cl_ions))
+
+        # ambertools tleap: combine ligand+complex, solvate, generate amberparm
+        log_filename = cwd / 'generate_sys_top.log'
+        with open(log_filename, 'w') as LOG:
+            try:
+                subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
+                               stdout=LOG, stderr=LOG,
+                               cwd=cwd,
+                               check=True, text=True, timeout=30)
+                hybrid_solv = cwd / 'sys_solv.pdb'  # generated
+                # check if the solvation is correct
+            except subprocess.CalledProcessError as E:
+                raise Exception('ERROR: occurred when trying to parse the protein.pdb with tleap. \n'
+                                f'ERROR: The output was saved in the directory: {cwd}'
+                                f'ERROR: can be found in the file: {log_filename}') from E
+
+        # generate the merged fep file
+        complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
+        ties.generator.correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
+                               hybrid_topology=self.config.use_hybrid_single_dual_top)
+
+        # fixme - check that the protein does not have the same resname?
+
+        # calculate PBC for an octahedron
+        solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(cwd / "leap.log")
+
+        # these are the names for the source of the input, output names are fixed
+        if self.config.md_engine.lower() == 'namd':
+            min_script = "min.namd"
+            eq_script = "eq.namd"
+            prod_script = "prod.namd"
+        elif self.config.md_engine.lower() == 'namd3':
+            min_script = "min3.namd"
+            eq_script = "eq3.namd"
+            prod_script = "prod3.namd"
+        elif self.config.md_engine.lower() == 'openmm':
+            min_script = None
+            eq_script = None
+            prod_script = None
+        else:
+            raise ValueError('Unknown engine {}'.format(self.config.md_engine))
+
+        # Make build and replica_conf dirs
+        # replica_conf contains NAMD scripts
+        if 'namd' in self.config.md_engine.lower():
+            if not os.path.exists(cwd / 'replica-confs'):
+                os.makedirs(cwd / 'replica-confs')
+            else:
+                shutil.rmtree(cwd / 'replica-confs')
+                os.makedirs(cwd / 'replica-confs')
+
+            # populate the replica_conf dir with scripts
+            # minimization scripts
+            ties.generator.init_namd_file_min(self.config.namd_script_dir, cwd / 'replica-confs', min_script,
+                               structure_name='sys_solv', pbc_box=solv_oct_boc, protein=protein)
+            # equilibriation scripts, note eq_namd_filenames unused
+            ties.generator.generate_namd_eq(self.config.namd_script_dir / eq_script, cwd / 'replica-confs', structure_name='sys_solv',
+                             engine=self.config.md_engine,
+                             protein=protein)
+            # production script
+            ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs/sim1.conf',
+                               structure_name='sys_solv')
+
+        elif 'openmm' in self.config.md_engine.lower():
+            ties_script = open(self.config.scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
+                                                                                  cons_file='cons.pdb', **solv_oct_boc)
+            open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
+
+        # build contains all input ie. positions, parameters and constraints
+        if not os.path.exists(cwd / 'build'):
+            os.makedirs(cwd / 'build')
+        else:
+            shutil.rmtree(cwd / 'build')
+            os.makedirs(cwd / 'build')
+
+        # populate the build dir with positions, parameters and constraints
+        # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
+        if protein is not None:
+            ties.generator.create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
+        # pdb, positions
+        shutil.move(str(hybrid_solv), str(cwd / 'build'))
+        # pdb.fep, alchemical atoms
+        shutil.move(str(complex_solvated_fep), str(cwd / 'build'))
+        # prmtop, topology
+        shutil.move(str(cwd / "sys_solv.top"), str(cwd / 'build'))
+
+        # copy replic-conf scripts
+        # rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
+        # for f in rep_conf_scripts:
+        #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
+
+        # Generate the directory structure for all the lambdas, and copy the files
+        if 'namd' in self.config.md_engine.lower():
+            lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
+        else:
+            lambdas = range(13)
+
+        if self.config.lambda_rep_dir_tree:
+            for lambda_step in lambdas:
+                if 'namd' in self.config.md_engine.lower():
+                    lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
+                else:
+                    lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
+                if not os.path.exists(lambda_path):
+                    os.makedirs(lambda_path)
+
+                # for each lambda create 5 replicas
+                for replica_no in range(1, 5 + 1):
+                    replica_dir = lambda_path / f'rep{replica_no}'
+                    if not os.path.exists(replica_dir):
+                        os.makedirs(replica_dir)
+
+                    # set the lambda value for the directory,
+                    # this file is used by NAMD tcl scripts
+                    if 'namd' in self.config.md_engine.lower():
+                        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
+
+                    # create output dirs equilibriation and simulation
+                    if not os.path.exists(replica_dir / 'equilibration'):
+                        os.makedirs(replica_dir / 'equilibration')
+
+                    if not os.path.exists(replica_dir / 'simulation'):
+                        os.makedirs(replica_dir / 'simulation')
+
+        # copy the visualisation script as hidden
+        shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
+        # simplify the vis.vmd use
+        vis_sh = cwd / 'vis.sh'
+        vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
+        vis_sh.chmod(0o755)
+
+    def write_mol2(self, filename=None, use_left_charges=True, use_left_coords=True):
+        """
+            param filename: str location where the .mol2 file should be saved.
+        """
+        if filename is None:
+            hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
+        else:
+            hybrid_mol2 = filename
+
+        # fixme - make this as a method of suptop as well
+        # recreate the mol2 file that is merged and contains the correct atoms from both
+        # mol2 format: http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
+        # fixme - build this molecule using the MDAnalysis builder instead of the current approach
+        # however, MDAnalysis currently cannot convert pdb into mol2? ...
+        # where the formatting is done manually
+        with open(hybrid_mol2, 'w') as FOUT:
+            bonds = self.get_dual_topology_bonds()
+
+            FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
+            # name of the molecule
+            FOUT.write('HYB ' + os.linesep)
+            # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
+            # fixme this is tricky
+            FOUT.write(f'{self.get_unique_atom_count():d} '
+                       f'{len(bonds):d}' + os.linesep)
+            # mole type
+            FOUT.write('SMALL ' + os.linesep)
+            # charge_type
+            FOUT.write('NO_CHARGES ' + os.linesep)
+            FOUT.write(os.linesep)
+
+            # write the atoms
+            FOUT.write('@<TRIPOS>ATOM ' + os.linesep)
+            # atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+            # e.g.
+            #       1 O4           3.6010   -50.1310     7.2170 o          1 L39      -0.815300
+
+            # so from the two topologies all the atoms are needed and they need to have a different atom_id
+            # so we might need to name the atom_id for them, other details are however pretty much the same
+            # the importance of atom_name is difficult to estimate
+
+            # we are going to assign IDs in the superimposed topology in order to track which atoms have IDs
+            # and which don't
+
+            # fixme - for writing, modify things to achieve the desired output
+            # note - we are modifying in place our atoms
+            for left, right in self.matched_pairs:
+                print(
+                    f'Aligned {left.original_name} id {left.id} with {right.original_name} id {right.id}')
+                if not use_left_charges:
+                    left.charge = right.charge
+                if not use_left_coords:
+                    left.position = right.position
+
+            subst_id = 1  # resid basically
+            # write all the atoms that were matched first with their IDs
+            # prepare all the atoms, note that we use primarily the left ligand naming
+            all_atoms = [left for left, right in self.matched_pairs] + self.get_unmatched_atoms()
+            unmatched_atoms = self.get_unmatched_atoms()
+            # reorder the list according to the ID
+            all_atoms.sort(key=lambda atom: self.get_generated_atom_id(atom))
+
+            resname = 'HYB'
+            for atom in all_atoms:
+                FOUT.write(f'{self.get_generated_atom_id(atom)} {atom.name} '
+                           f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
+                           f'{atom.type.lower()} {subst_id} {resname} {atom.charge:.6f} {os.linesep}')
+
+            FOUT.write(os.linesep)
+
+            # write bonds
+            FOUT.write('@<TRIPOS>BOND ' + os.linesep)
+
+            # we have to list every bond:
+            # 1) all the bonds between the paired atoms, so that part is easy
+            # 2) bonds which link the disappearing atoms, and their connection to the paired atoms
+            # 3) bonds which link the appearing atoms, and their connections to the paired atoms
+
+            bond_counter = 1
+            list(bonds)
+            for bond_from_id, bond_to_id, bond_type in sorted(list(bonds), key=lambda b: b[:2]):
+                # Bond Line Format:
+                # bond_id origin_atom_id target_atom_id bond_type [status_bits]
+                FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)
+                bond_counter += 1
+
+        self.mol2 = hybrid_mol2
+
+
     def _init_nonoverlapping_cycles(self):
         """
         Compile the cycles separately for the left and right molecule.
@@ -355,6 +749,28 @@ class SuperimposedTopology:
         dis = {a for a in unmatched_dis if a not in single_top_set}
 
         return app, dis
+
+    def ringring(self):
+        """
+        Rings can only be matched to rings.
+        """
+        l_circles, r_circles = self.get_original_circles()
+        removed_h = []
+        ringring_removed = []
+        for l, r in self.matched_pairs[::-1]:
+            if (l, r) in removed_h:
+                continue
+
+            l_ring = any([l in c for c in l_circles])
+            r_ring = any([r in c for c in r_circles])
+            if l_ring + r_ring == 1:
+                removed_h.extend(self.remove_attached_hydrogens((l, r)))
+                self.remove_node_pair((l, r))
+                ringring_removed.append((l,r))
+
+        if ringring_removed:
+            print(f'Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}')
+        return ringring_removed, removed_h
 
     def is_or_was_matched(self, atom_name1, atom_name2):
         """
@@ -432,8 +848,8 @@ class SuperimposedTopology:
 
         # extract the IDs and use them to pick the atoms in MDAnalysis
         # note that the order matters
-        matched_l_ids = [left.atomId for left, right in self.matched_pairs]
-        matched_r_ids = [right.atomId for left, right in self.matched_pairs]
+        matched_l_ids = [left.id for left, right in self.matched_pairs]
+        matched_r_ids = [right.id for left, right in self.matched_pairs]
 
         # save the original positions (deep copy)
         original_left_pos = np.empty_like(self.mda_ligandL.atoms.positions)
@@ -2777,8 +3193,11 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # ensure that none of the atom names across the two molecules are the different
     if check_atom_names_unique:
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
-        assert len(same_atom_names) == 0, \
-            f"The molecules have the same atom names. This is not allowed. They are: {same_atom_names}"
+        if len(same_atom_names) != 0:
+            print(f"WARNING: The atoms across the two ligands have the same atom names. "
+                  f"This will make it harder to trace back any problems. "
+                  f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
+
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligand_l_mda, ligand_r_mda,
@@ -2819,6 +3238,18 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     #     for sup_top in sup_tops:
     #         sup_top.correct_for_coordinates()
 
+    # mismatch atoms as requested
+    if force_mismatch:
+        for sp in suptops:
+            for (a1, a2) in sp.matched_pairs[::-1]:
+                if (a1.name, a2.name) in force_mismatch:
+                    sp.remove_node_pair((a1, a2))
+                    print(f'Removing the pair: {((a1, a2))}, as requested')
+
+    # ensure that ring-atoms are not matched to non-ring atoms
+    for st in suptops:
+        st.ringring()
+
     # introduce exceptions to the atom type types so that certain
     # different atom types are seen as the same
     # ie allow to swap cc-cd with cd-cc (and other pairs)
@@ -2853,15 +3284,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if removed:
                 print(f'Removed pairs with charge incompatibility: '
                       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
-
-    # apply the force mismatch at the end
-    # this is an interactive feature
-    if force_mismatch is not None:
-        for suptop in suptops:
-            for an1, an2 in force_mismatch:
-                if suptop.contains_atomNamePair(an1, an2):
-                    n1, n2 = suptop.get_node(an1), suptop.get_node(an2)
-                    suptop.remove_node_pair((n1, n2))
 
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.
@@ -3597,11 +4019,11 @@ def get_atoms_bonds_from_ac(ac_file):
         charge = float(charge)
         res_id = int(res_id)
         atom_id = int(atom_id)
-        atom = AtomNode(name=atom_name, atom_type=atom_colloq)
-        atom.set_charge(charge)
-        atom.set_id(atom_id)
-        atom.set_position(x, y, z)
-        atom.set_resname(res_name)
+        atom = Atom(name=atom_name, atom_type=atom_colloq)
+        atom.charge = charge
+        atom.id = atom_id
+        atom.position = (x, y, z)
+        atom.resname = res_name
         atoms.append(atom)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
@@ -3618,47 +4040,31 @@ def get_atoms_bonds_from_ac(ac_file):
 
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
     """
-    Use MDAnalysis to load the .mol2 files.
+    Use MDAnalysis to load the files.
 
-    Use MDAnalysis to superimpose the second structure onto the first structure.
-    Examples: https://www.mdanalysis.org/MDAnalysisTutorial/analysismodule.html
-    """
     # returns
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
-
+    """
     universe_ref = load_MDAnalysis_atom_group(ref_filename)
     universe_mobile = load_MDAnalysis_atom_group(mob_filename)
 
-    # this RMSD superimposition requires the same number of atoms to be superimposed
-    # find out the RMSD between them and the rotation matrix
-    # universe_ref0 = universe_ref.atoms.positions - universe_ref.atoms.center_of_geometry()
-    # universe_mob0 = universe_mob.atoms.positions - universe_mob.atoms.center_of_geometry()
-    #
-    # # get the rotation matrix and rmsd
-    # # fixme - make use of rmsd
-    # R, rmsd = MDAnalysis.analysis.align.rotation_matrix(universe_mob0, universe_ref0)
-    #
-    # # update the universe_mob atoms, the new coordinates is what we want to rely on
-    # universe_mob.atoms.translate(-universe_mob.atoms.center_of_geometry())
-    # universe_mob.atoms.rotate(R)
-    # universe_mob.atoms.translate(universe_ref.atoms.center_of_geometry())
-
-    # create the atoms for left ligands
     def create_atoms(mda_atoms):
+        """
+        # convert the MDAnalysis atoms into Atom objects.
+        """
         atoms = []
         for mda_atom in mda_atoms:
-            atom = AtomNode(name=mda_atom.name, atom_type=mda_atom.type, use_general_type=use_general_type)
+            atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, use_general_type=use_general_type)
             try:
-                atom.set_charge(mda_atom.charge)
-                atom.set_original_charge(mda_atom.charge)
+                # charges might not be present
+                atom.charge = mda_atom.charge
             except AttributeError:
-                # fixme - expand on the message
-                print('Missing charge attribute, setting to N/A')
-                atom.set_charge('N/A')
-            atom.set_id(mda_atom.id)
-            atom.set_position(mda_atom.position[0], mda_atom.position[1], mda_atom.position[2])
-            atom.set_resname(mda_atom.resname)
+                print('WARNING: One of the input files is missing charges. Setting the charge to N/A')
+                atom.charge = 'N/A'
+            atom.id = mda_atom.id
+            atom.position = mda_atom.position
+            atom.resname = mda_atom.resname
             atoms.append(atom)
         return atoms
 
@@ -3688,7 +4094,7 @@ def assign_coords_from_pdb(atoms, pdb_atoms):
             if pdb_atom.name.upper() == atom.name.upper():
                 # assign the charges
                 pos = pdb_atom.position
-                atom.set_position(pos[0], pos[1], pos[2])
+                atom.position = (pos[0], pos[1], pos[2])
                 found_match = True
                 break
         if not found_match:

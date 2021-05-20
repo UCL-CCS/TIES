@@ -1,5 +1,5 @@
 # solvation script to solvate the merged topologies .mol2
-source {protein_ff}
+{protein_ff}
 source leaprc.water.tip3p
 source {ligand_ff}
 # for phosphorylated residues

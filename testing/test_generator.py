@@ -1,6 +1,8 @@
 """
 These tests focus on the generator (preprocessing of the input before applying superimpose_topologies
 """
+import copy
+
 import MDAnalysis
 
 import ties.helpers
@@ -11,7 +13,7 @@ from ties.ligand import Ligand
 
 def test_no_same_atom_names(dual_ring1):
     # make a copy of the atom list
-    dual_ring_cmp = [a.deepCopy() for a in dual_ring1]
+    dual_ring_cmp = [copy.copy(a) for a in dual_ring1]
     ties.topology_superimposer.SuperimposedTopology.rename_ligands(dual_ring1, dual_ring_cmp)
     intersection = {a.name for a in dual_ring1}.intersection({a.name for a in dual_ring_cmp})
     # there should be no overlap

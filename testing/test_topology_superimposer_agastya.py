@@ -43,13 +43,13 @@ def load_problem_from_dir(liglig_path):
     # create the nodes and add edges for the other ligand
     ligand1_nodes = {}
     for atomNode in leftlig_atoms:
-        ligand1_nodes[atomNode.get_id()] = atomNode
+        ligand1_nodes[atomNode.id] = atomNode
     for nfrom, nto in leftlig_bonds:
         ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], 'bondType1')
 
     ligand2_nodes = {}
     for atomNode in rightlig_atoms:
-        ligand2_nodes[atomNode.get_id()] = atomNode
+        ligand2_nodes[atomNode.id] = atomNode
     for nfrom, nto in rightlig_bonds:
         ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], 'bondType1')
 
@@ -89,7 +89,7 @@ def test_mcl1_l18l39():
     # ie remove the matches that change due to charge rather than spieces
     all_removed_pairs = suptop.refine_against_charges(atol=0.1)
     print(all_removed_pairs)
-    removed_pairs = [('C5', 'C27'), ('C4', 'C26')]
+    removed_pairs = [('C4', 'C26')]
     for atomName1, atomname2 in removed_pairs:
         assert not suptop.contains_atom_name_pair(atomName1, atomname2)
 
@@ -197,15 +197,7 @@ def test_mcl1_l8l18():
 
     # check non-hydrogen atoms
     removed_non_hydrogens = list(filter(lambda x: not x[0].upper().startswith('H'), removed_atom_names))
-    assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C6', 'C28'), ('C5', 'C27'),
-                           ('C4', 'C26'), ('C3', 'C25'), ('C2', 'C24')}
-
-    # prepare hydrogens
-    # fixme this will require a bit of work, ie disconnected components, we do not remove dangling hydrogens any more
-    # removed_dangling_hydrogens = list(filter(lambda x: x[0].upper().startswith('H'), removed_atom_names))
-    # # check if the dangling hydrogens were removed
-    # assert removed_dangling_hydrogens == [('H3', 'H19'), ('H1', 'H17')]
-
+    assert set(removed_non_hydrogens) == {('C7', 'C29'), ('C3', 'C25'), ('C2', 'C24')}
 
 def test_mcl1_l32_l42():
     # Agastya's cases
@@ -251,7 +243,10 @@ def test_mcl1_l32_l42():
             mutating_area.remove((atomName1, atomname2))
     assert len(mutating_area) == 0, mutating_area
 
-    # this pair of hydrogens has actually a different atom_type, so it is not found
+    # these correctly paired hydrogens have a different type
+    assert suptop.contains_atom_name_pair('H13', 'H31')
+    # after checking the exact type (not just element) it should be removed
+    suptop.enforce_matched_atom_types_are_the_same()
     assert not suptop.contains_atom_name_pair('H13', 'H31')
 
     # check the linker hydrogens
@@ -267,9 +262,8 @@ def test_mcl1_l32_l42():
     # ie remove the matches due to charge difference
     removed_pairs = suptop.refine_against_charges(atol=0.1)
     print('removed', removed_pairs)
-    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'),
-        ('C20', 'C42'), ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'),
-        ('C14', 'C35'), ('C11', 'C32')]
+    should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'), ('C20', 'C42'),
+                           ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'), ('C14', 'C35')]
     for (n1, n2), q in removed_pairs:
         should_remove_pairs.remove((n1.name, n2.name))
     assert len(should_remove_pairs) == 0, should_remove_pairs
@@ -277,17 +271,6 @@ def test_mcl1_l32_l42():
     # remove the dangling hydrogens by using "no disconnected components"
     # fixme requires parsing the CC survives output
     toGoThrough = suptop.largest_cc_survives()
-    # check if the lonely hydrogens were removed together with charges
-    removed_lonely_hydrogens = [('H15', 'H33'), ('H14', 'H32'),
-                   ('H12', 'H29'), ('H8', 'H24'), ('H7', 'H25')]
-    # for (n1, n2), q in removed_pairs:
-    #     # only tests the hydrogens
-    #     if not n1.atomName.upper().startswith('H'):
-    #         continue
-    #     removed_lonely_hydrogens.remove((n1.atomName, n2.atomName))
-    # assert len(removed_lonely_hydrogens) == 0, removed_lonely_hydrogens
-
-
 
 def test_tyk2_l11l14():
     # Agastya's cases
