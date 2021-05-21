@@ -55,6 +55,7 @@ class Ligand:
         self.index = Ligand.LIG_COUNTER
         Ligand.LIG_COUNTER += 1
 
+        self._renaming_map = None
         self.ligand_with_uniq_atom_names = None
 
         # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
@@ -106,43 +107,41 @@ class Ligand:
         self.current = new_current
         print(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
 
-    def atom_names_uniq(self):
-        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
-
-        # ensure that all the atom names are unique
-        atom_names = [a.name for a in ligand_universe.atoms]
-        return len(set(atom_names)) == len(atom_names)
-
-    def make_atom_names_unique(self):
+    def atom_names_correct(self):
         """
-        Ensure that each atom has a unique name.
+        Checks if atom names:
+         - are unique
+         - have a correct format "LettersNumbers" e.g. C17
+        """
+        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
+        atom_names = [a.name for a in ligand_universe.atoms]
+        atom_names_are_uniqe = len(set(atom_names)) == len(atom_names)
+        return atom_names_are_uniqe and ties.helpers.are_correct_names(atom_names)
 
-        rename the ligand to ensure that no atom has the same atom name
-        using the first letter (C, N, ..) and count them
-        keep the names if possible (ie if they are already different)
+    def make_atom_names_correct(self):
+        """
+        Ensure that each atom has a unique name and follows our format.
 
+        rename the atom names to ensure that no atom has the same atom name
+        using the first letter (C, N, ..)
+
+        # fixme - allow save as a kwarg
         @parameter save_update: if the path is provided, the updated file
             will be saved with the unique names and a handle to the new file (MDAnalysis universe)
             will be returned.
         """
+        if self.atom_names_correct():
+            return
 
-        # todo - if they already unique, ignore
+        print(f'Ligand {self.internal_name} will have its atom names renamed. ')
 
         ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
 
-        # ensure that all the atom names are unique
-        atom_names = [a.name for a in ligand_universe.atoms]
-        names_unique = len(set(atom_names)) == len(atom_names)
-
-        if not names_unique or not ties.helpers.are_correct_names(atom_names):
-            print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
-                  f'or do not follow NameDigit format (e.g. C15). Renaming')
-            _, old_new_atomname_map = ties.helpers.rename_ligand(ligand_universe.atoms)
-        else:
-            # the atom names stay the same, create a map fro the same elements to the same?
-            old_new_atomname_map = {a.name: a.name for a in ligand_universe.atoms}
-
-        self.old_new_atomname_map = old_new_atomname_map
+        print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
+              f'or do not follow NameDigit format (e.g. C15). Renaming')
+        _, renaming_map = ties.helpers.get_new_atom_names(ligand_universe.atoms)
+        self._renaming_map = renaming_map
+        print(f'Rename map: {renaming_map}')
 
         # save the output here
         os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
@@ -156,6 +155,30 @@ class Ligand:
         self.universe = ligand_universe
         # this object is now represented by the updated ligand
         self.current = ligand_with_uniq_atom_names
+
+    @property
+    def renaming_map(self):
+        if self._renaming_map is None:
+            # The atom names have not been renamed. Return a fresh mapping that reflects that.
+            ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
+            renaming_map = {a.name: a.name for a in ligand_universe.atoms}
+            self._renaming_map = renaming_map
+
+        return self._renaming_map
+
+    @renaming_map.setter
+    def renaming_map(self, dict):
+        if self._renaming_map is None:
+            self._renaming_map = dict
+        else:
+            # this ligand was already renamed before
+            # so A -> B -> C, but we need to have A -> C now
+            # so, for each renaming value here, we have to find the B value,
+            # and replace it with C,
+            # fixme: this works only if Bs are unique
+
+            btoa = {v: k for k, v in self._renaming_map.items()}
+            self._renaming_map = {btoa[b]: c for b, c in dict.items()}
 
     # make this into a python property
     def suffix(self):
