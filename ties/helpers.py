@@ -71,6 +71,8 @@ def rename_ligand(atoms, name_counter=None):
     if name_counter is None:
         name_counter = {}
 
+    map_rename = {}
+
     for atom in atoms:
         # get the first letters that is not a character
         afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
@@ -81,13 +83,15 @@ def rename_ligand(atoms, name_counter=None):
         # rename
         last_used_counter += 1
         newAtomName = atom_name + str(last_used_counter)
+        map_rename[atom.name] = newAtomName
+
         print(f'Renaming {atom.name} to {newAtomName}')
         atom.name = newAtomName
 
         # update the counter
         name_counter[atom_name] = last_used_counter
 
-    return name_counter
+    return name_counter, map_rename
 
 
 def get_atom_names_counter(atoms):

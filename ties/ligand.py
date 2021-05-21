@@ -132,7 +132,12 @@ class Ligand:
         if not names_unique or not ties.helpers.are_correct_names(atom_names):
             print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
                   f'or do not follow NameDigit format (e.g. C15). Renaming')
-            ties.helpers.rename_ligand(ligand_universe.atoms)
+            _, old_new_atomname_map = ties.helpers.rename_ligand(ligand_universe.atoms)
+        else:
+            # the atom names stay the same, create a map fro the same elements to the same?
+            old_new_atomname_map = {a.name: a.name for a in ligand_universe.atoms}
+
+        self.old_new_atomname_map = old_new_atomname_map
 
         ligand_with_uniq_atom_names = self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR / \
                                       (self.internal_name + self.current.suffix)
