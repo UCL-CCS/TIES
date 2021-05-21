@@ -101,7 +101,7 @@ class Pair():
         # ligZ_old_new_atomname_map
         new_mismatch_names = []
         for a, z in self.config.manually_mismatched_pairs:
-            new_names = (self.ligA_old_new_atomname_map[a], self.ligZ_old_new_atomname_map[z])
+            new_names = (self.ligA.renaming_map[a], self.ligZ.renaming_map[z])
             print(f'Selecting mismatching atoms. '
                   f'Before renaming: {(a, z)}), After {new_names}')
             new_mismatch_names.append(new_names)
@@ -199,31 +199,21 @@ class Pair():
             param filename1 and filename2: str, if not provided, standard path is used. Have to be provided together.
             param save: bool, whether to save to the disk the renamed ligand
         """
-        # rename if necessary ligA first
-        if not self.ligA.atom_names_uniq():
-            self.ligA.make_atom_names_unique()
-        # self.ligZ.make_atom_names_unique()
+
+        # The A ligand is a template for the renaming
+        self.ligA.make_atom_names_correct()
 
         # load both ligands
         left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
         right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
-        self.ligA_old_new_atomname_map = self.ligA.old_new_atomname_map
-        self.ligZ_old_new_atomname_map = self.ligZ.old_new_atomname_map
 
-        ligands_atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
+        atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
 
-        if ligands_atom_names_overlap:
+        if atom_names_overlap or not self.ligZ.atom_names_correct():
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
-            _, old_new_atomname_map = ties.helpers.rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
-            # most likely we are renaming the atom names for the second time
-            # so A -> B -> C, but we need to have A -> C mapping
-            # meaning that, for each renaming value here, we have to find the B value,
-            # and replace it with C,
-            # but this works only if Bs are unique
-            assert len(set(self.ligZ_old_new_atomname_map.values())) == len(self.ligZ_old_new_atomname_map), 'Make sure ligZ has unique atom names'
-            btoa = {v:k for k, v in self.ligZ_old_new_atomname_map.items()}
-            self.ligZ_old_new_atomname_map = {btoa[b]: c for b, c in old_new_atomname_map.items()}
+            _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
+            self.ligZ.renaming_map = renaming_map
 
         # rename the residue names to INI and FIN
         left.residues.resnames = ['INI']
@@ -246,8 +236,6 @@ class Pair():
         # save the updated atom names
         left.atoms.write(self.current_ligA)
         right.atoms.write(self.current_ligZ)
-
-        # update the Ligands to use the renamed version
 
     def check_json_file(self):
         # An optimisation for testing

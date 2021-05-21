@@ -59,7 +59,7 @@ def load_MDAnalysis_atom_group(filename):
     return u
 
 
-def rename_ligand(atoms, name_counter=None):
+def get_new_atom_names(atoms, name_counter=None):
     """
     todo - add unit tests
 
@@ -71,7 +71,7 @@ def rename_ligand(atoms, name_counter=None):
     if name_counter is None:
         name_counter = {}
 
-    map_rename = {}
+    renaming_map = {}
 
     for atom in atoms:
         # get the first letters that is not a character
@@ -83,15 +83,14 @@ def rename_ligand(atoms, name_counter=None):
         # rename
         last_used_counter += 1
         newAtomName = atom_name + str(last_used_counter)
-        map_rename[atom.name] = newAtomName
+        renaming_map[atom.name] = newAtomName
 
-        print(f'Renaming {atom.name} to {newAtomName}')
         atom.name = newAtomName
 
         # update the counter
         name_counter[atom_name] = last_used_counter
 
-    return name_counter, map_rename
+    return name_counter, renaming_map
 
 
 def get_atom_names_counter(atoms):
