@@ -10,6 +10,7 @@ import random
 import json
 import shutil
 import subprocess
+import pathlib
 from functools import reduce
 from collections import OrderedDict
 
@@ -309,7 +310,9 @@ class SuperimposedTopology:
         if filename is None:
             matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
         else:
-            matching_json = filename
+            matching_json = pathlib.Path(filename)
+
+        matching_json.parent.mkdir(parents=True, exist_ok=True)
 
         with open(matching_json, 'w') as FOUT:
             # use json format, only use atomNames
