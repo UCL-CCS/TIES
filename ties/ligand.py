@@ -106,6 +106,13 @@ class Ligand:
         self.current = new_current
         print(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
 
+    def atom_names_uniq(self):
+        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
+
+        # ensure that all the atom names are unique
+        atom_names = [a.name for a in ligand_universe.atoms]
+        return len(set(atom_names)) == len(atom_names)
+
     def make_atom_names_unique(self):
         """
         Ensure that each atom has a unique name.
@@ -121,10 +128,6 @@ class Ligand:
 
         # todo - if they already unique, ignore
 
-        # save the output here
-        os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
-
-        # load the ligand with MDAnalysis
         ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
 
         # ensure that all the atom names are unique
@@ -140,6 +143,9 @@ class Ligand:
             old_new_atomname_map = {a.name: a.name for a in ligand_universe.atoms}
 
         self.old_new_atomname_map = old_new_atomname_map
+
+        # save the output here
+        os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
 
         ligand_with_uniq_atom_names = self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR / \
                                       (self.internal_name + self.current.suffix)
