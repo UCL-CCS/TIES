@@ -7,7 +7,7 @@ config = Config()
 config.ligand_net_charge = -1
 
 pair = Pair('l02.mol2', 'l03.mol2', config=config)
-pair.make_atom_names_correct()
+pair.make_atom_names_unique()
 
 # overwrite the previous config settings with relevant parameters
 hybrid = pair.superimpose(use_element_in_superimposition=True, redistribute_q_over_unmatched=True)
