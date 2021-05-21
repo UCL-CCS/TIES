@@ -96,9 +96,15 @@ class Pair():
                                       use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
 
-        # empty lists count as None
-        # if not force_mismatch:
-        force_mismatch = None
+        # in case the atoms were renamed, pass the names via the map renaming map
+        # TODO
+        # ligZ_old_new_atomname_map
+        new_mismatch_names = []
+        for a, z in self.config.manually_mismatched_pairs:
+            new_names = (self.ligA_old_new_atomname_map[a], self.ligZ_old_new_atomname_map[z])
+            print(f'Selecting mismatching atoms. '
+                  f'Before renaming: {(a, z)}), After {new_names}')
+            new_mismatch_names.append(new_names)
 
         # assign
         # fixme - Ideally I would reuse the mdanalysis data for this,
@@ -159,7 +165,7 @@ class Pair():
                                          use_only_element=False,
                                          check_atom_names_unique=True, # fixme - remove?
                                          starting_pairs_heuristics=True, # fixme - add to config
-                                         force_mismatch=self.config.manually_mismatched_pairs, # fixme - add to config
+                                         force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
                                          ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
                                          starting_pair_seed=self.config.superimposition_starting_pair)
@@ -193,16 +199,30 @@ class Pair():
             param filename1 and filename2: str, if not provided, standard path is used. Have to be provided together.
             param save: bool, whether to save to the disk the renamed ligand
         """
+        # rename if necessary ligA first
+        self.ligA.make_atom_names_unique()
+        self.ligZ.make_atom_names_unique()
+
         # load both ligands
         left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
         right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
+        self.ligA_old_new_atomname_map = self.ligA.old_new_atomname_map
+        self.ligZ_old_new_atomname_map = self.ligZ.old_new_atomname_map
 
         ligands_atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
 
         if ligands_atom_names_overlap:
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
-            ties.helpers.rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
+            _, old_new_atomname_map = ties.helpers.rename_ligand(right.atoms, name_counter=name_counter_L_nodes)
+            # most likely we are renaming the atom names for the second time
+            # so A -> B -> C, but we need to have A -> C mapping
+            # meaning that, for each renaming value here, we have to find the B value,
+            # and replace it with C,
+            # but this works only if Bs are unique
+            assert len(set(self.ligZ_old_new_atomname_map.values())) == len(self.ligZ_old_new_atomname_map), 'Make sure ligZ has unique atom names'
+            btoa = {v:k for k, v in self.ligZ_old_new_atomname_map.items()}
+            self.ligZ_old_new_atomname_map = {btoa[b]: c for b, c in old_new_atomname_map.items()}
 
         # rename the residue names to INI and FIN
         left.residues.resnames = ['INI']
