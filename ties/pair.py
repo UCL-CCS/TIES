@@ -200,8 +200,9 @@ class Pair():
             param save: bool, whether to save to the disk the renamed ligand
         """
         # rename if necessary ligA first
-        self.ligA.make_atom_names_unique()
-        self.ligZ.make_atom_names_unique()
+        if not self.ligA.atom_names_uniq():
+            self.ligA.make_atom_names_unique()
+        # self.ligZ.make_atom_names_unique()
 
         # load both ligands
         left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
