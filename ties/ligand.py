@@ -119,6 +119,8 @@ class Ligand:
             will be returned.
         """
 
+        # todo - if they already unique, ignore
+
         # save the output here
         os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
 

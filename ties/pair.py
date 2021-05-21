@@ -199,6 +199,10 @@ class Pair():
             param filename1 and filename2: str, if not provided, standard path is used. Have to be provided together.
             param save: bool, whether to save to the disk the renamed ligand
         """
+        # rename if necessary ligA first
+        self.ligA.make_atom_names_unique()
+        self.ligZ.make_atom_names_unique()
+
         # load both ligands
         left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
         right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
