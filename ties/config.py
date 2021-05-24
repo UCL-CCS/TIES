@@ -7,6 +7,7 @@ import subprocess
 import MDAnalysis
 from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
 
+
 class Config:
 
     def __init__(self, **kwargs):
@@ -595,7 +596,8 @@ class Config:
                 v = str(v)
 
             # account for the ligands being pathlib objects
-            if k == 'ligands':
+            if k == 'ligands' and v is not None:
+                # a list of ligands, convert to strings
                 v = [str(l) for l in v]
 
             ser[k] = v

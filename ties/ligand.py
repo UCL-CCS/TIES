@@ -31,6 +31,8 @@ class Ligand:
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
+        if type(self.config) is not ties.config.Config:
+            raise AttributeError('Config has to of the ties.config.Config class')
         self.original_input = Path(ligand).absolute()
 
         # check if the input files exist
@@ -184,7 +186,7 @@ class Ligand:
     def suffix(self):
         return self.current.suffix.lower()
 
-    def antechamber_prepare_mol2(self, atom_type, net_charge, antechamber_dr, antechamber_charge_type):
+    def antechamber_prepare_mol2(self, **kwargs):
         """
         Convert the files into .mol2 files. Generate BCC charges if needed.
         A helper function that calls antechamber and ensures that the log is kept.
@@ -192,9 +194,15 @@ class Ligand:
 
         # antechamber note:
         # charge type -c is not used if user provided prefer to use their charges
+
+        Parameters:
+            atom_type
+            net_charge
         """
+        self.config.set_configs(**kwargs)
+
         print('Antechamber: converting to .mol2 and generating charges if necessary')
-        if not antechamber_charge_type:
+        if not self.config.antechamber_charge_type:
             print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
         else:
             print('Antechamber: Generating BCC charges')
@@ -220,8 +228,8 @@ class Ligand:
                     subprocess.run([self.config.ambertools_antechamber,
                                     '-i', self.current, '-fi', self.current.suffix[1:],
                                     '-o', mol2_target, '-fo', 'mol2',
-                                    '-at', atom_type, '-nc', str(net_charge),
-                                    '-dr', antechamber_dr] + antechamber_charge_type,
+                                    '-at', self.config.ligand_ff_name, '-nc', str(self.config.ligand_net_charge),
+                                    '-dr', self.config.antechamber_dr] + self.config.antechamber_charge_type,
                                    cwd=mol2_cwd,
                                    stdout=LOG, stderr=LOG,
                                    check=True, text=True,
@@ -262,7 +270,14 @@ class Ligand:
         mol2_u.select_atoms('not type DU').atoms.write(self.current)
         print('Removed dummy atoms with type "DU"')
 
-    def generate_frcmod(self, parmchk2, atom_type):
+    def generate_frcmod(self, **kwargs):
+        """
+            params
+             - parmchk2
+             - atom_type
+        """
+        self.config.set_configs(**kwargs)
+
         print(f'INFO: frcmod for {self} was computed before. Not repeating.')
         if hasattr(self, 'frcmod'):
             return
@@ -279,11 +294,11 @@ class Ligand:
         log_filename = cwd / "parmchk2.log"
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([parmchk2,
+                subprocess.run([self.config.ambertools_parmchk2,
                                 '-i', self.current,
                                 '-o', target_frcmod,
                                 '-f', 'mol2',
-                                '-s', atom_type],
+                                '-s', self.config.ligand_ff_name],
                                stdout=LOG, stderr=LOG,
                                check= True, text=True,
                                cwd= cwd, timeout=20,  # 20 seconds
@@ -358,6 +373,3 @@ class Ligand:
 
         # save the output file
         mda_template.atoms.write(output_file)
-
-        print('hi')
-        pass
