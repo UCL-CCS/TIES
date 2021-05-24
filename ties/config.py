@@ -3,6 +3,7 @@ import sys
 import pathlib
 import csv
 import subprocess
+from collections.abc import Iterable
 
 import MDAnalysis
 from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
@@ -41,7 +42,7 @@ class Config:
         self._use_original_coor = False
         self._coordinates_file = None
 
-        self._ligand_files = None
+        self._ligand_files = set()
         self._manually_matched_atom_pairs = None
         self._manually_mismatched_pairs = None
         self._ligands_contain_q = None
@@ -80,6 +81,8 @@ class Config:
     @workdir.setter
     def workdir(self, cwd):
         if cwd is not None:
+            if type(cwd) is str:
+                cwd = pathlib.Path(cwd)
             # user provided
             self._workdir = cwd.absolute()
         else:
@@ -110,6 +113,13 @@ class Config:
 
     @ligand_files.setter
     def ligand_files(self, files):
+        """
+            str or Path,
+            a Ligand object will converted into a Path
+        """
+        if isinstance(files, str) or isinstance(files, pathlib.Path):
+            files = [pathlib.Path(files)]
+
         if len(files) < 1:
             print('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
             sys.exit(1)
@@ -141,7 +151,7 @@ class Config:
 
         # TODO - ensure that it is a connected component and there is no extra atoms
 
-        self._ligand_files = files
+        self._ligand_files = self._ligand_files.union(set(files))
 
     # --------------- ambertools
     @property
@@ -313,13 +323,21 @@ class Config:
         # use the original coords because antechamber can change them slightly
         self._use_original_coor = boolean
 
+    def _guess_ligands_contain_q(self):
+        # if all ligands are .mol2, then charges are provided
+        if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
+            return True
+        else:
+            return False
+
     @property
     def ligands_contain_q(self):
         if self._ligand_files is None:
-            raise ValueError('The variable ligands_contain_q is used but _ligand_files are not configured. ')
+            print('The fact whether the ligands contain charges has not been configured. Guessing. ')
+            self._ligand_files = self._guess_ligands_contain_q()
 
         # does the file type contain charges?
-        ligand_ext = self._ligand_files[0].suffix.lower()
+        ligand_ext = set(l.suffix.lower() for l in self.ligand_files).pop()
         if self._ligands_contain_q is True:
             if ligand_ext in {'.mol2', '.ac'}:
                 self._ligands_contain_q = True
@@ -599,6 +617,8 @@ class Config:
             if k == 'ligands' and v is not None:
                 # a list of ligands, convert to strings
                 v = [str(l) for l in v]
+            if k == '_ligand_files':
+                continue
 
             ser[k] = v
 

@@ -31,19 +31,15 @@ class Ligand:
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
-        if type(self.config) is not ties.config.Config:
-            raise AttributeError('Config has to of the ties.config.Config class')
-        self.original_input = Path(ligand).absolute()
+        self.config.ligand_files = ligand
 
-        # check if the input files exist
-        if not self.original_input.is_file():
-            print(f'ERROR: Ligand file {self.original_input} not found')
-            sys.exit(1)
+        self.original_input = Path(ligand).absolute()
 
         # internal name without an extension
         self.internal_name = self.original_input.stem
 
         # ligand names have to be unique
+        # fixme - should be part of the Config file
         if self.internal_name in Ligand._USED_FILENAMES:
             print(f'ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. ')
             sys.exit(1)
@@ -164,6 +160,9 @@ class Ligand:
             # The atom names have not been renamed. Return a fresh mapping that reflects that.
             ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
             renaming_map = {a.name: a.name for a in ligand_universe.atoms}
+            if len(renaming_map) != len(ligand_universe.atoms):
+                raise Exception('You have to first rename your atom names to make them unique. '
+                                'See .make_atom_names_correct() function. ')
             self._renaming_map = renaming_map
 
         return self._renaming_map
@@ -202,10 +201,13 @@ class Ligand:
         self.config.set_configs(**kwargs)
 
         print('Antechamber: converting to .mol2 and generating charges if necessary')
+        if self.config.ligands_contain_q:
+            print('Antechamber: Generating .mol2 file with BCC charges')
         if not self.config.antechamber_charge_type:
             print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
         else:
-            print('Antechamber: Generating BCC charges')
+            raise Exception('Not using user provided charges. Cannot compile BCC charges. ??')
+
 
         mol2_cwd = self.config.workdir / self.MOL2 / self.internal_name
 
