@@ -171,9 +171,7 @@ def command_line_script():
         sys.exit()
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-    [lig.antechamber_prepare_mol2(config.ligand_ff_name, config.ligand_net_charge,
-                                  config.antechamber_dr, config.antechamber_charge_type)
-        for lig in ligands]
+    [lig.antechamber_prepare_mol2() for lig in ligands]
 
     # make atom names unique in each ligand
     [lig.make_atom_names_correct() for lig in ligands]
