@@ -43,7 +43,8 @@ jobs:
         python3 -m pytest
     - name: Simple Ligand renaming
       run: |
-        python3 examples/mol2_2ligands_MCL1/lig_api.py
+        cd examples/mol2_2ligands_MCL1
+        python3 lig_api.py
     - name: Use min API
       run: |
         cd examples/mol2_2ligands_MCL1
