@@ -224,7 +224,7 @@ class Pair():
             return
 
         if filename1 is None:
-            cwd = self.config.pair_unique_atom_names / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+            cwd = self.config.pair_unique_atom_names_dir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
             cwd.mkdir(parents=True, exist_ok=True)
 
             self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
@@ -266,7 +266,7 @@ class Pair():
         frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
 
         # prep directory
-        cwd = self.config.pair_morphfrcmods
+        cwd = self.config.pair_morphfrcmods_dir
         if not cwd.is_dir():
             cwd.mkdir(exist_ok=True)
 
@@ -302,7 +302,7 @@ class Pair():
         Returns the corrected .frcmod content, otherwise throws an exception.
         """
         # prepare the working directory
-        cwd = self.config.pair_morphfrmocs_tests / self.internal_name
+        cwd = self.config.pair_morphfrmocs_tests_dir / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
