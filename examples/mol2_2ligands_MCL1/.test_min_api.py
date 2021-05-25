@@ -8,5 +8,5 @@ assert tiesdir.exists()
 
 # the files have been saved
 assert (tiesdir / 'meta_l02_l03.json').exists()
-assert (tiesdir / 'l02_l03_morph.mol2').exists()
 assert (tiesdir / 'l02_l03_morph.pdb').exists()
+assert (tiesdir / 'l02_l03_morph.mol2').exists()
