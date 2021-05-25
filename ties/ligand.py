@@ -150,30 +150,32 @@ class Ligand:
 
     @property
     def renaming_map(self):
-        if self._renaming_map is None:
-            # The atom names have not been renamed. Return a fresh mapping that reflects that.
-            ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
-            renaming_map = {a.name: a.name for a in ligand_universe.atoms}
-            if len(renaming_map) != len(ligand_universe.atoms):
-                raise Exception('You have to first rename your atom names to make them unique. '
-                                'See .make_atom_names_correct() function. ')
-            self._renaming_map = renaming_map
+        """
+        Otherwise, key: newName, value: oldName.
 
+        If None, means no renaming took place.
+        """
         return self._renaming_map
+
+    @property
+    def rev_renaming_map(self):
+        return {b: c for c, b in self._renaming_map.items()}
 
     @renaming_map.setter
     def renaming_map(self, dict):
         if self._renaming_map is None:
             self._renaming_map = dict
         else:
-            # this ligand was already renamed before
-            # so A -> B -> C, but we need to have A -> C now
-            # so, for each renaming value here, we have to find the B value,
-            # and replace it with C,
+            # this ligand was already renamed before.
+            # so B -> A, where A is the original value,
+            # and B is the new value (guarantted to be unique, therefore the key)
+            # Now B is renamed to C, so we need to have C -> A
+            # For each renamed B value here, we have to find the A value
             # fixme: this works only if Bs are unique
 
-            btoa = {v: k for k, v in self._renaming_map.items()}
-            self._renaming_map = {btoa[b]: c for b, c in dict.items()}
+            # dict: C -> B. We know that C and B are unique. Therefore, reverse for convenience
+            rev_dict = {b: c for c, b in dict.items()}
+            self._renaming_map = {rev_dict[b]: a for b, a in self._renaming_map.items()}
 
     # make this into a python property
     def suffix(self):
