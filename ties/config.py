@@ -3,6 +3,7 @@ import sys
 import pathlib
 import csv
 import subprocess
+import tempfile
 from collections.abc import Iterable
 
 import MDAnalysis
@@ -73,8 +74,9 @@ class Config:
     @property
     def workdir(self):
         if self._workdir is None:
-            self._workdir = pathlib.Path(os.getcwd()) / 'ties'
-            self._workdir.mkdir(exist_ok=True)
+            # assume that this is API and avoid making a directory
+            # use a python API
+            self._workdir = pathlib.Path(tempfile.TemporaryDirectory().name)
 
         return self._workdir
 
@@ -564,20 +566,36 @@ class Config:
 
     # PAIR constants configuration
     @property
-    def pair_root(self):
+    def prep_dir(self):
         return self.workdir /  pathlib.Path('prep')
 
     @property
-    def pair_morphfrcmods(self):
-        return self.workdir / self.pair_root / 'morph_frcmods'
+    def pair_morphfrcmods_dir(self):
+        return self.prep_dir / 'morph_frcmods'
 
     @property
-    def pair_morphfrmocs_tests(self):
-        return self.workdir / self.pair_morphfrcmods / 'tests'
+    def pair_morphfrmocs_tests_dir(self):
+        return self.pair_morphfrcmods_dir / 'tests'
 
     @property
-    def pair_unique_atom_names(self):
-        return self.workdir / self.pair_root / 'morph_unique_atom_names'
+    def pair_unique_atom_names_dir(self):
+        return self.prep_dir / 'morph_unique_atom_names'
+
+    @property
+    def lig_unique_atom_names_dir(self):
+        return self.prep_dir / 'unique_atom_names'
+
+    @property
+    def lig_frcmod_dir(self):
+        return self.prep_dir / 'ligand_frcmods'
+
+    @property
+    def lig_acprep_dir(self):
+        return self.prep_dir / 'acprep_to_mol2'
+
+    @property
+    def lig_dir(self):
+        return self.workdir / 'mol2'
 
     @staticmethod
     def get_element_map():

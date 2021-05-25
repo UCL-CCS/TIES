@@ -12,18 +12,12 @@ from ties.config import Config
 
 class Ligand:
     """
-    The ligand helper class. It tracks the different copies of the original input files.
+    The ligand helper class.
+    It tracks the different copies of the original input files as it is transformed.
     It also offers ligand-oriented operations.
 
-    TODO - use a general conf class/dict to find out about ambertools
     """
     LIG_COUNTER = 0
-
-    ROOT = Path('prep')
-    UNIQ_ATOM_NAME_DIR = ROOT / 'unique_atom_names'
-    FRCMOD_DIR = ROOT / 'ligand_frcmods'
-    ACPREP_CONVERT = ROOT / 'acprep_to_mol2'
-    MOL2 = ROOT / 'mol2'
 
     _USED_FILENAMES = set()
 
@@ -50,6 +44,7 @@ class Ligand:
         self.current = self.original_input
 
         # internal index
+        # TODO - move to config
         self.index = Ligand.LIG_COUNTER
         Ligand.LIG_COUNTER += 1
 
@@ -76,7 +71,7 @@ class Ligand:
 
         filetype = {'.ac': 'ac', '.prep': 'prepi'}[self.current.suffix.lower()]
 
-        cwd = self.config.workdir / Ligand.ACPREP_CONVERT / self.internal_name
+        cwd = self.config.lig_acprep_dir / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
@@ -142,10 +137,9 @@ class Ligand:
         print(f'Rename map: {renaming_map}')
 
         # save the output here
-        os.makedirs(self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR, exist_ok=True)
+        os.makedirs(self.config.lig_unique_atom_names_dir, exist_ok=True)
 
-        ligand_with_uniq_atom_names = self.config.workdir / Ligand.UNIQ_ATOM_NAME_DIR / \
-                                      (self.internal_name + self.current.suffix)
+        ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (self.internal_name + self.current.suffix)
         if self.save:
             ligand_universe.atoms.write(ligand_with_uniq_atom_names)
 
@@ -208,8 +202,7 @@ class Ligand:
         else:
             raise Exception('Not using user provided charges. Cannot compile BCC charges. ??')
 
-
-        mol2_cwd = self.config.workdir / self.MOL2 / self.internal_name
+        mol2_cwd = self.config.lig_dir / self.internal_name
 
         # prepare the directory
         if not mol2_cwd.is_dir():
@@ -288,7 +281,7 @@ class Ligand:
         print(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
 
         # prepare cwd
-        cwd = self.config.workdir / Ligand.FRCMOD_DIR / self.internal_name
+        cwd = self.config.lig_frcmod_dir / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
