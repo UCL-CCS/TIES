@@ -101,9 +101,8 @@ class Pair():
         # ligZ_old_new_atomname_map
         new_mismatch_names = []
         for a, z in self.config.manually_mismatched_pairs:
-            new_names = (self.ligA.renaming_map[a], self.ligZ.renaming_map[z])
-            print(f'Selecting mismatching atoms. '
-                  f'Before renaming: {(a, z)}), After {new_names}')
+            new_names = (self.ligA.rev_renaming_map[a], self.ligZ.rev_renaming_map[z])
+            print(f'Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}')
             new_mismatch_names.append(new_names)
 
         # assign

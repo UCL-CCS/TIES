@@ -13,3 +13,4 @@ lig.antechamber_prepare_mol2()
 assert lig.current.exists()
 #
 print(lig.renaming_map)
+assert sum('O1' == a for a in lig.renaming_map.values()) == 3

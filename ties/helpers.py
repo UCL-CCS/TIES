@@ -83,7 +83,7 @@ def get_new_atom_names(atoms, name_counter=None):
         # rename
         last_used_counter += 1
         newAtomName = atom_name + str(last_used_counter)
-        renaming_map[atom.name] = newAtomName
+        renaming_map[newAtomName] = atom.name
 
         atom.name = newAtomName
 
