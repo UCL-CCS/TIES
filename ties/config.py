@@ -71,6 +71,9 @@ class Config:
 
         self.ligands = None
 
+        # if True, do not allow ligands with the same ligand name
+        self.uses_cmd = False
+
     @property
     def workdir(self):
         if self._workdir is None:

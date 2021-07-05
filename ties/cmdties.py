@@ -140,6 +140,9 @@ def command_line_script():
     # assign all the parsed arguments to the Config class
     config = ties.config.Config(**args.__dict__)
 
+    # ie do not allow ligands with the same ligand name
+    config.uses_cmd = True
+
     # create ligands
     ligands = [ties.ligand.Ligand(lig, config) for lig in args.ligands]
 
