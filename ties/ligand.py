@@ -33,8 +33,7 @@ class Ligand:
         self.internal_name = self.original_input.stem
 
         # ligand names have to be unique
-        # fixme - should be part of the Config file
-        if self.internal_name in Ligand._USED_FILENAMES:
+        if self.internal_name in Ligand._USED_FILENAMES and config.uses_cmd:
             print(f'ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. ')
             sys.exit(1)
         else:
