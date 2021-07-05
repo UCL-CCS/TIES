@@ -315,23 +315,7 @@ class SuperimposedTopology:
         matching_json.parent.mkdir(parents=True, exist_ok=True)
 
         with open(matching_json, 'w') as FOUT:
-            # use json format, only use atomNames
-            app, dis = self.get_single_topology_app()
-            summary = {
-                # the dual topology information
-                'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
-                'appearing': list(map(str, self.get_appearing_atoms())),
-                'disappearing': list(map(str, self.get_disappearing_atoms())),
-                'config' : self.config.get_serializable(),
-                # single topology information
-                'single_top_matched': {str(n1): str(n2) for n1, n2 in self.get_single_topology_region()},
-                # NAMD hybrid single-dual topology info
-                'single_top_appearing': list(map(str, app)),
-                'single_top_disappearing': list(map(str, dis)),
-            }
-            FOUT.write(json.dumps(summary, indent=4))
-
-        self.summary = summary
+            FOUT.write(self.toJSON())
 
     def write_pdb(self, filename=None):
         """
@@ -2717,6 +2701,35 @@ class SuperimposedTopology:
                 return False
 
         return True
+
+    def toJSON(self):
+        """"
+            Extract all the important information and return a json string.
+
+            These include:
+             - ligand filenames and locations (relative ideally)
+             - overlap summary, including:
+             -- which match,
+             -- which don't match, with a reason,
+             - hybrid summary:
+             -- how the charges were modified
+        """
+        app, dis = self.get_single_topology_app()
+        summary = {
+            # metadata
+            'ini_file' : self.mda_ligandL,
+            # the dual topology information
+            'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
+            'appearing': list(map(str, self.get_appearing_atoms())),
+            'disappearing': list(map(str, self.get_disappearing_atoms())),
+            'config': self.config.get_serializable(),
+            # single topology information
+            'single_top_matched': {str(n1): str(n2) for n1, n2 in self.get_single_topology_region()},
+            # NAMD hybrid single-dual topology info
+            'single_top_appearing': list(map(str, app)),
+            'single_top_disappearing': list(map(str, dis)),
+        }
+        return json.dumps(summary, indent=4)
 
 
 # todo - move to logging rather than this

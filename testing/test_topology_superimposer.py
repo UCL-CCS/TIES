@@ -8,6 +8,7 @@ TODO
 """
 
 import pytest
+import json
 from ties.topology_superimposer import _superimpose_topologies, Atom, get_starting_configurations
 
 
@@ -219,6 +220,19 @@ def test_mcl1_l12l35_crossed_double_cycle(dual_ring1, dual_ring2):
     suptops = _superimpose_topologies(dual_ring1, dual_ring2, starting_pairs_heuristics=False)
     assert len(suptops) == 1
     assert len(suptops[0]) == 11
+
+
+def test_mcl1_l12l35_serializable_hybrid(dual_ring1, dual_ring2):
+    """
+    Make sure that the output is serializable
+
+    Rather than using a too-simplistic case, use the new API to run the actual cases,
+    simulating closely the way it happens in Web TIES
+    """
+    # fixme
+    hybrid = _superimpose_topologies(dual_ring1, dual_ring2, starting_pairs_heuristics=False)[0]
+    json.loads(hybrid.toJSON())
+
 
 
 def test_refine_against_charges_order_problem():
