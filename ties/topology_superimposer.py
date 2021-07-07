@@ -2705,29 +2705,27 @@ class SuperimposedTopology:
     def toJSON(self):
         """"
             Extract all the important information and return a json string.
-
-            These include:
-             - ligand filenames and locations (relative ideally)
-             - overlap summary, including:
-             -- which match,
-             -- which don't match, with a reason,
-             - hybrid summary:
-             -- how the charges were modified
         """
-        app, dis = self.get_single_topology_app()
         summary = {
             # metadata
-            'ini_file' : str(self.mda_ligandL.filename),
+            'start_ligand': str(self.mda_ligandL.filename),
+            'end_ligand': str(self.mda_ligandR.filename),
             # the dual topology information
-            'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
-            'appearing': list(map(str, self.get_appearing_atoms())),
-            'disappearing': list(map(str, self.get_disappearing_atoms())),
+            'superimposition': {
+                'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
+                'appearing': list(map(str, self.get_appearing_atoms())),
+                'disappearing': list(map(str, self.get_disappearing_atoms())),
+                'removed': { # because of:
+                    # replace atoms with their names
+                    'net_charge': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_due_to_net_charge],
+                    'pair_q': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
+                    'disjointed': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_disjointed_cc],
+                    'bonds': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_diff_bonds],
+                    'unmatched_rings': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_unmatched_rings],
+                }
+            },
             'config': self.config.get_serializable(),
-            # single topology information
-            'single_top_matched': {str(n1): str(n2) for n1, n2 in self.get_single_topology_region()},
-            # NAMD hybrid single-dual topology info
-            'single_top_appearing': list(map(str, app)),
-            'single_top_disappearing': list(map(str, dis)),
+            'internal': 'atoms' # fixme
         }
         return json.dumps(summary, indent=4)
 
