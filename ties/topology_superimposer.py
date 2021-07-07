@@ -2717,7 +2717,7 @@ class SuperimposedTopology:
         app, dis = self.get_single_topology_app()
         summary = {
             # metadata
-            'ini_file' : self.mda_ligandL,
+            'ini_file' : str(self.mda_ligandL.filename),
             # the dual topology information
             'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
             'appearing': list(map(str, self.get_appearing_atoms())),
