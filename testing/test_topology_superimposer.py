@@ -9,6 +9,8 @@ TODO
 
 import pytest
 import json
+from ties import Pair
+from ties import Config
 from ties.topology_superimposer import _superimpose_topologies, Atom, get_starting_configurations
 
 
@@ -226,13 +228,21 @@ def test_mcl1_l12l35_serializable_hybrid(dual_ring1, dual_ring2):
     """
     Make sure that the output is serializable
 
-    Rather than using a too-simplistic case, use the new API to run the actual cases,
-    simulating closely the way it happens in Web TIES
+    Simulate closely the way it happens in Web TIES
     """
-    # fixme
-    hybrid = _superimpose_topologies(dual_ring1, dual_ring2, starting_pairs_heuristics=False)[0]
-    json.loads(hybrid.toJSON())
 
+    # explicitly create config (which will be used by all classes underneath)
+    config = Config()
+    config.ligand_net_charge = -6
+
+    pair = Pair('../examples/mol2_2ligands_MCL1/l02.mol2', '../examples/mol2_2ligands_MCL1/l03.mol2', config=config)
+    pair.make_atom_names_unique()
+
+    # overwrite the previous config settings with relevant parameters
+    hybrid = pair.superimpose(use_element_in_superimposition=True, redistribute_q_over_unmatched=True)
+
+    to_json = hybrid.toJSON()
+    json.loads(to_json)
 
 
 def test_refine_against_charges_order_problem():
