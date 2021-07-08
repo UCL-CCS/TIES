@@ -1250,8 +1250,8 @@ class SuperimposedTopology:
         return str(len(self.matched_pairs)) + ":" + ', '.join([a.name + '-' + b.name for a, b in self.matched_pairs])
 
     def set_tops(self, top1, top2):
-        self.top1 = top1
-        self.top2 = top2
+        self.top1 = list(top1)
+        self.top2 = list(top2)
 
     def set_MDAnalysis_universes(self, ligand_l_mda, ligand_r_mda):
         self.mda_ligandL = ligand_l_mda
@@ -2721,6 +2721,10 @@ class SuperimposedTopology:
                     'disjointed': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_disjointed_cc],
                     'bonds': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_diff_bonds],
                     'unmatched_rings': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_unmatched_rings],
+                },
+                'charges_delta': {
+                    'start_ligand': {a.name: a.charge - a._original_charge for a in self.top1 if a._original_charge != a.charge},
+                    'end_ligand': {a.name: a.charge - a._original_charge for a in self.top2 if a._original_charge != a.charge}
                 }
             },
             'config': self.config.get_serializable(),
@@ -3746,7 +3750,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
 
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component
-        suptop = SuperimposedTopology(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes)
+        suptop = SuperimposedTopology(list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes)
         # fixme turn into a property
         suptop.left_coords_are_ref = left_coords_are_ref
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
