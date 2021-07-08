@@ -224,7 +224,7 @@ def test_mcl1_l12l35_crossed_double_cycle(dual_ring1, dual_ring2):
     assert len(suptops[0]) == 11
 
 
-def test_mcl1_l12l35_serializable_hybrid(dual_ring1, dual_ring2):
+def test_api_serializable_hybrid(dual_ring1, dual_ring2):
     """
     Make sure that the output is serializable
 
