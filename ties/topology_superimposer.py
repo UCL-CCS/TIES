@@ -30,7 +30,6 @@ class Atom:
 
     def __init__(self, name, atom_type, charge=0, use_general_type=False):
         self._original_name = None
-        self._original_charge = None
 
         self._id = None
         self.name = name
@@ -4071,11 +4070,11 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
         """
         atoms = []
         for mda_atom in mda_atoms:
-            atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, use_general_type=use_general_type)
             try:
+                atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, charge=mda_atom.charge, use_general_type=use_general_type)
                 # charges might not be present
-                atom.charge = mda_atom.charge
             except AttributeError:
+                atom.charge = mda_atom.charge
                 print('WARNING: One of the input files is missing charges. Setting the charge to N/A')
                 atom.charge = 'N/A'
             atom.id = mda_atom.id
