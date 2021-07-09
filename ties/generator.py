@@ -267,9 +267,9 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
-    matched = list(fep_summary['matched'].keys())
-    appearing_atoms = fep_summary['appearing']
-    disappearing_atoms = fep_summary['disappearing']
+    matched = list(fep_summary['superimposition']['matched'].keys())
+    appearing_atoms = fep_summary['superimposition']['appearing']
+    disappearing_atoms = fep_summary['superimposition']['disappearing']
 
     # update the Temp column
     for atom in u.atoms:

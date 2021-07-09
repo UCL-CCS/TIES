@@ -313,8 +313,7 @@ class SuperimposedTopology:
 
         matching_json.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(matching_json, 'w') as FOUT:
-            FOUT.write(self.toJSON())
+        json.dump(self.toJSON(), open(matching_json, 'w'))
 
     def write_pdb(self, filename=None):
         """
@@ -473,7 +472,7 @@ class SuperimposedTopology:
 
         # generate the merged fep file
         complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
-        ties.generator.correct_fep_tempfactor(self.morph.suptop.summary, hybrid_solv, complex_solvated_fep,
+        ties.generator.correct_fep_tempfactor(self.morph.suptop.toJSON(), hybrid_solv, complex_solvated_fep,
                                hybrid_topology=self.config.use_hybrid_single_dual_top)
 
         # fixme - check that the protein does not have the same resname?
@@ -2730,7 +2729,7 @@ class SuperimposedTopology:
             'config': self.config.get_serializable(),
             'internal': 'atoms' # fixme
         }
-        return json.dumps(summary, indent=4)
+        return summary
 
 
 # todo - move to logging rather than this

@@ -241,7 +241,7 @@ def test_api_serializable_hybrid(dual_ring1, dual_ring2):
     # overwrite the previous config settings with relevant parameters
     hybrid = pair.superimpose(use_element_in_superimposition=True, redistribute_q_over_unmatched=True)
 
-    to_json = hybrid.toJSON()
+    to_json = json.dumps(hybrid.toJSON(), indent=4)
     json.loads(to_json)
 
 
