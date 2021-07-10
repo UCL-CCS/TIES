@@ -224,7 +224,7 @@ def test_mcl1_l12l35_crossed_double_cycle(dual_ring1, dual_ring2):
     assert len(suptops[0]) == 11
 
 
-def test_api_serializable_hybrid():
+def test_api_hybrid_toJSON_serializable():
     # .toJSON metadata can be converted into JSON
 
     config = Config()
@@ -238,6 +238,23 @@ def test_api_serializable_hybrid():
 
     to_json = json.dumps(hybrid.toJSON(), indent=4)
     json.loads(to_json)
+
+
+def test_config_toJSON_serializable():
+    # .toJSON metadata can be converted into JSON
+
+    config = Config()
+    config.ligand_net_charge = -1
+
+    to_json = json.dumps(config.get_serializable(), indent=4)
+    recovered = json.loads(to_json)
+
+    # reimplement the settings into the config
+    recreated = Config(**recovered)
+
+    assert config.get_serializable() == recreated.get_serializable()
+
+
 
 
 def test_refine_against_charges_order_problem():
