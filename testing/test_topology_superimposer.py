@@ -224,16 +224,11 @@ def test_mcl1_l12l35_crossed_double_cycle(dual_ring1, dual_ring2):
     assert len(suptops[0]) == 11
 
 
-def test_api_serializable_hybrid(dual_ring1, dual_ring2):
-    """
-    Make sure that the output is serializable
+def test_api_serializable_hybrid():
+    # .toJSON metadata can be converted into JSON
 
-    Simulate closely the way it happens in Web TIES
-    """
-
-    # explicitly create config (which will be used by all classes underneath)
     config = Config()
-    config.ligand_net_charge = -6
+    config.ligand_net_charge = -1
 
     pair = Pair('../examples/mol2_2ligands_MCL1/l02.mol2', '../examples/mol2_2ligands_MCL1/l03.mol2', config=config)
     pair.make_atom_names_unique()
