@@ -65,14 +65,14 @@ class Config:
         self._use_hybrid_single_dual_top = False
         self._ignore_charges_completely = False
 
-        # assign all the initial configuration values
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
         self.ligands = None
 
         # if True, do not allow ligands with the same ligand name
         self.uses_cmd = False
+
+        # assign all the initial configuration values
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     @property
     def workdir(self):
