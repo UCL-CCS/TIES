@@ -2708,6 +2708,11 @@ class SuperimposedTopology:
             # metadata
             'start_ligand': str(self.mda_ligandL.filename),
             'end_ligand': str(self.mda_ligandR.filename),
+            # renamed atoms, new name : old name
+            'renamed_atoms': {
+                'start_ligand': {a.name: a.original_name for a in self.top1},
+                'end_ligand': {a.name: a.original_name for a in self.top2},
+            },
             # the dual topology information
             'superimposition': {
                 'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
