@@ -310,6 +310,10 @@ class Pair():
         else:
             protein_ff = 'source ' + protein_ff
 
+        # prepare the superimposed .mol2 file if needed
+        if not hasattr(self.suptop, 'mol2'):
+            self.suptop.write_mol2()
+
         # prepare tleap input
         leap_in_test = 'leap_test_morph.in'
         leap_in_conf = open(ambertools_script_dir / leap_in_test).read()

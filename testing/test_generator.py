@@ -9,6 +9,8 @@ import ties.helpers
 import ties.topology_superimposer
 import ties.generator
 from ties.ligand import Ligand
+from ties import Pair
+from ties import Config
 
 
 def test_no_same_atom_names(dual_ring1):
@@ -31,3 +33,16 @@ def test_are_correct_names():
     # set the atom names
     u.add_TopologyAttr('name', ['O1', 'H1'])
     assert ties.helpers.are_correct_names(u.atoms.names)
+
+
+# should be a test?
+def test_input_prep():
+    config = Config()
+    config.ligand_net_charge = -1
+
+    pair = Pair('../examples/mol2_2ligands_MCL1/l02.mol2', '../examples/mol2_2ligands_MCL1/l03.mol2', config=config)
+    pair.make_atom_names_unique()
+    hybrid = pair.superimpose()
+
+    hybrid.prepare_inputs()
+    print('hi')
