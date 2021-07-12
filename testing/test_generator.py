@@ -45,4 +45,3 @@ def test_input_prep():
     hybrid = pair.superimpose()
 
     hybrid.prepare_inputs()
-    print('hi')

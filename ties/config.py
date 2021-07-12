@@ -77,9 +77,9 @@ class Config:
     @property
     def workdir(self):
         if self._workdir is None:
-            # assume that this is API and avoid making a directory
-            # use a python API
-            self._workdir = pathlib.Path(tempfile.TemporaryDirectory().name)
+            # this is API, so avoid making a directory
+            # keep the 'ties' in case the output directory structured needs to be generated/harvested
+            self._workdir = pathlib.Path(tempfile.TemporaryDirectory().name) / 'ties'
 
         return self._workdir
 
