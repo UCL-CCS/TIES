@@ -16,7 +16,8 @@ class Config:
         # set the path to the scripts
         self.code_root = pathlib.Path(os.path.dirname(__file__))
 
-        # scripts/input files
+        # scripts/input files,
+        # these are specific to the host
         self.script_dir = self.code_root / 'scripts'
         self.namd_script_dir = self.script_dir / 'namd'
         self.ambertools_script_dir = self.script_dir / 'ambertools'
@@ -629,8 +630,15 @@ class Config:
         including each suptop.get_serializable() so that you can record
         specific information such as the charge changes etc.
         """
+
+        host_specific = ['code_root', 'script_dir0', 'namd_script_dir',
+                         'ambertools_script_dir', 'tleap_check_protein', 'vmd_vis_script']
+
         ser = {}
         for k, v in self.__dict__.items():
+            if k in host_specific:
+                continue
+
             if type(v) is pathlib.PosixPath:
                 v = str(v)
 

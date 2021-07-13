@@ -501,35 +501,34 @@ class SuperimposedTopology:
         # Make build and replica_conf dirs
         # replica_conf contains NAMD scripts
         if self.config.md_engine == 'namd':
-            if not os.path.exists(cwd / 'replica-confs'):
-                os.makedirs(cwd / 'replica-confs')
-            else:
+            if os.path.exists(cwd / 'replica-confs'):
                 shutil.rmtree(cwd / 'replica-confs')
-                os.makedirs(cwd / 'replica-confs')
+            os.makedirs(cwd / 'replica-confs')
 
             # populate the replica_conf dir with scripts
             # minimization scripts
             ties.generator.init_namd_file_min(self.config.namd_script_dir, cwd / 'replica-confs', min_script,
-                               structure_name='sys_solv', pbc_box=solv_oct_boc, protein=protein)
-            # equilibriation scripts, note eq_namd_filenames unused
-            ties.generator.generate_namd_eq(self.config.namd_script_dir / eq_script, cwd / 'replica-confs', structure_name='sys_solv',
-                             engine=self.config.md_engine,
-                             protein=protein)
+                                structure_name='sys_solv',
+                                pbc_box=solv_oct_boc,
+                                protein=protein)
+            # equilibration scripts, note eq_namd_filenames unused
+            ties.generator.generate_namd_eq(self.config.namd_script_dir / eq_script, cwd / 'replica-confs',
+                                structure_name='sys_solv',
+                                engine=self.config.md_engine,
+                                protein=protein)
             # production script
-            ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs/sim1.conf',
-                               structure_name='sys_solv')
+            ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs' / 'sim1.conf',
+                                structure_name='sys_solv')
 
         elif self.config.md_engine == 'openmm':
             ties_script = open(self.config.scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
                                                                                   cons_file='cons.pdb', **solv_oct_boc)
-            open(os.path.join(cwd, 'TIES.cfg'), 'w').write(ties_script)
+            open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
         # build contains all input ie. positions, parameters and constraints
-        if not os.path.exists(cwd / 'build'):
-            os.makedirs(cwd / 'build')
-        else:
+        if os.path.exists(cwd / 'build'):
             shutil.rmtree(cwd / 'build')
-            os.makedirs(cwd / 'build')
+        os.makedirs(cwd / 'build')
 
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
