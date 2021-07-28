@@ -389,6 +389,7 @@ class SuperimposedTopology:
                            (' ' * 11) + \
                            '  ' + '  ' + '\n'
                     FOUT.write(line)
+        self.pdb = morph_pdb_path
 
     def prepare_inputs(self, protein=None):
         print('Ambertools parmchk2 generating frcmod files for ligands')
