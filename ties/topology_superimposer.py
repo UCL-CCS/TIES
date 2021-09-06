@@ -458,7 +458,7 @@ class SuperimposedTopology:
                                                              ClIons=tleap_Cl_ions))
 
         # ambertools tleap: combine ligand+complex, solvate, generate amberparm
-        log_filename = build / 'generate_sys_top.log'
+        log_filename = build / 'generate_top.log'
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
