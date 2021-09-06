@@ -420,7 +420,7 @@ class SuperimposedTopology:
 
         # copy the protein complex .pdb
         if protein is not None:
-            shutil.copy(protein.get_path(), build / 'complex.pdb')
+            shutil.copy(protein.get_path(), build / 'protein.pdb')
 
         # copy the hybrid ligand (topology and .frcmod)
         shutil.copy(self.morph.suptop.mol2, build / 'hybrid.mol2')

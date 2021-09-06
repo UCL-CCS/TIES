@@ -17,6 +17,6 @@ solvateoct sys TIP3PBOX 14
 # generating charges manually:
 {NaIons}
 {ClIons}
-savepdb sys sys_solv.pdb
-saveamberparm sys sys_solv.top sys_solv.crd
+savepdb sys complex_nofep.pdb
+saveamberparm sys complex.top complex.crd
 quit

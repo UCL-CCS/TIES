@@ -111,7 +111,7 @@ class Config:
         #  can be loaded by MDAnalysis?
         print(f'Trying to open the protein file {path} with MDAnalysis..')
         load_MDAnalysis_atom_group(path)
-        self._protein = path
+        self._protein = pathlib.Path(path)
 
     @property
     def ligand_files(self):
