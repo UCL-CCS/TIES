@@ -5,9 +5,9 @@ source {ligand_ff}
 # for phosphorylated residues
 source leaprc.phosaa10
 
-loadamberparams morph.frcmod
+loadamberparams hybrid.frcmod
 # fixme merged here refers to the morphed ligands, ie merged ligands lambda 0 and lambda 13
-lig = loadMol2 morph.mol2
+lig = loadMol2 hybrid.mol2
 protein = LoadPdb protein.pdb
 # double curly brackets since we use python's str.format misapplies here
 sys = Combine {{lig protein}}

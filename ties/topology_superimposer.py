@@ -396,9 +396,6 @@ class SuperimposedTopology:
         self.morph.ligA.generate_frcmod()
         self.morph.ligZ.generate_frcmod()
 
-        print('Joining frcmod files from ligands and checking parmchk2')
-        self.morph.merge_frcmod_files()
-
         # select the right tleap input file and directory
         if protein is None:
             dir_ligcom = 'lig'
@@ -407,22 +404,26 @@ class SuperimposedTopology:
             dir_ligcom = 'com'
             tleap_in = self.config.complex_tleap_in
 
+        print('Joining frcmod files from ligands and checking parmchk2')
+        self.morph.merge_frcmod_files(ligcom=dir_ligcom)
+
         cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / dir_ligcom
-        if not cwd.is_dir():
-            cwd.mkdir(parents=True, exist_ok=True)
+        cwd.mkdir(parents=True, exist_ok=True)
 
         # Agastya: simple format for appearing and disappearing atoms
         open(cwd / 'disappearing_atoms.txt', 'w').write(
             ' '.join([a.name for a in self.morph.suptop.get_disappearing_atoms()]))
         open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in self.morph.suptop.get_appearing_atoms()]))
 
+        build = cwd / 'build'
+        build.mkdir(parents=True, exist_ok=True)
+
         # copy the protein complex .pdb
         if protein is not None:
-            shutil.copy(str(protein.get_path()), str(cwd / 'protein.pdb'))
+            shutil.copy(protein.get_path(), build / 'complex.pdb')
 
         # copy the hybrid ligand (topology and .frcmod)
-        shutil.copy(self.morph.suptop.mol2, cwd / 'morph.mol2')
-        shutil.copy(self.morph.frcmod, cwd / 'morph.frcmod')
+        shutil.copy(self.morph.suptop.mol2, build / 'hybrid.mol2')
 
         # determine the number of ions to neutralise the ligand charge
         if self.config.ligand_net_charge < 0:
@@ -451,35 +452,35 @@ class SuperimposedTopology:
             protein_ff = 'source ' + self.config.protein_ff
 
         leap_in_conf = open(self.config.ambertools_script_dir / tleap_in).read()
-        open(cwd / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
+        open(build / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
                                                              ligand_ff=self.config.ligand_ff,
                                                              NaIons=tleap_Na_ions,
                                                              ClIons=tleap_Cl_ions))
 
         # ambertools tleap: combine ligand+complex, solvate, generate amberparm
-        log_filename = cwd / 'generate_sys_top.log'
+        log_filename = build / 'generate_sys_top.log'
         with open(log_filename, 'w') as LOG:
             try:
                 subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
                                stdout=LOG, stderr=LOG,
-                               cwd=cwd,
+                               cwd=build,
                                check=True, text=True, timeout=30)
-                hybrid_solv = cwd / 'sys_solv.pdb'  # generated
+                hybrid_solv = build / 'complex_nofep.pdb'  # generated
                 # check if the solvation is correct
             except subprocess.CalledProcessError as E:
-                raise Exception('ERROR: occurred when trying to parse the protein.pdb with tleap. \n'
-                                f'ERROR: The output was saved in the directory: {cwd}'
-                                f'ERROR: can be found in the file: {log_filename}') from E
+                raise Exception(f'ERROR: occurred when trying to parse the protein.pdb with tleap. {os.linesep}'
+                                f'ERROR: The output was saved in the directory: {build}{os.linesep}'
+                                f'ERROR: can be found in the file: {log_filename}{os.linesep}') from E
 
         # generate the merged fep file
-        complex_solvated_fep = cwd / 'sys_solv_fep.pdb'
+        complex_solvated_fep = build / 'complex.pdb'
         ties.generator.correct_fep_tempfactor(self.morph.suptop.toJSON(), hybrid_solv, complex_solvated_fep,
                                hybrid_topology=self.config.use_hybrid_single_dual_top)
 
         # fixme - check that the protein does not have the same resname?
 
         # calculate PBC for an octahedron
-        solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(cwd / "leap.log")
+        solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(build / "leap.log")
 
         # these are the names for the source of the input, output names are fixed
         if self.config.md_engine == False:
@@ -526,21 +527,10 @@ class SuperimposedTopology:
                                                                                   cons_file='cons.pdb', **solv_oct_boc)
             open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
-        # build contains all input ie. positions, parameters and constraints
-        if os.path.exists(cwd / 'build'):
-            shutil.rmtree(cwd / 'build')
-        os.makedirs(cwd / 'build')
-
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
         if protein is not None:
-            ties.generator.create_constraint_files(cwd / 'build' / hybrid_solv, os.path.join(cwd, 'build', 'cons.pdb'))
-        # pdb, positions
-        shutil.move(str(hybrid_solv), str(cwd / 'build'))
-        # pdb.fep, alchemical atoms
-        shutil.move(str(complex_solvated_fep), str(cwd / 'build'))
-        # prmtop, topology
-        shutil.move(str(cwd / "sys_solv.top"), str(cwd / 'build'))
+            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, 'cons.pdb'))
 
         # copy replic-conf scripts
         # rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']

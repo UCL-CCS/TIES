@@ -246,7 +246,7 @@ class Pair():
 
         return [list(json.load(matching_json.open())['matched'].items())[0]]
 
-    def merge_frcmod_files(self):
+    def merge_frcmod_files(self, ligcom=None):
         """
         I tested the duplication and that had no effect on the final results (the .top file was identical).
 
@@ -264,14 +264,16 @@ class Pair():
         frcmod_info1 = ties.helpers.parse_frcmod_sections(self.ligA.frcmod)
         frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
 
-        # prep directory
-        cwd = self.config.pair_morphfrcmods_dir
-        if not cwd.is_dir():
-            cwd.mkdir(exist_ok=True)
+        cwd = self.config.workdir
 
         # fixme: use the provided cwd here, otherwise this will not work if the wrong cwd is used
         # have some conf module instead of this
-        morph_frcmod = cwd / f'{self.ligA.internal_name}_{self.ligZ.internal_name}_morph.frcmod'
+        if ligcom:
+            morph_frcmod = cwd / f'ties-{self.ligA.internal_name}-{self.ligZ.internal_name}' / ligcom / 'build' / 'hybrid.frcmod'
+        else:
+            # fixme - clean up
+            morph_frcmod = cwd / f'ties-{self.ligA.internal_name}-{self.ligZ.internal_name}' / 'build' / 'hybrid.frcmod'
+        morph_frcmod.parent.mkdir(parents=True, exist_ok=True)
         with open(morph_frcmod, 'w') as FOUT:
             FOUT.write('merged frcmod\n')
 

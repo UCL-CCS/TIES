@@ -93,7 +93,7 @@ class Config:
             self._workdir = cwd.absolute()
         else:
             # current directory
-            self._workdir = pathlib.Path(os.getcwd()) / 'ties20'
+            self._workdir = pathlib.Path(os.getcwd()) / 'ties'
             self._workdir.mkdir(exist_ok=True)
         print(f'Working Directory: {self._workdir}')
 
