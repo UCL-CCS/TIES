@@ -332,9 +332,15 @@ class Config:
     def _guess_ligands_contain_q(self):
         # if all ligands are .mol2, then charges are provided
         if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
+            # if all atoms have q = 0 that means they're a placeholder
+            u = MDAnalysis.Universe(list(self.ligand_files)[0])
+            all_q_0 = all(a.charge == 0 for a in u.atoms)
+            if all_q_0:
+                return False
+
             return True
-        else:
-            return False
+
+        return False
 
     @property
     def ligands_contain_q(self):
@@ -356,7 +362,8 @@ class Config:
         elif self._ligands_contain_q is None:
             # determine whether charges are provided using the file extensions
             if ligand_ext in {'.mol2', '.ac', '.prep'}:
-                self._ligands_contain_q = True
+                # if all charges are 0, then recompute
+                self._ligands_contain_q = self._guess_ligands_contain_q()
                 print('Assuming that charges are provided based on the filetype .ac/.mol2')
             elif ligand_ext == '.pdb':
                 self._ligands_contain_q = False

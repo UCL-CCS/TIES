@@ -198,21 +198,19 @@ class Ligand:
         print('Antechamber: converting to .mol2 and generating charges if necessary')
         if self.config.ligands_contain_q:
             print('Antechamber: Generating .mol2 file with BCC charges')
-        if not self.config.antechamber_charge_type:
+        if self.config.antechamber_charge_type:
             print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
         else:
-            raise Exception('Not using user provided charges. Cannot compile BCC charges. ??')
+            raise Exception('Not using user provided charges. Cannot compile BCC charges. ')
 
         mol2_cwd = self.config.lig_dir / self.internal_name
 
         # prepare the directory
-        if not mol2_cwd.is_dir():
-            mol2_cwd.mkdir(parents=True, exist_ok=True)
-
+        mol2_cwd.mkdir(parents=True, exist_ok=True)
         mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
 
         # copy the existing file if the file is already .mol2
-        if self.current.suffix == '.mol2':
+        if self.current.suffix == '.mol2' and self.config.ligands_contain_q:
             print(f'Already .mol2 used. Copying {self.current} to {mol2_cwd}. ')
             shutil.copy(self.current, mol2_target)
 
