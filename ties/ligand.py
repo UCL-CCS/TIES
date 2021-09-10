@@ -198,7 +198,7 @@ class Ligand:
         print('Antechamber: converting to .mol2 and generating charges if necessary')
         if self.config.ligands_contain_q:
             print('Antechamber: Generating .mol2 file with BCC charges')
-        if self.config.antechamber_charge_type:
+        if not self.config.antechamber_charge_type:
             print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
         else:
             raise Exception('Not using user provided charges. Cannot compile BCC charges. ')
