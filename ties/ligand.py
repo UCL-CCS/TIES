@@ -200,9 +200,7 @@ class Ligand:
             print('Antechamber: Generating .mol2 file with BCC charges')
         if not self.config.antechamber_charge_type:
             print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
-        else:
-            raise Exception('Not using user provided charges. Cannot compile BCC charges. ')
-
+        
         mol2_cwd = self.config.lig_dir / self.internal_name
 
         # prepare the directory
