@@ -18,5 +18,5 @@ solvateoct sys TIP3PBOX 14
 {NaIons}
 {ClIons}
 savepdb sys complex_nofep.pdb
-saveamberparm sys complex.top complex.crd
+saveamberparm sys complex.prmtop complex.crd
 quit
