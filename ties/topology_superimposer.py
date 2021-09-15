@@ -11,6 +11,7 @@ import json
 import shutil
 import subprocess
 import pathlib
+import re
 from functools import reduce
 from collections import OrderedDict
 
@@ -100,7 +101,9 @@ class Atom:
         # save the general type
         # fixme - ideally it would use the config class that would use the right mapping
         element_map = ties.config.Config.get_element_map()
-        self.element = element_map[self.type]
+        # strip the element from the associated digits/numbers
+        no_trailing_digits = re.match('[A-Za-z]*', self.type)[0]
+        self.element = element_map[no_trailing_digits]
 
     @property
     def position(self):
