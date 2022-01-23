@@ -2715,7 +2715,7 @@ class SuperimposedTopology:
                     # replace atoms with their names
                     'net_charge': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_due_to_net_charge],
                     'pair_q': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
-                    'disjointed': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_disjointed_cc],
+                    'disjointed': [(a1.name, a2.name) for a1, a2 in self._removed_because_disjointed_cc],
                     'bonds': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_diff_bonds],
                     'unmatched_rings': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_unmatched_rings],
                 },
