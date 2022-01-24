@@ -245,7 +245,7 @@ def load_mda_u(filename):
                             message='Element information is absent or missing for a few atoms. '
                                     'Elements attributes will not be populated.'    # warning to ignore
                             )
-    return mda.Universe(filename)
+    return mda.Universe(str(filename))
 
 
 def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
@@ -261,7 +261,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
     if hybrid_topology:
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
-
+    
     u = load_mda_u(source_pdb_filename)
     if 'HYB' not in u.atoms.resnames:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
@@ -467,7 +467,7 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_inp
 
 
     # read the file to see how many ions were added
-    u = mda.Universe(cwd / 'prot_solv.pdb')
+    u = mda.Universe(str(cwd / 'prot_solv.pdb'))
     cl = len(u.select_atoms('name Cl-'))
     na = len(u.select_atoms('name Na+'))
     if cl > na:
@@ -619,7 +619,7 @@ def create_constraint_files(original_pdb, output):
     :param output:
     :return:
     '''
-    u = mda.Universe(original_pdb)
+    u = mda.Universe(str(original_pdb))
     # for each atom, give the B column the right value
     for atom in u.atoms:
         # ignore water
