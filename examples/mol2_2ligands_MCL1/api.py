@@ -4,6 +4,7 @@ from ties.protein import Protein
 
 config = Config()
 config.workdir = 'ties20'
+config.md_engine = 'openmm'
 pair = Pair('l02.mol2', 'l03.mol2', ligand_net_charge=-1, config=config)
 pair.make_atom_names_unique()
 
