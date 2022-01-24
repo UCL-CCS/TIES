@@ -486,15 +486,19 @@ class SuperimposedTopology:
         solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(build / "leap.log")
 
         #Write an config file for TIES_MD
+        if protein is not None:
+            cons_file = 'cons.pdb'
+        else:
+            cons_file = 'na'
         ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=self.config.md_engine,
                                                                                           version=self.config.namd_version,
-                                                                                          cons_file='cons.pdb', **solv_oct_boc)
+                                                                                          cons_file=cons_file, **solv_oct_boc)
         open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
         if protein is not None:
-            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, 'cons.pdb'))
+            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, cons_file))
 
         # copy the visualisation script as hidden
         shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
