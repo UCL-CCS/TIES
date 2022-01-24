@@ -17,5 +17,6 @@ hybrid.write_mol2()
 hybrid.prepare_inputs()
 
 config.protein = 'protein.pdb'
+config.protein_ff = 'leaprc.protein.ff14SB'
 protein = Protein(config.protein, config)
 hybrid.prepare_inputs(protein=protein)
