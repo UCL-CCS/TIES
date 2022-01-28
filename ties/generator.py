@@ -333,7 +333,7 @@ def extract_PBC_oct_from_tleap_log(leap_log):
     d1, d2, d3 = float(d1), float(d2), float(d3)
     assert d1 == d2 == d3
     # scale the d since after minimisation the system turns out to be much smaller?
-    d = d1 * 1.0
+    d = d1 * 0.8
     return {
         'cbv1': d, 'cbv2': 0, 'cbv3': 0,
         'cbv4': (1/3.0)*d, 'cbv5': (2/3.0)*np.sqrt(2)*d, 'cbv6': 0,
