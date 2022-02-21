@@ -111,10 +111,9 @@ def command_line_script():
                         type=str, required=False, default='gaff',
                         help='Either "gaff" or "gaff2"')
     parser.add_argument('-md', '--md-engine', metavar='str', dest='md_engine',
-                        type=str, required=False, default='namd',
+                        type=str, required=False, default='namd2.14',
                         help='Generate input files for the selected engine. '
-                             'Use value "no" if you do not want the MD input to be generated. '
-                             'Default is "namd". ')
+                             'Default is "namd2.14". ')
     parser.add_argument('-dirtree', '--engine-tree', metavar='bool', dest='lambda_rep_dir_tree',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Generate the directory tree structure for each lambda/replica directory. ')
