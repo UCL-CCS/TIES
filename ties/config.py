@@ -60,6 +60,8 @@ class Config:
 
         # MD/NAMD production input file
         self._md_engine = 'namd'
+        #default to modern CPU version
+        self.namd_version = 'version = 2.14'
         self._lambda_rep_dir_tree = False
 
         # experimental
@@ -494,11 +496,8 @@ class Config:
             self._md_engine = 'openmm'
             self.namd_version = ''
         else:
-            print('Unknown engine {}. Supported engines {}'.format(value, supported))
-            # check if it is a bool value
-            response = ArgparseChecker.str2bool(value)
-            print(f'Generating files for an MD engine: {response}')
-            self._md_engine = response
+            raise ValueError('Unknown engine {}. Supported engines {}'.format(value, supported))
+
         print(f'MD Engine: {value}')
 
     @property
