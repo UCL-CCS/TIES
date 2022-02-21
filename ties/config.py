@@ -480,13 +480,19 @@ class Config:
 
     @md_engine.setter
     def md_engine(self, value):
-        supported = ['NAMD(2)', 'NAMD3', 'OpenMM']
-        if type(value) == str and value.lower() == 'namd':
+        supported = ['NAMD2.13', 'NAMD2.14', 'NAMD3', 'OpenMM']
+        if type(value) == str and value.lower() == 'namd2.14':
             self._md_engine = 'namd'
+            self.namd_version = 'version = 2.14'
+        elif type(value) == str and value.lower() == 'namd2.13':
+            self._md_engine = 'namd'
+            self.namd_version = 'version = 2.13'
         elif type(value) == str and value.lower() == 'namd3':
             self._md_engine = 'namd3'
+            self.namd_version = 'version = 3'
         elif type(value) == str and value.lower() == 'openmm':
             self._md_engine = 'openmm'
+            self.namd_version = ''
         else:
             print('Unknown engine {}. Supported engines {}'.format(value, supported))
             # check if it is a bool value

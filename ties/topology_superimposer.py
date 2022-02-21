@@ -485,93 +485,20 @@ class SuperimposedTopology:
         # calculate PBC for an octahedron
         solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(build / "leap.log")
 
-        # these are the names for the source of the input, output names are fixed
-        if self.config.md_engine == False:
-            pass
-        elif self.config.md_engine == 'namd':
-            min_script = "min.namd"
-            eq_script = "eq.namd"
-            prod_script = "prod.namd"
-        elif self.config.md_engine == 'namd3':
-            min_script = "min3.namd"
-            eq_script = "eq3.namd"
-            prod_script = "prod3.namd"
-        elif self.config.md_engine == 'openmm':
-            min_script = None
-            eq_script = None
-            prod_script = None
+        #Write an config file for TIES_MD
+        if protein is not None:
+            cons_file = 'cons.pdb'
         else:
-            raise ValueError('Unknown engine {}'.format(self.config.md_engine))
-
-        # Make build and replica_conf dirs
-        # replica_conf contains NAMD scripts
-        if self.config.md_engine == 'namd':
-            if os.path.exists(cwd / 'replica-confs'):
-                shutil.rmtree(cwd / 'replica-confs')
-            os.makedirs(cwd / 'replica-confs')
-
-            # populate the replica_conf dir with scripts
-            # minimization scripts
-            ties.generator.init_namd_file_min(self.config.namd_script_dir, cwd / 'replica-confs', min_script,
-                                structure_name='sys_solv',
-                                pbc_box=solv_oct_boc,
-                                protein=protein)
-            # equilibration scripts, note eq_namd_filenames unused
-            ties.generator.generate_namd_eq(self.config.namd_script_dir / eq_script, cwd / 'replica-confs',
-                                structure_name='sys_solv',
-                                engine=self.config.md_engine,
-                                protein=protein)
-            # production script
-            ties.generator.generate_namd_prod(self.config.namd_script_dir / prod_script, cwd / 'replica-confs' / 'sim1.conf',
-                                structure_name='sys_solv')
-
-        elif self.config.md_engine == 'openmm':
-            ties_script = open(self.config.scripts_loc / 'openmm' / 'TIES.cfg').read().format(structure_name='sys_solv',
-                                                                                  cons_file='cons.pdb', **solv_oct_boc)
-            open(cwd / 'TIES.cfg', 'w').write(ties_script)
+            cons_file = 'na'
+        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=self.config.md_engine,
+                                                                                          version=self.config.namd_version,
+                                                                                          cons_file=cons_file, **solv_oct_boc)
+        open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
         if protein is not None:
-            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, 'cons.pdb'))
-
-        # copy replic-conf scripts
-        # rep_conf_scripts = ['eq0-replicas.conf', 'eq1-replicas.conf', 'eq2-replicas.conf', 'sim1-replicas.conf']
-        # for f in rep_conf_scripts:
-        #    shutil.copy(namd_script_loc / f, cwd / 'replica-confs')
-
-        # Generate the directory structure for all the lambdas, and copy the files
-        if self.config.md_engine == 'namd':
-            lambdas = [0, 0.05] + list(np.linspace(0.1, 0.9, 9)) + [0.95, 1]
-        else:
-            lambdas = range(13)
-
-        if self.config.lambda_rep_dir_tree:
-            for lambda_step in lambdas:
-                if 'namd' in self.config.md_engine:
-                    lambda_path = cwd / f'LAMBDA_{lambda_step:.2f}'
-                else:
-                    lambda_path = cwd / 'LAMBDA_{}'.format(int(lambda_step))
-                if not os.path.exists(lambda_path):
-                    os.makedirs(lambda_path)
-
-                # for each lambda create 5 replicas
-                for replica_no in range(1, 5 + 1):
-                    replica_dir = lambda_path / f'rep{replica_no}'
-                    if not os.path.exists(replica_dir):
-                        os.makedirs(replica_dir)
-
-                    # set the lambda value for the directory,
-                    # this file is used by NAMD tcl scripts
-                    if 'namd' in self.config.md_engine:
-                        open(replica_dir / 'lambda', 'w').write(f'{lambda_step:.2f}')
-
-                    # create output dirs equilibriation and simulation
-                    if not os.path.exists(replica_dir / 'equilibration'):
-                        os.makedirs(replica_dir / 'equilibration')
-
-                    if not os.path.exists(replica_dir / 'simulation'):
-                        os.makedirs(replica_dir / 'simulation')
+            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, cons_file))
 
         # copy the visualisation script as hidden
         shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
