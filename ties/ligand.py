@@ -12,16 +12,24 @@ from ties.config import Config
 
 class Ligand:
     """
-    The ligand helper class.
-    It tracks the different copies of the original input files as it is transformed.
-    It also offers ligand-oriented operations.
+    The ligand helper class. Helps to load and manage the different copies of the ligand file.
+    Specifically, it tracks the different copies of the original input files as it is transformed (e.g. charge assignment).
 
+    :param ligand: ligand filepath
+    :type ligand: string
+    :param config: Optional configuration from which the relevant ligand settings can be used
+    :type config: :class:`Config`
+    :param save: write a file with unique atom names for further inspection
+    :type save: bool
     """
     LIG_COUNTER = 0
 
     _USED_FILENAMES = set()
 
     def __init__(self, ligand, config=None, save=True):
+        """Constructor method
+        """
+
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
@@ -182,16 +190,16 @@ class Ligand:
 
     def antechamber_prepare_mol2(self, **kwargs):
         """
-        Convert the files into .mol2 files. Generate BCC charges if needed.
-        A helper function that calls antechamber and ensures that the log is kept.
-        The default behaviour is to keep the results in the file.
+        Converts the ligand into a .mol2 format.
 
-        # antechamber note:
-        # charge type -c is not used if user provided prefer to use their charges
+        BCC charges are generated if missing or requested.
+        It calls antechamber (the charge type -c is not used if user prefers to use their charges).
+        Any DU atoms created in the antechamber call are removed.
 
-        Parameters:
-            atom_type
-            net_charge
+        :param atom_type: Atom type bla bla
+        :type atom_type:
+        :param net_charge:
+        :type net_charge: int
         """
         self.config.set_configs(**kwargs)
 
