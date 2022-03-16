@@ -5,3 +5,4 @@ Contents
    README
    usage
    api
+   classes

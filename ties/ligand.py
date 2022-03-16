@@ -120,15 +120,11 @@ class Ligand:
 
     def make_atom_names_correct(self):
         """
-        Ensure that each atom has a unique name and follows our format.
+        Ensure that each atom has a unique name and follows our format. rename the atom names to ensure that no atom
+        has the same atom name using the first letter (C, N, ..)
 
-        rename the atom names to ensure that no atom has the same atom name
-        using the first letter (C, N, ..)
-
-        # fixme - allow save as a kwarg
-        @parameter save_update: if the path is provided, the updated file
-            will be saved with the unique names and a handle to the new file (MDAnalysis universe)
-            will be returned.
+        :param save_update: if the path is provided, the updated file
+            will be saved with the unique names and a handle to the new file (MDAnalysis universe) will be returned.
         """
         if self.atom_names_correct():
             return

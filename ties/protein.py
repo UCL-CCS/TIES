@@ -4,9 +4,13 @@ import ties.generator
 
 class Protein:
     """
-    This class is a helper class around the Protein file.
-    It can:
-     - calculate the number of ions needed to neutralise it (using ambertools for now)
+    A helper tool for the protein file. It calculates the number of ions needed to neutralise it
+    (using ambertools for now).
+
+    :param filename: filepath to the protein
+    :type filename: string
+    :param config: Optional configuration for the protein
+    :type config: :class:`Config`
     """
     def __init__(self, filename, config):
         self.file = filename
@@ -23,4 +27,10 @@ class Protein:
         print(f'Protein net charge: {self.protein_net_charge}')
 
     def get_path(self):
+        """
+        Get a path to the protein.
+
+        :return: the protein filename
+        :rtype: string
+        """
         return self.file

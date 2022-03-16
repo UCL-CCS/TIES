@@ -11,6 +11,12 @@ from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
 
 
 class Config:
+    """
+    The configuration with parameters that can be used to define the entire protocol.
+    The settings can be overridden later in the actual classes.
+
+    The settings are stored as properties in the object and can be overwritten.
+    """
 
     def __init__(self, **kwargs):
         # set the path to the scripts
@@ -79,6 +85,13 @@ class Config:
 
     @property
     def workdir(self):
+        """
+        Working directory for antechamber calls.
+        If None, a temporary directory in /tmp/ will be used.
+
+        :return: Work dir
+        :rtype: str
+        """
         if self._workdir is None:
             # this is API, so avoid making a directory
             # keep the 'ties' in case the output directory structured needs to be generated/harvested
@@ -102,6 +115,12 @@ class Config:
     # --------------- general
     @property
     def protein(self):
+        """
+        Path to the protein
+
+        :return: Protein filename
+        :rtype: str
+        """
         return self._protein
 
     @protein.setter
@@ -117,6 +136,10 @@ class Config:
 
     @property
     def ligand_files(self):
+        """
+        A list of ligand filenames.
+        :return:
+        """
         return self._ligand_files
 
     @ligand_files.setter
@@ -164,6 +187,11 @@ class Config:
     # --------------- ambertools
     @property
     def ambertools_home(self):
+        """
+        Ambertools HOME path. If not configured, the env variable AMBERHOME as AMBER_PREFIX will be checked.
+
+        :return: ambertools path
+        """
         # ambertools path given?
         path = None
         if self._ambertools_home is None:
@@ -195,14 +223,27 @@ class Config:
 
     @property
     def ambertools_antechamber(self):
+        """
+        Antechamber path based on the .ambertools_home
+
+        :return:
+        """
         return self.ambertools_home / 'bin' / 'antechamber'
 
     @property
     def ambertools_parmchk2(self):
+        """
+        Parmchk2 path based on the .ambertools_home
+        :return:
+        """
         return self.ambertools_home / 'bin' / 'parmchk2'
 
     @property
     def ambertools_tleap(self):
+        """
+        Tleap path based on the .ambertools_home
+        :return:
+        """
         return self.ambertools_home / 'bin' / 'tleap'
 
     @ambertools_home.setter
@@ -220,6 +261,11 @@ class Config:
 
     @property
     def antechamber_dr(self):
+        """
+        Whether to use -dr setting when calling antechamber.
+
+        :return:
+        """
         return self._antechamber_dr
 
     @antechamber_dr.setter
@@ -233,6 +279,12 @@ class Config:
 
     @property
     def ligand_net_charge(self):
+        """
+        The ligand charge. If not provided, neutral charge is assumed.
+        The charge is necessary for calling antechamber (-nc).
+
+        :return:
+        """
         if self._ligand_net_charge is None:
             print(f'WARNING: Ligand net charge not provided (-nc) by the user. Assuming 0. ')
             self._ligand_net_charge = 0
@@ -249,6 +301,11 @@ class Config:
 
     @property
     def coordinates_file(self):
+        """
+        A file from which coordinate can be taken.
+
+        :return:
+        """
         return self._coordinates_file
 
     @coordinates_file.setter
@@ -263,6 +320,15 @@ class Config:
 
     @property
     def atom_pair_q_atol(self):
+        """
+        It defines the maximum difference in charge
+        between any two superimposed atoms a1 and a2.
+        If the two atoms differ in charge more than this value,
+        they will be unmatched and added to the alchemical regions.
+
+        :return: default (0.1e)
+        :rtype: float
+        """
         return self._atom_pair_q_atol
 
     @atom_pair_q_atol.setter
@@ -272,6 +338,14 @@ class Config:
 
     @property
     def net_charge_threshold(self):
+        """
+        Defines how much the superimposed regions can, in total, differ in charge.
+        If the total exceeds the thresholds, atom pairs will be unmatched
+        until the threshold is met.
+
+        :return: default (0.1e)
+        :rtype: float
+        """
         return self._net_charge_threshold
 
     @net_charge_threshold.setter
@@ -281,6 +355,11 @@ class Config:
 
     @property
     def ignore_charges_completely(self):
+        """
+        Ignore the charges during the superimposition. Useful for debugging.
+        :return: default (False)
+        :rtype: bool
+        """
         return self._ignore_charges_completely
 
     @ignore_charges_completely.setter
@@ -290,9 +369,15 @@ class Config:
             print('Ignoring the charges. ')
             self.redistribute_q_over_unmatched = False
 
-    # superimposition
     @property
     def allow_disjoint_components(self):
+        """
+        Defines whether there might be multiple superimposed areas that are
+        separated by alchemical region.
+
+        :return: default (False)
+        :rtype: bool
+        """
         return self._allow_disjoint_components
 
     @allow_disjoint_components.setter
@@ -302,6 +387,13 @@ class Config:
 
     @property
     def use_element_in_superimposition(self):
+        """
+        Use element rather than the actual atom type for the superimposition
+        during the joint-traversal of the two molecules.
+
+        :return: default (False)
+        :rtype: bool
+        """
         return self._use_element_in_superimposition
 
     @use_element_in_superimposition.setter
@@ -313,6 +405,13 @@ class Config:
 
     @property
     def align_molecules_using_mcs(self):
+        """
+        After determining the maximum common substructure (MCS),
+        use it to align the coordinates of the second molecule to the first.
+
+        :return: default (False)
+        :rtype: bool
+        """
         return self._align_molecules_using_mcs
 
     @align_molecules_using_mcs.setter
@@ -324,6 +423,14 @@ class Config:
 
     @property
     def use_original_coor(self):
+        """
+        Antechamber when assigning charges can modify the charges slightly.
+        If that's the case, use the original charges in order to correct this slight
+        divergence in coordinates.
+
+        :return: default (?)
+        :rtype: bool
+        """
         return self._use_original_coor
 
     @use_original_coor.setter
@@ -346,6 +453,16 @@ class Config:
 
     @property
     def ligands_contain_q(self):
+        """
+        If not provided, it tries to deduce whether charges are provided.
+        If all charges are set to 0, then it assumes that charges are not provided.
+
+        If set to False explicitly, charges are ignored and computed again.
+
+        :return: default (None)
+        :rtype: bool
+        """
+
         if self._ligand_files is None:
             print('The fact whether the ligands contain charges has not been configured. Guessing. ')
             self._ligand_files = self._guess_ligands_contain_q()
@@ -390,6 +507,12 @@ class Config:
 
     @property
     def superimposition_starting_pair(self):
+        """
+        Set a starting pair for the superimposition to narrow down the MCS search.
+        E.g. "C2-C12"
+
+        :rtype: str
+        """
         return self._superimposition_starting_pair
 
     @superimposition_starting_pair.setter
@@ -402,6 +525,12 @@ class Config:
 
     @property
     def manually_matched_atom_pairs(self):
+        """
+        Either a list of pairs or a file with a list of pairs of atoms
+        that should be superimposed/matched.
+
+        :return:
+        """
         return self._manually_matched_atom_pairs
 
     @manually_matched_atom_pairs.setter
@@ -434,6 +563,9 @@ class Config:
 
     @property
     def manually_mismatched_pairs(self):
+        """
+        A path to a file with a list of a pairs that should be mismatched.
+        """
         if self._manually_mismatched_pairs is None:
             return []
 

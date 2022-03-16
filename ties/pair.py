@@ -13,12 +13,15 @@ import ties.ligand
 
 class Pair():
     """
-    A convenience class to help organise morphs.
+    Facilitates the creation of morphs.
     It offers functionality related to a pair of ligands (a transformation).
 
-    Note that Morph actually in a way duplicates the concept of a SupTop.
-    This distinction could be removed easily in the future.
-    However, way to simplify SupTop might be worth some effort.
+    :param ligA: The ligand to be used as the starting state for the transformation.
+    :type ligA: :class:`Ligand` or string
+    :param ligZ: The ligand to be used as the ending point of the transformation.
+    :type ligZ: :class:`Ligand` or string
+    :param config: The configuration object holding all settings.
+    :type config: :class:`Config`
     """
 
     def __init__(self, ligA, ligZ, config=None, **kwargs):
@@ -76,15 +79,16 @@ class Pair():
 
     def superimpose(self, **kwargs):
         """
-        Please see Config class for the documentation of the possible kwargs, which are used here indirectly.
+        Please see :class:`Config` class for the documentation of kwargs. The passed kwargs overwrite the config
+        object passed in the constructor.
 
         fixme - list all relevant kwargs here
 
-            param use_element_in_superimposition: bool whether the superimposition should rely on the element initially,
-                before refining the results with a more specific check of the atom type.
-            param manually_matched_atom_pairs
-            param manually_mismatched_pairs
-            param redistribute_q_over_unmatched
+        :param use_element_in_superimposition: bool whether the superimposition should rely on the element initially,
+            before refining the results with a more specific check of the atom type.
+        :param manually_matched_atom_pairs:
+        :param manually_mismatched_pairs:
+        :param redistribute_q_over_unmatched:
         """
         self.config.set_configs(**kwargs)
 
@@ -179,24 +183,34 @@ class Pair():
         return suptops[0]
 
     def set_suptop(self, suptop, mda_l1, mda_l2):
+        """
+        Attach a SuperimposedTopology object along with the MDAnalysis objects for the ligA and ligZ.
+
+        :param suptop: :class:`SuperimposedTopology`
+        :param mda_l1: An MDAnalysis Universe for the ligA
+        :param mda_l2: An MDAnalysis Universe for the ligZ
+        """
         self.suptop = suptop
         self.mda_l1 = mda_l1
         self.mda_l2 = mda_l2
 
-    def make_atom_names_unique(self, filename1=None, filename2=None, save=True):
+    def make_atom_names_unique(self, out_ligA_filename=None, out_ligZ_filename=None, save=True):
         """
-        Ensure that each has a name that is unique to both ligands.
+        Ensure that each that atoms across the two ligands have unique names.
 
-        Rename the ligand to ensure that no atom has the same name
-        name atoms using the first letter (C, N, ..) and count them
-        keep the names if possible (ie if they are already different)
+        While renaming atoms, start with the element (C, N, ..) followed by
+         the count so far (e.g. C1, C2, N1).
 
-        Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology
+        Resnames are set to "INI" and "FIN", this is useful for the hybrid dual topology.
 
-        fixme - rewrite this to be LigA.unique_names(LigZ) so that they can do it internally themselves?
-
-            param filename1 and filename2: str, if not provided, standard path is used. Have to be provided together.
-            param save: bool, whether to save to the disk the renamed ligand
+        :param out_ligA_filename: The new filenames for the ligands with renamed atoms. If None, the default
+            naming convention is used.
+        :type out_ligA_filename: string or bool
+        :param out_ligZ_filename: The new filenames for the ligands with renamed atoms. If None, the default
+            naming convention is used.
+        :type out_ligZ_filename: string or bool
+        :param save: Whether to save to the disk the ligands after renaming the atoms
+        :type save: bool
         """
 
         # The A ligand is a template for the renaming
@@ -218,28 +232,35 @@ class Pair():
         left.residues.resnames = ['INI']
         right.residues.resnames = ['FIN']
 
+        # fixme - instead of using the save parameter, have a method pair.save(filename1, filename2) and
+        #  call it when necessary.
         # prepare the destination directory
         if not save:
             return
 
-        if filename1 is None:
+        if out_ligA_filename is None:
             cwd = self.config.pair_unique_atom_names_dir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
             cwd.mkdir(parents=True, exist_ok=True)
 
             self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
             self.current_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
         else:
-            self.current_ligA = filename1
-            self.current_ligZ = filename2
+            self.current_ligA = out_ligA_filename
+            self.current_ligZ = out_ligZ_filename
 
         # save the updated atom names
         left.atoms.write(self.current_ligA)
         right.atoms.write(self.current_ligZ)
 
     def check_json_file(self):
-        # An optimisation for testing
-        # Check if the json was produced before, use it to
-        # find the starting point to speed up the testing
+        """
+        Performance optimisation in case TIES is rerun again. Return the first matched atoms which
+        can be used as a seed for the superimposition.
+
+        :return: If the superimposition was computed before, and the .json file is available,
+            gets one of the matched atoms.
+        :rtype: [(ligA_atom, ligZ_atom)]
+        """
         matching_json = self.config.workdir / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
         if not matching_json.is_file():
             return None
@@ -248,9 +269,16 @@ class Pair():
 
     def merge_frcmod_files(self, ligcom=None):
         """
-        I tested the duplication and that had no effect on the final results (the .top file was identical).
+        Merges the .frcmod files generated for each ligand separately, simply by adding them together.
 
-        Note that we are also testing the .frcmod here with the specific user FF.
+        The duplication has no effect on the final generated topology parm7 top file.
+
+        We are also testing the .frcmod here with the user's force field in order to check if
+        the merge works correctly.
+
+        :param ligcom: Either "lig" if only ligands are present, or "com" if the complex is present.
+            Helps with the directory structure.
+        :type ligcom: string "lig" or "com"
         """
         ambertools_tleap = self.config.ambertools_tleap
         ambertools_script_dir = self.config.ambertools_script_dir
@@ -407,6 +435,15 @@ class Pair():
         self.frcmod = modified_hybrid_frcmod
 
     def overlap_fractions(self):
+        """
+        Calculate the size of the common area.
+
+        :return: Four decimals capturing: 1) the fraction of the common size with respect to the ligA topology,
+            2) the fraction of the common size with respect to the ligZ topology,
+            3) the percentage of the disappearing atoms in the disappearing molecule
+            4) the percentage of the appearing atoms  in the appearing molecule
+        :rtype: [float, float, float, float]
+        """
         matched_fraction_left = len(self.suptop.matched_pairs) / float(len(self.suptop.top1))
         matched_fraction_right = len(self.suptop.matched_pairs) / float(len(self.suptop.top2))
         disappearing_atoms_fraction = (len(self.suptop.top1) - len(self.suptop.matched_pairs)) \

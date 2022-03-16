@@ -4,7 +4,7 @@ API
 .. currentmodule:: ties
 
 .. autosummary::
-   :recursive:	
+   :recursive:
    :toctree: ties
 
    Ligand
@@ -14,7 +14,3 @@ API
    topology_superimposer
    helpers
    generator
-
-.. automodule::
-.. autoclass::
-.. autoexception::

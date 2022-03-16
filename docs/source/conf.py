@@ -15,8 +15,8 @@ import sys
 # sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../..'))
 import ties
-from ties import Pair
-from ties import Config
+# from ties import Pair
+# from ties import Config
 
 # -- Project information -----------------------------------------------------
 
