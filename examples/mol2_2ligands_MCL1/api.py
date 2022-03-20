@@ -1,6 +1,6 @@
 from ties import Pair
 from ties import Config
-from ties.protein import Protein
+from ties import Protein
 
 config = Config()
 config.workdir = 'ties20'
