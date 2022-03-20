@@ -1,5 +1,5 @@
-Usage
-=====
+Examples - Python
+=================
 
 TIES offers both a Python API as well as a command line interface.
 The API can be very minimal, for example:
