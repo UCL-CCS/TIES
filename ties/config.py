@@ -591,6 +591,12 @@ class Config:
 
     @property
     def protein_ff(self):
+        """
+        The protein forcefield to be used by ambertools for the protein parameterisation.
+
+        :return: default (leaprc.ff19SB)
+        :rtype: string
+        """
         if self.protein is None:
             print('INFO: Protein FF was requested even though protein was not provided. '
                   'Ignoring the protein ff request.')
@@ -610,6 +616,12 @@ class Config:
 
     @property
     def md_engine(self):
+        """
+        The MD engine, with the supported values NAMD2.13, NAMD2.14, NAMD3 and OpenMM
+
+        :return: NAMD2.13, NAMD2.14, NAMD3 and OpenMM
+        :rtype: string
+        """
         return self._md_engine
 
     @md_engine.setter
@@ -642,10 +654,18 @@ class Config:
 
     @property
     def ligand_ff(self):
+        """
+        The forcefield for the ligand.
+        """
         return self._ligand_ff
 
     @property
     def ligand_ff_name(self):
+        """
+        Either GAFF or GAFF2
+
+        :return:
+        """
         return self._ligand_ff_name
 
     @ligand_ff_name.setter
@@ -663,6 +683,14 @@ class Config:
 
     @property
     def redistribute_q_over_unmatched(self):
+        """
+        The superimposed and matched atoms have every slightly different charges.
+        Taking an average charge between any two atoms introduces imbalances
+        in the net charge of the alchemical regions, due to
+        the different charge distribution.
+
+        :return: default(True)
+        """
         return self._redistribute_q_over_unmatched
 
     @redistribute_q_over_unmatched.setter
@@ -674,6 +702,11 @@ class Config:
 
     @property
     def use_hybrid_single_dual_top(self):
+        """
+        Hybrid single dual topology (experimental). Currently not implemented.
+
+        :return: default(False).
+        """
         # hybrid single dual topology
         return self._use_hybrid_single_dual_top
 
@@ -691,6 +724,12 @@ class Config:
 
     @property
     def ligand_tleap_in(self):
+        """
+        The name of the tleap input file for ambertools for the ligand.
+
+        :return: Default ('leap_ligand.in')
+        :rtype: string
+        """
         if self._ligand_tleap_in is not None:
             # return the user provided filename
             return self._ligand_tleap_in
@@ -703,6 +742,12 @@ class Config:
 
     @property
     def complex_tleap_in(self):
+        """
+        The tleap input file for the complex.
+
+        :return: Default 'leap_complex.in'
+        :type: string
+        """
         if self._complex_tleap_in is None:
             # assume that hybrid single-dual topology is not used
             # this will initiate the standard leap_ligand.in
@@ -715,38 +760,83 @@ class Config:
     # PAIR constants configuration
     @property
     def prep_dir(self):
+        """
+        Path to the `prep` directory. Currently in the `workdir`
+
+        :return: Default (workdir/prep)
+        """
         return self.workdir /  pathlib.Path('prep')
 
     @property
     def pair_morphfrcmods_dir(self):
+        """
+        Path to the .frcmod files for the morph.
+
+        :return: Default (workdir/prep/morph_frcmods)
+        """
         return self.prep_dir / 'morph_frcmods'
 
     @property
     def pair_morphfrmocs_tests_dir(self):
+        """
+        Path to the location where a test is carried out with .frcmod
+
+        :return: Default (workdir/prep/morph_frcmods/tests)
+        """
         return self.pair_morphfrcmods_dir / 'tests'
 
     @property
     def pair_unique_atom_names_dir(self):
+        """
+        Location of the morph files with unique filenames.
+
+        :return: Default (workdir/prep/morph_unique_atom_names)
+        """
         return self.prep_dir / 'morph_unique_atom_names'
 
     @property
     def lig_unique_atom_names_dir(self):
+        """
+        Directory location for files with unique atom names.
+
+        :return: Default (workdir/prep/unique_atom_names)
+        """
         return self.prep_dir / 'unique_atom_names'
 
     @property
     def lig_frcmod_dir(self):
+        """
+        Directory location with the .frcmod created for each ligand.
+
+        :return: Default (workdir/prep/ligand_frcmods)
+        """
         return self.prep_dir / 'ligand_frcmods'
 
     @property
     def lig_acprep_dir(self):
+        """
+        Directory location where the .ac charges are converted into the .mol2 format.
+
+        :return: Default (workdir/prep/acprep_to_mol2)
+        """
         return self.prep_dir / 'acprep_to_mol2'
 
     @property
     def lig_dir(self):
+        """
+        Directory location with the .mol2 files.
+
+        :return: Default (workdir/mol2)
+        """
         return self.workdir / 'mol2'
 
     @staticmethod
     def get_element_map():
+        """
+
+
+        :return:
+        """
         # Get the mapping of atom types to elements
         element_map_filename = pathlib.Path(os.path.dirname(__file__)) / 'data' / 'element_atom_type_map.txt'
         # remove the comments lines with #
@@ -768,11 +858,16 @@ class Config:
 
     def get_serializable(self):
         """
+        Get a JSON serializable structure of the config.
+
         pathlib.Path is not JSON serializable, so replace it with str
 
         todo - consider capturing all information about the system here,
         including each suptop.get_serializable() so that you can record
         specific information such as the charge changes etc.
+
+        :return: Dictionary {key:value} with the settings
+        :rtype: Dictionary
         """
 
         host_specific = ['code_root', 'script_dir0', 'namd_script_dir',
