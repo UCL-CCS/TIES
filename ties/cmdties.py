@@ -142,6 +142,10 @@ def command_line_script():
     # ie do not allow ligands with the same ligand name
     config.uses_cmd = True
 
+    #  fixme - use config to take care of it
+    if not args.ligands:
+        raise ValueError('Ligands have to be provided (see -l).')
+
     # create ligands
     ligands = [ties.ligand.Ligand(lig, config) for lig in args.ligands]
 
