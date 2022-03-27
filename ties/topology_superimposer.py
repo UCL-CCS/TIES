@@ -3218,6 +3218,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if not removed:
                 print('Removed bonded pairs due to different bonds:', removed)
 
+    if not partial_rings_allowed:
+        # remove partial rings, note this is a cascade problem if there are double rings
+        for suptop in suptops:
+            suptop.enforce_no_partial_rings()
+            print(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
     # becomes two different atoms with different IDs
@@ -3232,7 +3238,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         # Note that we apply this rule to each suptop.
         # This is because we are only keeping one suptop right now.
         # However, if disjointed components are allowed, these number might change.
-        # ensure that each found component has net charge < 0.1
+        # ensure that each suptop component has net charge differences < 0.1
         # Furthermore, disjointed components has not yet been applied,
         # even though it might have an effect, fixme - should disjointed be applied first?
         # to account for this implement #251
@@ -3249,12 +3255,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if suptop._removed_due_to_net_charge:
                 print(f'SupTop: Removed pairs due to net charge: '
                       f'{[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}')
-
-    if not partial_rings_allowed:
-        # remove partial rings, note this is a cascade problem if there are double rings
-        for suptop in suptops:
-            suptop.enforce_no_partial_rings()
-            print(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
 
     # remove the suptops that are empty
     for st in suptops[::-1]:
