@@ -2,9 +2,11 @@ Contents
 --------
 
 .. toctree::
-   README
+   main
    installation
    usagecmd
    usage
-   api
+   protocol
    classes
+   api
+
