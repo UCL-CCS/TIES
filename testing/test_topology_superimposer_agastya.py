@@ -87,7 +87,7 @@ def test_mcl1_l18l39():
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    all_removed_pairs = suptop.refine_against_charges(atol=0.1)
+    all_removed_pairs = suptop.unmatch_pairs_with_different_charges(atol=0.1)
     print(all_removed_pairs)
     removed_pairs = [('C4', 'C26')]
     for atomName1, atomname2 in removed_pairs:
@@ -128,7 +128,7 @@ def test_mcl1_l17l9():
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    all_removed_pairs = suptop.refine_against_charges(atol=0.1)
+    all_removed_pairs = suptop.unmatch_pairs_with_different_charges(atol=0.1)
     print(all_removed_pairs)
     removed_pairs = [('C14', 'C33'), ('C15', 'C34'), ('C16', 'C35'), ('C17', 'C36')]
     for atomName1, atomname2 in removed_pairs:
@@ -191,7 +191,7 @@ def test_mcl1_l8l18():
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs = suptop.refine_against_charges(atol=0.1)
+    removed_pairs = suptop.unmatch_pairs_with_different_charges(atol=0.1)
     # extract the atom names
     removed_atom_names = [(left.name, right.name) for (left, right), q in removed_pairs]
 
@@ -260,7 +260,7 @@ def test_mcl1_l32_l42():
 
     # refine against charges
     # ie remove the matches due to charge difference
-    removed_pairs = suptop.refine_against_charges(atol=0.1)
+    removed_pairs = suptop.unmatch_pairs_with_different_charges(atol=0.1)
     print('removed', removed_pairs)
     should_remove_pairs = [('O3', 'O6'), ('C9', 'C30'), ('C21', 'C43'), ('C20', 'C42'),
                            ('C19', 'C41'), ('C18', 'C39'), ('C17', 'C38'), ('C14', 'C35')]
@@ -396,7 +396,7 @@ def todotest_tyk2_l6l11():
 
     # refine against charges
     # ie remove the matches that change due to charge rather than spieces
-    removed_pairs, rm_h_pairs = suptop.refine_against_charges(atol=0.1)
+    removed_pairs, rm_h_pairs = suptop.unmatch_pairs_with_different_charges(atol=0.1)
     print('removed', removed_pairs)
     should_remove_pairs = []
     for n1, n2 in removed_pairs:

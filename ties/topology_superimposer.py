@@ -1947,7 +1947,7 @@ class SuperimposedTopology:
                 # if node_b leads to the same node X
         return overall_score
 
-    def refine_against_charges(self, atol):
+    def unmatch_pairs_with_different_charges(self, atol):
         """
         Removes the matched pairs where atom charges are more different
         than the provided absolute tolerance atol (units in Electrons).
@@ -3223,7 +3223,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     # becomes two different atoms with different IDs
     if use_charges and not ignore_charges_completely:
         for sup_top in suptops:
-            removed = sup_top.refine_against_charges(atol=pair_charge_atol)
+            removed = sup_top.unmatch_pairs_with_different_charges(atol=pair_charge_atol)
             if removed:
                 print(f'Removed pairs with charge incompatibility: '
                       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
