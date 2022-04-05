@@ -607,6 +607,7 @@ def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, con
 
     reformatted_namd_in = open(namd_filename).read().format(
         cell_x=new_pbc_box[0], cell_y=new_pbc_box[1], cell_z=new_pbc_box[2],
+        
         constraints=constraint_lines, output='test_output', structure=structure_filename)
 
     # write to the file
@@ -623,7 +624,7 @@ def create_constraint_files(original_pdb, output):
     # for each atom, give the B column the right value
     for atom in u.atoms:
         # ignore water
-        if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3']:
+        if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3', 'HOH', 'SPC', 'TIP4P']:
             continue
 
         # set each atom depending on whether it is a H or not
