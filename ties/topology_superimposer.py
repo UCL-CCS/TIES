@@ -3067,48 +3067,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     return best_suptop
 
 
-class Topology:
-    """
-    A helper class to organise a topology and its associated functions
-    """
-    def __init__(self, nodes):
-        self.nodes = nodes
-
-        # generate a networkx graph
-        graph = nx.Graph()
-        [graph.add_node(node) for node in nodes]
-        for node in nodes:
-            for bonded in node.bonds:
-                graph.add_edge(node, bonded)
-        self.nxgraph = graph
-
-        self.cycles()
-
-    def cycles(self):
-        # find the cycles
-        cycles = [frozenset(c) for c in nx.cycle_basis(self.nxgraph)]
-
-        self.joined_cycles = {}
-        for cycle in cycles:
-            self.joined_cycles[cycle] = set()
-
-        # see if any cycles overlap with 2 atoms
-        # this would mean that they are in the same 2D plane
-        for i, cycle1 in enumerate(cycles):
-            for cycle2 in cycles[i + 1:]:
-                if len(set(cycle1).intersection(set(cycle2))) >= 2:
-                    # the two cycles overlap and are in the same plane
-                    self.joined_cycles[cycle1].add(cycle2)
-                    self.joined_cycles[cycle2].add(cycle1)
-
-    def in_same_plane(self, cycle1, cycle2):
-        raise Exception('this function was used?')
-        if cycle1 in self.joined_cycles[cycle1]:
-            return True
-
-        return False
-
-
 def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
                            use_coords=True, starting_node_pairs=None,
                            force_mismatch=None, disjoint_components=False,
@@ -3662,9 +3620,6 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         2) use the "linkers" and areas that are not parts of the rings to avoid the issue of symmetry in the ring.
         We are striving here to have 5% starting configurations.
     """
-    # generate the graph for the top1 and top2
-    top1 = Topology(top1_nodes)
-    top2 = Topology(top2_nodes)
 
     # superimposed topologies
     suptops = []
