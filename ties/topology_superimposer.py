@@ -3237,6 +3237,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                 print(f'Removed pairs with charge incompatibility: '
                       f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
 
+    if not partial_rings_allowed:
+        # We once again check if partial rings were created due to different charges on atoms.
+        for suptop in suptops:
+            suptop.enforce_no_partial_rings()
+            print(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.
         # This is because we are only keeping one suptop right now.
@@ -3258,6 +3264,12 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
             if suptop._removed_due_to_net_charge:
                 print(f'SupTop: Removed pairs due to net charge: '
                       f'{[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}')
+
+    if not partial_rings_allowed:
+        # This is the 3rd check of partial rings. This time they might have been created due to net_charges.
+        for suptop in suptops:
+            suptop.enforce_no_partial_rings()
+            print(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
 
     # remove the suptops that are empty
     for st in suptops[::-1]:
