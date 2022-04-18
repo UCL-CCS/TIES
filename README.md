@@ -40,3 +40,4 @@ You can use your own charges with the .mol2 format:
 `ties create -l l1.mol2 l2.mol2 l3.mol2 -nc -2`
 
 Please see the `examples` folder with more cases. 
+
