@@ -15,8 +15,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebTIES - {{ title }} - TIES20 </title>
-    {% load static %}
-    <link rel="shortcut icon" type="image/png" href="{% static 'favicon-32x32.png' %}"/>
+    <link rel="shortcut icon" type="image/png" href="/static/favicon-32x32.png"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
 
     <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.20.0/dist/bootstrap-table.min.css">
@@ -25,17 +24,13 @@
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/" style="max-width: 6%;"><img src="{% static 'website/TIES_logov2.png' %}" class="img-fluid"></a>
+    <a class="navbar-brand" href="/" style="max-width: 6%;"><img src="/static/website/TIES_logov2.png" class="img-fluid"></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="nav nav-pills me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-            {% if request.user.is_authenticated %}
-          <a class="nav-link active" href="/ties">Ligands</a>
-            {% endif %}
-        </li>
+
         <li class="nav-item">
           <a class="nav-link text-secondary" href="/contact">Contact</a>
         </li>
@@ -47,16 +42,127 @@
 <!--        </li>-->
       </ul>
     </div>
-      {% if request.user.is_authenticated %}
-      {{ request.user }}
-      <a class="nav-link" href="{% url 'logout' %}">Log out</a>
-      {% else %}
-      <a class="nav-link" href="/login">Log In</a>
-      {% endif %}
+
   </div>
 </nav>
     <div class="container body-content">
-{% block content %}{% endblock %}
+
+{%- macro sidebar() %}
+      {%- if render_sidebar %}
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+          {%- block sidebarlogo %}
+          {%- if logo_url %}
+            <p class="logo"><a href="{{ pathto(root_doc)|e }}">
+              <img class="logo" src="{{ logo_url|e }}" alt="Logo"/>
+            </a></p>
+          {%- endif %}
+          {%- endblock %}
+          {%- if sidebars != None %}
+            {#- new style sidebar: explicitly include/exclude templates #}
+            {%- for sidebartemplate in sidebars %}
+            {%- include sidebartemplate %}
+            {%- endfor %}
+          {%- else %}
+            {#- old style sidebars: using blocks -- should be deprecated #}
+            {%- block sidebartoc %}
+            {%- include "localtoc.html" %}
+            {%- endblock %}
+            {%- block sidebarrel %}
+            {%- include "relations.html" %}
+            {%- endblock %}
+            {%- block sidebarsourcelink %}
+            {%- include "sourcelink.html" %}
+            {%- endblock %}
+            {%- if customsidebar %}
+            {%- include customsidebar %}
+            {%- endif %}
+            {%- block sidebarsearch %}
+            {%- include "searchbox.html" %}
+            {%- endblock %}
+          {%- endif %}
+        </div>
+      </div>
+      {%- endif %}
+{%- endmacro %}
+
+{%- macro relbar() %}
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>{{ _('Navigation') }}</h3>
+      <ul>
+        {%- for rellink in rellinks %}
+        <li class="right" {% if loop.first %}style="margin-right: 10px"{% endif %}>
+          <a href="{{ pathto(rellink[0])|e }}" title="{{ rellink[1]|striptags|e }}"
+             {{ accesskey(rellink[2]) }}>{{ rellink[3] }}</a>
+          {%- if not loop.first %}{{ reldelim2 }}{% endif %}</li>
+        {%- endfor %}
+        {%- block rootrellink %}
+        <li class="nav-item nav-item-0"><a href="{{ pathto(root_doc)|e }}">{{ shorttitle|e }}</a>{{ reldelim1 }}</li>
+        {%- endblock %}
+        {%- for parent in parents %}
+          <li class="nav-item nav-item-{{ loop.index }}"><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}</a>{{ reldelim1 }}</li>
+        {%- endfor %}
+        <li class="nav-item nav-item-this"><a href="{{ link|e }}">{{ title }}</a></li>
+        {%- block relbaritems %} {% endblock %}
+      </ul>
+    </div>
+{%- endmacro %}
+
+
+
+
+
+
+<div class="row align-items-start">
+    <div class="col-3">
+        {%- block sidebar1 %} {{ sidebar() }} {% endblock %}
+    </div>
+    <div class="col-6">
+         <div class="document">
+            {%- block document %}
+              <div class="documentwrapper">
+              {%- if render_sidebar %}
+                <div class="bodywrapper">
+              {%- endif %}
+
+                  {%- block relbar_top %}
+                    {%- if theme_show_relbar_top|tobool %}
+                      <div class="related top">
+                        &nbsp;
+                        {{- rellink_markup () }}
+                      </div>
+                    {%- endif %}
+                  {% endblock %}
+
+                  <div class="body" role="main">
+                    {% block body %} {% endblock %}
+                  </div>
+
+                  {%- block relbar_bottom %}
+                    {%- if theme_show_relbar_bottom|tobool %}
+                      <div class="related bottom">
+                        &nbsp;
+                        {{- rellink_markup () }}
+                      </div>
+                    {%- endif %}
+                  {% endblock %}
+
+              {%- if render_sidebar %}
+                </div>
+              {%- endif %}
+              </div>
+            {%- endblock %}
+            <div class="clearer"></div>
+          </div>
+    </div>
+
+</div>
+
+<div class="row align-items-start">
+    {%- block relbar1 %}{{ relbar() }}{% endblock %}
+</div>
+
+
         <hr/>
         <footer>
             <p>&copy; {{ year }} - TIES20</p>
