@@ -225,7 +225,7 @@ class Ligand:
                                     '-i', self.current, '-fi', self.current.suffix[1:],
                                     '-o', mol2_target, '-fo', 'mol2',
                                     '-at', self.config.ligand_ff_name, '-nc', str(self.config.ligand_net_charge),
-                                    '-dr', self.config.antechamber_dr] + self.config.antechamber_charge_type,
+                                    '-dr', str(self.config.antechamber_dr)] + self.config.antechamber_charge_type,
                                    cwd=mol2_cwd,
                                    stdout=LOG, stderr=LOG,
                                    check=True, text=True,
