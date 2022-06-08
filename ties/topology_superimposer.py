@@ -808,8 +808,8 @@ class SuperimposedTopology:
             for mda_a in self.mda_ligandL.atoms:
                 found = False
                 for loaded_a in self.top1:
-                    if mda_a.id == loaded_a.atomId:
-                        loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                    if mda_a.id == loaded_a.id:
+                        loaded_a.position = mda_a.position[0], mda_a.position[1], mda_a.position[2]
                         found = True
                         break
                 assert found
@@ -817,8 +817,8 @@ class SuperimposedTopology:
             for mda_a in self.mda_ligandR.atoms:
                 found = False
                 for loaded_a in self.top2:
-                    if mda_a.id == loaded_a.atomId:
-                        loaded_a.set_position(mda_a.position[0], mda_a.position[1], mda_a.position[2])
+                    if mda_a.id == loaded_a.id:
+                        loaded_a.position = mda_a.position[0], mda_a.position[1], mda_a.position[2]
                         found = True
                         break
                 assert found
@@ -3136,6 +3136,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
         def take_largest(x, y):
             return x if len(x) > len(y) else y
         reduce(take_largest, suptops).align_ligands_using_matched()
+        print(f'RMSD of the best suptop: {suptops[0].align_ligands_using_matched()}')
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
@@ -3970,11 +3971,10 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
         for mda_atom in mda_atoms:
             try:
                 atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, charge=mda_atom.charge, use_general_type=use_general_type)
-                # charges might not be present
             except AttributeError:
-                atom.charge = mda_atom.charge
-                print('WARNING: One of the input files is missing charges. Setting the charge to N/A')
-                atom.charge = 'N/A'
+                # most likely the charges were missing, manually set the charges to 0
+                atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, charge=0.0, use_general_type=use_general_type)
+                print('WARNING: One of the input files is missing charges. Setting the charge to 0')
             atom.id = mda_atom.id
             atom.position = mda_atom.position
             atom.resname = mda_atom.resname
