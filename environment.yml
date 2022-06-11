@@ -6,3 +6,5 @@ dependencies:
   - ambertools
   - libgfortran
   - ties_md
+  - pip:
+      - . # ties installation
