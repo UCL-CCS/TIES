@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - adw62
 dependencies:
-  - ambertools
+  - ambertools>=20.0, <22.0
   - libgfortran
   - ties_md
   - pip:
