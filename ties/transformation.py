@@ -113,7 +113,7 @@ def get_rmsd(a, b):
 
 def rotate(coords, rotational_matrix):
     # rotate coords using the rotational matrix
-    return coords.T * numpy.matrix(rotational_matrix.reshape((3, 3)))
+    return coords * rotational_matrix
 
 
 def superimpose_coordinates(ref, mob):
@@ -137,7 +137,7 @@ def superimpose_coordinates(ref, mob):
     mob_coords = copy.deepcopy(mob.T)
 
     # Allocate rotation array
-    rotation_matrix = numpy.zeros((9,), dtype=numpy.float64)
+    rotation = numpy.zeros((9,), dtype=numpy.float64)
 
     # Calculate center of geometry
     comA = numpy.sum(ref, axis=1) / N
@@ -148,14 +148,17 @@ def superimpose_coordinates(ref, mob):
     mob_origin = mob_coords - comB.reshape(3, 1)
 
     # Calculate rmsd and rotation matrix
-    rmsd = qcp.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation_matrix, None)
+    rmsd = qcp.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
+
+    # reshape so that it can be used directly on all coordinates
+    rotational_matrix = numpy.matrix(rotation.reshape((3, 3)))
 
     # apply the rotation to the mobile part
-    rotated_mob = rotate(mob_origin, rotation_matrix)
+    rotated_mob = rotate(mob_origin.T, rotational_matrix)
 
     # move it back to its original position
     rotated_translated_mob = rotated_mob.T + comB.reshape(3, 1)
 
     # overlap_rmsd = get_rmsd(rotated_mob.T, ref_origin)
 
-    return rmsd, rotated_translated_mob.T
+    return rmsd, rotational_matrix
