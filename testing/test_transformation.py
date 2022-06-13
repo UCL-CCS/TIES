@@ -61,6 +61,6 @@ def test_transformation_default():
     mob_coords[6][2] = 17.996
 
     # compute the rotational matrix
-    rmsd, rotational_matrix = superimpose_coordinates(ref_coords, mob_coords)
+    rmsd, rotational_matrix, com_ref = superimpose_coordinates(ref_coords, mob_coords)
 
     numpy.testing.assert_allclose([rmsd], [0.719106], rtol=1e-05)

@@ -140,12 +140,12 @@ def superimpose_coordinates(ref, mob):
     rotation = numpy.zeros((9,), dtype=numpy.float64)
 
     # Calculate center of geometry
-    comA = numpy.sum(ref, axis=1) / N
-    comB = numpy.sum(mob_coords, axis=1) / N
+    com_ref = numpy.sum(ref, axis=1) / N
+    com_mob = numpy.sum(mob_coords, axis=1) / N
 
     # Center each fragment
-    ref_origin = ref - comA.reshape(3, 1)
-    mob_origin = mob_coords - comB.reshape(3, 1)
+    ref_origin = ref - com_ref.reshape(3, 1)
+    mob_origin = mob_coords - com_mob.reshape(3, 1)
 
     # Calculate rmsd and rotation matrix
     rmsd = qcp.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
@@ -157,8 +157,8 @@ def superimpose_coordinates(ref, mob):
     rotated_mob = rotate(mob_origin.T, rotational_matrix)
 
     # move it back to its original position
-    rotated_translated_mob = rotated_mob.T + comB.reshape(3, 1)
+    rotated_translated_mob = rotated_mob.T + com_mob.reshape(3, 1)
 
     # overlap_rmsd = get_rmsd(rotated_mob.T, ref_origin)
 
-    return rmsd, rotational_matrix
+    return rmsd, rotational_matrix, com_ref
