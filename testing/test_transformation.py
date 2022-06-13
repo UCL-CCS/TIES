@@ -4,7 +4,7 @@ adapted qcp package.
 """
 import numpy
 
-from ties.transformation import superimpose_coordinates, rmsd_with_rotation
+from ties.transformation import superimpose_coordinates
 
 
 def test_transformation_default():
@@ -61,6 +61,6 @@ def test_transformation_default():
     mob_coords[6][2] = 17.996
 
     # compute the rotational matrix
-    rot, rmsd_value, rmsd_applied_rot_value, mob_coords = superimpose_coordinates(ref_coords, mob_coords)
+    rmsd, mob_coords = superimpose_coordinates(ref_coords, mob_coords)
 
-    numpy.testing.assert_allclose([rmsd_applied_rot_value], [0.719106], rtol=1e-05)
+    numpy.testing.assert_allclose([rmsd], [0.719106], rtol=1e-05)

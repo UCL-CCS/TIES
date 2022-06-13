@@ -96,13 +96,9 @@ def get_rmsd(a, b):
     return numpy.sqrt(numpy.sum(numpy.power(a - b, 2)) / a.shape[1])
 
 
-def rmsd_with_rotation(pos_ref, pos_mob, rot):
-    # rotate frag_b to obtain optimal alignment
-    pos_mob_br = pos_mob.T * numpy.matrix(rot.reshape((3, 3)))
-    # calc rmsd
-    overlap_rmsd = get_rmsd(pos_mob_br.T, pos_ref)
-    print('rmsd after applying rotation: ', overlap_rmsd)
-    return overlap_rmsd
+def rotate(coords, rotational_matrix):
+    # rotate coords using the rotational matrix
+    return coords.T * numpy.matrix(rotational_matrix.reshape((3, 3)))
 
 
 def superimpose_coordinates(ref, mob):
@@ -133,21 +129,18 @@ def superimpose_coordinates(ref, mob):
     comB = numpy.sum(mob_coords, axis=1) / N
 
     # Center each fragment
-    ref = ref - comA.reshape(3, 1)
+    ref_origin = ref - comA.reshape(3, 1)
     mob_origin = mob_coords - comB.reshape(3, 1)
 
     # Calculate rmsd and rotation matrix
-    rmsd_before_superimposition = qcp.CalcRMSDRotationalMatrix(ref, mob_origin, N, rotation_matrix, None)
+    rmsd = qcp.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation_matrix, None)
 
-    # print('qcp rmsd = ', rmsd)
-    # print('rotation matrix:')
-    # print(rot.reshape((3, 3)))
+    # apply the rotation to the mobile part
+    rotated_mob = rotate(mob_origin, rotation_matrix)
 
-    #
-    # apply the rotation and
-    rmsd_after_superimposition = rmsd_with_rotation(ref, mob_origin, rotation_matrix)
+    # move it back to its original position
+    rotated_translated_mob = rotated_mob.T + comB.reshape(3, 1)
 
-    return rotation_matrix, \
-           rmsd_before_superimposition, \
-           rmsd_after_superimposition, \
-           mob_coords
+    # overlap_rmsd = get_rmsd(rotated_mob.T, ref_origin)
+
+    return rmsd, rotated_translated_mob.T
