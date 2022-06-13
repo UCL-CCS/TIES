@@ -1,5 +1,20 @@
 """
+https://github.com/synapticarbors/pyqcprot
 
+This code code is released under the BSD 3-clause license as noted in the .pyx source code
+or LICENSE file.
+The original C code is copyright:
+2009-2010, Pu Liu and Douglas L. Theobald
+This implementation is copyright
+2011, Joshua L. Adelman
+
+  Douglas L. Theobald (2005)
+  "Rapid calculation of RMSD using a quaternion-based characteristic polynomial."
+  Acta Crystallographica A 61(4):478-480.
+
+  Pu Liu, Dmitris K. Agrafiotis, and Douglas L. Theobald (2010)
+  "Fast determination of the optimal rotational matrix for macromolecular superpositions."
+  J. Comput. Chem. 31, 1561-1563.
 """
 
 import copy
