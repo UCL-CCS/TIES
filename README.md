@@ -1,5 +1,6 @@
 # TIES 20
-Topology Superimposition based on joint graph traversal. 
+
+![CI](https://github.com/UCL-CCS/TIES20/actions/workflows/CI.yml/badge.svg)
 
 ## How to install ambertools and export the AMBERHOME variable
 
