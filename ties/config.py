@@ -132,7 +132,7 @@ class Config:
 
         #  can be loaded by parmed?
         print(f'Trying to open the protein file {path} with ParmEd..')
-        parmed.load_file(path)
+        parmed.load_file(str(path))
         self._protein = pathlib.Path(path)
 
     @property
