@@ -180,7 +180,7 @@ def command_line_script():
     [lig.antechamber_prepare_mol2() for lig in ligands]
 
     # make atom names unique in each ligand
-    [lig.make_atom_names_correct() for lig in ligands]
+    [lig.correct_atom_names() for lig in ligands]
 
     # generate all pairings
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]

@@ -125,18 +125,18 @@ class Ligand:
         has the same atom name using the first letter (C, N, ..)
 
         :param save_update: if the path is provided, the updated file
-            will be saved with the unique names and a handle to the new file (MDAnalysis universe) will be returned.
+            will be saved with the unique names and a handle to the new file (ParmEd) will be returned.
         """
         if self.are_atom_names_correct():
             return
 
         print(f'Ligand {self.internal_name} will have its atom names renamed. ')
 
-        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
+        ligand = parmed.load_file(str(self.current))
 
         print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
               f'or do not follow NameDigit format (e.g. C15). Renaming')
-        _, renaming_map = ties.helpers.get_new_atom_names(ligand_universe.atoms)
+        _, renaming_map = ties.helpers.get_new_atom_names(ligand.atoms)
         self._renaming_map = renaming_map
         print(f'Rename map: {renaming_map}')
 
@@ -145,10 +145,10 @@ class Ligand:
 
         ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (self.internal_name + self.current.suffix)
         if self.save:
-            ligand_universe.atoms.write(ligand_with_uniq_atom_names)
+            ligand.save(ligand_with_uniq_atom_names)
 
         self.ligand_with_uniq_atom_names = ligand_with_uniq_atom_names
-        self.universe = ligand_universe
+        self.parmed = ligand
         # this object is now represented by the updated ligand
         self.current = ligand_with_uniq_atom_names
 
@@ -254,9 +254,9 @@ class Ligand:
         They are only created if you reuse existing charges.
         They appear to be a side effect. We remove the dummy atoms therefore.
         """
-        mol2_u = ties.helpers.load_MDAnalysis_atom_group(self.current)
+        mol2 = parmed.load_file(str(self.current))
         # check if there are any DU atoms
-        has_DU = any(a.type == 'DU' for a in mol2_u.atoms)
+        has_DU = any(a.type == 'DU' for a in mol2.atoms)
         if not has_DU:
             return
 
@@ -264,7 +264,13 @@ class Ligand:
         shutil.move(self.current, self.current.parent / ('lig.beforeRemovingDU' + self.current.suffix))
 
         # remove DU type atoms and save the file
-        mol2_u.select_atoms('not type DU').atoms.write(self.current)
+        for atom in mol2.atoms:
+            if atom.name != 'DU':
+                continue
+
+            atom.residue.delete_atom(atom)
+        # save the updated molecule
+        mol2.save(str(self.current))
         print('Removed dummy atoms with type "DU"')
 
     def generate_frcmod(self, **kwargs):
@@ -315,11 +321,11 @@ class Ligand:
         Load coordinates from another file and overwrite the coordinates in the current file.
         """
 
-        # load the current atoms with MDAnalysis
-        mda_template = ties.helpers.load_MDAnalysis_atom_group(self.current)
+        # load the current atoms with ParmEd
+        template = parmed.load_file(str(self.current))
 
         # load the file with the coordinates we want to use
-        coords = ties.helpers.load_MDAnalysis_atom_group(file)
+        coords = parmed.load_file(str(file))
 
         # fixme: use the atom names
         by_atom_name = True
@@ -337,7 +343,7 @@ class Ligand:
             raise ValueError('Either option has to be selected.')
 
         if by_general_atom_type:
-            for mol2_atom in mda_template.atoms:
+            for mol2_atom in template.atoms:
                 found_match = False
                 for ref_atom in coords.atoms:
                     if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
@@ -346,7 +352,7 @@ class Ligand:
                         break
                 assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
         if by_atom_name:
-            for mol2_atom in mda_template.atoms:
+            for mol2_atom in template.atoms:
                 found_match = False
                 for ref_atom in coords.atoms:
                     if mol2_atom.name.upper() == ref_atom.name.upper():
@@ -355,7 +361,7 @@ class Ligand:
                         break
                 assert found_match, "Could not find the following atom name across the two files: " + mol2_atom.name
         elif by_index:
-            for mol2_atom, ref_atom in zip(mda_template.atoms, coords.atoms):
+            for mol2_atom, ref_atom in zip(template.atoms, coords.atoms):
                 atype = element_from_type[mol2_atom.type.upper()]
                 reftype = element_from_type[ref_atom.type.upper()]
                 if atype != reftype:

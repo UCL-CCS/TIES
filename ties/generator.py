@@ -252,9 +252,9 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
     
-    u = load_mda_u(source_pdb_filename)
-    if 'HYB' not in u.atoms.resnames:
-        raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
+    pmdpdb = parmed.load_file(str(source_pdb_filename))
+    if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
+        raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
 
     # dual-topology info
     matched = list(fep_summary['superimposition']['matched'].keys())
@@ -262,11 +262,11 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
     disappearing_atoms = fep_summary['superimposition']['disappearing']
 
     # update the Temp column
-    for atom in u.atoms:
+    for atom in pmdpdb.atoms:
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'HYB':
+        if atom.residue.name != 'HYB':
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
@@ -282,7 +282,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
+    pmdpdb.save(str(new_pdb_filename))  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):

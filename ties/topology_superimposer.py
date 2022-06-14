@@ -352,7 +352,7 @@ class SuperimposedTopology:
         # pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
         # write a dual .pdb file
         with open(morph_pdb_path, 'w') as FOUT:
-            for atom in self.mda_ligandL.atoms:
+            for atom in self.parmed_ligA.atoms:
                 """
                 There is only one forcefield which is shared across the two topologies. 
                 Basically, we need to check whether the atom is in both topologies. 
@@ -361,32 +361,33 @@ class SuperimposedTopology:
                 that it is 1) new and 2) the right type
                 """
                 # write all the atoms if they are matched, that's the common part
+                # note that ParmEd does not have the information on a residue ID
                 REMAINS = 0
                 if self.contains_left_atom_name(atom.name.upper()):
-                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                           f"{atom.resid:>4d}    " \
-                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
+                           f"{1:>4d}    " \
+                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
                            f"{1.0:>6.2f}{REMAINS:>6.2f}" + (' ' * 11) + \
                            '  ' + '  ' + '\n'
                     FOUT.write(line)
                 else:
                     # this atom was not found, this means it disappears, so we should update the
                     DISAPPEARING_ATOM = -1.0
-                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                           f"{atom.resid:>4d}    " \
-                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
+                           f"{1:>4d}    " \
+                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
                            f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}" + \
                            (' ' * 11) + \
                            '  ' + '  ' + '\n'
                     FOUT.write(line)
             # add atoms from the right topology,
             # which are going to be created
-            for atom in self.mda_ligandR.atoms:
+            for atom in self.parmed_ligZ.atoms:
                 if not self.contains_right_atom_name(atom.name.upper()):
                     APPEARING_ATOM = 1.0
-                    line = f"ATOM  {atom.id:>5d} {atom.name:>4s} {atom.resname:>3s}  " \
-                           f"{atom.resid:>4d}    " \
-                           f"{atom.position[0]:>8.3f}{atom.position[1]:>8.3f}{atom.position[2]:>8.3f}" \
+                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
+                           f"{1:>4d}    " \
+                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
                            f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}" + \
                            (' ' * 11) + \
                            '  ' + '  ' + '\n'

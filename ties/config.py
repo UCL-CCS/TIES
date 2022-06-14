@@ -176,9 +176,9 @@ class Config:
                 print(f'Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. ')
             else:
                 print(f'Trying to open the ligand {ligand} with ParmEd..')
-                ligand_universe = parmed.load_file(ligand)
+                lig = parmed.load_file(str(ligand))
                 # there should be one residue
-                if len(ligand_universe.residues.resnames) > 1:
+                if len({a.residue.name for a in lig.atoms}) > 1:
                     print(f'Warning: more than one residue name detected in the ligand {ligand}')
 
         # TODO - ensure that it is a connected component and there is no extra atoms
@@ -443,7 +443,7 @@ class Config:
         # if all ligands are .mol2, then charges are provided
         if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
             # if all atoms have q = 0 that means they're a placeholder
-            u = parmed.load_file(list(self.ligand_files)[0])
+            u = parmed.load_file(str(list(self.ligand_files)[0]))
             all_q_0 = all(a.charge == 0 for a in u.atoms)
             if all_q_0:
                 return False
