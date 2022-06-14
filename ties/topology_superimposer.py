@@ -464,10 +464,15 @@ class SuperimposedTopology:
         log_filename = build / 'generate_top.log'
         with open(log_filename, 'w') as LOG:
             try:
-                subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
+                output = subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
                                stdout=LOG, stderr=LOG,
                                cwd=build,
                                check=True, text=True, timeout=30)
+
+                # check if there were errors
+                if 'Errors = 0' not in open(log_filename).read()[-100:]:
+                    raise subprocess.CalledProcessError('Errors found in antechamber', 'antechamber')
+
                 hybrid_solv = build / 'complex_nofep.pdb'  # generated
                 # check if the solvation is correct
             except subprocess.CalledProcessError as E:
