@@ -9,8 +9,6 @@ import subprocess
 import warnings
 import pathlib
 
-import MDAnalysis
-
 
 def are_correct_names(names):
     """
