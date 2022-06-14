@@ -276,13 +276,13 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
             continue
         elif atom.name in appearing_atoms:
             # appearing atoms should
-            atom.tempfactor = 1
+            atom.bfactor = 1
         elif atom.name in disappearing_atoms:
-            atom.tempfactor = -1
+            atom.bfactor = -1
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    pmdpdb.save(str(new_pdb_filename))  # , file_format='PDB') - fixme?
+    pmdpdb.save(str(new_pdb_filename), overwrite=True)  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):
@@ -632,7 +632,7 @@ def create_constraint_files(original_pdb, output):
             # restrain the heavy atom
             atom.bfactor = 4
 
-    sys.save(output)
+    sys.save(output, overwrite=True)
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, protein):
