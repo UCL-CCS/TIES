@@ -11,8 +11,8 @@ dependencies:
   - setuptools
   - matplotlib
   - networkx
-  - dwave_networkx
   - dimod
   - tabulate
   - pip:
+      - dwave_networkx
       - . # ties installation
