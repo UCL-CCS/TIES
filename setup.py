@@ -8,8 +8,6 @@ setup(
     url='http://ccs.chem.ucl.ac.uk',
     author='Mateusz K. Bieniek',
     author_email='bieniekmat@gmail.com',
-    install_requires=['numpy', 'mdanalysis', 'cython', 'setuptools', 'matplotlib', 'networkx',
-                      'dwave_networkx', 'dimod', 'tabulate'],
     packages=find_packages(),
     include_package_data=True,
     entry_points={

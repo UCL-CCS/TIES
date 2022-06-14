@@ -6,5 +6,13 @@ dependencies:
   - ambertools>=20.0, <22.0
   - libgfortran
   - ties_md
+  - numpy
+  - cython
+  - setuptools
+  - matplotlib
+  - networkx
+  - dwave_networkx
+  - dimod
+  - tabulate
   - pip:
       - . # ties installation

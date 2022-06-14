@@ -4,6 +4,8 @@ import copy
 import subprocess
 from pathlib import Path
 
+import parmed
+
 import ties.helpers
 from ties.generator import get_atoms_bonds_from_mol2
 from ties.topology_superimposer import superimpose_topologies
@@ -95,7 +97,7 @@ class Pair():
         # use MDAnalysis to load the files
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
-        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
+        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, parmed_ligA, parmed_ligZ = \
             get_atoms_bonds_from_mol2(self.current_ligA, self.current_ligZ,
                                       use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
@@ -166,15 +168,15 @@ class Pair():
                                          use_general_type=self.config.use_element_in_superimposition,
                                          # fixme - not the same ... use_element_in_superimposition,
                                          use_only_element=False,
-                                         check_atom_names_unique=True, # fixme - remove?
-                                         starting_pairs_heuristics=True, # fixme - add to config
+                                         check_atom_names_unique=True,  # fixme - remove?
+                                         starting_pairs_heuristics=True,  # fixme - add to config
                                          force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
-                                         ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
+                                         parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
                                          starting_pair_seed=self.config.superimposition_starting_pair)
 
         assert len(suptops) == 1
-        self.set_suptop(suptops[0], mda_l1, mda_l2)
+        self.set_suptop(suptops[0], parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
         suptops[0].config = self.config
         # attach the morph to the suptop
@@ -214,23 +216,25 @@ class Pair():
         """
 
         # The A ligand is a template for the renaming
-        self.ligA.make_atom_names_correct()
+        self.ligA.correct_atom_names()
 
         # load both ligands
-        left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
-        right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
+        left = parmed.load_file(str(self.ligA.current))
+        right = parmed.load_file(str(self.ligZ.current))
 
-        atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
+        atom_names_overlap = len({a.name for a in right.atoms}.intersection({a.name for a in left.atoms})) > 0
 
-        if atom_names_overlap or not self.ligZ.atom_names_correct():
+        if atom_names_overlap or not self.ligZ.are_atom_names_correct():
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
             _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
             self.ligZ.renaming_map = renaming_map
 
         # rename the residue names to INI and FIN
-        left.residues.resnames = ['INI']
-        right.residues.resnames = ['FIN']
+        for atom in left.atoms:
+            atom.residue = 'INI'
+        for atom in right.atoms:
+            atom.residue = 'FIN'
 
         # fixme - instead of using the save parameter, have a method pair.save(filename1, filename2) and
         #  call it when necessary.
@@ -249,8 +253,8 @@ class Pair():
             self.current_ligZ = out_ligZ_filename
 
         # save the updated atom names
-        left.atoms.write(self.current_ligA)
-        right.atoms.write(self.current_ligZ)
+        left.save(str(self.current_ligA))
+        right.save(str(self.current_ligZ))
 
     def check_json_file(self):
         """

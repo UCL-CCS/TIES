@@ -24,7 +24,7 @@ def test_no_same_atom_names(dual_ring1):
 
 def test_rename_ligand():
     lig = Ligand('data/p38_ligands_01.pdb', save=False)
-    lig.make_atom_names_correct()
+    lig.correct_atom_names()
     assert len(set(lig.universe.atoms.names)) == len(lig.universe.atoms.names)
 
 

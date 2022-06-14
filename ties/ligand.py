@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 import numpy as np
+import parmed
 
 import ties.helpers
 from ties.config import Config
@@ -107,18 +108,18 @@ class Ligand:
         self.current = new_current
         print(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
 
-    def atom_names_correct(self):
+    def are_atom_names_correct(self):
         """
         Checks if atom names:
          - are unique
          - have a correct format "LettersNumbers" e.g. C17
         """
-        ligand_universe = ties.helpers.load_MDAnalysis_atom_group(self.current)
-        atom_names = [a.name for a in ligand_universe.atoms]
+        ligand = parmed.load_file(str(self.current))
+        atom_names = [a.name for a in ligand.atoms]
         atom_names_are_uniqe = len(set(atom_names)) == len(atom_names)
         return atom_names_are_uniqe and ties.helpers.are_correct_names(atom_names)
 
-    def make_atom_names_correct(self):
+    def correct_atom_names(self):
         """
         Ensure that each atom has a unique name and follows our format. rename the atom names to ensure that no atom
         has the same atom name using the first letter (C, N, ..)
@@ -126,7 +127,7 @@ class Ligand:
         :param save_update: if the path is provided, the updated file
             will be saved with the unique names and a handle to the new file (MDAnalysis universe) will be returned.
         """
-        if self.atom_names_correct():
+        if self.are_atom_names_correct():
             return
 
         print(f'Ligand {self.internal_name} will have its atom names renamed. ')

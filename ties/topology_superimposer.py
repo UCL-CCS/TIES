@@ -17,11 +17,8 @@ from collections import OrderedDict
 
 import numpy as np
 import networkx as nx
-import MDAnalysis
-from MDAnalysis.analysis.distances import distance_array
-from MDAnalysis.analysis.align import rotation_matrix
+import parmed
 
-from ties.helpers import load_MDAnalysis_atom_group
 import ties.config
 import ties.generator
 
@@ -238,12 +235,14 @@ class SuperimposedTopology:
     However, it can also represent the symmetrical versions that were superimposed.
     """
 
-    def __init__(self, topology1=None, topology2=None, mda_left=None, mda_right=None):
-        self.mda_ligandL = mda_left
-        self.mda_ligandR = mda_right
+    def __init__(self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None):
+        self.parmed_ligA = parmed_ligA
+        self.parmed_ligZ = parmed_ligZ
 
         self.can_use_mda = True
-        if self.mda_ligandL is None or self.mda_ligandR is None:
+        if self.parmed_ligA is None or self.parmed_ligZ is None:
+            # print('Will not use mda positions for aligning. Simply taking .rmsd(). ')
+            # fixme: we can now use this feature without MDAnalysis
             self.can_use_mda = False
 
         """
@@ -750,61 +749,45 @@ class SuperimposedTopology:
         if not self.can_use_mda:
             # cannot use MDA for aligning the ligands.
             # Simply return the rmsd of the current setting instead
-            print('Will not use mda positions for aligning. Simply taking .rmsd()')
             return self.rmsd()
 
-        # extract the IDs and use them to pick the atoms in MDAnalysis
+        # extract the IDs and use them to pick the atoms
         # note that the order matters
-        matched_l_ids = [left.id for left, right in self.matched_pairs]
-        matched_r_ids = [right.id for left, right in self.matched_pairs]
+        matched_ligA_ids = [left.id for left, right in self.matched_pairs]
+        matched_ligZ_ids = [right.id for left, right in self.matched_pairs]
 
         # save the original positions (deep copy)
-        original_left_pos = np.empty_like(self.mda_ligandL.atoms.positions)
-        np.copyto(dst=original_left_pos, src=self.mda_ligandL.atoms.positions)
-        original_right_pos = np.empty_like(self.mda_ligandR.atoms.positions)
-        np.copyto(dst=original_right_pos, src=self.mda_ligandR.atoms.positions)
+        original_ligA_pos = copy.deepcopy(self.parmed_ligA.coordinates)
+        original_ligZ_pos = copy.deepcopy(self.parmed_ligZ.coordinates)
 
-        # select the same atoms in MDAnalysis,
-        # select separately to keep the order correct
-        selection_ids_l = ['bynum ' + str(atom_id) for atom_id in matched_l_ids]
-        mda_l_matched = self.mda_ligandL.select_atoms(*selection_ids_l)
-        selection_ids_r = ['bynum ' + str(atom_id) for atom_id in matched_r_ids]
-        mda_r_matched = self.mda_ligandR.select_atoms(*selection_ids_r)
+        # select the coordinates from the matches atoms
+        # note that the order matters here
+        from ties.transformation import superimpose_coordinates
 
-        # translate all atoms to the origin of the matched subcomponent
-        # using Centre-of-geometry of the matched area
-        left_ligand_original_cog = mda_l_matched.center_of_geometry()
-        self.mda_ligandL.atoms.translate(-left_ligand_original_cog)
-        right_ligand_original_cog = mda_r_matched.center_of_geometry()
-        self.mda_ligandR.atoms.translate(-right_ligand_original_cog)
+        matched_ligA_coords = original_ligA_pos[matched_ligA_ids]
+        matched_ligZ_coords = original_ligZ_pos[matched_ligZ_ids]
 
-        # set the right ligand as reference/mobile
-        if self.left_coords_are_ref:
-            ref = mda_l_matched
-            mob = mda_r_matched
-            mob_ligand = self.mda_ligandR
-            ref_cog = left_ligand_original_cog
-        else:
-            ref = mda_r_matched
-            mob = mda_l_matched
-            mob_ligand = self.mda_ligandL
-            ref_cog = right_ligand_original_cog
+        # set ligA ligand as reference for the superimposition
+        if not self.left_coords_are_ref:
+            raise Exception('Aligning to the right ligand is not implemented')
 
-        # apply the rotation matrix to all atoms to match the mobile ligand to the ref ligand
-        # if they are already superimposed, set rmsd to 0
-        if np.all(mob.positions == ref.positions):
-            rmsd = 0
-        else:
-            rotation, rmsd = rotation_matrix(mob.positions, ref.positions)
-            mob_ligand.atoms.rotate(rotation)
+        # obtain the rotation matrix and com that has to be applied
+        rmsd, rotation_matrix, ref_com = superimpose_coordinates(matched_ligA_coords, matched_ligZ_coords)
+        # shift all ligZ atoms to 0 origin
+        mob_com = (np.sum(original_ligZ_pos.T, axis=1) / len(original_ligZ_pos)).reshape(3, 1)
+        original_ligZ_pos_origin = (original_ligZ_pos.T - mob_com).T
+        # rotate all positions by the same rotation needed for the subset
+        original_ligZ_pos_superimposed = original_ligZ_pos_origin * rotation_matrix
 
-        # the new cog is that of the ref
-        self.mda_ligandL.atoms.translate(ref_cog)
-        self.mda_ligandR.atoms.translate(ref_cog)
+        # get the origin of the reference
+        matched_ref_com = (np.sum(matched_ligA_coords.T, axis=1) / len(matched_ligA_coords)).reshape(3, 1)
+        # translate the rotated mobile atoms so that the matched area is superimposed
+        original_ligZ_pos_superimposed = (original_ligZ_pos_superimposed.T + matched_ref_com).T
 
         # update the atoms with the mapping done via IDs
         # for the left
         if overwrite_original:
+            raise Exception('revisit')
             for mda_a in self.mda_ligandL.atoms:
                 found = False
                 for loaded_a in self.top1:
@@ -822,10 +805,6 @@ class SuperimposedTopology:
                         found = True
                         break
                 assert found
-
-        # put back original pos
-        self.mda_ligandL.atoms.positions = original_left_pos
-        self.mda_ligandR.atoms.positions = original_right_pos
 
         if rmsd is None:
             # fixme ? why does it return None?
@@ -916,14 +895,14 @@ class SuperimposedTopology:
                     pair_id = self.get_generated_atom_id(pair[0])
                     # add the bond between the atom and the pair
                     bond_sorted = sorted([unmatched_atom_id, pair_id])
-                    bond_sorted.append(bond_type[0])
+                    bond_sorted.append(bond_type)
                     bonds.add(tuple(bond_sorted))
                 else:
                     # it is not directly linked to a matched pair,
                     # simply add this missing bond to whatever atom it is bound
                     another_unmatched_atom_id = self.get_generated_atom_id(bonded_atom)
                     bond_sorted = sorted([unmatched_atom_id, another_unmatched_atom_id])
-                    bond_sorted.append(bond_type[0])
+                    bond_sorted.append(bond_type)
                     bonds.add(tuple(bond_sorted))
 
         # fixme - what about circles etc? these bonds
@@ -1172,9 +1151,9 @@ class SuperimposedTopology:
         self.top1 = list(top1)
         self.top2 = list(top2)
 
-    def set_MDAnalysis_universes(self, ligand_l_mda, ligand_r_mda):
-        self.mda_ligandL = ligand_l_mda
-        self.mda_ligandR = ligand_r_mda
+    def set_parmeds(self, ligA, ligZ):
+        self.parmed_ligA = ligA
+        self.parmed_ligZ = ligZ
 
     def match_gaff2_nondirectional_bonds(self):
         """
@@ -1564,11 +1543,11 @@ class SuperimposedTopology:
 
         assert len(self.matched_pairs) > 0
 
-        sq_dsts = []
-        for nodeA, nodeB in self.matched_pairs:
-            dst = distance_array(np.array([nodeA.position, ]), np.array([nodeB.position, ]))[0]
-            sq_dsts.append(dst**2)
-        return np.sqrt(np.mean(sq_dsts))
+        dsts = []
+        for atomA, atomB in self.matched_pairs:
+            dst = np.sqrt(np.sum(np.square((atomA.position - atomB.position))))
+            dsts.append(dst)
+        return np.sqrt(np.mean(np.square(dsts)))
 
     def add_node_pair(self, node_pair):
         # Argument: bonds are most often used to for parent, but it is a
@@ -1746,7 +1725,7 @@ class SuperimposedTopology:
                     if BX in blacklisted_bxs:
                         continue
                     # use the distance_array because of PBC correction and speed
-                    a1_bx_dst = distance_array(np.array([A1.position, ]), np.array([BX.position, ]))[0]
+                    a1_bx_dst = np.sqrt(np.sum(np.square(A1.position-BX.position)))
                     if a1_bx_dst < closest_dst:
                         closest_dst = a1_bx_dst
                         closest_bx = BX
@@ -2629,8 +2608,6 @@ class SuperimposedTopology:
         """
         summary = {
             # metadata
-            'start_ligand': str(self.mda_ligandL.filename),
-            'end_ligand': str(self.mda_ligandR.filename),
             # renamed atoms, new name : old name
             'renamed_atoms': {
                 'start_ligand': {a.name: a.original_name for a in self.top1},
@@ -3072,7 +3049,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            force_mismatch=None, disjoint_components=False,
                            net_charge_filter=True, net_charge_threshold=0.1,
                            redistribute_charges_over_unmatched=True,
-                           ligand_l_mda=None, ligand_r_mda=None,
+                           parmed_ligA=None, parmed_ligZ=None,
                            align_molecules=True,
                            partial_rings_allowed=True,
                            ignore_charges_completely=False,
@@ -3104,7 +3081,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
 
 
     # Get the superimposed topology(/ies).
-    suptops = _superimpose_topologies(top1_nodes, top2_nodes, ligand_l_mda, ligand_r_mda,
+    suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
                                       starting_node_pairs=starting_node_pairs,
                                       ignore_coords=ignore_coords,
                                       left_coords_are_ref=left_coords_are_ref,
@@ -3128,7 +3105,7 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     for suptop in suptops:
         # fixme - transition to config
         suptop.set_tops(top1_nodes, top2_nodes)
-        suptop.set_MDAnalysis_universes(ligand_l_mda, ligand_r_mda)
+        suptop.set_parmeds(parmed_ligA, parmed_ligZ)
 
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
@@ -3954,44 +3931,51 @@ def get_atoms_bonds_from_ac(ac_file):
 
 def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
     """
-    Use MDAnalysis to load the files.
+    Use Parmed to load the files.
 
     # returns
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
     """
-    universe_ref = load_MDAnalysis_atom_group(ref_filename)
-    universe_mobile = load_MDAnalysis_atom_group(mob_filename)
+    ref = parmed.load_file(str(ref_filename))
+    mobile = parmed.load_file(str(mob_filename))
 
-    def create_atoms(mda_atoms):
+    def create_atoms(parmed_atoms):
         """
-        # convert the MDAnalysis atoms into Atom objects.
+        # convert the Parmed atoms into Atom objects.
         """
         atoms = []
-        for mda_atom in mda_atoms:
+        for parmed_atom in parmed_atoms:
+            atom_type = parmed_atom.type
+            # atom type might be empty if
+            if not atom_type:
+                # use the atom name as the atom type, e.g. C7
+                atom_type = parmed_atom.name
+
+
             try:
-                atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, charge=mda_atom.charge, use_general_type=use_general_type)
+                atom = Atom(name=parmed_atom.name, atom_type=atom_type, charge=parmed_atom.charge, use_general_type=use_general_type)
             except AttributeError:
                 # most likely the charges were missing, manually set the charges to 0
-                atom = Atom(name=mda_atom.name, atom_type=mda_atom.type, charge=0.0, use_general_type=use_general_type)
+                atom = Atom(name=parmed_atom.name, atom_type=atom_type, charge=0.0, use_general_type=use_general_type)
                 print('WARNING: One of the input files is missing charges. Setting the charge to 0')
-            atom.id = mda_atom.id
-            atom.position = mda_atom.position
-            atom.resname = mda_atom.resname
+            atom.id = parmed_atom.idx
+            atom.position = [parmed_atom.xx, parmed_atom.xy, parmed_atom.xz]
+            atom.resname = parmed_atom.residue.name
             atoms.append(atom)
         return atoms
 
-    universe_ref_atoms = create_atoms(universe_ref.atoms)
+    universe_ref_atoms = create_atoms(ref.atoms)
     # note that these coordinate should be superimposed
-    universe_mob_atoms = create_atoms(universe_mobile.atoms)
+    universe_mob_atoms = create_atoms(mobile.atoms)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
-    universe_ref_bonds = [(bond[0].id, bond[1].id, bond.order) for bond in universe_ref.bonds]
-    universe_mob_bonds = [(bond[0].id, bond[1].id, bond.order) for bond in universe_mobile.bonds]
+    universe_ref_bonds = [(b.atom1.idx, b.atom2.idx, b.order) for b in ref.bonds]
+    universe_mob_bonds = [(b.atom1.idx, b.atom2.idx, b.order) for b in mobile.bonds]
 
     return universe_ref_atoms, universe_ref_bonds, \
            universe_mob_atoms, universe_mob_bonds, \
-           universe_ref, universe_mobile
+           ref, mobile
 
 
 def assign_coords_from_pdb(atoms, pdb_atoms):
