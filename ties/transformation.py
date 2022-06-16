@@ -20,7 +20,7 @@ This implementation is copyright
 import copy
 
 import numpy
-import pyqcprot as qcp
+from . import pyqcprot
 
 
 def test():
@@ -86,9 +86,9 @@ def test():
     frag_b = frag_b - comB.reshape(3, 1)
 
     # Calculate rmsd and rotation matrix
-    rmsd = qcp.CalcRMSDRotationalMatrix(frag_a, frag_b, N, rot, None)
+    rmsd = pyqcprot.CalcRMSDRotationalMatrix(frag_a, frag_b, N, rot, None)
 
-    print('qcp rmsd = ', rmsd)
+    print('pyqcprot rmsd = ', rmsd)
     print('rotation matrix:')
     print(rot.reshape((3, 3)))
 
@@ -148,7 +148,7 @@ def superimpose_coordinates(ref, mob):
     mob_origin = mob_coords - com_mob.reshape(3, 1)
 
     # Calculate rmsd and rotation matrix
-    rmsd = qcp.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
+    rmsd = pyqcprot.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
 
     # reshape so that it can be used directly on all coordinates
     rotational_matrix = numpy.matrix(rotation.reshape((3, 3)))
