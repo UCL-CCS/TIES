@@ -11,15 +11,15 @@ except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
 # handle cython modules: pyqcprot module for the rotation matrix
-try:
-    from Cython.Distutils import build_ext
-    use_cython = True
-    cmdclass = {'build_ext': build_ext}
-except ImportError:
-    use_cython = False
-    cmdclass = {}
-finally:
-    print (f'use_cython: {use_cython}')
+#try:
+#    from Cython.Distutils import build_ext
+#    use_cython = True
+#    cmdclass = {'build_ext': build_ext}
+#except ImportError:
+use_cython = False
+cmdclass = {}
+#finally:
+#    print (f'use_cython: {use_cython}')
 
 ext_modules = [Extension("ties/pyqcprot", [f"ties/pyqcprot/pyqcprot.{'pyx' if use_cython else 'c'}"],
                          include_dirs=[numpy_include],
