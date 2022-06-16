@@ -496,9 +496,13 @@ class SuperimposedTopology:
             cons_file = 'cons.pdb'
         else:
             cons_file = 'na'
-        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=self.config.md_engine,
-                                                                                          version=self.config.namd_version,
-                                                                                          cons_file=cons_file, **solv_oct_boc)
+        if self.config.md_engine == 'namd':
+            engine = self.config.md_engine+self.config.namd_version
+        else:
+            engine = self.config.md_engine
+        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=engine,
+                                                                                        cons_file=cons_file,
+                                                                                        **solv_oct_boc)
         open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
         # populate the build dir with positions, parameters and constraints
