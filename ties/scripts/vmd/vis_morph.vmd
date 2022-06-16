@@ -298,8 +298,8 @@ display dof_focaldist 0.700000
 
 # file exists sys_solv.top
 
-mol new build/sys_solv.top type parm7 first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
-mol addfile build/sys_solv_fep.pdb type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
+mol new build/complex.prmtop type parm7 first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
+mol addfile build/complex.pdb type pdb first 0 last -1 step 1 filebonds 1 autobonds 1 waitfor all
 mol delrep 0 top
 mol representation CPK 0.800000 0.300000 12.000000 12.000000
 mol color Beta
