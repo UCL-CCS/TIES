@@ -67,7 +67,7 @@ class Config:
         # MD/NAMD production input file
         self._md_engine = 'namd'
         #default to modern CPU version
-        self.namd_version = 'version = 2.14'
+        self.namd_version = '2.14'
         self._lambda_rep_dir_tree = False
 
         # experimental
@@ -629,13 +629,13 @@ class Config:
         supported = ['NAMD2.13', 'NAMD2.14', 'NAMD3', 'OpenMM']
         if type(value) == str and value.lower() == 'namd2.14':
             self._md_engine = 'namd'
-            self.namd_version = 'version = 2.14'
+            self.namd_version = '2.14'
         elif type(value) == str and value.lower() == 'namd2.13':
             self._md_engine = 'namd'
-            self.namd_version = 'version = 2.13'
+            self.namd_version = '2.13'
         elif type(value) == str and value.lower() == 'namd3':
             self._md_engine = 'namd3'
-            self.namd_version = 'version = 3'
+            self.namd_version = '3'
         elif type(value) == str and value.lower() == 'openmm':
             self._md_engine = 'openmm'
             self.namd_version = ''
