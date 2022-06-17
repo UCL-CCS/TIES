@@ -421,19 +421,25 @@ class SuperimposedTopology:
         build = cwd / 'build'
         build.mkdir(parents=True, exist_ok=True)
 
-        # copy the protein complex .pdb
+        # copy the protein complex.pdb and save charge for later box neutralization
         if protein is not None:
             shutil.copy(protein.get_path(), build / 'protein.pdb')
+            protein_charge = protein.protein_net_charge
+        else:
+            protein_charge = 0.0
 
         # copy the hybrid ligand (topology and .frcmod)
         shutil.copy(self.morph.suptop.mol2, build / 'hybrid.mol2')
 
-        # determine the number of ions to neutralise the ligand charge
-        if self.config.ligand_net_charge < 0:
-            Na_num = math.fabs(self.config.ligand_net_charge)
+        # calculate total system charge by adding ligand and protein charges.
+        system_charge = self.config.ligand_net_charge+protein_charge
+
+        # determine the number of ions to neutralise the system charge
+        if system_charge < 0:
+            Na_num = math.fabs(system_charge)
             Cl_num = 0
-        elif self.config.ligand_net_charge > 0:
-            Cl_num = self.config.ligand_net_charge
+        elif system_charge > 0:
+            Cl_num = system_charge
             Na_num = 0
         else:
             Cl_num = Na_num = 0
@@ -490,9 +496,13 @@ class SuperimposedTopology:
             cons_file = 'cons.pdb'
         else:
             cons_file = 'na'
-        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=self.config.md_engine,
-                                                                                          version=self.config.namd_version,
-                                                                                          cons_file=cons_file, **solv_oct_boc)
+        if self.config.md_engine == 'namd':
+            engine = self.config.md_engine+self.config.namd_version
+        else:
+            engine = self.config.md_engine
+        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=engine,
+                                                                                        cons_file=cons_file,
+                                                                                        **solv_oct_boc)
         open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
         # populate the build dir with positions, parameters and constraints
