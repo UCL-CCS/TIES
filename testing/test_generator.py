@@ -39,6 +39,18 @@ def test_are_correct_names():
 
     assert ties.helpers.are_correct_names([a.name for a in lig.atoms])
 
+def test_atom_names_not_unique():
+    """
+    Check if the pattern is correct, ie Element followed by number, C16
+    :return:
+    """
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
+    lig.add_atom(parmed.Atom(name='H1'), 'resname', 1)
+    lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
+
+    assert ties.helpers.are_correct_names([a.name for a in lig.atoms])
+
 
 # should be a test?
 def test_input_prep():

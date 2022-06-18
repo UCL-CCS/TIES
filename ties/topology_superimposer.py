@@ -3986,18 +3986,20 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
 
 def assign_coords_from_pdb(atoms, pdb_atoms):
     """
-    Match the atoms from the MDAnalysis object based on a .pdb file
-    and copy the coordinates from the MDAnalysis atoms to the
-    corresponding atoms.
+    Match the atoms from the ParmEd object based on a .pdb file
+    and overwrite the coordinates from ParmEd.
+    :param atoms: internal Atom representation (fixme: refer to it here in docu),
+        will have their coordinates overwritten.
+    :param pdb_atoms: atoms loaded with ParmEd with the coordinates to be used
+
     """
     for atom in atoms:
         # find the corresponding atom
         found_match = False
         for pdb_atom in pdb_atoms.atoms:
             if pdb_atom.name.upper() == atom.name.upper():
-                # assign the charges
-                pos = pdb_atom.position
-                atom.position = (pos[0], pos[1], pos[2])
+                # charges?
+                atom.position = (pdb_atom.xx, pdb_atom.xy, pdb_atom.xz)
                 found_match = True
                 break
         if not found_match:

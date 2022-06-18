@@ -12,7 +12,8 @@ import pytest
 from os import path
 from pathlib import Path
 
-import MDAnalysis as mda
+import parmed
+
 from ties.topology_superimposer import get_atoms_bonds_from_ac, \
     superimpose_topologies, _superimpose_topologies, assign_coords_from_pdb
 
@@ -26,17 +27,17 @@ def load_problem_from_dir(liglig_path):
     print("working now on: ", liglig_path)
     liglig_fullpath = Path(__file__).parent / liglig_path
     # fixme - make sure these two are superimposed etc, that data is used later
-    mda_left_lig = mda.Universe(path.join(liglig_fullpath, 'init_%s.pdb' % ligand_from))
-    mda_right_lig = mda.Universe(path.join(liglig_fullpath, 'final_%s.pdb' % ligand_to))
+    left_lig = parmed.load_file(str(liglig_fullpath / f'init_{ligand_from}.pdb'))
+    right_lig = parmed.load_file(str(liglig_fullpath / f'final_{ligand_to}.pdb'))
 
     # read the corresponding charge values for the l14
-    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_fullpath, 'init_%s.ac' % ligand_from))
-    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac(path.join(liglig_fullpath, 'final_%s.ac' % ligand_to))
+    leftlig_atoms, leftlig_bonds = get_atoms_bonds_from_ac(liglig_fullpath / f'init_{ligand_from}.ac')
+    rightlig_atoms, rightlig_bonds = get_atoms_bonds_from_ac(liglig_fullpath / f'final_{ligand_to}.ac')
 
     # fixme - make sure these two are superimposed etc, that data is used later
     # get the atom location using the .pdb which are superimposed onto each other
-    assign_coords_from_pdb(leftlig_atoms, mda_left_lig)
-    assign_coords_from_pdb(rightlig_atoms, mda_right_lig)
+    assign_coords_from_pdb(leftlig_atoms, left_lig)
+    assign_coords_from_pdb(rightlig_atoms, right_lig)
 
     # create graphs
     # create the nodes and add edges for one ligand
