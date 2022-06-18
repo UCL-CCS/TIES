@@ -29,11 +29,15 @@ def test_ligand_rename_atom_names_unique():
 
 
 def test_are_correct_names():
-    # u = MDAnalysis.Universe.empty(n_atoms=2)
-    # # set the atom names
-    # u.add_TopologyAttr('name', ['O1', 'H1'])
-    # assert ties.helpers.are_correct_names(u.atoms.names)
-    pass
+    """
+    Check if the pattern is correct, ie Element followed by number, C16
+    :return:
+    """
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
+    lig.add_atom(parmed.Atom(name='H1'), 'resname', 1)
+
+    assert ties.helpers.are_correct_names([a.name for a in lig.atoms])
 
 
 # should be a test?
