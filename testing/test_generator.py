@@ -22,10 +22,10 @@ def test_no_same_atom_names(dual_ring1):
     assert len(intersection) == 0
 
 
-def test_rename_ligand():
+def test_ligand_rename_atom_names_unique():
     lig = Ligand('data/p38_ligands_01.pdb', save=False)
     lig.correct_atom_names()
-    assert len(set(lig.universe.atoms.names)) == len(lig.universe.atoms.names)
+    assert len({a.name for a in lig.parmed.atoms}) == len([a.name for a in lig.parmed.atoms])
 
 
 def test_are_correct_names():
