@@ -355,7 +355,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     print('Overwriting the mol2 file with charges from the ac file')
     # load the charges from the .ac file
     ac_atoms, _ = get_atoms_bonds_from_ac(ac_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     mol2 = load_mol2_wrapper(mol2_filename)
 
     for mol2_atom in mol2.atoms:
@@ -376,7 +376,7 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
     # load the ref charges
     ref_mol2 = load_mol2_wrapper(mol2_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     mol2 = load_mol2_wrapper(mol2_filename)
 
     if by_atom_name and by_index:
@@ -537,7 +537,7 @@ def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_fi
 
     # load the ref coordinates
     ref_mol2 = load_mol2_wrapper(coor_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     static_mol2 = load_mol2_wrapper(mol2_filename)
     # this is being modified
     mod_mol2 = load_mol2_wrapper(mol2_filename)

@@ -95,7 +95,7 @@ class Pair():
         """
         self.config.set_configs(**kwargs)
 
-        # use MDAnalysis to load the files
+        # use ParmEd to load the files
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
         leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, parmed_ligA, parmed_ligZ = \
@@ -113,8 +113,8 @@ class Pair():
             new_mismatch_names.append(new_names)
 
         # assign
-        # fixme - Ideally I would reuse the mdanalysis data for this,
-        # MDAnalysis can use bonds if they are present - fixme
+        # fixme - Ideally I would reuse the ParmEd data for this,
+        # ParmEd can use bonds if they are present - fixme
         # map atom IDs to their objects
         ligand1_nodes = {}
         for atomNode in leftlig_atoms:
@@ -154,7 +154,7 @@ class Pair():
         if starting_node_pairs:
             print('Starting nodes will be used:', starting_node_pairs)
 
-        # fixme - simplify to only take the mdanalysis as input
+        # fixme - simplify to only take the ParmEd as input
         suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                          disjoint_components=self.config.allow_disjoint_components,
                                          net_charge_filter=True,
@@ -185,17 +185,17 @@ class Pair():
 
         return suptops[0]
 
-    def set_suptop(self, suptop, mda_l1, mda_l2):
+    def set_suptop(self, suptop, parmed_ligA, parmed_ligZ):
         """
-        Attach a SuperimposedTopology object along with the MDAnalysis objects for the ligA and ligZ.
+        Attach a SuperimposedTopology object along with the ParmEd objects for the ligA and ligZ.
 
         :param suptop: :class:`SuperimposedTopology`
-        :param mda_l1: An MDAnalysis Universe for the ligA
-        :param mda_l2: An MDAnalysis Universe for the ligZ
+        :param parmed_ligA: An ParmEd for the ligA
+        :param parmed_ligZ: An ParmEd for the ligZ
         """
         self.suptop = suptop
-        self.mda_l1 = mda_l1
-        self.mda_l2 = mda_l2
+        self.parmed_ligA = parmed_ligA
+        self.parmed_ligZ = parmed_ligZ
 
     def make_atom_names_unique(self, out_ligA_filename=None, out_ligZ_filename=None, save=True):
         """
