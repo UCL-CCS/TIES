@@ -3,8 +3,8 @@ from ties import Ligand
 
 lig = Ligand('l02_same_atom_name.mol2')
 
-lig.make_atom_names_correct()
-assert lig.atom_names_correct()
+lig.correct_atom_names()
+assert lig.are_atom_names_correct()
 
 # prepare the .mol2 input
 lig.antechamber_prepare_mol2()
