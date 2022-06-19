@@ -164,7 +164,6 @@ class Pair():
                                          ignore_charges_completely=self.config.ignore_charges_completely,
                                          ignore_bond_types=True,
                                          ignore_coords=False,
-                                         left_coords_are_ref=True,
                                          align_molecules=self.config.align_molecules_using_mcs,
                                          use_general_type=self.config.use_element_in_superimposition,
                                          # fixme - not the same ... use_element_in_superimposition,
@@ -220,8 +219,8 @@ class Pair():
         self.ligA.correct_atom_names()
 
         # load both ligands
-        left = parmed.load_file(str(self.ligA.current))
-        right = parmed.load_file(str(self.ligZ.current))
+        left = parmed.load_file(str(self.ligA.current), structure=True)
+        right = parmed.load_file(str(self.ligZ.current), structure=True)
 
         atom_names_overlap = len({a.name for a in right.atoms}.intersection({a.name for a in left.atoms})) > 0
 

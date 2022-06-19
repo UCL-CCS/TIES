@@ -21,6 +21,7 @@ import parmed
 
 import ties.config
 import ties.generator
+from .transformation import superimpose_coordinates
 
 
 class Atom:
@@ -741,81 +742,59 @@ class SuperimposedTopology:
         return self.unique_atom_count
 
     def align_ligands_using_matched(self, overwrite_original=False):
-        # return self.rmsd()
         """
-        Align the two ligands using the matched area.
-        Note: we assume that the left ligand is docked. The left ligand is the reference here.
-        fixme -consider the use the aligning/RMSD could be using in scoring of symmetrical suptops.
-        Q: is aligning a good idea to deal with the symmetry issue?
+        Align the two ligands using the MCS (Maximum Common Substructure).
+        The ligA here is the reference (docked) to which the ligZ is aligned.
 
-        Use MDAnalysis for this.
-        #fixme - in the future, all the work should be carried out on MDAnalysis?
+        :param overwrite_original: After aligning by MCS, update the internal coordinates
+            which will be saved to a file at the end.
+        :type overwrite_original: bool
         """
         if not self.can_use_mda:
             # cannot use MDA for aligning the ligands.
             # Simply return the rmsd of the current setting instead
             return self.rmsd()
 
-        # extract the IDs and use them to pick the atoms
-        # note that the order matters
-        matched_ligA_ids = [left.id for left, right in self.matched_pairs]
-        matched_ligZ_ids = [right.id for left, right in self.matched_pairs]
+        # extract the IDs in the MCS - order matters
+        mcs_ligA_ids = [left.id for left, right in self.matched_pairs]
+        mcs_ligZ_ids = [right.id for left, right in self.matched_pairs]
 
-        # save the original positions (deep copy)
-        original_ligA_pos = copy.deepcopy(self.parmed_ligA.coordinates)
-        original_ligZ_pos = copy.deepcopy(self.parmed_ligZ.coordinates)
-
-        # select the coordinates from the matches atoms
-        # note that the order matters here
-        from ties.transformation import superimpose_coordinates
-
-        matched_ligA_coords = original_ligA_pos[matched_ligA_ids]
-        matched_ligZ_coords = original_ligZ_pos[matched_ligZ_ids]
-
-        # set ligA ligand as reference for the superimposition
-        if not self.left_coords_are_ref:
-            raise Exception('Aligning to the right ligand is not implemented')
+        # select the MCS coordinates
+        mcs_ligA_coords = self.parmed_ligA.coordinates[mcs_ligA_ids]
+        mcs_ligZ_coords = self.parmed_ligZ.coordinates[mcs_ligZ_ids]
 
         # obtain the rotation matrix and com that has to be applied
-        rmsd, rotation_matrix, ref_com = superimpose_coordinates(matched_ligA_coords, matched_ligZ_coords)
-        # shift all ligZ atoms to 0 origin
-        mob_com = (np.sum(original_ligZ_pos.T, axis=1) / len(original_ligZ_pos)).reshape(3, 1)
-        original_ligZ_pos_origin = (original_ligZ_pos.T - mob_com).T
-        # rotate all positions by the same rotation needed for the subset
-        original_ligZ_pos_superimposed = original_ligZ_pos_origin * rotation_matrix
+        rmsd, (rotation_matrix, ligA_mcs_com, ligZ_mcs_com) = superimpose_coordinates(mcs_ligA_coords, mcs_ligZ_coords)
 
-        # get the origin of the reference
-        matched_ref_com = (np.sum(matched_ligA_coords.T, axis=1) / len(matched_ligA_coords)).reshape(3, 1)
-        # translate the rotated mobile atoms so that the matched area is superimposed
-        original_ligZ_pos_superimposed = (original_ligZ_pos_superimposed.T + matched_ref_com).T
+        if not overwrite_original:
+            # Most likely this is a temporary alignment by MCS
+            # do not overwrite the internal coordinates and simply return the RMSD value
+            return rmsd
 
         # update the atoms with the mapping done via IDs
-        # for the left
-        if overwrite_original:
-            raise Exception('revisit')
-            for mda_a in self.mda_ligandL.atoms:
-                found = False
-                for loaded_a in self.top1:
-                    if mda_a.id == loaded_a.id:
-                        loaded_a.position = mda_a.position[0], mda_a.position[1], mda_a.position[2]
-                        found = True
-                        break
-                assert found
-            # and for the right
-            for mda_a in self.mda_ligandR.atoms:
-                found = False
-                for loaded_a in self.top2:
-                    if mda_a.id == loaded_a.id:
-                        loaded_a.position = mda_a.position[0], mda_a.position[1], mda_a.position[2]
-                        found = True
-                        break
-                assert found
+        print(f'Aligned by MCS with the RMSD value {rmsd}')
 
-        if rmsd is None:
-            # fixme ? why does it return None?
-            return 9999999999
+        # shift all ligZ so that its MCS is at 0
+        ligZ_mcs_origin = (self.parmed_ligZ.coordinates.T - ligZ_mcs_com).T
 
-        return rmsd
+        # rotate all positions by the same rotation needed for the MCS
+        ligZ_pos_rotated = ligZ_mcs_origin * rotation_matrix
+
+        # translate the rotated mobile atoms so that the matched area is superimposed
+        ligZ_pos_aligned = (ligZ_pos_rotated.T + ligA_mcs_com).T
+
+        # for a moment, overwrite the coordinates
+        self.parmed_ligZ.coordinates = ligZ_pos_aligned
+
+        # overwrite the internal atom positions with the final generated alignment
+        for parmed_atom in self.parmed_ligZ.atoms:
+            found = False
+            for atom in self.top2:
+                if parmed_atom.idx == atom.id:
+                    atom.position = parmed_atom.xx, parmed_atom.xy, parmed_atom.xz
+                    found = True
+                    break
+            assert found
 
     def rm_matched_pairs_with_different_bonds(self):
         """
@@ -3060,7 +3039,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
                            ignore_charges_completely=False,
                            ignore_bond_types=True,
                            ignore_coords=False,
-                           left_coords_are_ref=True,
                            use_general_type=True,
                            use_only_element=False,
                            check_atom_names_unique=True,
@@ -3089,7 +3067,6 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
                                       starting_node_pairs=starting_node_pairs,
                                       ignore_coords=ignore_coords,
-                                      left_coords_are_ref=left_coords_are_ref,
                                       use_general_type=use_general_type,
                                       starting_pairs_heuristics=starting_pairs_heuristics,
                                       starting_pair_seed=starting_pair_seed)
@@ -3590,7 +3567,6 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
 def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=None,
                             starting_node_pairs=None,
                             ignore_coords=False,
-                            left_coords_are_ref=True,
                             use_general_type=True,
                             starting_pairs_heuristics=True,
                             starting_pair_seed=None):
@@ -3629,7 +3605,6 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         # with the given starting two nodes, generate the maximum common component
         suptop = SuperimposedTopology(list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes)
         # fixme turn into a property
-        suptop.left_coords_are_ref = left_coords_are_ref
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
                                     suptop=suptop,
                                     ignore_coords=ignore_coords,
@@ -3942,8 +3917,8 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
     """
-    ref = parmed.load_file(str(ref_filename))
-    mobile = parmed.load_file(str(mob_filename))
+    ref = parmed.load_file(str(ref_filename), structure=True)
+    mobile = parmed.load_file(str(mob_filename), structure=True)
 
     def create_atoms(parmed_atoms):
         """

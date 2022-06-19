@@ -143,9 +143,12 @@ def superimpose_coordinates(ref, mob):
     com_ref = numpy.sum(ref, axis=1) / N
     com_mob = numpy.sum(mob_coords, axis=1) / N
 
+    com_ref = com_ref.reshape(3, 1)
+    com_mob = com_mob.reshape(3, 1)
+
     # Center each fragment
-    ref_origin = ref - com_ref.reshape(3, 1)
-    mob_origin = mob_coords - com_mob.reshape(3, 1)
+    ref_origin = ref - com_ref
+    mob_origin = mob_coords - com_mob
 
     # Calculate rmsd and rotation matrix
     rmsd = pyqcprot.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
@@ -157,8 +160,8 @@ def superimpose_coordinates(ref, mob):
     rotated_mob = rotate(mob_origin.T, rotational_matrix)
 
     # move it back to its original position
-    rotated_translated_mob = rotated_mob.T + com_mob.reshape(3, 1)
+    rotated_translated_mob = rotated_mob.T + com_mob
 
     # overlap_rmsd = get_rmsd(rotated_mob.T, ref_origin)
 
-    return rmsd, rotational_matrix, com_ref
+    return rmsd, (rotational_matrix, com_ref, com_mob)

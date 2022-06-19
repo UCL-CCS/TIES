@@ -254,7 +254,7 @@ class Ligand:
         They are only created if you reuse existing charges.
         They appear to be a side effect. We remove the dummy atoms therefore.
         """
-        mol2 = parmed.load_file(str(self.current))
+        mol2 = parmed.load_file(str(self.current), structure=True)
         # check if there are any DU atoms
         has_DU = any(a.type == 'DU' for a in mol2.atoms)
         if not has_DU:
@@ -322,10 +322,10 @@ class Ligand:
         """
 
         # load the current atoms with ParmEd
-        template = parmed.load_file(str(self.current))
+        template = parmed.load_file(str(self.current), structure=True)
 
         # load the file with the coordinates we want to use
-        coords = parmed.load_file(str(file))
+        coords = parmed.load_file(str(file), structure=True)
 
         # fixme: use the atom names
         by_atom_name = True

@@ -199,7 +199,7 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
     The left ligand has to be called INI
     And right FIN
     """
-    source_sys = parmed.load_file(source_pdb_filename)
+    source_sys = parmed.load_file(source_pdb_filename, structure=True)
     if {'INI', 'FIN'} != {a.residue.name for a in source_sys.atoms}:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
@@ -252,7 +252,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
     
-    pmdpdb = parmed.load_file(str(source_pdb_filename))
+    pmdpdb = parmed.load_file(str(source_pdb_filename), structure=True)
     if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
         raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
 
@@ -286,7 +286,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
 
 
 def get_ligand_resname(filename):
-    lig = parmed.load_file(filename)
+    lig = parmed.load_file(filename, structure=True)
     resnames = {a.residue.name for a in lig.atoms}
     if len(resnames) != 1:
         raise Exception(f'The ligand "{filename}" should have just one residue name. '
@@ -295,7 +295,7 @@ def get_ligand_resname(filename):
 
 
 def get_morphed_ligand_resnames(filename):
-    lig = parmed.load_file(filename)
+    lig = parmed.load_file(filename, structure=True)
     resnames = {a.residue.name for a in lig.atoms}
     if len(resnames) != 2:
         raise Exception(
@@ -465,7 +465,7 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_inp
 
 
     # read the file to see how many ions were added
-    newsys = parmed.load_file(str(cwd / 'prot_solv.pdb'))
+    newsys = parmed.load_file(str(cwd / 'prot_solv.pdb'), structure=True)
     cl = len([a.name == 'Cl-' for a in newsys.atoms])
     na = len([a.name == 'Na+' for a in newsys.atoms])
     if cl > na:
@@ -618,7 +618,7 @@ def create_constraint_files(original_pdb, output):
     :param output:
     :return:
     '''
-    sys = parmed.load_file(str(original_pdb))
+    sys = parmed.load_file(str(original_pdb), structure=True)
     # for each atom, give the B column the right value
     for atom in sys.atoms:
         # ignore water

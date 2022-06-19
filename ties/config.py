@@ -133,7 +133,7 @@ class Config:
 
         #  can be loaded by parmed?
         print(f'Trying to open the protein file {path} with ParmEd..')
-        parmed.load_file(str(path))
+        parmed.load_file(str(path), structure=True)
         self._protein = pathlib.Path(path)
 
     @property
@@ -316,7 +316,7 @@ class Config:
             return
 
         print(f'ParmEd: verifying the coordinate file {file}')
-        parmed.load_file(file)
+        parmed.load_file(file, structure=True)
         # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
         self._coordinates_file = file
 
