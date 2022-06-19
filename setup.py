@@ -38,7 +38,7 @@ setup(
     install_requires=('dwave_networkx', 'numpy'),
     entry_points={
         'console_scripts': [
-            'ties = ties:cmdties.command_line_script'
+            'ties = ties:cli.command_line_script'
         ]
     },
     cmdclass = cmdclass,
