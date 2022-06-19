@@ -114,7 +114,7 @@ class Ligand:
          - are unique
          - have a correct format "LettersNumbers" e.g. C17
         """
-        ligand = parmed.load_file(str(self.current))
+        ligand = parmed.load_file(str(self.current), structure=True)
         atom_names = [a.name for a in ligand.atoms]
         atom_names_are_uniqe = len(set(atom_names)) == len(atom_names)
         return atom_names_are_uniqe and ties.helpers.are_correct_names(atom_names)
@@ -132,7 +132,7 @@ class Ligand:
 
         print(f'Ligand {self.internal_name} will have its atom names renamed. ')
 
-        ligand = parmed.load_file(str(self.current))
+        ligand = parmed.load_file(str(self.current), structure=True)
 
         print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
               f'or do not follow NameDigit format (e.g. C15). Renaming')
@@ -145,7 +145,7 @@ class Ligand:
 
         ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (self.internal_name + self.current.suffix)
         if self.save:
-            ligand.save(ligand_with_uniq_atom_names)
+            ligand.save(str(ligand_with_uniq_atom_names))
 
         self.ligand_with_uniq_atom_names = ligand_with_uniq_atom_names
         self.parmed = ligand
