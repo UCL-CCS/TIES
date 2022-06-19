@@ -30,6 +30,7 @@ class Config:
         self.ambertools_script_dir = self.script_dir / 'ambertools'
         self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
         self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
+        self.vmd_vis_script_sh = self.script_dir / 'vmd' / 'vis_morph.sh'
 
         self._workdir = None
         self._antechamber_dr = False

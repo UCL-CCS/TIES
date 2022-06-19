@@ -508,9 +508,8 @@ class SuperimposedTopology:
         # copy the visualisation script as hidden
         shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
         # simplify the vis.vmd use
-        vis_sh = cwd / 'vis.sh'
-        vis_sh.write_text('#!/bin/sh \nvmd -e vis.vmd')
-        vis_sh.chmod(0o755)
+        shutil.copy(self.config.vmd_vis_script_sh, cwd / 'vis.sh')
+        (cwd / 'vis.sh').chmod(0o755)
 
     def write_mol2(self, filename=None, use_left_charges=True, use_left_coords=True):
         """
