@@ -6,26 +6,28 @@ from ties_analysis.config import Config
 
 
 class MD():
-    def __init__(self, sim_dir, sim_name='complex', sim_type='run', fast=False):
+    def __init__(self, sim_dir, sim_name='complex', fast=False):
 
-        cfg_file = os.path.join(sim_dir, 'TIES.cfg')
+        self.sim_dir = sim_dir
+        cfg_file = os.path.join(self.sim_dir, 'TIES.cfg')
         md_config = cli.read_config(cfg_file)
-        md = TIES.TIES(cwd=sim_dir, exp_name=sim_name, **md_config)
+        self.md = TIES.TIES(cwd=self.sim_dir, exp_name=sim_name, **md_config)
 
         if fast:
             #modify md to cut as many corners as possible i.e. reps, windows, sim length
-            md.reps_per_exec = 1
-            md.total_reps = 1
+            self.md.reps_per_exec = 1
+            self.md.total_reps = 3
+            self.md.global_lambdas = [0.00, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.00]
+            self.md.sampling_per_window = md.sampling_per_window*0.5
+            self.md.update_cfg()
 
-        if sim_type == 'run':
-            md.run()
-        elif sim_type == 'setup':
-            md.setup()
-        else:
-            raise ValueError('Unknown run type {}. Please select from [run/setup]'.format(type))
+    def run(self):
+        self.md.run()
 
-    @staticmethod
-    def analysis(exp_data, legs, analysis_cfg='./analysis.cfg'):
+    def setup(self):
+        self.md.setup()
+
+    def analysis(self, exp_data, legs, analysis_cfg='./analysis.cfg'):
         ana_cfg = Config(analysis_cfg)
         ana_cfg.simulation_legs = legs
         ana_cfg.exp_data = exp_data
