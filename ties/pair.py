@@ -2,6 +2,7 @@ import os
 import json
 import copy
 import subprocess
+import shutil
 from pathlib import Path
 
 import ties.helpers
@@ -321,7 +322,13 @@ class Pair():
         # as part of the .frcmod writing
         # insert dummy angles/dihedrals if a morph .frcmod requires
         # new terms between the appearing/disappearing atoms
-        self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff)
+        correction_introduced = self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff,
+                                                          ligand_ff)
+        if correction_introduced:
+            # move the .frcmod which turned out to be insufficient according to the test
+            shutil.move(morph_frcmod, str(self.frcmod) + '.uncorrected')
+            # now copy in place the corrected version
+            shutil.copy(self.frcmod, morph_frcmod)
 
     def _check_hybrid_frcmod(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
         """
@@ -368,7 +375,7 @@ class Pair():
 
         if 'Errors = 0' in tleap_process.stdout:
             print('Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.')
-            return
+            return False
 
         # extract the missing angles/dihedrals
         missing_bonds = set()
@@ -433,6 +440,7 @@ class Pair():
         # set this .frcmod as the correct one now,
         self.frcmod_before_correction = self.frcmod
         self.frcmod = modified_hybrid_frcmod
+        return True
 
     def overlap_fractions(self):
         """
