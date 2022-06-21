@@ -23,26 +23,42 @@ def get_new_atom_names(atoms, name_counter=None):
     if name_counter is None:
         name_counter = {}
 
-    renaming_map = {}
+    # {new_uniqe_name: old_atom_name}
+    reverse_renaming_map = {}
 
     for atom in atoms:
-        # get the first letters that is not a character
-        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+        # count the letters before any digit
+        letter_count = 0
+        for letter in atom.name:
+            if not letter.isalpha():
+                break
 
-        atom_name = atom.name[:afterLetters]
-        last_used_counter = name_counter.get(atom_name, 0)
+            letter_count += 1
+
+        # use maxixum 3 letters
+        letter_count = max(letter_count, 3)
+
+        letters = atom.name[:letter_count]
+
+        # how many atoms do we have with these letters? ie C1, C2, C3 -> 3
+        last_used_counter = name_counter.get(letters, 0) + 1
 
         # rename
-        last_used_counter += 1
-        newAtomName = atom_name + str(last_used_counter)
-        renaming_map[newAtomName] = atom.name
+        new_name = letters + str(last_used_counter)
 
-        atom.name = newAtomName
+        # if the name is longer than 4 character,
+        # shorten the number of letters
+        if len(new_name) > 4:
+            new_name = letters[:-1] + str(last_used_counter)
+
+        reverse_renaming_map[new_name] = atom.name
+
+        atom.name = new_name
 
         # update the counter
-        name_counter[atom_name] = last_used_counter
+        name_counter[letters] = last_used_counter
 
-    return name_counter, renaming_map
+    return name_counter, reverse_renaming_map
 
 
 def get_atom_names_counter(atoms):

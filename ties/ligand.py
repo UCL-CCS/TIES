@@ -139,19 +139,19 @@ class Ligand:
                 return False
 
             # count letters before any digit
-            num_letters = 0
+            letter_count = 0
             for letter in name:
                 if not letter.isalpha():
                     break
 
-                num_letters += 1
+                letter_count += 1
 
             # at least one character
-            if num_letters == 0:
+            if letter_count == 0:
                 return False
 
             # extrac the number suffix
-            atom_number = name[num_letters:]
+            atom_number = name[letter_count:]
             try:
                 int(atom_number)
             except:
@@ -161,10 +161,13 @@ class Ligand:
 
     def correct_atom_names(self):
         """
-        Ensure that each atom has a unique name and follows our format. rename the atom names to ensure that no atom
-        has the same atom name using the first letter (C, N, ..)
+        Ensure that each atom name:
+         - is unique
+         - has letter followed by digits
+         - has max 4 characters
+        E.g. C17, NX23
 
-        :param save_update: if the path is provided, the updated file
+        :param self.save: if the path is provided, the updated file
             will be saved with the unique names and a handle to the new file (ParmEd) will be returned.
         """
         if self.are_atom_names_correct():
