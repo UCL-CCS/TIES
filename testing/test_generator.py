@@ -37,19 +37,54 @@ def test_are_correct_names():
     lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
     lig.add_atom(parmed.Atom(name='H1'), 'resname', 1)
 
-    assert ties.helpers.are_correct_names([a.name for a in lig.atoms])
+    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
+
+def test_atom_name_empty():
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name=''), 'resname', 1)
+
+    assert not ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
+
+def test_atom_name_missing_digit():
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='C'), 'resname', 1)
+
+    assert not ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
+
+def test_atom_name_missing_letters():
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='17'), 'resname', 1)
+
+    assert not ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
+
+def test_atom_name_4_char_limit():
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='OOOO1'), 'resname', 1)
+
+    assert not ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
+
+def test_atom_name_corner_case():
+    # Test the corner case atom names
+    lig = parmed.Structure()
+    lig.add_atom(parmed.Atom(name='ABC1'), 'resname', 1)
+    lig.add_atom(parmed.Atom(name='C999'), 'resname', 1)
+
+    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+
 
 def test_atom_names_not_unique():
-    """
-    Check if the pattern is correct, ie Element followed by number, C16
-    :return:
-    """
+    # Check if the pattern is correct, ie Element followed by number, C16
     lig = parmed.Structure()
     lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
     lig.add_atom(parmed.Atom(name='H1'), 'resname', 1)
     lig.add_atom(parmed.Atom(name='O1'), 'resname', 1)
 
-    assert ties.helpers.are_correct_names([a.name for a in lig.atoms])
+    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
 
 
 # should be a test?

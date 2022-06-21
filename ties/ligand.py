@@ -116,8 +116,48 @@ class Ligand:
         """
         ligand = parmed.load_file(str(self.current), structure=True)
         atom_names = [a.name for a in ligand.atoms]
-        atom_names_are_uniqe = len(set(atom_names)) == len(atom_names)
-        return atom_names_are_uniqe and ties.helpers.are_correct_names(atom_names)
+
+        are_uniqe = len(set(atom_names)) == len(atom_names)
+
+        return are_uniqe and self._do_atom_names_have_correct_format(atom_names)
+
+    @staticmethod
+    def _do_atom_names_have_correct_format(names):
+        """
+        Check if the atom name is followed by a number, e.g. "C15"
+        Note that the full atom name cannot be more than 4 characters.
+        This is because the PDB format does not allow for more
+        characters which can lead to inconsistencies.
+
+        :param names: a list of atom names
+        :type names: list[str]
+        :return True if they all follow the correct format.
+        """
+        for name in names:
+            # cannot exceed 4 characters
+            if len(name) > 4:
+                return False
+
+            # count letters before any digit
+            num_letters = 0
+            for letter in name:
+                if not letter.isalpha():
+                    break
+
+                num_letters += 1
+
+            # at least one character
+            if num_letters == 0:
+                return False
+
+            # extrac the number suffix
+            atom_number = name[num_letters:]
+            try:
+                int(atom_number)
+            except:
+                return False
+
+        return True
 
     def correct_atom_names(self):
         """

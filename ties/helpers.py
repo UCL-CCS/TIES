@@ -10,27 +10,6 @@ import warnings
 import pathlib
 
 
-def are_correct_names(names):
-    """
-    Check if the atom name is followed by a number, e.g. "C15"
-    @parameter names: a list of atom names
-    @returns True if they all follow the correct format.
-    """
-    for name in names:
-        afterLetters = [i for i, l in enumerate(name) if l.isalpha()][-1] + 1
-
-        atom_name = name[:afterLetters]
-        if len(atom_name) == 0:
-            return False
-
-        atom_number = name[afterLetters:]
-        try:
-            int(atom_number)
-        except:
-            return False
-
-    return True
-
 
 def get_new_atom_names(atoms, name_counter=None):
     """
