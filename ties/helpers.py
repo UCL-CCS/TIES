@@ -49,7 +49,11 @@ def get_new_atom_names(atoms, name_counter=None):
         # if the name is longer than 4 character,
         # shorten the number of letters
         if len(new_name) > 4:
-            new_name = letters[:-1] + str(last_used_counter)
+            # the name is too long, use only the first character
+            new_name = letters[:4-len(str(last_used_counter))] + str(last_used_counter)
+
+            # we assume that there is fewer than 1000 atoms with that name
+            assert len(str(last_used_counter)) < 1000
 
         reverse_renaming_map[new_name] = atom.name
 
