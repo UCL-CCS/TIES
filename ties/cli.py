@@ -51,7 +51,7 @@ def command_line_script():
                              'Default: If .mol2 is given, using the given charges will be attempted. '  
                               # fixme - test if this agrees with the files, add CI tests for this
                              'Default: If .pdb is given, then BCC charges are computed with antechamber. ')
-    parser.add_argument('-align-mcs', '--align-ligands-mcs', metavar='boolean', dest='align_molecules_using_mcs',
+    parser.add_argument('-align', '--align-ligands-mcs', metavar='boolean', dest='align_molecules_using_mcs',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
                              'the generated maximum common substructure (MCS).')
@@ -180,7 +180,7 @@ def command_line_script():
     [lig.antechamber_prepare_mol2() for lig in ligands]
 
     # make atom names unique in each ligand
-    [lig.make_atom_names_correct() for lig in ligands]
+    [lig.correct_atom_names() for lig in ligands]
 
     # generate all pairings
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]

@@ -9,8 +9,6 @@ import subprocess
 import warnings
 import pathlib
 
-import MDAnalysis
-
 
 def are_correct_names(names):
     """
@@ -32,31 +30,6 @@ def are_correct_names(names):
             return False
 
     return True
-
-
-def load_MDAnalysis_atom_group(filename):
-    # Load a .mol2 file
-    # fixme - fuse with the .pdb loading, no distinction needed
-    # ignore the .mol2 warnings about the mass
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Failed to guess the mass for the following atom types: '  # warning to ignore
-                            )
-    # squash the internal warning about parsing .mol2 within MDAnalysis
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Creating an ndarray from ragged nested sequences '
-                            )
-    # squash the internal warning about missing "cell dimensions"
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Unit cell dimensions not found. CRYST1 record set to unitary values.'
-                            )
-    # squash the internal warning about missing element information absent/missing
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Element information is absent or missing for a few atoms. '
-                                    'Elements attributes will not be populated.'
-                            )
-    u = MDAnalysis.Universe(filename)
-    # turn off the filter warning after?
-    return u
 
 
 def get_new_atom_names(atoms, name_counter=None):

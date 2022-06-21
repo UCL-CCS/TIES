@@ -1,9 +1,11 @@
 import os
 import json
 import copy
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
+
+import parmed
 
 import ties.helpers
 from ties.generator import get_atoms_bonds_from_mol2
@@ -93,10 +95,10 @@ class Pair():
         """
         self.config.set_configs(**kwargs)
 
-        # use MDAnalysis to load the files
+        # use ParmEd to load the files
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
-        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
+        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, parmed_ligA, parmed_ligZ = \
             get_atoms_bonds_from_mol2(self.current_ligA, self.current_ligZ,
                                       use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
@@ -111,8 +113,8 @@ class Pair():
             new_mismatch_names.append(new_names)
 
         # assign
-        # fixme - Ideally I would reuse the mdanalysis data for this,
-        # MDAnalysis can use bonds if they are present - fixme
+        # fixme - Ideally I would reuse the ParmEd data for this,
+        # ParmEd can use bonds if they are present - fixme
         # map atom IDs to their objects
         ligand1_nodes = {}
         for atomNode in leftlig_atoms:
@@ -152,7 +154,7 @@ class Pair():
         if starting_node_pairs:
             print('Starting nodes will be used:', starting_node_pairs)
 
-        # fixme - simplify to only take the mdanalysis as input
+        # fixme - simplify to only take the ParmEd as input
         suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                          disjoint_components=self.config.allow_disjoint_components,
                                          net_charge_filter=True,
@@ -162,20 +164,19 @@ class Pair():
                                          ignore_charges_completely=self.config.ignore_charges_completely,
                                          ignore_bond_types=True,
                                          ignore_coords=False,
-                                         left_coords_are_ref=True,
                                          align_molecules=self.config.align_molecules_using_mcs,
                                          use_general_type=self.config.use_element_in_superimposition,
                                          # fixme - not the same ... use_element_in_superimposition,
                                          use_only_element=False,
-                                         check_atom_names_unique=True, # fixme - remove?
-                                         starting_pairs_heuristics=True, # fixme - add to config
+                                         check_atom_names_unique=True,  # fixme - remove?
+                                         starting_pairs_heuristics=True,  # fixme - add to config
                                          force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
-                                         ligand_l_mda=mda_l1, ligand_r_mda=mda_l2,
+                                         parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
                                          starting_pair_seed=self.config.superimposition_starting_pair)
 
         assert len(suptops) == 1
-        self.set_suptop(suptops[0], mda_l1, mda_l2)
+        self.set_suptop(suptops[0], parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
         suptops[0].config = self.config
         # attach the morph to the suptop
@@ -183,17 +184,17 @@ class Pair():
 
         return suptops[0]
 
-    def set_suptop(self, suptop, mda_l1, mda_l2):
+    def set_suptop(self, suptop, parmed_ligA, parmed_ligZ):
         """
-        Attach a SuperimposedTopology object along with the MDAnalysis objects for the ligA and ligZ.
+        Attach a SuperimposedTopology object along with the ParmEd objects for the ligA and ligZ.
 
         :param suptop: :class:`SuperimposedTopology`
-        :param mda_l1: An MDAnalysis Universe for the ligA
-        :param mda_l2: An MDAnalysis Universe for the ligZ
+        :param parmed_ligA: An ParmEd for the ligA
+        :param parmed_ligZ: An ParmEd for the ligZ
         """
         self.suptop = suptop
-        self.mda_l1 = mda_l1
-        self.mda_l2 = mda_l2
+        self.parmed_ligA = parmed_ligA
+        self.parmed_ligZ = parmed_ligZ
 
     def make_atom_names_unique(self, out_ligA_filename=None, out_ligZ_filename=None, save=True):
         """
@@ -215,23 +216,25 @@ class Pair():
         """
 
         # The A ligand is a template for the renaming
-        self.ligA.make_atom_names_correct()
+        self.ligA.correct_atom_names()
 
         # load both ligands
-        left = ties.helpers.load_MDAnalysis_atom_group(self.ligA.current)
-        right = ties.helpers.load_MDAnalysis_atom_group(self.ligZ.current)
+        left = parmed.load_file(str(self.ligA.current), structure=True)
+        right = parmed.load_file(str(self.ligZ.current), structure=True)
 
-        atom_names_overlap = len(set(right.atoms.names).intersection(set(left.atoms.names))) > 0
+        atom_names_overlap = len({a.name for a in right.atoms}.intersection({a.name for a in left.atoms})) > 0
 
-        if atom_names_overlap or not self.ligZ.atom_names_correct():
+        if atom_names_overlap or not self.ligZ.are_atom_names_correct():
             print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
             _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
             self.ligZ.renaming_map = renaming_map
 
         # rename the residue names to INI and FIN
-        left.residues.resnames = ['INI']
-        right.residues.resnames = ['FIN']
+        for atom in left.atoms:
+            atom.residue = 'INI'
+        for atom in right.atoms:
+            atom.residue = 'FIN'
 
         # fixme - instead of using the save parameter, have a method pair.save(filename1, filename2) and
         #  call it when necessary.
@@ -250,8 +253,8 @@ class Pair():
             self.current_ligZ = out_ligZ_filename
 
         # save the updated atom names
-        left.atoms.write(self.current_ligA)
-        right.atoms.write(self.current_ligZ)
+        left.save(str(self.current_ligA))
+        right.save(str(self.current_ligZ))
 
     def check_json_file(self):
         """
@@ -322,11 +325,11 @@ class Pair():
         # as part of the .frcmod writing
         # insert dummy angles/dihedrals if a morph .frcmod requires
         # new terms between the appearing/disappearing atoms
-        correction_introduced = self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff,
-                                                          ligand_ff)
+        # this is a trick to make sure tleap has everything it needs to generate the .top file
+        correction_introduced = self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff)
         if correction_introduced:
             # move the .frcmod which turned out to be insufficient according to the test
-            shutil.move(morph_frcmod, str(self.frcmod) + '.uncorrected')
+            shutil.move(morph_frcmod, str(self.frcmod) + '.uncorrected' )
             # now copy in place the corrected version
             shutil.copy(self.frcmod, morph_frcmod)
 

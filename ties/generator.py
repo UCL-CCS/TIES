@@ -8,8 +8,8 @@ from collections import OrderedDict
 from pathlib import Path
 import warnings
 
-import MDAnalysis as mda
 import numpy as np
+import parmed
 
 from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
     superimpose_topologies, get_atoms_bonds_from_ac
@@ -199,8 +199,8 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
     The left ligand has to be called INI
     And right FIN
     """
-    u = mda.Universe(source_pdb_filename)
-    if 'INI' not in u.atoms.resnames or 'FIN' not in u.atoms.resnames:
+    source_sys = parmed.load_file(source_pdb_filename, structure=True)
+    if {'INI', 'FIN'} != {a.residue.name for a in source_sys.atoms}:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
@@ -213,39 +213,29 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
     appearing_atoms = fep_summary['single_top_appearing']
 
     # update the Temp column
-    for atom in u.atoms:
+    for atom in source_sys.atoms:
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'INI' and atom.resname != 'FIN':
+        if atom.residue.name not in ['INI', 'FIN']:
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
         # then ignore
         # note: we only use the left ligand
         if atom.name.upper() in matched_disappearing:
-            atom.tempfactor = -2
+            atom.bfactor = -2
         elif atom.name.upper() in matched_appearing:
-            atom.tempfactor = 2
+            atom.bfactor = 2
         elif atom.name.upper() in disappearing_atoms:
-            atom.tempfactor = -1
+            atom.bfactor = -1
         elif atom.name.upper() in appearing_atoms:
             # appearing atoms should
-            atom.tempfactor = 1
+            atom.bfactor = 1
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
-
-
-def load_mda_u(filename):
-    # Load a MDAnalysis file, but turn off warnings about the dual topology setting
-    # fixme - fuse with the .pdb loading, no distinction needed
-    warnings.filterwarnings(action='ignore', category=UserWarning,
-                            message='Element information is absent or missing for a few atoms. '
-                                    'Elements attributes will not be populated.'    # warning to ignore
-                            )
-    return mda.Universe(str(filename))
+    source_sys.save(new_pdb_filename)  # , file_format='PDB') - fixme?
 
 
 def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
@@ -262,9 +252,9 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
     
-    u = load_mda_u(source_pdb_filename)
-    if 'HYB' not in u.atoms.resnames:
-        raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
+    pmdpdb = parmed.load_file(str(source_pdb_filename), structure=True)
+    if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
+        raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
 
     # dual-topology info
     matched = list(fep_summary['superimposition']['matched'].keys())
@@ -272,11 +262,11 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
     disappearing_atoms = fep_summary['superimposition']['disappearing']
 
     # update the Temp column
-    for atom in u.atoms:
+    for atom in pmdpdb.atoms:
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.resname != 'HYB':
+        if atom.residue.name != 'HYB':
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
@@ -286,32 +276,40 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
             continue
         elif atom.name in appearing_atoms:
             # appearing atoms should
-            atom.tempfactor = 1
+            atom.bfactor = 1
         elif atom.name in disappearing_atoms:
-            atom.tempfactor = -1
+            atom.bfactor = -1
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    u.atoms.write(new_pdb_filename)  # , file_format='PDB') - fixme?
+    pmdpdb.save(str(new_pdb_filename), overwrite=True)  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):
-    lig_resnames = mda.Universe(filename).residues.resnames
-    assert len(lig_resnames) == 1
-    return lig_resnames
+    lig = parmed.load_file(filename, structure=True)
+    resnames = {a.residue.name for a in lig.atoms}
+    if len(resnames) != 1:
+        raise Exception(f'The ligand "{filename}" should have just one residue name. '
+                        f'Instead, it has {len(resnames)} which are {resnames}')
+    return resnames.pop()
 
 
 def get_morphed_ligand_resnames(filename):
-    lig_resnames = mda.Universe(filename).residues.resnames
-    # assert len(lig_resnames) == 2
-    return lig_resnames
+    lig = parmed.load_file(filename, structure=True)
+    resnames = {a.residue.name for a in lig.atoms}
+    if len(resnames) != 2:
+        raise Exception(
+            f'The morph "{filename}" should have two residue names. '
+            f'Instead, it has {len(resnames)} which are {resnames}')
+    return list(resnames)
 
 
 def get_PBC_coords(pdb_file):
     """
     Return [x, y, z]
     """
-    u = mda.Universe(pdb_file)
+    raise Exception('This should not be called PBC coords. Revisit')
+    # u = load(pdb_file)
     x = np.abs(max(u.atoms.positions[:, 0]) - min(u.atoms.positions[:, 0]))
     y = np.abs(max(u.atoms.positions[:, 1]) - min(u.atoms.positions[:, 1]))
     z = np.abs(max(u.atoms.positions[:, 2]) - min(u.atoms.positions[:, 2]))
@@ -357,7 +355,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     print('Overwriting the mol2 file with charges from the ac file')
     # load the charges from the .ac file
     ac_atoms, _ = get_atoms_bonds_from_ac(ac_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     mol2 = load_mol2_wrapper(mol2_filename)
 
     for mol2_atom in mol2.atoms:
@@ -378,7 +376,7 @@ def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, 
     print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
     # load the ref charges
     ref_mol2 = load_mol2_wrapper(mol2_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     mol2 = load_mol2_wrapper(mol2_filename)
 
     if by_atom_name and by_index:
@@ -467,9 +465,9 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_inp
 
 
     # read the file to see how many ions were added
-    u = mda.Universe(str(cwd / 'prot_solv.pdb'))
-    cl = len(u.select_atoms('name Cl-'))
-    na = len(u.select_atoms('name Na+'))
+    newsys = parmed.load_file(str(cwd / 'prot_solv.pdb'), structure=True)
+    cl = len([a.name == 'Cl-' for a in newsys.atoms])
+    na = len([a.name == 'Na+' for a in newsys.atoms])
     if cl > na:
         return cl-na
     elif cl < na:
@@ -539,7 +537,7 @@ def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_fi
 
     # load the ref coordinates
     ref_mol2 = load_mol2_wrapper(coor_ref_filename)
-    # load the .mol2 files with MDAnalysis and correct the charges
+    # load the .mol2 files with ParmEd and correct the charges
     static_mol2 = load_mol2_wrapper(mol2_filename)
     # this is being modified
     mod_mol2 = load_mol2_wrapper(mol2_filename)
@@ -584,7 +582,7 @@ def rewrite_mol2_hybrid_top(file, single_top_atom_names):
     # (single topology atoms have to be separted by
     # the same distance)
     shutil.copy(file, os.path.splitext(file)[0] + '_before_sdtop_reordering.mol2' )
-    u = mda.Universe(file)
+    raise Exception('We abandone the hybrid top for now')
     # select the single top area, use their original order
     single_top_area = u.select_atoms('name ' +  ' '.join(single_top_atom_names))
     # all others are mutating
@@ -620,21 +618,21 @@ def create_constraint_files(original_pdb, output):
     :param output:
     :return:
     '''
-    u = mda.Universe(str(original_pdb))
+    sys = parmed.load_file(str(original_pdb), structure=True)
     # for each atom, give the B column the right value
-    for atom in u.atoms:
+    for atom in sys.atoms:
         # ignore water
-        if atom.resname in ['WAT', 'Na+', 'TIP3W', 'TIP3', 'HOH', 'SPC', 'TIP4P']:
+        if atom.residue.name in ['WAT', 'Na+', 'TIP3W', 'TIP3', 'HOH', 'SPC', 'TIP4P']:
             continue
 
         # set each atom depending on whether it is a H or not
         if atom.name.upper().startswith('H'):
-            atom.tempfactor = 0
+            atom.bfactor = 0
         else:
             # restrain the heavy atom
-            atom.tempfactor = 4
+            atom.bfactor = 4
 
-    u.atoms.write(output)
+    sys.save(output, overwrite=True)
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, protein):

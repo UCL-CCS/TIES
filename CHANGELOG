@@ -1,0 +1,3 @@
+ * version 22.6.0
+  * transitioned all MDAnalysis features to parmed and pyqtprot
+  * embedded pyqtprot into ties20

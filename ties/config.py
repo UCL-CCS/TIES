@@ -6,8 +6,9 @@ import subprocess
 import tempfile
 from collections.abc import Iterable
 
-import MDAnalysis
-from ties.helpers import load_MDAnalysis_atom_group, ArgparseChecker
+import parmed
+
+from ties.helpers import ArgparseChecker
 
 
 class Config:
@@ -29,6 +30,7 @@ class Config:
         self.ambertools_script_dir = self.script_dir / 'ambertools'
         self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
         self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
+        self.vmd_vis_script_sh = self.script_dir / 'vmd' / 'vis_morph.sh'
 
         self._workdir = None
         self._antechamber_dr = False
@@ -129,9 +131,9 @@ class Config:
             print('No protein was select. Skipping protein dG.')
             return
 
-        #  can be loaded by MDAnalysis?
-        print(f'Trying to open the protein file {path} with MDAnalysis..')
-        load_MDAnalysis_atom_group(path)
+        #  can be loaded by parmed?
+        print(f'Trying to open the protein file {path} with ParmEd..')
+        parmed.load_file(str(path), structure=True)
         self._protein = pathlib.Path(path)
 
     @property
@@ -169,15 +171,15 @@ class Config:
                   'Error: ensure your ligands have unique names. ')
             sys.exit()
 
-        # verify the files with MDAnalysis if possible
+        # verify the files with ParmEd if possible
         for ligand in files:
             if ligand.suffix.lower() in ('.ac', '.prep'):
-                print(f'Cannot verify .ac/.prep {ligand} with MDAnalysis. Skipping. ')
+                print(f'Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. ')
             else:
-                print(f'Trying to open the ligand {ligand} with MDAnalysis..')
-                ligand_universe = load_MDAnalysis_atom_group(ligand)
+                print(f'Trying to open the ligand {ligand} with ParmEd..')
+                lig = parmed.load_file(str(ligand), structure=True)
                 # there should be one residue
-                if len(ligand_universe.residues.resnames) > 1:
+                if len({a.residue.name for a in lig.atoms}) > 1:
                     print(f'Warning: more than one residue name detected in the ligand {ligand}')
 
         # TODO - ensure that it is a connected component and there is no extra atoms
@@ -313,8 +315,8 @@ class Config:
         if file is None:
             return
 
-        print(f'MDAnalysis: verifying the coordinate file {file}')
-        load_MDAnalysis_atom_group(file)
+        print(f'ParmEd: verifying the coordinate file {file}')
+        parmed.load_file(file, structure=True)
         # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
         self._coordinates_file = file
 
@@ -442,7 +444,7 @@ class Config:
         # if all ligands are .mol2, then charges are provided
         if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
             # if all atoms have q = 0 that means they're a placeholder
-            u = MDAnalysis.Universe(list(self.ligand_files)[0])
+            u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
             all_q_0 = all(a.charge == 0 for a in u.atoms)
             if all_q_0:
                 return False
