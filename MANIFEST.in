@@ -4,3 +4,5 @@ include ties/scripts/namd/*namd
 include ties/scripts/vmd/*vmd
 include ties/scripts/vmd/*sh
 include ties/data/element_atom_type_map.txt
+include ties/version.txt
+include LICENSE.txt
