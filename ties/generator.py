@@ -466,8 +466,10 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_inp
 
     # read the file to see how many ions were added
     newsys = parmed.load_file(str(cwd / 'prot_solv.pdb'), structure=True)
-    cl = len([a.name == 'Cl-' for a in newsys.atoms])
-    na = len([a.name == 'Na+' for a in newsys.atoms])
+    names = [a.name for a in newsys.atoms]
+    cl = names.count('Cl-')
+    na = names.count('Na+')  
+   
     if cl > na:
         return cl-na
     elif cl < na:
