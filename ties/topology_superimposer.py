@@ -1,6 +1,7 @@
 """
 The main module responsible for the superimposition.
 """
+import sys
 import os
 import hashlib
 import copy
@@ -772,6 +773,10 @@ class SuperimposedTopology:
         # select the MCS coordinates
         mcs_ligA_coords = self.parmed_ligA.coordinates[mcs_ligA_ids]
         mcs_ligZ_coords = self.parmed_ligZ.coordinates[mcs_ligZ_ids]
+
+        # cannot perform super imposition on less then 3 points, return max float to signal that this value is invalid
+        if len(mcs_ligA_coords) < 3:
+            return sys.float_info.max
 
         # obtain the rotation matrix and com that has to be applied
         rmsd, (rotation_matrix, ligA_mcs_com, ligZ_mcs_com) = superimpose_coordinates(mcs_ligA_coords, mcs_ligZ_coords)

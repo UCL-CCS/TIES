@@ -150,9 +150,6 @@ def superimpose_coordinates(ref, mob):
     ref_origin = ref - com_ref
     mob_origin = mob_coords - com_mob
 
-    if N < 3:
-        raise Exception('At least 3 atoms are needed for the superimposition. ')
-
     # Calculate rmsd and rotation matrix
     rmsd = pyqcprot.CalcRMSDRotationalMatrix(ref_origin, mob_origin, N, rotation, None)
 
