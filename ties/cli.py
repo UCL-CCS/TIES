@@ -90,7 +90,7 @@ def command_line_script():
                              'Redistribute the lost/gained charges over the unmatched area '
                              'to make the charges equal. ')
     parser.add_argument('-uniq-a', '--rename-atoms-unique', metavar='boolean',
-                        dest='unique_atom_names', required=False, default=False,
+                        dest='unique_atom_names', required=False, default=True,
                         type=ArgparseChecker.str2bool,
                         help='Assign unique atom names for each hybrid pair ')
     parser.add_argument('-hybrid-top', '--hybrid-singe-dual-top', metavar='boolean',
