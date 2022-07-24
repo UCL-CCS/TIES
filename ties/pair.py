@@ -222,10 +222,13 @@ class Pair():
         left = parmed.load_file(str(self.ligA.current), structure=True)
         right = parmed.load_file(str(self.ligZ.current), structure=True)
 
-        atom_names_overlap = len({a.name for a in right.atoms}.intersection({a.name for a in left.atoms})) > 0
+        common_atom_names = {a.name for a in right.atoms}.intersection({a.name for a in left.atoms})
+        atom_names_overlap = len(common_atom_names) > 0
 
         if atom_names_overlap or not self.ligZ.are_atom_names_correct():
-            print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names because they are not unique')
+            print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
+            if atom_names_overlap:
+                print(f'Common atom names: {common_atom_names}')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
             _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
             self.ligZ.renaming_map = renaming_map

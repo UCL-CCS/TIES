@@ -35,8 +35,8 @@ def get_new_atom_names(atoms, name_counter=None):
 
             letter_count += 1
 
-        # use maxixum 3 letters
-        letter_count = max(letter_count, 3)
+        # use max 3 letters from the atom name
+        letter_count = min(letter_count, 3)
 
         letters = atom.name[:letter_count]
 
@@ -79,10 +79,12 @@ def get_atom_names_counter(atoms):
 
         atom_name = atom.name[:afterLetters]
         atom_number = int(atom.name[afterLetters:])
+
+        # we are starting the counter from 0 as we always add 1 later on
         last_used_counter = name_counter.get(atom_name, 0)
 
         # update the counter
-        name_counter[atom_name] = max(last_used_counter, atom_number)
+        name_counter[atom_name] = max(last_used_counter + 1, atom_number)
 
     return name_counter
 
