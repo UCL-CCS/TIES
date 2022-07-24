@@ -365,7 +365,7 @@ class SuperimposedTopology:
                 # write all the atoms if they are matched, that's the common part
                 # note that ParmEd does not have the information on a residue ID
                 REMAINS = 0
-                if self.contains_left_atom_name(atom.name.upper()):
+                if self.contains_left_atom(atom.idx):
                     line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
                            f"{1:>4d}    " \
                            f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
@@ -385,7 +385,7 @@ class SuperimposedTopology:
             # add atoms from the right topology,
             # which are going to be created
             for atom in self.parmed_ligZ.atoms:
-                if not self.contains_right_atom_name(atom.name.upper()):
+                if not self.contains_right_atom(atom.idx):
                     APPEARING_ATOM = 1.0
                     line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
                            f"{1:>4d}    " \
@@ -2425,12 +2425,28 @@ class SuperimposedTopology:
 
         return False
 
+    def contains_left_atom(self, idx):
+        for m1, _ in self.matched_pairs:
+            if m1.id == idx:
+                return True
+
+        return False
+
+
     def contains_right_atom_name(self, atom_name):
         for _, m in self.matched_pairs:
             if m.name == atom_name:
                 return True
 
         return False
+
+    def contains_right_atom(self, idx):
+        for _, m in self.matched_pairs:
+            if m.id == idx:
+                return True
+
+        return False
+
 
     def contains_all(self, other_sup_top):
         for pair in other_sup_top.matched_pairs:
