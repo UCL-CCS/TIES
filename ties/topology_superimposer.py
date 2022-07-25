@@ -437,14 +437,11 @@ class SuperimposedTopology:
         system_charge = self.config.ligand_net_charge+protein_charge
 
         # determine the number of ions to neutralise the system charge
+        Cl_num = Na_num = 0
         if system_charge < 0:
             Na_num = math.fabs(system_charge)
-            Cl_num = 0
         elif system_charge > 0:
             Cl_num = system_charge
-            Na_num = 0
-        else:
-            Cl_num = Na_num = 0
 
         # set the number of ions manually
         if Na_num == 0:
