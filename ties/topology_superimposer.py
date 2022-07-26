@@ -502,10 +502,13 @@ class SuperimposedTopology:
             cons_file = 'na'
         if self.config.md_engine == 'namd':
             engine = self.config.md_engine+self.config.namd_version
+            est = 'TI'
         else:
             engine = self.config.md_engine
+            est = 'FEP, TI'
         ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=engine,
                                                                                         cons_file=cons_file,
+                                                                                        estimators=est,
                                                                                         **solv_oct_boc)
         open(cwd / 'TIES.cfg', 'w').write(ties_script)
 
