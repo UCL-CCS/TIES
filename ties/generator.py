@@ -235,7 +235,7 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    source_sys.save(new_pdb_filename)  # , file_format='PDB') - fixme?
+    source_sys.save(new_pdb_filename, use_hetatoms=False)  # , file_format='PDB') - fixme?
 
 
 def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
@@ -282,7 +282,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         else:
             raise Exception('This should never happen. It has to be one of the cases')
 
-    pmdpdb.save(str(new_pdb_filename), overwrite=True)  # , file_format='PDB') - fixme?
+    pmdpdb.save(str(new_pdb_filename), use_hetatoms=False, overwrite=True)  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):
@@ -634,7 +634,7 @@ def create_constraint_files(original_pdb, output):
             # restrain the heavy atom
             atom.bfactor = 4
 
-    sys.save(output, overwrite=True)
+    sys.save(output, use_hetatoms=False, overwrite=True)
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, protein):
