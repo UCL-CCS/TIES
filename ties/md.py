@@ -1,9 +1,7 @@
 import os
 
 from TIES_MD import TIES, cli
-from ties_analysis.ties_analysis import Analysis
-from ties_analysis.config import Config
-
+from TIES_MD.ties_analysis import ties_analysis
 
 class MD():
     def __init__(self, sim_dir, sim_name='complex', fast=False):
@@ -18,7 +16,7 @@ class MD():
             self.md.reps_per_exec = 1
             self.md.total_reps = 3
             self.md.global_lambdas = [0.00, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 1.00]
-            self.md.sampling_per_window = md.sampling_per_window*0.5
+            self.md.sampling_per_window = self.md.sampling_per_window*0.5
             self.md.update_cfg()
 
     def run(self):
@@ -28,10 +26,10 @@ class MD():
         self.md.setup()
 
     def analysis(self, exp_data, legs, analysis_cfg='./analysis.cfg'):
-        ana_cfg = Config(analysis_cfg)
+        ana_cfg = ties_analysis.Config(analysis_cfg)
         ana_cfg.simulation_legs = legs
         ana_cfg.exp_data = exp_data
-        ana = Analysis(ana_cfg)
+        ana = ties_analysis.Analysis(ana_cfg)
         ana.run()
 
 

@@ -22,8 +22,10 @@ hybrid.prepare_inputs(protein=protein)
 #run ligand and complex simulations
 legs = ['lig', 'com']
 for leg in legs:
-   MD('./ties20/ties-l02-l03/{}'.format(leg), fast=True)
+   md = MD('./ties20/ties-l02-l03/{}'.format(leg), fast=True)
+   md.setup()
+   #md.run()
 
 #run the analysis of these simulations
 exp_data = {'ties20': {'ties-l02-l03': [0.0, 0.0]}}
-MD.analysis(exp_data, legs)
+md.analysis(exp_data, legs)
