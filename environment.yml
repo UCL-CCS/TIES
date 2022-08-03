@@ -1,7 +1,6 @@
 name: ties20
 channels:
   - conda-forge
-  - adw62
 dependencies:
   - ambertools>=20.0, <22.0
   - libgfortran
