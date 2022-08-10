@@ -1,10 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy
 import networkx
-import dwave_networkx.algorithms
 import dimod
 import tabulate
 
+dwave = True
+try:
+    import dwave_networkx.algorithms
+except ImportError:
+    dwave = False
 
 class LigandMap():
     """
@@ -59,6 +63,8 @@ class LigandMap():
         self.map = numpy.loadtxt(filename)
 
     def traveling_salesmen(self):
+        if not dwave:
+            raise ValueError('Please install dwave: pip install dwave_networkx')
         print('Traveling Salesmen (QUBO approximation): ')
         ts = dwave_networkx.traveling_salesperson(self.graph, dimod.ExactSolver())
 
