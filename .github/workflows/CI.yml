@@ -40,7 +40,7 @@ jobs:
         pip install pytest
     - name: Test with pytest
       run: |
-        cd testing
+        cd ties/testing
         python3 -m pytest
 #    - name: Simple Ligand renaming
 #      run: |
