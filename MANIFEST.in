@@ -12,3 +12,8 @@ include ties/testing/data/*/obj01.pdb
 include ties/testing/agastya_dataset/*/*/*.ac
 include ties/testing/agastya_dataset/*/*/*.txt
 include ties/testing/agastya_dataset/*/*/*.pdb
+include ties/examples/*
+include ties/examples/mol2_2ligands_MCL1/*
+include ties/examples/pdb_2files/*
+include ties/examples/pdb_2files_protein/*
+include ties/examples/pdb_8ligands_protein/*
