@@ -21,7 +21,7 @@ except ImportError:
 finally:
     print (f'use_cython: {use_cython}')
 
-ext_modules = [Extension("ties/pyqcprot", [f"ties/pyqcprot_ext/pyqcprot.{'pyx' if use_cython else 'c'}"],
+ext_modules = [Extension("ties/pyqcprot_ext/pyqcprot", [f"ties/pyqcprot_ext/pyqcprot.{'pyx' if use_cython else 'c'}"],
                          include_dirs=[numpy_include],
                          extra_compile_args=["-O3","-ffast-math"])]
 
