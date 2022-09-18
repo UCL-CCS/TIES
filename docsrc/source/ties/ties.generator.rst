@@ -24,7 +24,6 @@
       get_protein_net_charge
       init_namd_file_min
       join_frcmod_files
-      load_mda_u
       prepareFile
       prepare_antechamber_parmchk2
       redistribute_charges

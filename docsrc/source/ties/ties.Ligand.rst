@@ -15,10 +15,10 @@
    
       ~Ligand.__init__
       ~Ligand.antechamber_prepare_mol2
-      ~Ligand.atom_names_correct
+      ~Ligand.are_atom_names_correct
       ~Ligand.convert_acprep_to_mol2
+      ~Ligand.correct_atom_names
       ~Ligand.generate_frcmod
-      ~Ligand.make_atom_names_correct
       ~Ligand.overwrite_coordinates_with
       ~Ligand.removeDU_atoms
       ~Ligand.suffix
