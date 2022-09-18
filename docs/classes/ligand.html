@@ -1,0 +1,230 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Ligand &#8212; TIES 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Protein" href="protein.html" />
+    <link rel="prev" title="Classes" href="../classes.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="ligand">
+<h1>Ligand<a class="headerlink" href="#ligand" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ties.Ligand">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ties.</span></span><span class="sig-name descname"><span class="pre">Ligand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ligand</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ligand helper class. Helps to load and manage the different copies of the ligand file.
+Specifically, it tracks the different copies of the original input files as it is transformed (e.g. charge assignment).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ligand</strong> (<em>string</em>) – ligand filepath</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="../ties/ties.Config.html#ties.Config" title="ties.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>) – Optional configuration from which the relevant ligand settings can be used</p></li>
+<li><p><strong>save</strong> (<em>bool</em>) – write a file with unique atom names for further inspection</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.antechamber_prepare_mol2">
+<span class="sig-name descname"><span class="pre">antechamber_prepare_mol2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.antechamber_prepare_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.antechamber_prepare_mol2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the ligand into a .mol2 format.</p>
+<p>BCC charges are generated if missing or requested.
+It calls antechamber (the charge type -c is not used if user prefers to use their charges).
+Any DU atoms created in the antechamber call are removed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_type</strong> – Atom type bla bla</p></li>
+<li><p><strong>net_charge</strong> (<em>int</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.are_atom_names_correct">
+<span class="sig-name descname"><span class="pre">are_atom_names_correct</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.are_atom_names_correct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.are_atom_names_correct" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Checks if atom names:</dt><dd><ul class="simple">
+<li><p>are unique</p></li>
+<li><p>have a correct format “LettersNumbers” e.g. C17</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.convert_acprep_to_mol2">
+<span class="sig-name descname"><span class="pre">convert_acprep_to_mol2</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.convert_acprep_to_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.convert_acprep_to_mol2" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the file is not a prep/ac file, this function does not do anything.
+Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p>
+<p>Returns: the name of the original file, or of it was .prepi, a new filename with .mol2</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.correct_atom_names">
+<span class="sig-name descname"><span class="pre">correct_atom_names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.correct_atom_names"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.correct_atom_names" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Ensure that each atom name:</dt><dd><ul class="simple">
+<li><p>is unique</p></li>
+<li><p>has letter followed by digits</p></li>
+<li><p>has max 4 characters</p></li>
+</ul>
+</dd>
+</dl>
+<p>E.g. C17, NX23</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self.save</strong> – if the path is provided, the updated file
+will be saved with the unique names and a handle to the new file (ParmEd) will be returned.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.generate_frcmod">
+<span class="sig-name descname"><span class="pre">generate_frcmod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.generate_frcmod"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.generate_frcmod" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>params</dt><dd><ul class="simple">
+<li><p>parmchk2</p></li>
+<li><p>atom_type</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.overwrite_coordinates_with">
+<span class="sig-name descname"><span class="pre">overwrite_coordinates_with</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.overwrite_coordinates_with"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.overwrite_coordinates_with" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load coordinates from another file and overwrite the coordinates in the current file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ties.Ligand.removeDU_atoms">
+<span class="sig-name descname"><span class="pre">removeDU_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ties/ligand.html#Ligand.removeDU_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ties.Ligand.removeDU_atoms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ambertools antechamber creates sometimes DU dummy atoms.
+These are not created when BCC charges are computed from scratch.
+They are only created if you reuse existing charges.
+They appear to be a side effect. We remove the dummy atoms therefore.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="ties.Ligand.renaming_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">renaming_map</span></span><a class="headerlink" href="#ties.Ligand.renaming_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Otherwise, key: newName, value: oldName.</p>
+<p>If None, means no renaming took place.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">TIES</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../main.html">TIES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usagecmd.html">Examples - Command Line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Examples - Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../protocol.html">TIES Protocol</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../classes.html">Classes</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Ligand</a></li>
+<li class="toctree-l2"><a class="reference internal" href="protein.html">Protein</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pair.html">Pair</a></li>
+<li class="toctree-l2"><a class="reference internal" href="config.html">Config</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../classes.html">Classes</a><ul>
+      <li>Previous: <a href="../classes.html" title="previous chapter">Classes</a></li>
+      <li>Next: <a href="protein.html" title="next chapter">Protein</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Mateusz Bieniek.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/classes/ligand.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

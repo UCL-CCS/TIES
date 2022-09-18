@@ -1,0 +1,1007 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ties.config &#8212; TIES 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ties.config</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="kn">import</span> <span class="nn">parmed</span>
+
+<span class="kn">from</span> <span class="nn">ties.helpers</span> <span class="kn">import</span> <span class="n">ArgparseChecker</span>
+
+
+<div class="viewcode-block" id="Config"><a class="viewcode-back" href="../../ties/ties.Config.html#ties.Config">[docs]</a><span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The configuration with parameters that can be used to define the entire protocol.</span>
+<span class="sd">    The settings can be overridden later in the actual classes.</span>
+
+<span class="sd">    The settings are stored as properties in the object and can be overwritten.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Config.__init__"><a class="viewcode-back" href="../../ties/ties.Config.html#ties.Config.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># set the path to the scripts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+        <span class="c1"># scripts/input files,</span>
+        <span class="c1"># these are specific to the host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">script_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_root</span> <span class="o">/</span> <span class="s1">&#39;scripts&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namd_script_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">script_dir</span> <span class="o">/</span> <span class="s1">&#39;namd&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ambertools_script_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">script_dir</span> <span class="o">/</span> <span class="s1">&#39;ambertools&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tleap_check_protein</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ambertools_script_dir</span> <span class="o">/</span> <span class="s1">&#39;check_prot.in&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmd_vis_script</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">script_dir</span> <span class="o">/</span> <span class="s1">&#39;vmd&#39;</span> <span class="o">/</span> <span class="s1">&#39;vis_morph.vmd&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmd_vis_script_sh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">script_dir</span> <span class="o">/</span> <span class="s1">&#39;vmd&#39;</span> <span class="o">/</span> <span class="s1">&#39;vis_morph.sh&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_antechamber_dr</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_protein</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_net_charge</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_pair_q_atol</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_net_charge_threshold</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_redistribute_q_over_unmatched</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allow_disjoint_components</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># use only the element in the superimposition rather than the specific atom type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_element</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_element_in_superimposition</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># coordinates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_align_molecules_using_mcs</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_original_coor</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manually_matched_atom_pairs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manually_mismatched_pairs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_tleap_in</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_superimposition_starting_pair</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.gaff&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff_name</span> <span class="o">=</span> <span class="s1">&#39;gaff&#39;</span>
+
+        <span class="c1"># MD/NAMD production input file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span> <span class="o">=</span> <span class="s1">&#39;namd&#39;</span>
+        <span class="c1">#default to modern CPU version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namd_version</span> <span class="o">=</span> <span class="s1">&#39;2.14&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_rep_dir_tree</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># experimental</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_hybrid_single_dual_top</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_charges_completely</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ligands</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># if True, do not allow ligands with the same ligand name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uses_cmd</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># assign all the initial configuration values</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">workdir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Working directory for antechamber calls.</span>
+<span class="sd">        If None, a temporary directory in /tmp/ will be used.</span>
+
+<span class="sd">        :return: Work dir</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># this is API, so avoid making a directory</span>
+            <span class="c1"># keep the &#39;ties&#39; in case the output directory structured needs to be generated/harvested</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">/</span> <span class="s1">&#39;ties&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span>
+
+    <span class="nd">@workdir</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">workdir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cwd</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">cwd</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span>
+            <span class="c1"># user provided</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span> <span class="o">=</span> <span class="n">cwd</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># current directory</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span> <span class="o">/</span> <span class="s1">&#39;ties&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Working Directory: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_workdir</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># --------------- general</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">protein</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Path to the protein</span>
+
+<span class="sd">        :return: Protein filename</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protein</span>
+
+    <span class="nd">@protein</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">protein</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No protein was select. Skipping protein dG.&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1">#  can be loaded by parmed?</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Trying to open the protein file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1"> with ParmEd..&#39;</span><span class="p">)</span>
+        <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_protein</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligand_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A list of ligand filenames.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span>
+
+    <span class="nd">@ligand_files</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ligand_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            str or Path,</span>
+<span class="sd">            a Ligand object will converted into a Path</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">files</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># check if the ligands have the same extension</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">l</span><span class="o">.</span><span class="n">suffix</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">files</span><span class="p">})</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># fixme - does it actually matter? you parse it anyway?</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: ligands (-l) have different extensions. &#39;</span>
+                  <span class="s1">&#39;Please ensure all ligands have the same extension&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="c1"># files must have unique names</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">stem</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">filenames</span><span class="p">)):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: some ligand (-l) names are the same. &#39;</span>
+                  <span class="s1">&#39;Error: ensure your ligands have unique names. &#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="c1"># verify the files with ParmEd if possible</span>
+        <span class="k">for</span> <span class="n">ligand</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ligand</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;.ac&#39;</span><span class="p">,</span> <span class="s1">&#39;.prep&#39;</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot verify .ac/.prep </span><span class="si">{</span><span class="n">ligand</span><span class="si">}</span><span class="s1"> with ParmEd. Skipping. &#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Trying to open the ligand </span><span class="si">{</span><span class="n">ligand</span><span class="si">}</span><span class="s1"> with ParmEd..&#39;</span><span class="p">)</span>
+                <span class="n">lig</span> <span class="o">=</span> <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ligand</span><span class="p">),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="c1"># there should be one residue</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">a</span><span class="o">.</span><span class="n">residue</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">atoms</span><span class="p">})</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Warning: more than one residue name detected in the ligand </span><span class="si">{</span><span class="n">ligand</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># TODO - ensure that it is a connected component and there is no extra atoms</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+
+    <span class="c1"># --------------- ambertools</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ambertools_home</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ambertools HOME path. If not configured, the env variable AMBERHOME as AMBER_PREFIX will be checked.</span>
+
+<span class="sd">        :return: ambertools path</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ambertools path given?</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># otherwise check env paths</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;AMBERHOME&#39;</span><span class="p">):</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;AMBERHOME&#39;</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;AMBER_PREFIX&#39;</span><span class="p">):</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;AMBER_PREFIX&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># try to deduce the env from the location of antechamber binary</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING: $AMBERHOME not found. Guessing the location by looking up antechamber. &#39;</span><span class="p">)</span>
+                <span class="n">proc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s1">&#39;which&#39;</span><span class="p">,</span> <span class="s1">&#39;antechamber&#39;</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">decode</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="s2">&quot;not found&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">decode</span><span class="p">:</span>
+                    <span class="n">ant_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">decode</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">ant_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                        <span class="n">path</span> <span class="o">=</span> <span class="n">ant_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+            <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Option 1: source your ambertools script amber.sh&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Option 2: specify manually the path to amberhome with -ambertools option&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;No ambertools&#39;</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span> <span class="o">=</span> <span class="n">path</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ambertools_antechamber</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Antechamber path based on the .ambertools_home</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ambertools_home</span> <span class="o">/</span> <span class="s1">&#39;bin&#39;</span> <span class="o">/</span> <span class="s1">&#39;antechamber&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ambertools_parmchk2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parmchk2 path based on the .ambertools_home</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ambertools_home</span> <span class="o">/</span> <span class="s1">&#39;bin&#39;</span> <span class="o">/</span> <span class="s1">&#39;parmchk2&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ambertools_tleap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tleap path based on the .ambertools_home</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ambertools_home</span> <span class="o">/</span> <span class="s1">&#39;bin&#39;</span> <span class="o">/</span> <span class="s1">&#39;tleap&#39;</span>
+
+    <span class="nd">@ambertools_home</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ambertools_home</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: The provided ambertools home path does not point towards the directory.&#39;</span>
+                  <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ambertools_home</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">antechamber_dr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Whether to use -dr setting when calling antechamber.</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_antechamber_dr</span>
+
+    <span class="nd">@antechamber_dr</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">antechamber_dr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="c1"># using ambertools antechamber dr mode?</span>
+        <span class="k">if</span> <span class="nb">bool</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_antechamber_dr</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_antechamber_dr</span> <span class="o">=</span> <span class="s1">&#39;no&#39;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Antechamber dr: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_antechamber_dr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligand_net_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The ligand charge. If not provided, neutral charge is assumed.</span>
+<span class="sd">        The charge is necessary for calling antechamber (-nc).</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_net_charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;WARNING: Ligand net charge not provided (-nc) by the user. Assuming 0. &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_net_charge</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_net_charge</span>
+
+    <span class="nd">@ligand_net_charge</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ligand_net_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net_charge</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">net_charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ligand net charge was not supplied (-nc). Only limited functionalities will be available. &#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_net_charge</span> <span class="o">=</span> <span class="n">net_charge</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Ligand net charge (-nc): </span><span class="si">{</span><span class="n">net_charge</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">coordinates_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A file from which coordinate can be taken.</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_file</span>
+
+    <span class="nd">@coordinates_file</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">coordinates_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ParmEd: verifying the coordinate file </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_file</span> <span class="o">=</span> <span class="n">file</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atom_pair_q_atol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        It defines the maximum difference in charge</span>
+<span class="sd">        between any two superimposed atoms a1 and a2.</span>
+<span class="sd">        If the two atoms differ in charge more than this value,</span>
+<span class="sd">        they will be unmatched and added to the alchemical regions.</span>
+
+<span class="sd">        :return: default (0.1e)</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_pair_q_atol</span>
+
+    <span class="nd">@atom_pair_q_atol</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">atom_pair_q_atol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atol</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_pair_q_atol</span> <span class="o">=</span> <span class="n">atol</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The maximum acceptable difference in charge between two paired atoms: </span><span class="si">{</span><span class="n">atol</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">net_charge_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines how much the superimposed regions can, in total, differ in charge.</span>
+<span class="sd">        If the total exceeds the thresholds, atom pairs will be unmatched</span>
+<span class="sd">        until the threshold is met.</span>
+
+<span class="sd">        :return: default (0.1e)</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net_charge_threshold</span>
+
+    <span class="nd">@net_charge_threshold</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">net_charge_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_net_charge_threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Using MCS net charge difference threshold of </span><span class="si">{</span><span class="n">threshold</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ignore_charges_completely</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ignore the charges during the superimposition. Useful for debugging.</span>
+<span class="sd">        :return: default (False)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_charges_completely</span>
+
+    <span class="nd">@ignore_charges_completely</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ignore_charges_completely</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_charges_completely</span> <span class="o">=</span> <span class="nb">bool</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ignoring the charges. &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redistribute_q_over_unmatched</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">allow_disjoint_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines whether there might be multiple superimposed areas that are</span>
+<span class="sd">        separated by alchemical region.</span>
+
+<span class="sd">        :return: default (False)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allow_disjoint_components</span>
+
+    <span class="nd">@allow_disjoint_components</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">allow_disjoint_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allow_disjoint_components</span> <span class="o">=</span> <span class="n">boolean</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Allowing disjoint components: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_allow_disjoint_components</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">use_element_in_superimposition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use element rather than the actual atom type for the superimposition</span>
+<span class="sd">        during the joint-traversal of the two molecules.</span>
+
+<span class="sd">        :return: default (False)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_element_in_superimposition</span>
+
+    <span class="nd">@use_element_in_superimposition</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">use_element_in_superimposition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_element_in_superimposition</span> <span class="o">=</span> <span class="nb">bool</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning. Ignoring the specific atom types during superimposition. &#39;</span>
+                  <span class="s1">&#39;The results should not be used in production simulations.&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">align_molecules_using_mcs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        After determining the maximum common substructure (MCS),</span>
+<span class="sd">        use it to align the coordinates of the second molecule to the first.</span>
+
+<span class="sd">        :return: default (False)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_molecules_using_mcs</span>
+
+    <span class="nd">@align_molecules_using_mcs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">align_molecules_using_mcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="c1"># align the coordinates in ligZ to the ligA using the MCS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_align_molecules_using_mcs</span> <span class="o">=</span> <span class="n">boolean</span>
+        <span class="c1"># fixme - should be using the MCS before charges change</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Will align the coordinates using the final MCS: </span><span class="si">{</span><span class="n">boolean</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">use_original_coor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Antechamber when assigning charges can modify the charges slightly.</span>
+<span class="sd">        If that&#39;s the case, use the original charges in order to correct this slight</span>
+<span class="sd">        divergence in coordinates.</span>
+
+<span class="sd">        :return: default (?)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_original_coor</span>
+
+    <span class="nd">@use_original_coor</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">use_original_coor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="c1"># use the original coords because antechamber can change them slightly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_original_coor</span> <span class="o">=</span> <span class="n">boolean</span>
+
+    <span class="k">def</span> <span class="nf">_guess_ligands_contain_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># if all ligands are .mol2, then charges are provided</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;.mol2&#39;</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">):</span>
+            <span class="c1"># if all atoms have q = 0 that means they&#39;re a placeholder</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">all_q_0</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">charge</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">all_q_0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligands_contain_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If not provided, it tries to deduce whether charges are provided.</span>
+<span class="sd">        If all charges are set to 0, then it assumes that charges are not provided.</span>
+
+<span class="sd">        If set to False explicitly, charges are ignored and computed again.</span>
+
+<span class="sd">        :return: default (None)</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The fact whether the ligands contain charges has not been configured. Guessing. &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guess_ligands_contain_q</span><span class="p">()</span>
+
+        <span class="c1"># does the file type contain charges?</span>
+        <span class="n">ligand_ext</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">)</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ligand_ext</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;.mol2&#39;</span><span class="p">,</span> <span class="s1">&#39;.ac&#39;</span><span class="p">}:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: If charges are provided with the ligands, &#39;</span>
+                      <span class="s1">&#39;the filetypes .mol2 or .ac have to be used.&#39;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># determine whether charges are provided using the file extensions</span>
+            <span class="k">if</span> <span class="n">ligand_ext</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;.mol2&#39;</span><span class="p">,</span> <span class="s1">&#39;.ac&#39;</span><span class="p">,</span> <span class="s1">&#39;.prep&#39;</span><span class="p">}:</span>
+                <span class="c1"># if all charges are 0, then recompute</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guess_ligands_contain_q</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Assuming that charges are provided based on the filetype .ac/.mol2&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">ligand_ext</span> <span class="o">==</span> <span class="s1">&#39;.pdb&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Assuming that charges are not provided in the given .pdb ligand files. &#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Error: unrecognized file type </span><span class="si">{</span><span class="n">ligand_ext</span><span class="si">}</span><span class="s1">. &#39;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># fixme?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span><span class="p">:</span>
+            <span class="c1"># leave charges the way they are in the files</span>
+            <span class="c1"># TODO - ensure that when antechamber_charge_type is accessed ,this function is used? implement in another</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">antechamber_charge_type</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Ligand files already contain charges: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span>
+
+    <span class="nd">@ligands_contain_q</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ligands_contain_q</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligands_contain_q</span> <span class="o">=</span> <span class="n">boolean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">superimposition_starting_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set a starting pair for the superimposition to narrow down the MCS search.</span>
+<span class="sd">        E.g. &quot;C2-C12&quot;</span>
+
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_superimposition_starting_pair</span>
+
+    <span class="nd">@superimposition_starting_pair</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">superimposition_starting_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_superimposition_starting_pair</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atom_name_disappearing</span><span class="p">,</span> <span class="n">atom_name_appearing</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span> <span class="n">_superimposition_starting_pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">atom_name_disappearing</span><span class="p">,</span> <span class="n">atom_name_appearing</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">manually_matched_atom_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Either a list of pairs or a file with a list of pairs of atoms</span>
+<span class="sd">        that should be superimposed/matched.</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manually_matched_atom_pairs</span>
+
+    <span class="nd">@manually_matched_atom_pairs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">manually_matched_atom_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_or_pairs</span><span class="p">):</span>
+        <span class="c1"># A user-provided list of pairs that should be matched</span>
+        <span class="c1"># This functionality works only if there are two ligands</span>
+        <span class="k">if</span> <span class="n">file_or_pairs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manually_matched_atom_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Wrong use of Config class. Please set the ._ligand_files attribute first. &#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ligand_files</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error: Too many ligands. &#39;</span>
+                             <span class="s1">&#39;Manually matching atom pairs works only with 2 ligands. &#39;</span><span class="p">)</span>
+
+        <span class="c1"># TODO</span>
+        <span class="c1"># pair_format: C1-C7 or C1-C7,C2-C8</span>
+        <span class="c1"># if different format, it is likely a file, check file</span>
+
+        <span class="n">manually_matched</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">file_or_pairs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">file_or_pairs</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_or_pairs</span><span class="p">)</span> <span class="k">as</span> <span class="n">IN</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">left_atom</span><span class="p">,</span> <span class="n">right_atom</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">IN</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">):</span>
+                    <span class="n">manually_matched</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">left_atom</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">right_atom</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">manually_matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Currently only one atom pair can be matched - others were not tested&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manually_matched_atom_pairs</span> <span class="o">=</span> <span class="n">manually_matched</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">manually_mismatched_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A path to a file with a list of a pairs that should be mismatched.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manually_mismatched_pairs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manually_mismatched_pairs</span>
+
+    <span class="nd">@manually_mismatched_pairs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">manually_mismatched_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">mismatch</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># only allow the file for now</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Exception: the provided file for mismatching pairs cannot be found: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Could not find the file. &#39;</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">IN</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">left_atom</span><span class="p">,</span> <span class="n">right_atom</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">IN</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">):</span>
+                    <span class="n">mismatch</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">left_atom</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">right_atom</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manually_mismatched_pairs</span> <span class="o">=</span> <span class="n">mismatch</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manually_mismatched_pairs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">protein_ff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The protein forcefield to be used by ambertools for the protein parameterisation.</span>
+
+<span class="sd">        :return: default (leaprc.ff19SB)</span>
+<span class="sd">        :rtype: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">protein</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;INFO: Protein FF was requested even though protein was not provided. &#39;</span>
+                  <span class="s1">&#39;Ignoring the protein ff request.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING: Protein FF is not configured in the config.protein_ff. &#39;</span>
+                  <span class="s1">&#39;Setting the default leaprc.ff19SB&#39;</span><span class="p">)</span>
+            <span class="c1"># fixme - update to a later ff</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.protein.ff19SB&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span>
+
+    <span class="nd">@protein_ff</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">protein_ff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ff</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span> <span class="o">=</span> <span class="n">ff</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Protein force field name: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">md_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The MD engine, with the supported values NAMD2.13, NAMD2.14, NAMD3 and OpenMM</span>
+
+<span class="sd">        :return: NAMD2.13, NAMD2.14, NAMD3 and OpenMM</span>
+<span class="sd">        :rtype: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span>
+
+    <span class="nd">@md_engine</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">md_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">supported</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NAMD2.13&#39;</span><span class="p">,</span> <span class="s1">&#39;NAMD2.14&#39;</span><span class="p">,</span> <span class="s1">&#39;NAMD3&#39;</span><span class="p">,</span> <span class="s1">&#39;OpenMM&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;namd2.14&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span> <span class="o">=</span> <span class="s1">&#39;namd&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namd_version</span> <span class="o">=</span> <span class="s1">&#39;2.14&#39;</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;namd2.13&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span> <span class="o">=</span> <span class="s1">&#39;namd&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namd_version</span> <span class="o">=</span> <span class="s1">&#39;2.13&#39;</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;namd3&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span> <span class="o">=</span> <span class="s1">&#39;namd3&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namd_version</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;openmm&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_md_engine</span> <span class="o">=</span> <span class="s1">&#39;openmm&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namd_version</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown engine </span><span class="si">{}</span><span class="s1">. Supported engines </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">supported</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;MD Engine: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lambda_rep_dir_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_rep_dir_tree</span>
+
+    <span class="nd">@lambda_rep_dir_tree</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">lambda_rep_dir_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_rep_dir_tree</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligand_ff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The forcefield for the ligand.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligand_ff_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Either GAFF or GAFF2</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff_name</span>
+
+    <span class="nd">@ligand_ff_name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ligand_ff_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_type</span><span class="p">):</span>
+        <span class="c1"># save also the atom type</span>
+        <span class="k">if</span> <span class="n">atom_type</span> <span class="o">==</span> <span class="s1">&#39;gaff&#39;</span><span class="p">:</span>
+            <span class="c1"># they both use the same ff</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.gaff&#39;</span>
+        <span class="k">elif</span> <span class="n">atom_type</span> <span class="o">==</span> <span class="s1">&#39;gaff2&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.gaff2&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Argument -lff cannot be anything else but &quot;gaff&quot; or &quot;gaff2&quot;. &#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff_name</span> <span class="o">=</span> <span class="n">atom_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">redistribute_q_over_unmatched</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The superimposed and matched atoms have every slightly different charges.</span>
+<span class="sd">        Taking an average charge between any two atoms introduces imbalances</span>
+<span class="sd">        in the net charge of the alchemical regions, due to</span>
+<span class="sd">        the different charge distribution.</span>
+
+<span class="sd">        :return: default(True)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redistribute_q_over_unmatched</span>
+
+    <span class="nd">@redistribute_q_over_unmatched</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">redistribute_q_over_unmatched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="c1"># Redistribute charge imbalances created due to atom-pair averaging</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_redistribute_q_over_unmatched</span> <span class="o">=</span> <span class="n">boolean</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Distribute the introduced charge disparity in the alchemical region: &#39;</span>
+              <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_redistribute_q_over_unmatched</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">use_hybrid_single_dual_top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hybrid single dual topology (experimental). Currently not implemented.</span>
+
+<span class="sd">        :return: default(False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># hybrid single dual topology</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_hybrid_single_dual_top</span>
+
+    <span class="nd">@use_hybrid_single_dual_top</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">use_hybrid_single_dual_top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">boolean</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_use_hybrid_single_dual_top</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="o">=</span> <span class="s1">&#39;leap_complex_sdtop.in&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_charges_completely</span> <span class="o">!=</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Charges have to be ignored completely when using hybrid single-dual topology.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="o">=</span> <span class="s1">&#39;leap_complex.in&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_use_hybrid_single_dual_top</span> <span class="o">=</span> <span class="n">boolean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ligand_tleap_in</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The name of the tleap input file for ambertools for the ligand.</span>
+
+<span class="sd">        :return: Default (&#39;leap_ligand.in&#39;)</span>
+<span class="sd">        :rtype: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_tleap_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># return the user provided filename</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_tleap_in</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_hybrid_single_dual_top</span><span class="p">:</span>
+            <span class="c1"># return the default option for the hybrid</span>
+            <span class="k">return</span> <span class="s1">&#39;leap_ligand_sdtop.in&#39;</span>
+
+        <span class="c1"># return the default</span>
+        <span class="k">return</span> <span class="s1">&#39;leap_ligand.in&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">complex_tleap_in</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The tleap input file for the complex.</span>
+
+<span class="sd">        :return: Default &#39;leap_complex.in&#39;</span>
+<span class="sd">        :type: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># assume that hybrid single-dual topology is not used</span>
+            <span class="c1"># this will initiate the standard leap_ligand.in</span>
+            <span class="c1"># self._complex_tleap_in = &#39;leap_complex_sdtop.in&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_hybrid_single_dual_top</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="o">=</span> <span class="s1">&#39;leap_complex.in&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span>
+
+    <span class="c1"># PAIR constants configuration</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">prep_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Path to the `prep` directory. Currently in the `workdir`</span>
+
+<span class="sd">        :return: Default (workdir/prep)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">workdir</span> <span class="o">/</span>  <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;prep&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pair_morphfrcmods_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Path to the .frcmod files for the morph.</span>
+
+<span class="sd">        :return: Default (workdir/prep/morph_frcmods)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_dir</span> <span class="o">/</span> <span class="s1">&#39;morph_frcmods&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pair_morphfrmocs_tests_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Path to the location where a test is carried out with .frcmod</span>
+
+<span class="sd">        :return: Default (workdir/prep/morph_frcmods/tests)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair_morphfrcmods_dir</span> <span class="o">/</span> <span class="s1">&#39;tests&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pair_unique_atom_names_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Location of the morph files with unique filenames.</span>
+
+<span class="sd">        :return: Default (workdir/prep/morph_unique_atom_names)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_dir</span> <span class="o">/</span> <span class="s1">&#39;morph_unique_atom_names&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lig_unique_atom_names_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Directory location for files with unique atom names.</span>
+
+<span class="sd">        :return: Default (workdir/prep/unique_atom_names)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_dir</span> <span class="o">/</span> <span class="s1">&#39;unique_atom_names&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lig_frcmod_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Directory location with the .frcmod created for each ligand.</span>
+
+<span class="sd">        :return: Default (workdir/prep/ligand_frcmods)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_dir</span> <span class="o">/</span> <span class="s1">&#39;ligand_frcmods&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lig_acprep_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Directory location where the .ac charges are converted into the .mol2 format.</span>
+
+<span class="sd">        :return: Default (workdir/prep/acprep_to_mol2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prep_dir</span> <span class="o">/</span> <span class="s1">&#39;acprep_to_mol2&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lig_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Directory location with the .mol2 files.</span>
+
+<span class="sd">        :return: Default (workdir/mol2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">workdir</span> <span class="o">/</span> <span class="s1">&#39;mol2&#39;</span>
+
+<div class="viewcode-block" id="Config.get_element_map"><a class="viewcode-back" href="../../classes/config.html#ties.Config.get_element_map">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_element_map</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get the mapping of atom types to elements</span>
+        <span class="n">element_map_filename</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span> <span class="o">/</span> <span class="s1">&#39;data&#39;</span> <span class="o">/</span> <span class="s1">&#39;element_atom_type_map.txt&#39;</span>
+        <span class="c1"># remove the comments lines with #</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="ow">not</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">element_map_filename</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span>
+        <span class="c1"># convert into a dictionary</span>
+
+        <span class="n">element_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">element</span><span class="p">,</span> <span class="n">atom_types</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">atom_type</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+                <span class="n">element_map</span><span class="p">[</span><span class="n">atom_type</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">element_map</span></div>
+
+    <span class="c1"># fixme - this should be determined at the location where it is relevant rather than here in the conf</span>
+    <span class="c1"># antechamber parameters, by default compute AM1-BCC charges</span>
+    <span class="n">antechamber_charge_type</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="s1">&#39;bcc&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Config.get_serializable"><a class="viewcode-back" href="../../classes/config.html#ties.Config.get_serializable">[docs]</a>    <span class="k">def</span> <span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a JSON serializable structure of the config.</span>
+
+<span class="sd">        pathlib.Path is not JSON serializable, so replace it with str</span>
+
+<span class="sd">        todo - consider capturing all information about the system here,</span>
+<span class="sd">        including each suptop.get_serializable() so that you can record</span>
+<span class="sd">        specific information such as the charge changes etc.</span>
+
+<span class="sd">        :return: Dictionary {key:value} with the settings</span>
+<span class="sd">        :rtype: Dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">host_specific</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;code_root&#39;</span><span class="p">,</span> <span class="s1">&#39;script_dir0&#39;</span><span class="p">,</span> <span class="s1">&#39;namd_script_dir&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;ambertools_script_dir&#39;</span><span class="p">,</span> <span class="s1">&#39;tleap_check_protein&#39;</span><span class="p">,</span> <span class="s1">&#39;vmd_vis_script&#39;</span><span class="p">]</span>
+
+        <span class="n">ser</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">host_specific</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PosixPath</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+            <span class="c1"># account for the ligands being pathlib objects</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;ligands&#39;</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># a list of ligands, convert to strings</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">v</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;_ligand_files&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">ser</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="k">return</span> <span class="n">ser</span></div>
+
+    <span class="k">def</span> <span class="nf">set_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># set all the configs one by one</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">TIES</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../main.html">TIES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usagecmd.html">Examples - Command Line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Examples - Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocol.html">TIES Protocol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../classes.html">Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Mateusz Bieniek.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

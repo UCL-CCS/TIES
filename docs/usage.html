@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Examples - Python &#8212; TIES 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="TIES Protocol" href="protocol.html" />
+    <link rel="prev" title="Examples - Command Line" href="usagecmd.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="examples-python">
+<h1>Examples - Python<a class="headerlink" href="#examples-python" title="Permalink to this heading">¶</a></h1>
+<p>TIES offers both a Python API as well as a command line interface.
+The API can be very minimal, for example:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Pair</span>
+
+
+<span class="c1"># load the two ligands and use the default configuration</span>
+<span class="n">pair</span> <span class="o">=</span> <span class="n">Pair</span><span class="p">(</span><span class="s1">&#39;l02.mol2&#39;</span><span class="p">,</span> <span class="s1">&#39;l03.mol2&#39;</span><span class="p">)</span>
+<span class="c1"># superimpose the ligands passed above</span>
+<span class="n">hybrid</span> <span class="o">=</span> <span class="n">pair</span><span class="o">.</span><span class="n">superimpose</span><span class="p">()</span>
+
+<span class="c1"># save the results</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span><span class="s1">&#39;meta_l02_l03.json&#39;</span><span class="p">)</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_pdb</span><span class="p">(</span><span class="s1">&#39;l02_l03_morph.pdb&#39;</span><span class="p">)</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_mol2</span><span class="p">(</span><span class="s1">&#39;l02_l03_morph.mol2&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This minimal example is sufficient to generate the input for the TIES_MD package
+for the simulations in either NAMD or OpenMM.</p>
+<p>Note that in this example we do not set any explicit settings.
+For that we need to employ the <code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code> which we
+can then pass to the Pair.</p>
+<blockquote>
+<div><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code> contains the settings for all classes in the TIES package, and
+therefore can be used to define a <strong>protocol</strong>.</p>
+</div></blockquote>
+<p>Whereas all settings can be done in <code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code>, for clarity
+some can be passed separately here to the <code class="xref py py-class docutils literal notranslate"><span class="pre">Pair</span></code>. This way,
+it overwrites the settings in the <cite>config</cite> object:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Pair</span>
+<span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Protein</span>
+
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span>
+<span class="c1"># configure the two settings</span>
+<span class="n">config</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="s1">&#39;ties20&#39;</span>
+<span class="n">config</span><span class="o">.</span><span class="n">md_engine</span> <span class="o">=</span> <span class="s1">&#39;openmm&#39;</span>
+<span class="c1"># set ligand_net_charge as a parameter,</span>
+<span class="c1"># which is equivalent to using config.ligand_net_charge</span>
+<span class="n">pair</span> <span class="o">=</span> <span class="n">Pair</span><span class="p">(</span><span class="s1">&#39;l02.mol2&#39;</span><span class="p">,</span> <span class="s1">&#39;l03.mol2&#39;</span><span class="p">,</span> <span class="n">ligand_net_charge</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<span class="c1"># rename atoms to help with any issues</span>
+<span class="n">pair</span><span class="o">.</span><span class="n">make_atom_names_unique</span><span class="p">()</span>
+
+<span class="n">hybrid</span> <span class="o">=</span> <span class="n">pair</span><span class="o">.</span><span class="n">superimpose</span><span class="p">()</span>
+
+<span class="c1"># save meta data to files</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">()</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_pdb</span><span class="p">()</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_mol2</span><span class="p">()</span>
+
+<span class="c1"># add the protein for the full RBFE protocol</span>
+<span class="n">config</span><span class="o">.</span><span class="n">protein</span> <span class="o">=</span> <span class="s1">&#39;protein.pdb&#39;</span>
+<span class="n">config</span><span class="o">.</span><span class="n">protein_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.protein.ff14SB&#39;</span>
+<span class="n">protein</span> <span class="o">=</span> <span class="n">Protein</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">protein</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">prepare_inputs</span><span class="p">(</span><span class="n">protein</span><span class="o">=</span><span class="n">protein</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Below we show the variation in which we are using <code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code> to pass the
+net charge of the molecule.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Pair</span>
+<span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Config</span>
+
+<span class="c1"># explicitly create config (which will be used by all classes underneath)</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span>
+<span class="n">config</span><span class="o">.</span><span class="n">ligand_net_charge</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+<span class="n">pair</span> <span class="o">=</span> <span class="n">Pair</span><span class="p">(</span><span class="s1">&#39;l02.mol2&#39;</span><span class="p">,</span> <span class="s1">&#39;l03.mol2&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<span class="n">pair</span><span class="o">.</span><span class="n">make_atom_names_unique</span><span class="p">()</span>
+
+<span class="c1"># overwrite the previous config settings with relevant parameters</span>
+<span class="n">hybrid</span> <span class="o">=</span> <span class="n">pair</span><span class="o">.</span><span class="n">superimpose</span><span class="p">(</span><span class="n">use_element_in_superimposition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">redistribute_q_over_unmatched</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># prep for the output</span>
+<span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s1">&#39;explicit&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span> <span class="k">else</span> <span class="kc">None</span>
+
+<span class="c1"># save meta data to specific locations</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span><span class="s1">&#39;explicit/result.json&#39;</span><span class="p">)</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_pdb</span><span class="p">(</span><span class="s1">&#39;explicit/result.pdb&#39;</span><span class="p">)</span>
+<span class="n">hybrid</span><span class="o">.</span><span class="n">write_mol2</span><span class="p">(</span><span class="s1">&#39;explicit/result.mol2&#39;</span><span class="p">)</span>
+
+<span class="n">hybrid</span><span class="o">.</span><span class="n">prepare_inputs</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Note that there is also the <code class="xref py py-class docutils literal notranslate"><span class="pre">Ligand</span></code> that supports additional operations,
+and can be passed directly to <code class="xref py py-class docutils literal notranslate"><span class="pre">Ligand</span></code>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ties</span> <span class="kn">import</span> <span class="n">Ligand</span>
+
+
+<span class="n">lig</span> <span class="o">=</span> <span class="n">Ligand</span><span class="p">(</span><span class="s1">&#39;l02_same_atom_name.mol2&#39;</span><span class="p">)</span>
+
+<span class="n">lig</span><span class="o">.</span><span class="n">make_atom_names_correct</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_names_correct</span><span class="p">()</span>
+
+<span class="c1"># prepare the .mol2 input</span>
+<span class="n">lig</span><span class="o">.</span><span class="n">antechamber_prepare_mol2</span><span class="p">()</span>
+
+<span class="c1"># the final .mol2 file</span>
+<span class="k">assert</span> <span class="n">lig</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+<span class="c1"># Atom naming {new_name: old_name}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">renaming_map</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="s1">&#39;O1&#39;</span> <span class="o">==</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lig</span><span class="o">.</span><span class="n">renaming_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">TIES</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="main.html">TIES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usagecmd.html">Examples - Command Line</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples - Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protocol.html">TIES Protocol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="classes.html">Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usagecmd.html" title="previous chapter">Examples - Command Line</a></li>
+      <li>Next: <a href="protocol.html" title="next chapter">TIES Protocol</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Mateusz Bieniek.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/usage.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

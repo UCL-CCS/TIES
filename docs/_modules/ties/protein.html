@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ties.protein &#8212; TIES 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ties.protein</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">ties.generator</span>
+<span class="kn">from</span> <span class="nn">ties.config</span> <span class="kn">import</span> <span class="n">Config</span>
+
+<div class="viewcode-block" id="Protein"><a class="viewcode-back" href="../../ties/ties.Protein.html#ties.Protein">[docs]</a><span class="k">class</span> <span class="nc">Protein</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A helper tool for the protein file. It calculates the number of ions needed to neutralise it</span>
+<span class="sd">    (using ambertools for now).</span>
+
+<span class="sd">    :param filename: filepath to the protein</span>
+<span class="sd">    :type filename: string</span>
+<span class="sd">    :param config: Optional configuration for the protein</span>
+<span class="sd">    :type config: :class:`Config`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Protein.__init__"><a class="viewcode-back" href="../../ties/ties.Protein.html#ties.Protein.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Protein filename is not passed and the config file is missing. &#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">config</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Could not find the protein in the config object. &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span>
+        <span class="k">elif</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">filename</span>
+            <span class="c1"># update the config</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">protein</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="c1"># fixme - check if the file exists at this point, throw an exception otherwise</span>
+
+        <span class="c1"># calculate the charges of the protein (using ambertools)</span>
+        <span class="c1"># fixme - turn this into a method? stage2: use propka or some other tool, not this workaround</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">get_protein_net_charge</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span><span class="o">.</span><span class="n">absolute</span><span class="p">(),</span>
+                                                                   <span class="n">config</span><span class="o">.</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">tleap_check_protein</span><span class="p">,</span>
+                                                                   <span class="n">config</span><span class="o">.</span><span class="n">protein_ff</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Protein net charge: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Protein.get_path"><a class="viewcode-back" href="../../classes/protein.html#ties.Protein.get_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a path to the protein.</span>
+
+<span class="sd">        :return: the protein filename</span>
+<span class="sd">        :rtype: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">TIES</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../main.html">TIES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usagecmd.html">Examples - Command Line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Examples - Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../protocol.html">TIES Protocol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../classes.html">Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Mateusz Bieniek.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
