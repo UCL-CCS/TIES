@@ -3,27 +3,67 @@ name: CI
 on: [push]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  test:
+    name: Test on ${{ matrix.cfg.os }}, 🐍=${{ matrix.cfg.python-version }}, Program=${{ matrix.cfg.conda-env }}
+    runs-on: ${{ matrix.cfg.os }}
     strategy:
-      max-parallel: 5
+      fail-fast: false
+      matrix:
+        cfg:
+#          - conda-env: basic
+#            python-version: 3.7
+#            os: ubuntu-latest
+#
+#          - conda-env: basic
+#            python-version: 3.7
+#            os: macOS-latest
+
+          - conda-env: everything
+            python-version: 3.8
+            os: ubuntu-latest
+
+          - conda-env: basic
+            python-version: 3.9
+            os: ubuntu-latest
+
+#          - conda-env: basic
+#            python-version: 3.9
+#            os: macOS-latest
+
     env:
-      AMBERHOME: /usr/share/miniconda
+      CI_OS: ${{ matrix.cfg.os }}
+      ENV: ${{ matrix.cfg.conda-env }}
+      PYVER: ${{ matrix.cfg.python-version }}
+      #AMBERHOME: /usr/share/miniconda
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        $CONDA/bin/conda env update --file environment.yml --name base
+      - uses: actions/checkout@v2
+
+      - name: Additional info about the build
+        shell: bash
+        run: |
+          uname -a
+          df -h
+          ulimit -a
+      - name: Create Environment
+        uses: conda-incubator/setup-miniconda@v2.1.1
+        with:
+          activate-environment: test
+          environment-file: environment.yml.yaml
+          python-version: ${{ matrix.cfg.python-version }}
+          auto-update-conda: true
+          auto-activate-base: false
+          show-channel-urls: true
+          mamba-version: "*"
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
+
+      - name: Environment Information
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list --show-channel-urls
 #   - name: Lint with flake8
 #     run: |
 #         $CONDA/bin/conda install flake8
@@ -31,35 +71,35 @@ jobs:
 #         $CONDA/bin/flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 #         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Install ties
-      run: |
-        python setup.py build
-        pip install .
-    - name: Install pytest
-      run: |
-        pip install pytest
-    - name: Test with pytest
-      run: |
-        cd ties/testing
-        python3 -m pytest
-#    - name: Simple Ligand renaming
-#      run: |
-#        cd ties/examples/mol2_2ligands_MCL1
-#        python3 lig_api.py
-    - name: Use min API
-      run: |
-        cd examples/mol2_2ligands_MCL1
-        python3 min_api.py
-        python3 .test_min_api.py
-    - name: Use API
-      run: |
-        cd examples/mol2_2ligands_MCL1
-        python3 api.py
-    - name: CMD hybrid
-      run: |
-        cd examples/mol2_2ligands_MCL1
-        ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties
-    - name: CMD with protein
-      run: |
-        cd examples/mol2_2ligands_MCL1
-        ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties_protein -p protein.pdb
+      - name: Install ties
+        run: |
+          python setup.py build
+          pip install .
+      - name: Install pytest
+        run: |
+          pip install pytest
+      - name: Test with pytest
+        run: |
+          cd ties/testing
+          python3 -m pytest
+  #    - name: Simple Ligand renaming
+  #      run: |
+  #        cd ties/examples/mol2_2ligands_MCL1
+  #        python3 lig_api.py
+      - name: Use min API
+        run: |
+          cd examples/mol2_2ligands_MCL1
+          python3 min_api.py
+          python3 .test_min_api.py
+      - name: Use API
+        run: |
+          cd examples/mol2_2ligands_MCL1
+          python3 api.py
+      - name: CMD hybrid
+        run: |
+          cd examples/mol2_2ligands_MCL1
+          ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties
+      - name: CMD with protein
+        run: |
+          cd examples/mol2_2ligands_MCL1
+          ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties_protein -p protein.pdb
