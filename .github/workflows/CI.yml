@@ -73,8 +73,7 @@ jobs:
 #         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Install ties
         run: |
-          python setup.py build
-          pip install .
+          pip install -e -vvv .
       - name: Install pytest
         run: |
           pip install pytest
