@@ -1,4 +1,4 @@
-name: ties20
+name: test
 channels:
   - conda-forge
 dependencies:
