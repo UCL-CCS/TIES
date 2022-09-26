@@ -2,6 +2,7 @@ name: test
 channels:
   - conda-forge
 dependencies:
+  - pip
   - ambertools>=20.0, <22.0
   - libgfortran
   - ties_md
