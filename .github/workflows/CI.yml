@@ -4,8 +4,8 @@ on: [push]
 
 jobs:
   test:
-    name: Test on ${{ matrix.cfg.os }}, 🐍=${{ matrix.cfg.python-version }}, Program=${{ matrix.cfg.conda-env }}
-    runs-on: ${{ matrix.cfg.os }}
+    name: Test on ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, Program=${{ matrix.conda-env }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -13,9 +13,9 @@ jobs:
         python-version: ["3.8", "3.9"]
 
     env:
-      CI_OS: ${{ matrix.cfg.os }}
-      ENV: ${{ matrix.cfg.conda-env }}
-      PYVER: ${{ matrix.cfg.python-version }}
+      CI_OS: ${{ matrix.os }}
+      ENV: ${{ matrix.conda-env }}
+      PYVER: ${{ matrix.python-version }}
       #AMBERHOME: /usr/share/miniconda
 
     steps:
@@ -32,7 +32,7 @@ jobs:
         with:
           activate-environment: test
           environment-file: environment.yml
-          python-version: ${{ matrix.cfg.python-version }}
+          python-version: ${{ matrix.python-version }}
           auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
