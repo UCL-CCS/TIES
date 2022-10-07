@@ -6,14 +6,6 @@ include ties/scripts/vmd/*sh
 include ties/data/element_atom_type_map.txt
 include ties/version.txt
 include LICENSE.txt
-include ties/testing/data/*.mol2
-include ties/testing/data/*.pdb
-include ties/testing/data/*/obj01.pdb
-include ties/testing/agastya_dataset/*/*/*.ac
-include ties/testing/agastya_dataset/*/*/*.txt
-include ties/testing/agastya_dataset/*/*/*.pdb
-include ties/examples/*
-include ties/examples/mol2_2ligands_MCL1/*
-include ties/examples/pdb_2files/*
-include ties/examples/pdb_2files_protein/*
-include ties/examples/pdb_8ligands_protein/*
+include ties/pyqcprot_ext/*
+graft ties/testing
+graft ties/examples

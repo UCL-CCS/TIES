@@ -251,7 +251,7 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
     if hybrid_topology:
         # delegate correcting fep column in the pdb file
         return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
-    
+
     pmdpdb = parmed.load_file(str(source_pdb_filename), structure=True)
     if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
         raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
