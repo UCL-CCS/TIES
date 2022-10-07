@@ -1,8 +1,9 @@
-name: test
+name: test_ci
 channels:
   - conda-forge
+  - defaults
+  -
 dependencies:
-  - pip
   - ambertools>=20.0, <22.0
   - libgfortran
   - ties_md
@@ -13,6 +14,4 @@ dependencies:
   - networkx
   - dimod
   - tabulate
-  - pip:
-      - dwave_networkx
-      #- . # ties installation
+  - dwave-networkx
