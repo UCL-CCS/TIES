@@ -9,26 +9,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cfg:
-#          - conda-env: basic
-#            python-version: 3.7
-#            os: ubuntu-latest
-#
-#          - conda-env: basic
-#            python-version: 3.7
-#            os: macOS-latest
-
-          - conda-env: everything
-            python-version: 3.8
-            os: ubuntu-latest
-
-          - conda-env: basic
-            python-version: 3.9
-            os: ubuntu-latest
-
-#          - conda-env: basic
-#            python-version: 3.9
-#            os: macOS-latest
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.8", "3.9"]
 
     env:
       CI_OS: ${{ matrix.cfg.os }}
@@ -37,7 +20,7 @@ jobs:
       #AMBERHOME: /usr/share/miniconda
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
 
       - name: Additional info about the build
         shell: bash
@@ -46,7 +29,7 @@ jobs:
           df -h
           ulimit -a
       - name: Create Environment
-        uses: conda-incubator/setup-miniconda@v2.1.1
+        uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: test
           environment-file: environment.yml
@@ -54,10 +37,6 @@ jobs:
           auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
-          mamba-version: "*"
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
 
       - name: Environment Information
         shell: bash -l {0}
