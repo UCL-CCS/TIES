@@ -27,7 +27,7 @@ ext_modules = [Extension("ties/pyqcprot_ext/pyqcprot", [f"ties/pyqcprot_ext/pyqc
 
 setup(
     name='ties',
-    version='0.0.1.dev1',
+    version='20.10',
     description='TIES: Thermodynamic Integration with Enhanced Sampling',
     long_description='Copy from README file',
     url='http://ccs.chem.ucl.ac.uk',
@@ -35,7 +35,15 @@ setup(
     author_email='bieniekmat@gmail.com',
     packages=find_packages(),
     include_package_data=True,
-    install_requires='numpy',
+    install_requires=[
+        'numpy',
+        'cython',
+        'setuptools',
+        'matplotlib',
+        'networkx',
+        'dimod',
+        'tabulate',
+        'dwave-networkx'],
     entry_points={
         'console_scripts': [
             'ties = ties:cli.command_line_script'
