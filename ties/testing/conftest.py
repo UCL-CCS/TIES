@@ -1,7 +1,6 @@
 import pytest
 from ties.topology_superimposer import Atom
 
-
 @pytest.fixture
 def lr_atoms_branches():
     """

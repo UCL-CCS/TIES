@@ -1,14 +1,22 @@
 #!/usr/bin/env python
 
 import pytest, tempfile, os, sys, site, shutil
-
+from pathlib import Path
 def main():
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        print('created temporary directory', tmpdirname)
-        test_dir = os.path.join(site.getsitepackages()[0], 'ties', 'testing')
-        tmp_test_dir = os.path.join(tmpdirname, 'ties', 'unit_testing', 'testing')
-        shutil.copytree(test_dir, tmp_test_dir)
-        sys.exit(pytest.main([os.path.join(tmp_test_dir)]))
+    try:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            cwd = Path.cwd()
+            os.chdir(tmpdirname)
+            test_dir = os.path.join(site.getsitepackages()[0], 'ties', 'testing')
+            examples = os.path.join(site.getsitepackages()[0], 'ties', 'examples')
+            shutil.copytree(test_dir, 'testing')
+            shutil.copytree(examples, 'examples')
+
+            # enter the testing directory
+            os.chdir(Path(tmpdirname) / 'testing')
+            sys.exit(pytest.main([Path(tmpdirname) / 'testing']))
+    finally:
+        os.chdir(cwd)
 
 if __name__ == '__main__':
     main()
