@@ -19,10 +19,12 @@ import ties.protein
 
 def command_line_script():
     parser = argparse.ArgumentParser(description='TIES 20')
-    parser.add_argument('command', metavar='str', type=str,
+    parser.add_argument('-action', '--action', metavar='command', type=str, default='create',
+                        dest='command',
+                        choices=['create', 'rename', 'mergecrd'],
                         help='Action to be performed. E.g. "rename, create, .." ')
-    parser.add_argument('-l', '--ligands', metavar='files ', dest='ligands',
-                        nargs='+',
+    parser.add_argument('-l', '--ligands', dest='ligands',
+                        nargs='+', required=True,
                         type=ArgparseChecker.existing_file,
                         help='A list of uniquely named ligand files. '
                              'If more than 2 ligands are provided, '
@@ -142,10 +144,6 @@ def command_line_script():
     # ie do not allow ligands with the same ligand name
     config.uses_cmd = True
 
-    #  fixme - use config to take care of it
-    if not args.ligands:
-        raise ValueError('Ligands have to be provided (see -l).')
-
     # create ligands
     ligands = [ties.ligand.Ligand(lig, config) for lig in args.ligands]
 
@@ -171,10 +169,10 @@ def command_line_script():
 
         # assign coordinates
         ligands[0].overwrite_coordinates_with(config.coordinates_file, args.output_filename)
-        sys.exit(0)
-    elif command != 'create':
-        print('Please provide action (rename/create)')
         sys.exit()
+
+    # continue if the command is "create" which is also the default
+    assert command == 'create'
 
     # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
     [lig.antechamber_prepare_mol2() for lig in ligands]
