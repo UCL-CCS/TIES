@@ -22,7 +22,7 @@ jobs:
       - name: Create Environment
         uses: conda-incubator/setup-miniconda@v2.1.1
         with:
-          activate-environment: fegrow
+          activate-environment: ties
           environment-file: environment.yml
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
