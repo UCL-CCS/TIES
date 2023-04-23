@@ -1,4 +1,4 @@
-name: test_ci
+name: ties
 channels:
   - conda-forge
   - defaults
