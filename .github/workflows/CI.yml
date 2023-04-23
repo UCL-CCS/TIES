@@ -11,7 +11,7 @@ jobs:
         python-version: ["3.8", "3.9"]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
       - name: Additional info about the build
         shell: bash
@@ -20,15 +20,18 @@ jobs:
           df -h
           ulimit -a
       - name: Create Environment
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v2.1.1
         with:
-          python-version: ${{ matrix.python-version }}
+          activate-environment: fegrow
           environment-file: environment.yml
-          activate-environment: test
+          python-version: ${{ matrix.python-version }}
           auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
-
+          mamba-version: "*"
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - name: Environment Information
         shell: bash -l {0}
         run: |
