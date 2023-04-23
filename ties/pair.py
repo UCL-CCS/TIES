@@ -338,7 +338,6 @@ class Pair():
 
     def _check_hybrid_frcmod(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
         """
-        Previous code: https://github.com/UCL-CCS/BacScratch/blob/master/agastya/ties_hybrid_topology_creator/output.py
         Check that the output library can be used to create a valid amber topology.
         Add missing terms with no force to pass the topology creation.
         Returns the corrected .frcmod content, otherwise throws an exception.
@@ -391,7 +390,8 @@ class Pair():
             if "Could not find bond parameter for:" in line:
                 bond = line.split(':')[-1].strip()
                 missing_bonds.add(bond)
-            elif "Could not find angle parameter:" in line:
+            elif "Could not find angle parameter:" in line or \
+                    "Could not find angle parameter for atom types:" in line:
                 cols = line.split(':')
                 angle = cols[-1].strip()
                 if angle not in missing_angles:
