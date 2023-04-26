@@ -2,31 +2,20 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  tests:
-    name: Test on ${{ matrix.os }}, 🐍=${{ matrix.python-version }}, Program=${{ matrix.conda-env }}
-    runs-on: ${{ matrix.os }}
+  build-linux:
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu-latest"]
-        python-version: ["3.8", "3.9"]
+      max-parallel: 5
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Additional info about the build
-        shell: bash
-        run: |
-          uname -a
-          df -h
-          ulimit -a
+      - uses: actions/checkout@v3
 
       - name: Create Environment
         uses: conda-incubator/setup-miniconda@v2.1.1
         with:
           activate-environment: ties
           environment-file: environment.yml
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.8
           auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
