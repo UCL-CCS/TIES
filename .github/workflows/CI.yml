@@ -58,7 +58,7 @@ jobs:
       - name: Use min API
         shell: bash -l {0}
         run: |
-          cd ties/testing/examples/mol2_2ligands_MCL1
+          cd ties/examples/mol2_2ligands_MCL1
           python3 min_api.py
           python3 .test_min_api.py
 
@@ -70,17 +70,17 @@ jobs:
       - name: Use API
         shell: bash -l {0}
         run: |
-          cd ties/testing/examples/mol2_2ligands_MCL1
+          cd ties/examples/mol2_2ligands_MCL1
           python3 api.py
 
       - name: CMD hybrid
         shell: bash -l {0}
         run: |
-          cd ties/testing/examples/mol2_2ligands_MCL1
+          cd ties/examples/mol2_2ligands_MCL1
           ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties
 
       - name: CMD with protein
         shell: bash -l {0}
         run: |
-          cd ties/testing/examples/mol2_2ligands_MCL1
+          cd ties/examples/mol2_2ligands_MCL1
           ties create -l l02.mol2 l03.mol2 -nc -1 -dir cmdties_protein -p protein.pdb
