@@ -51,11 +51,6 @@ jobs:
         run: |
           pip install pytest
 
-      - name: Run pytest
-        shell: bash -l {0}
-        run: |
-          python -m ties.testing.run
-
   #    - name: Simple Ligand renaming
   #      run: |
   #        cd ties/examples/mol2_2ligands_MCL1
@@ -66,6 +61,11 @@ jobs:
           cd ties/testing/examples/mol2_2ligands_MCL1
           python3 min_api.py
           python3 .test_min_api.py
+
+      - name: Run pytest
+        shell: bash -l {0}
+        run: |
+          python -m ties.testing.run
 
       - name: Use API
         shell: bash -l {0}
