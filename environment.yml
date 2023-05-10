@@ -2,12 +2,11 @@ name: ties
 channels:
   - conda-forge
   - defaults
-  -
+
 dependencies:
-  - ambertools>=20.0, <22.0
-  - libgfortran
+  - conda-forge::ambertools >=20.0
   - ties_md
-  - numpy
+  - numpy <=1.23.5
   - cython
   - setuptools
   - matplotlib
