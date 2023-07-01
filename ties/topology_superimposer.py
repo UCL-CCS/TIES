@@ -25,6 +25,16 @@ import ties.generator
 from .transformation import superimpose_coordinates
 
 
+class Bond:
+    def __init__(self, atom, type):
+        self.atom = atom
+        self.type = type
+
+class Bonds(set):
+
+    def without(self, atom):
+        return {bond for bond in self if bond.atom is not atom}
+
 class Atom:
     counter = 1
 
@@ -41,7 +51,7 @@ class Atom:
         self._original_charge = charge
 
         self.resid = None
-        self.bonds = set()
+        self.bonds:Bonds = Bonds()
         self.use_general_type = use_general_type
         self.hash_value = None
 
@@ -119,9 +129,9 @@ class Atom:
 
         return False
 
-    def bound_to(self, other):
-        for atom, bond_type in self.bonds:
-            if atom is other:
+    def bound_to(self, atom):
+        for bond in self.bonds:
+            if bond.atom is atom:
                 return True
 
         return False
@@ -131,7 +141,7 @@ class Atom:
         '''
         United atom charge: summed charges of this atom and the bonded hydrogens.
         '''
-        return self.charge + sum(a.charge for a, b in self.bonds if a.is_hydrogen())
+        return self.charge + sum(bond.atom.charge for bond in self.bonds if bond.atom.is_hydrogen())
 
     def __hash__(self):
         # Compute the hash key once
@@ -156,8 +166,8 @@ class Atom:
         return self.name
 
     def bind_to(self, other, bond_type):
-        self.bonds.add((other, bond_type))
-        other.bonds.add((self, bond_type))
+        self.bonds.add(Bond(other, bond_type))
+        other.bonds.add(Bond(self, bond_type))
 
     def eq(self, atom, atol=0):
         """
@@ -885,21 +895,21 @@ class SuperimposedTopology:
         # the next iteration would connect SingleA2 to SingleA1, etc
         # first, remove the atoms that are connected to pairs
         for atom in unmatched_atoms:
-            for bonded_atom, bond_type in atom.bonds:
+            for bond in atom.bonds:
                 unmatched_atom_id = self.get_generated_atom_id(atom)
                 # check if the unmatched atom is bonded to any pair
-                pair = self.find_pair_with_atom(bonded_atom.name)
+                pair = self.find_pair_with_atom(bond.atom.name)
                 if pair is not None:
                     # this atom is bound to a pair, so add the bond to the pair
                     pair_id = self.get_generated_atom_id(pair[0])
                     # add the bond between the atom and the pair
                     bond_sorted = sorted([unmatched_atom_id, pair_id])
-                    bond_sorted.append(bond_type)
+                    bond_sorted.append(bond.type)
                     bonds.add(tuple(bond_sorted))
                 else:
                     # it is not directly linked to a matched pair,
                     # simply add this missing bond to whatever atom it is bound
-                    another_unmatched_atom_id = self.get_generated_atom_id(bonded_atom)
+                    another_unmatched_atom_id = self.get_generated_atom_id(bond.atom)
                     bond_sorted = sorted([unmatched_atom_id, another_unmatched_atom_id])
                     bond_sorted.append(bond_type)
                     bonds.add(tuple(bond_sorted))
@@ -1130,7 +1140,7 @@ class SuperimposedTopology:
                 continue
 
             # check if any of the bonded atoms can be found in this sup top
-            if not self.contains_any_node(A1.bonds) or not self.contains_node(B1.bonds):
+            if not self.contains_any(A1.bonds) or not self.contains_node(B1.bonds):
                 # we appear disconnected, remove us
                 pass
             for bonded_atom in A1.bonds:
@@ -1895,12 +1905,12 @@ class SuperimposedTopology:
         overall_score = 0
         for node_a, node_b in self.matched_pairs:
             # for every neighbour in Left
-            for bonded_atom in node_a.bonds:
+            for a_bond in node_a.bonds:
                 # if this bonded atom is present in this superimposed topology (or component), ignore
                 # fixme - surely this can be done better, you could have "contains this atom or something"
                 in_this_sup_top = False
                 for other_a, _ in self.matched_pairs:
-                    if bonded_atom == other_a:
+                    if a_bond.atom == other_a:
                         in_this_sup_top = True
                         break
                 if in_this_sup_top:
@@ -1909,13 +1919,13 @@ class SuperimposedTopology:
                 # a candidate is found that could make the node_a and node_b more similar,
                 # so check if it is also present in node_b,
                 # ignore the charges to focus only on the topology and put aside the parameterisation
-                for bonded_atom_b in node_b.bonds:
+                for b_bond in node_b.bonds:
                     # fixme - what if the atom is mutated into a different atom? we have to be able
                     # to relies on other measures than just this one, here the situation is that the topology
                     # is enough to answer the question (because only charges were modified),
                     # however, this gets more tricky
                     # fixme - hardcoded
-                    score = len(_overlay(bonded_atom, bonded_atom_b))
+                    score = len(_overlay(a_bond.atom, b_bond.atom))
 
                     # this is a purely topology based score, the bigger the overlap the better the match
                     overall_score += score
@@ -2121,12 +2131,12 @@ class SuperimposedTopology:
         # add all the edges
         for nA, nB in self.matched_pairs:
             # add the edges from nA
-            for bonded_to_nA, bond_type1 in nA.bonds:
-                if bonded_to_nA in gl:
-                    gl.add_edge(nA, bonded_to_nA)
-            for bonded_to_nB, bond_type1 in nB.bonds:
-                if bonded_to_nB in gr:
-                    gr.add_edge(nB, bonded_to_nB)
+            for nA_bonded in nA.bonds:
+                if nA_bonded.atom in gl:
+                    gl.add_edge(nA, nA_bonded.atom)
+            for nB_bonded in nB.bonds:
+                if nB_bonded.atom in gr:
+                    gr.add_edge(nB, nB_bonded.atom)
 
         return gl, gr
 
@@ -2380,13 +2390,7 @@ class SuperimposedTopology:
 
     def contains_node(self, node):
         # checks if this node was used in this overlay
-        if len(self.nodes.intersection(set([node, ]))) == 1:
-            return True
-
-        return False
-
-    def contains_any_node(self, node_list):
-        if len(self.nodes.intersection(set(node_list))) > 0:
+        if node in self.nodes:
             return True
 
         return False
@@ -2826,16 +2830,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     *n2 from the right molecule
     """
 
-    # if either of the nodes has already been matched, ignore
-    if suptop.contains_any_node([n1, n2]):
+    # ignore if either of the nodes is part of the suptop
+    if suptop.contains_node(n1) or suptop.contains_node(n2):
         return None
 
-    # if the two nodes are "the same"
     if use_element_type and not n1.same_element(n2):
-        # these two atoms have a different type, so return None
         return None
-    elif not use_element_type and not n1.same_type(n2):
-        # these two atoms have a different type, so return None
+
+    # make more specific, ie if "use_specific_type"
+    if not use_element_type and not n1.same_type(n2):
         return None
    
     # Check for cycles
@@ -2843,15 +2846,14 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # then the cycle should be present in both, left and right ligand
     safe = True
     # if n1 is linked with node in suptop other than parent
-    a_new_cycle_is_present = False
     for b1 in n1.bonds:
-        if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
+        # if this bound atom is not a parent and is already a suptop
+        if b1.atom != parent_n1 and suptop.contains_node(b1.atom):
             safe = False  # n1 forms cycle, now need to check n2
-            a_new_cycle_is_present = True
             for b2 in n2.bonds:
-                if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
+                if b2.atom != parent_n2 and suptop.contains_node(b2.atom):
                     # b2 forms cycle, now need to check it's the same in both
-                    if suptop.contains((b1[0], b2[0])):
+                    if suptop.contains((b1.atom, b2.atom)):
                         safe = True
                         break
             if not safe:  # only n1 forms a cycle
@@ -2862,12 +2864,11 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # now the same for any remaining unchecked bonds in n2
     safe = True
     for b2 in n2.bonds:
-        if b2[0] != parent_n2 and suptop.contains_node(b2[0]):
+        if b2.atom != parent_n2 and suptop.contains_node(b2.atom):
             safe = False
-            a_new_cycle_is_present = True
             for b1 in n1.bonds:
-                if b1[0] != parent_n1 and suptop.contains_node(b1[0]):
-                    if suptop.contains((b1[0], b2[0])):
+                if b1.atom != parent_n1 and suptop.contains_node(b1.atom):
+                    if suptop.contains((b1.atom, b2.atom)):
                         safe = True
                         break
             if not safe:
@@ -2885,81 +2886,86 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # having both nodes appended also ensure that we do not revisit/read neither n1 and n2
     suptop.add_node_pair((n1, n2))
     if not (parent_n1 is parent_n2 is None):
+        # fixme - adding a node pair should automatically take care of the bond, maybe using inner data?
         suptop.link_with_parent((n1, n2), (parent_n1, parent_n2), bond_types)
 
     # the extra bonds are legitimate
     # so let's make sure they are added
-    for n1bonded_node, bond_type1 in n1.bonds:
+    # fixme: add function get_bonds_without_parent? or maybe make them "subtractable" even without the type
+    # for this it would be enough that the bonds is an object too, it will make it more managable
+    # bookkeeping? Ideally adding "add_node_pair" would take care of this
+    for n1_bonded in n1.bonds:
         # ignore left parent
-        if n1bonded_node is parent_n1:
+        if n1_bonded.atom is parent_n1:
             continue
-        for n2bonded_node, bond_type2 in n2.bonds:
+        for n2_bonded in n2.bonds:
             # ignore right parent
-            if n2bonded_node is parent_n2:
+            if n2_bonded.atom is parent_n2:
                 continue
 
             # if the pair exists, add a bond between the two pairs
-            if suptop.contains((n1bonded_node, n2bonded_node)):
+            if suptop.contains((n1_bonded.atom, n2_bonded.atom)):
+                # fixme: this linking of pairs should also be corrected
+                # 1) add "pair" as an object rather than a tuple (n1, n2)
+                # 2) this always has to happen, ie it is impossible to find (n1, n2)
+                # ie make it into a more sensible method,
+                # fixme: this does not link pairs?
                 suptop.link_pairs((n1, n2),
-                                  [((n1bonded_node, n2bonded_node), (bond_type1, bond_type2)), ])
+                                  [((n1_bonded.atom, n2_bonded.atom), (n1_bonded.type, n2_bonded.type)), ])
 
     # filter out parents
-    n1_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n1, n1.bonds))
-    n2_bonds_no_parent = list(filter(lambda bond: not bond[0] is parent_n2, n2.bonds))
+    n1_bonds_no_parent = n1.bonds.without(parent_n1)
+    n2_bonds_no_parent = n2.bonds.without(parent_n2)
 
     # sort for the itertools.groupby
-    n1_bonds_no_parent_srt = sorted(n1_bonds_no_parent, key=lambda b: b[0].element)
-    n2_bonds_no_parent_srt = sorted(n2_bonds_no_parent, key=lambda b: b[0].element)
+    # fixme: use hydrogens last, after the whole picture is determined
+    n1_bonds_no_parent_srt = sorted(n1_bonds_no_parent, key=lambda b: b.atom.element)
+    n2_bonds_no_parent_srt = sorted(n2_bonds_no_parent, key=lambda b: b.atom.element)
 
-    # so first we have to group with groupby
+    # group by element type, e.g. carbons will only be matched to carbons,
+    # but they will be considered as a group
     combinations = []
-    for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent_srt,
-                                               key=lambda bonded: bonded[0].element):
-        for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent_srt,
-                                                   key=lambda bonded: bonded[0].element):
-            # the types will only match once
-            # fixme - note that it always uses a general type here,
-            # also, the group is not done correctly atm
-            if n1_type != n2_type:
+    for n1_type, n1_bonds in itertools.groupby(n1_bonds_no_parent_srt, key=lambda b: b.atom.element):
+        for n2_type, n2_bonds in itertools.groupby(n2_bonds_no_parent_srt, key=lambda b: b.atom.element):
+            # fixme - ideally we would allow other typing than just the chemical element
+            if n1_type is not n2_type:
                 continue
 
-            # convert into a list
-            n1_bonds = list(n1_bonds)
-            n2_bonds = list(n2_bonds)
+            # these two groups are of the same type (currently same elements)
 
-            # these two groups are of the same type, so we have to do each to each combination,
-
-            # if one atom list of length 1, then we have L1-R1 and L1-R2 and
-            # these two are in contradiction to each other
-
-            # For 2 C in left and right, we have 2*2=4 combinations,
+            # for example, let us say we are matching carbons here
+            # if there is only 1 carbon on each side, then there is only one combination for these carbons
+            # for 2 carbons in left and right, we have 2*2=4 combinations,
             # ie LC1-RC1 LC2-RC2 and LC1-RC2 LC2-RC1 which should be split into two groups
 
             # For 3 C ... fixme
             atom_type_solutions = {}
-            for n1bonded_node, bond_type1 in n1_bonds:
+            for n1_bonded in n1_bonds:
                 # so we first try each combination with atom1
                 solutions_for_this_left_atom = {}
                 # so for every atom we have a list of choices,
-                for n2bonded_node, bond_type2 in n2_bonds:
-                    # a copy of the sup_top is needed because the traversal can take place
-                    # using different pathways
-                    bond_solutions = _overlay(n1bonded_node, n2bonded_node,
+                for n2_bonded in n2_bonds:
+
+                    # create a copy of the sup_top to allow for different traversals
+                    bond_solutions = _overlay(n1_bonded.atom, n2_bonded.atom,
                                               parent_n1=n1, parent_n2=n2,
-                                              bond_types=(bond_type1, bond_type2),
+                                              bond_types=(n1_bonded.type, n2_bonded.type),
                                               suptop=copy.copy(suptop),
                                               ignore_coords=ignore_coords,
                                               use_element_type=use_element_type)
-                    # if they were different type, etc, ignore
+
+                    # if another rule kicked in and for whatever reason these two atoms
+                    # could not be matched, ignore this solution
                     if bond_solutions is None:
                         continue
 
+                    # fixme - this might need to be removed
                     assert type(bond_solutions) is not list
-                    solutions_for_this_left_atom[n2bonded_node] = bond_solutions
+                    solutions_for_this_left_atom[n2_bonded.atom] = bond_solutions
 
                 # record all possible solution for this one atom
                 if len(solutions_for_this_left_atom) > 0:
-                    atom_type_solutions[n1bonded_node] = solutions_for_this_left_atom
+                    atom_type_solutions[n1_bonded.atom] = solutions_for_this_left_atom
             if len(atom_type_solutions) != 0:
                 combinations.append(atom_type_solutions)
 
@@ -3055,16 +3061,35 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # maybe we can note the other solutions as part of this solution to see understand the differences
     # ie merge the other solutions here with this suptop, if it is a mirror then add it to the suptop,
     # for later analysis, rather than returning which would have to be compared with a lot of other parts
+
+    # find both C18-C25 and C18-C23 across all
+    good = False
+    bad = False
+    for sol in all_solutions:
+        for pair in sol.matched_pairs:
+            if str(pair) == '(C18, C25)':
+                good = True
+            elif str(pair) == '(C18, C23)':
+                bad = True
+    if good and bad:
+        print('both')
     best_suptop = extract_best_suptop(list(filter(lambda st: len(st) == largest_sol_size, all_solutions)), ignore_coords)
     return best_suptop
 
 
-def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_charges=True,
-                           use_coords=True, starting_node_pairs=None,
-                           force_mismatch=None, disjoint_components=False,
-                           net_charge_filter=True, net_charge_threshold=0.1,
+def superimpose_topologies(top1_nodes,
+                           top2_nodes,
+                           pair_charge_atol=0.1,
+                           use_charges=True,
+                           use_coords=True,
+                           starting_node_pairs=None,
+                           force_mismatch=None,
+                           disjoint_components=False,
+                           net_charge_filter=True,
+                           net_charge_threshold=0.1,
                            redistribute_charges_over_unmatched=True,
-                           parmed_ligA=None, parmed_ligZ=None,
+                           parmed_ligA=None,
+                           parmed_ligZ=None,
                            align_molecules=True,
                            partial_rings_allowed=True,
                            ignore_charges_completely=False,
@@ -3081,7 +3106,8 @@ def superimpose_topologies(top1_nodes, top2_nodes, pair_charge_atol=0.1, use_cha
     TODO:
     - check if each molecule topology is connected
     """
-
+    # align_molecules = True
+    # ignore_coords = False
     if not ignore_charges_completely:
         whole_charge = SuperimposedTopology.validate_charges(top1_nodes, top2_nodes)
 
@@ -3493,8 +3519,8 @@ def generate_nxg_from_list(atoms):
     # add all the edges
     for a in atoms:
         # add the edges from nA
-        for bonded_to_a, bond_type1 in a.bonds:
-            g.add_edge(a, bonded_to_a)
+        for a_bonded in a.bonds:
+            g.add_edge(a, a_bonded.atom)
 
     return g
 
