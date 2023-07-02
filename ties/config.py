@@ -46,6 +46,8 @@ class Config:
         # use only the element in the superimposition rather than the specific atom type
         self._use_element = False
         self._use_element_in_superimposition = True
+        # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
+        self.weights = [1, 0.5]
 
         # coordinates
         self._align_molecules_using_mcs = False
@@ -82,8 +84,7 @@ class Config:
         self.uses_cmd = False
 
         # assign all the initial configuration values
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        self.set_configs(**kwargs)
 
     @property
     def workdir(self):
@@ -897,4 +898,8 @@ class Config:
     def set_configs(self, **kwargs):
         # set all the configs one by one
         for k,v in kwargs.items():
+            # skip None values, these come from the command line
+            if v is None:
+                continue
+
             setattr(self, k, v)

@@ -30,17 +30,17 @@ def command_line_script():
                              'If more than 2 ligands are provided, '
                              'Lead Optimisation Mapping (TIES MAP) will be used.')
     parser.add_argument('-dir', '--ties-output-dir', metavar='directory', dest='workdir',
-                        type=pathlib.Path, required=False,
-                        help='If not provided, "ties20" directory will be created in the current directory. ')
+                        type=pathlib.Path, required=False, default="ties",
+                        help='The destination directory for the output. Default: "ties".')
     parser.add_argument('-nc', '--ligand-net-charge', metavar='integer', dest='ligand_net_charge',
                         type=int, required=False,
                         help='An integer representing the net charge of each ligand. '
-                             'All ligands must have the same charge.')
+                             'All ligands must have the same charge. Default: 0.1e.')
     parser.add_argument('-p', '--protein', metavar='file', dest='protein',
                         type=ArgparseChecker.existing_file, required=False,
-                        help='The protein file')
+                        help='The protein file. Not necessary. ')
     parser.add_argument('-qtol', '--q-pair-tolerance', metavar='decimal', dest='atom_pair_q_atol',
-                        type=float, required=False, default=0.1,
+                        type=float, required=False,
                         help='The maximum difference in charge between any two paired atoms (electron unit). '
                              'Default 0.1e')
     parser.add_argument('-netqtol', '--q-net-tolerance', metavar='decimal', dest='net_charge_threshold',
@@ -133,6 +133,12 @@ def command_line_script():
     parser.add_argument('-elements', '--compare-elements', metavar='boolean', dest='use_element',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Ignore the specific atom types in the superimposition. Use only the elements. ')
+    parser.add_argument('-weights', '--mcs-rmsd-weights', metavar='str', dest='weights_ratio',
+                        type=ArgparseChecker.ratio, required=False,
+                        help='The weights for the weighted sum of 1) MCS overlap size to 2) RMSD '
+                             'when coordinates are used for selection of the best structure. '
+                             'Default it is "1:1" for "MCS:RMSD".  '
+                             'MCS is defined (1 - MCS fraction), so lower value is better.')
 
     # initialise the config class
     args = parser.parse_args()

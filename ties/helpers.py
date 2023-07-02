@@ -125,6 +125,13 @@ class ArgparseChecker():
             raise argparse.ArgumentTypeError('Boolean value expected.')
 
     @staticmethod
+    def ratio(v):
+        if ':' not in v:
+            argparse.ArgumentTypeError('The ratio has to be separated by ":".')
+        mcs, rmsd = v.split(':')
+        return [float(mcs), float(rmsd)]
+
+    @staticmethod
     def existing_file(v):
         # check ligand arguments
         if not pathlib.Path(v).is_file():

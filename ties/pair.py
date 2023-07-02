@@ -173,9 +173,9 @@ class Pair():
                                          force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
                                          parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
-                                         starting_pair_seed=self.config.superimposition_starting_pair)
+                                         starting_pair_seed=self.config.superimposition_starting_pair,
+                                         config=self.config)
 
-        assert len(suptops) == 1
         self.set_suptop(suptops[0], parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
         suptops[0].config = self.config
