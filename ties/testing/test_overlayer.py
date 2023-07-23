@@ -41,7 +41,7 @@ def test_2diffAtoms_CN_wrongStart():
     suptops = _overlay(c1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                        suptop=SuperimposedTopology(left_atoms, right_atoms))
     # it should return an empty suptop
-    assert suptops is None
+    assert suptops == []
 
 
 def test_2diffAtoms_CN_rightStart():
@@ -69,12 +69,13 @@ def test_2diffAtoms_CN_rightStart():
     c11.bind_to(n11, 'bondType1')
     right_atoms = [c11, n11]
 
-    # should overlap 2 atoms
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    #
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 1
+    suptop = suptops.pop()
 
-    # the number of overlapped atoms is two
+    # should overlap 2 atoms
     assert len(suptop) == 2
     correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
     for atomName1, atomName2 in correct_overlaps:
@@ -119,9 +120,10 @@ def test_3diffAtoms_CNO_rightStart():
     right_atoms = [c11, n11, o11]
 
     # should overlap 2 atoms
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 1
+    suptop = suptops.pop()
 
     # the number of overlapped atoms is two
     assert len(suptop) == 3
@@ -178,9 +180,10 @@ def test_SimpleMultipleSolutions_rightStart():
     # the good solution is (O1-O11) and (O2-O12)
 
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 1
+    suptop = suptops.pop()
     assert len(suptop) == 4
 
     assert len(suptop.mirrors) == 1
@@ -228,18 +231,21 @@ def test_One2Many():
     # the good solution is (O1-O11)
 
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 2
+
+    # extract the better suptop
+    suptop = suptops[0]
     assert len(suptop) == 2
 
-    assert len(suptop.alternative_mappings) == 1
-    worse_st = suptop.alternative_mappings[0]
+    # this is deduced by RMSD
+    worse_suptop = suptops[1]
 
     # check if both representations were found
     # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
     assert suptop.contains_atom_name_pair('O1', 'O11')
-    assert worse_st.contains_atom_name_pair('O1', 'O12')
+    assert worse_suptop.contains_atom_name_pair('O1', 'O12')
 
     assert suptop.contains_atom_name_pair('N1', 'N11')
 
@@ -276,18 +282,19 @@ def test_Many2One_part1():
     # the good solution is (O1-O11)
 
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 2
+    suptop = suptops[0]
     assert len(suptop) == 2
 
-    assert len(suptop.alternative_mappings) == 1
-    worse_st = suptop.alternative_mappings[0]
+    worse_suptop = suptops[1]
 
     # check if both representations were found
     # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
     assert suptop.contains_atom_name_pair('O1', 'O11')
     assert suptop.contains_atom_name_pair('N1', 'N11')
+    assert worse_suptop.contains_atom_name_pair('O2', 'O11')
 
 
 def test_Many2One_part2():
@@ -322,18 +329,19 @@ def test_Many2One_part2():
     # the good solution is (O1-O11)
 
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 2
+    suptop = suptops[0]
     assert len(suptop) == 2
 
-    assert len(suptop.alternative_mappings) == 1
-    worse_st = suptop.alternative_mappings[0]
+    worse_suptop = suptops[1]
 
     # check if both representations were found
     # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
     assert suptop.contains_atom_name_pair('O2', 'O12')
     assert suptop.contains_atom_name_pair('N1', 'N11')
+    assert worse_suptop.contains_atom_name_pair('O1', 'O12')
 
 
 def test_MultipleSolutions2Levels_rightStart():
@@ -402,12 +410,11 @@ def test_MultipleSolutions2Levels_rightStart():
     n14.bind_to(o12, 'bondType1')
     right_atoms = [c11, o11, o12, n11, n12, n13, n14]
 
-    # the good solution is (O1-O11) and (O2-O12)
-
     # should generate one topology which has one "symmetry"
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    assert len(suptops) == 1
+    suptop = suptops.pop()
 
     # check if the main solution is correct
     correct_overlaps = [('C1', 'C11'),
@@ -445,14 +452,16 @@ def test_2sameAtoms_2Cs_symmetry():
     right_atoms = [c11, c12]
 
     # should return a list with an empty sup_top
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
+    suptop = suptops.pop()
     assert len(suptop) == 2
     assert suptop.contains_atom_name_pair('C1', 'C11')
     assert suptop.contains_atom_name_pair('C2', 'C12')
 
-    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
+    suptop = suptops.pop()
     assert len(suptop) == 2
     assert suptop.contains_atom_name_pair('C1', 'C12')
     assert suptop.contains_atom_name_pair('C2', 'C11')
@@ -496,9 +505,9 @@ def test_methyl():
     right_atoms = [c11, h11, h12, h13]
 
     # should return a list with an empty sup_top
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     assert suptop.contains_atom_name_pair('C1', 'C11')
     assert suptop.contains_atom_name_pair('H1', 'H11')
     assert suptop.contains_atom_name_pair('H2', 'H12')
@@ -588,14 +597,14 @@ def test_mutation_separate_unique_match():
     right_atoms = [c11, c12, o11, n11]
 
     # should return a list with an empty sup_top
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     assert suptop.contains_atom_name_pair('C1', 'C11')
 
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     assert suptop.contains_atom_name_pair('N1', 'N11')
 
 
@@ -633,10 +642,10 @@ def test_3C_circle():
     c13.bind_to(c12, 'bondType1')
     right_atoms = [c11, c12, c13]
 
-    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
     # there is one main component - that is the good solution
-    assert suptop is not None
+    suptop = suptops.pop()
     # there is one symmetrical way to traverse it
     assert len(suptop.mirrors) == 1
     wrong_st = suptop.mirrors[0]
@@ -649,58 +658,58 @@ def test_3C_circle():
     assert all(st.same_circle_number() for st in [suptop, wrong_st])
     assert all(st.get_circle_number() == (1, 1) for st in [suptop, wrong_st])
 
-    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptop = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
@@ -740,7 +749,7 @@ def test_3C_circle_bonds():
     right_atoms = [c11, c12, c13]
 
     suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
+                      suptop=SuperimposedTopology(left_atoms, right_atoms)).pop()
 
     # check that each pair is linked to two other pairs
     for pair, linked_pairs in suptop.matched_pairs_bonds.items():
@@ -862,9 +871,9 @@ def test_mcl1_l12l35():
     right_atoms = [cl11, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, n11]
 
     # the correct solution
-    suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop(0)
     assert len(suptop) == 11
 
     """
@@ -873,9 +882,9 @@ def test_mcl1_l12l35():
     that means that there is atom match (L1-R1) such that L1 creates a 
     cricle in its own topology, and R1 does not. 
     """
-    suptop = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop(0)
     assert len(suptop) != 12
 
 
@@ -994,8 +1003,9 @@ def test_mcl1_l12l35_bonds():
     right_atoms = [cl11, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, n11]
 
     # the correct solution
-    suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
+    suptop = suptops.pop(0)
 
     # (c1, c11) should be linked to (c2, c12), (c3, c13)
     assert {x[0] for x in suptop.matched_pairs_bonds[(c1, c11)]} == {(c2, c12), (c3, c13)}
@@ -1099,9 +1109,9 @@ def test_tyk2_l11l14_part():
     right_atoms = [n11, c11, o11, h11, c12, h12, c13, c14, h13, cl11, h14]
 
     # the correct solution
-    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert suptop is not None
+    suptop = suptops.pop(0)
     assert len(suptop) == 10
 
     matching_pairs = [('N1', 'N11'), ('C1', 'C11'), ('O1', 'O11'),

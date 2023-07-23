@@ -10,6 +10,7 @@ import math
 import random
 import json
 import shutil
+import logging
 import subprocess
 import pathlib
 import re
@@ -24,6 +25,8 @@ import ties.config
 import ties.generator
 from .transformation import superimpose_coordinates
 
+
+logger = logging.getLogger(__name__)
 
 class Bond:
     def __init__(self, atom, type):
@@ -2888,7 +2891,8 @@ def solve_one_combination(one_atom_species, ignore_coords):
     raise Exception('not implemented')
 
 
-def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=False, use_element_type=True):
+def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=False, use_element_type=True,
+             exact_coords_cue=False):
     """
     Jointly and recursively traverse the molecule while building up the suptop.
 
@@ -2998,8 +3002,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # now the issue here is that someone might "predetermine" one part, ia CA1 mapping to CB1 rathern than CB2
     # but if CA1 and CA2 is present, and CA2 is not matched to CB2 in a predetermined manner, than CB2 should not be deleted
     # so we have to delete only the offers where CA1 = CB2 which would not be correct to pursue
-    predetermined = {a1: a2 for a1, a2 in candidate_pairings if np.array_equal(a1.atom.position, a2.atom.position)}
-    predetermined.update(zip(list(predetermined.values()), list(predetermined.keys())))
+    if exact_coords_cue:
+        predetermined = {a1: a2 for a1, a2 in candidate_pairings if np.array_equal(a1.atom.position, a2.atom.position)}
+        predetermined.update(zip(list(predetermined.values()), list(predetermined.keys())))
+
+        # skip atom pairings that have been predetermined for other atoms
+        for n1_bond, n2_bond in candidate_pairings:
+            if n1_bond in predetermined or n2 in predetermined:
+                if predetermined[n1_bond] != n2_bond or predetermined[n2_bond] != n1_bond:
+                    candidate_pairings.remove((n1_bond, n2_bond))
 
     # but they will be considered as a group
     grown_further = []
@@ -3007,16 +3018,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         # fixme - ideally we would allow other typing than just the chemical element
         if n1_bond.atom.element is not n2_bond.atom.element:
             continue
-
-        if n1_bond in predetermined:
-            if predetermined[n1_bond] != n2_bond:
-                print('Skipping cos predetermined', n1_bond, n2_bond)
-                continue
-        if n2_bond in predetermined:
-            if predetermined[n2_bond] != n1_bond:
-                print('Skipping cos predetermined', n1_bond, n2_bond)
-                continue
-        # check if the atom was predetermined for something else
 
         print('sampling', n1_bond, n2_bond)
 
@@ -3027,7 +3028,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                                   bond_types=(n1_bond.type, n2_bond.type),
                                   suptop=suptop,
                                   ignore_coords=ignore_coords,
-                                  use_element_type=use_element_type)
+                                  use_element_type=use_element_type,
+                                  exact_coords_cue=exact_coords_cue)
         grown_further.extend(suptops)
 
     # todo
@@ -3258,10 +3260,10 @@ def superimpose_topologies(top1_nodes,
     suptops = extract_best_suptops(suptops, ignore_coords)
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
-        if len(suptops) > 1:
-            raise NotImplementedError(
-                'Currently distributing charges works only if there is no disjointed components')
-        suptops[0].redistribute_charges()
+        # assume that none of the suptops are disjointed
+        logger.warning('Assuming that all suptops are separate at this point')
+        for suptop in suptops:
+            suptop.redistribute_charges()
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
     start_atom_id = 1
@@ -3348,6 +3350,13 @@ def extract_best_suptops(suptops, ignore_coords, weights=[1, 1]):
     for key, same_length_suptops in itertools.groupby(suptops, key=lambda st: len(st)):
         # order by RMSD
         sorted_by_rmsd = sorted(same_length_suptops, key=lambda st: st.align_ligands_using_mcs())
+        # these have the same lengths and the same RMSD, so they must be mirrors
+        for suptop in sorted_by_rmsd[1:]:
+            if suptop.is_mirror_of(sorted_by_rmsd[0]):
+                sorted_by_rmsd[0].add_mirror_suptop(suptop)
+            else:
+                # add it as a different solution
+                different_length_suptops.append(suptop)
         different_length_suptops.append(sorted_by_rmsd[0])
 
     # sort using weights
@@ -3422,14 +3431,14 @@ def is_mirror_of_one(suptop, suptops, ignore_coords):
         if next_suptop.is_mirror_of(suptop):
             # the suptop saved as the mirror should be the suptop
             # that is judged to be of a lower quality
-            best_suptop = extract_best_suptops([suptop, next_suptop], ignore_coords)
-            if best_suptop is next_suptop:
-                next_suptop.add_mirror_suptop(suptop)
+            best_suptop = extract_best_suptops([suptop, next_suptop], ignore_coords)[0]
+            next_suptop_better = next_suptop is best_suptop
 
-            # the new suptop is better than the previous one
-            suptops.remove(next_suptop)
-            best_suptop.add_mirror_suptop(next_suptop)
-            suptops.append(best_suptop)
+            if next_suptop_better:
+                next_suptop.add_mirror_suptop(suptop)
+            else:
+                suptops.remove(next_suptop)
+                suptops.append(suptop)
 
             return True
 
