@@ -6,128 +6,68 @@ TODO:
 - add a test case that shows that molecules cannot be fully superimposed when it is broken in half
 - add more test cases that take into account the "differences"
 """
+import copy
 
 import pytest
 from ties.topology_superimposer import Atom, _overlay, SuperimposedTopology
 
 
-def test_2diffAtoms_CN_wrongStart():
+def test_2diffAtoms_CN_wrongStart(CN):
     """
-    create a simple molecule chain with an ester
-     LIGAND 1        LIGAND 2
-        C1              C11
-        \                \
-        N1              N11
-    In this there is only one solution.
+    CN mapped to CN with the wrong starting point does not create any solutions
     """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 2, 0)
-    c1.bind_to(n1, 'bondType1')
-    left_atoms = [c1, n1]
+    CN2 = copy.deepcopy(CN)
 
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 2, 0)
-    c11.bind_to(n11, 'bondType1')
-    right_atoms = [c11, n11]
+    c1, n1 = CN
+    c11, n11 = CN2
 
-    # should return a list with an empty sup_top
-    #suptop = SuperimposedTopology(top1_nodes, top2_nodes, mda1_nodes, mda2_nodes)
-    suptops = _overlay(c1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    # it should return an empty suptop
-    assert suptops == []
+    suptop = _overlay(c1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                       suptop=SuperimposedTopology(CN, CN2))
+    assert suptop is None
 
 
-def test_2diffAtoms_CN_rightStart():
+def test_2diffAtoms_CN_rightStart(CN):
     """
-    Two different Atoms. Only one solution exists.
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-        \                \
-        N1              N11
+        CN mapped to CN when exploring from the right starting point.
     """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 2, 0)
-    c1.bind_to(n1, 'bondType1')
-    left_atoms=[c1, n1]
+    CN2 = copy.deepcopy(CN)
 
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 2, 0)
-    c11.bind_to(n11, 'bondType1')
-    right_atoms = [c11, n11]
+    c1, _ = CN
+    c11, _ = CN2
 
-    #
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 1
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CN, CN2))
 
-    # should overlap 2 atoms
     assert len(suptop) == 2
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
-    for atomName1, atomName2 in correct_overlaps:
-        assert suptop.contains_atom_name_pair(atomName1, atomName2)
+    suptop.contains_atom_name_pair('C1', 'C1')
+    suptop.contains_atom_name_pair('N1', 'N1')
 
     # there is no other ways to traverse the molecule
     assert len(suptop.mirrors) == 0
 
-
-def test_3diffAtoms_CNO_rightStart():
+def test_3diffAtoms_CNO_rightStart(CNO):
     """
     Only one solution exists.
 
-     LIGAND 1        LIGAND 2
-        C1              C11
-        \                \
-        N1              N11
-        /                /
-        O1              O11
+     LIGAND 1
+        C1
+        \
+        N1
+        /
+        O1
     """
-    # construct the LIGAND 1
-    # ignore the third dimension
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 2, 0)
-    c1.bind_to(n1, 'bondType1')
-    o1 = Atom(name='O1', atom_type='O')
-    o1.position = (1, 3, 0)
-    o1.bind_to(n1, 'bondType1')
-    left_atoms = [c1, n1, o1]
-
     # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 2, 0)
-    c11.bind_to(n11, 'bondType1')
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (1, 3, 0)
-    o11.bind_to(n11, 'bondType1')
-    right_atoms = [c11, n11, o11]
+    CNO2 = copy.deepcopy(CNO)
+    c1, n1, o1 = CNO
+    c11, n11, o11 = CNO2
 
     # should overlap 2 atoms
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 1
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CNO, CNO2))
 
     # the number of overlapped atoms is two
     assert len(suptop) == 3
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11'), ('O1', 'O11')]
+    correct_overlaps = [('C1', 'C1'), ('N1', 'N1'), ('O1', 'O1')]
     for atomName1, atomName2 in correct_overlaps:
         assert suptop.contains_atom_name_pair(atomName1, atomName2)
 
@@ -135,55 +75,17 @@ def test_3diffAtoms_CNO_rightStart():
     assert len(suptop.mirrors) == 0
 
 
-def test_SimpleMultipleSolutions_rightStart():
+def test_SimpleMultipleSolutions_rightStart(CNO_O):
     """
-    A simple molecule chain with an ester.
     The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-        \                \
-        N1              N11
-        /\              / \
-     O1    O2        O11   O12
-
     """
-    # ignore the third coordinate dimension
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 2, 0)
-    c1.bind_to(n1, 'bondType1')
-    o1 = Atom(name='O1', atom_type='O')
-    o1.position = (1, 3, 0)
-    o1.bind_to(n1, 'bondType1')
-    o2 = Atom(name='O2', atom_type='O')
-    o2.position = (2, 3, 0)
-    o2.bind_to(n1, 'bondType1')
-    left_atoms = [c1, n1, o1, o2]
-
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 2, 0)
-    c11.bind_to(n11, 'bondType1')
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (1, 3, 0)
-    o11.bind_to(n11, 'bondType1')
-    o12 = Atom(name='O12', atom_type='O')
-    o12.position = (2, 3, 0)
-    o12.bind_to(n11, 'bondType1')
-    right_atoms = [c11, n11, o11, o12]
-
-    # the good solution is (O1-O11) and (O2-O12)
+    CNO_O2 = copy.deepcopy(CNO_O)
+    [c1, n1, o1, o2] = CNO_O
+    [c11, n11, o11, o12] = CNO_O2
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 1
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CNO_O, CNO_O2))
     assert len(suptop) == 4
 
     assert len(suptop.mirrors) == 1
@@ -191,242 +93,122 @@ def test_SimpleMultipleSolutions_rightStart():
 
     # check if both representations were found
     # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert suptop.contains_atom_name_pair('O1', 'O11') and suptop.contains_atom_name_pair('O2', 'O12')
-    assert worse_st.contains_atom_name_pair('O1', 'O12') and worse_st.contains_atom_name_pair('O2', 'O11')
+    assert suptop.contains_atom_name_pair('O1', 'O1') and suptop.contains_atom_name_pair('O2', 'O2')
+    assert worse_st.contains_atom_name_pair('O1', 'O2') and worse_st.contains_atom_name_pair('O2', 'O1')
 
-    correct_overlaps = [('C1', 'C11'), ('N1', 'N11')]
-    for atomName1, atomName2 in correct_overlaps:
-        assert suptop.contains_atom_name_pair(atomName1, atomName2)
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('N1', 'N1')
 
 
-def test_One2Many():
+def test_One2Many(CN, CN_N):
     """
-
-     LIGAND 1        LIGAND 2
-        N1              N11
+        C1              C11
         /              /   \
-     O1              O11   O12
+     N1              N11   N12
 
     """
-    # ignore the third coordinate dimension
-    # construct the LIGAND 1
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 1, 0)
-    o1 = Atom(name='O1', atom_type='O')
-    o1.position = (2, 1, 0)
-    o1.bind_to(n1, 'bondType1')
-    left_atoms = [n1, o1]
+    c1, n1 = CN
+    c11, n11, n12 = CN_N
 
-    # construct the LIGAND 2
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 1, 0)
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (2, 1, 0)
-    o11.bind_to(n11, 'bondType1')
-    o12 = Atom(name='O12', atom_type='O')
-    o12.position = (2, 2, 0)
-    o12.bind_to(n11, 'bondType1')
-    right_atoms = [n11, o11, o12]
-
-    # the good solution is (O1-O11)
+    n1.position = (2, 1, 0)
+    n11.position = (2, 1, 0)
+    n12.position = (2, 2, 0)
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 2
-
-    # extract the better suptop
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CN, CN_N))
     assert len(suptop) == 2
 
-    # this is deduced by RMSD
-    worse_suptop = suptops[1]
-
-    # check if both representations were found
-    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert suptop.contains_atom_name_pair('O1', 'O11')
-    assert worse_suptop.contains_atom_name_pair('O1', 'O12')
-
-    assert suptop.contains_atom_name_pair('N1', 'N11')
+    # the better solution uses coordinates to figure out which match is better
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('N1', 'N1')
 
 
-def test_Many2One_part1():
+def test_Many2One_part1(CN_N, CN):
     """
-
      LIGAND 1        LIGAND 2
-        N1              N11
+        C1              C1
         / \              /
-     O1    O2          O11
-
+     N1    N2          N1
     """
-    # ignore the third coordinate dimension
-    # construct the LIGAND 1
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 1, 0)
-    o1 = Atom(name='O1', atom_type='O')
-    o1.position = (2, 1, 0)
-    o1.bind_to(n1, 'bondType1')
-    o2 = Atom(name='O2', atom_type='O')
-    o2.position = (2, 2, 0)
-    o2.bind_to(n1, 'bondType1')
-    left_atoms = [n1, o1, o2]
+    c1, n1, n2 = CN_N
+    c11, n11 = CN
 
-    # construct the LIGAND 2
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 1, 0)
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (2, 1, 0)
-    o11.bind_to(n11, 'bondType1')
-    right_atoms = [n11, o11]
-
-    # the good solution is (O1-O11)
+    n1.position = (2, 1, 0)
+    n11.position = (2, 1, 0)
+    n2.position = (2, 2, 0)
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 2
-    suptop = suptops[0]
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CN_N, CN))
     assert len(suptop) == 2
 
-    worse_suptop = suptops[1]
-
-    # check if both representations were found
-    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert suptop.contains_atom_name_pair('O1', 'O11')
-    assert suptop.contains_atom_name_pair('N1', 'N11')
-    assert worse_suptop.contains_atom_name_pair('O2', 'O11')
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('N1', 'N1')
 
 
-def test_Many2One_part2():
+def test_Many2One_part2(CN_N, CN):
     """
-
      LIGAND 1        LIGAND 2
-        N1              N11
+         C1             C1
         / \              \
-     O1    O2             O12
-
+     N1    N2             N1
     """
-    # ignore the third coordinate dimension
-    # construct the LIGAND 1
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (1, 1, 0)
-    o1 = Atom(name='O1', atom_type='O')
-    o1.position = (2, 1, 0)
-    o1.bind_to(n1, 'bondType1')
-    o2 = Atom(name='O2', atom_type='O')
-    o2.position = (2, 2, 0)
-    o2.bind_to(n1, 'bondType1')
-    left_atoms = [n1, o1, o2]
+    c1, n1, n2 = CN_N
+    c11, n12 = CN
 
-    # construct the LIGAND 2
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (1, 1, 0)
-    o12 = Atom(name='O12', atom_type='O')
-    o12.position = (2, 2, 0)
-    o12.bind_to(n11, 'bondType1')
-    right_atoms = [n11, o12]
-
-    # the good solution is (O1-O11)
+    n1.position = (2, 1, 0)
+    n2.position = (2, 2, 0)
+    n12.position = (2, 2, 0)
 
     # should generate one topology which has one "symmetry"
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 2
-    suptop = suptops[0]
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CN_N, CN))
     assert len(suptop) == 2
 
-    worse_suptop = suptops[1]
-
-    # check if both representations were found
-    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert suptop.contains_atom_name_pair('O2', 'O12')
-    assert suptop.contains_atom_name_pair('N1', 'N11')
-    assert worse_suptop.contains_atom_name_pair('O1', 'O12')
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('N2', 'N1')
 
 
-def test_MultipleSolutions2Levels_rightStart():
+def test_MultipleSolutions2Levels_rightStart(CN_N):
     """
-    A test with many different solutions.
-    The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    Then for each of the mapping there are two ways to map Nitrogens N
-    e.g. for (O1-O11) there is (N1-N11)(N2-N12) or (N1-N12)(N2-N11)
-    However, since we are eagerly accepting early matches, not all possible
-    combinations will be explored.
-    e.g. C1-O1- on the return will match (N1-N11)(N2-N12) correctly.
-
-    So we have:
-
          LIGAND 1        LIGAND 2
             C1              C11
             /\              / \
-         O1    O2        O11   O12
-        / \    / \      /  \   /  \
-       N1 N2  N3 N4   N11 N12 N13 N14
+         N1    N2        N11   N12
+            / \    / \      /  \   /  \
+       O1 O2  O3 O4   O11 O12 O13 O14
     """
-    # ignore the third coordinate dimension
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
+    c1, n1, n2 = CN_N
+
     o1 = Atom(name='O1', atom_type='O')
-    o1.position = (1, 3, 0)
-    o1.bind_to(c1, 'bondType1')
+    o1.position = (3, 1, 0)
+    o1.bind_to(n1, 'bondType1')
     o2 = Atom(name='O2', atom_type='O')
-    o2.position = (2, 3, 0)
-    o2.bind_to(c1, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (3, 1, 0)
-    n1.bind_to(o1, 'bondType1')
-    n2 = Atom(name='N2', atom_type='N')
-    n2.position = (3, 2, 0)
-    n2.bind_to(o1, 'bondType1')
-    n3 = Atom(name='N3', atom_type='N')
-    n3.position = (3, 3, 0)
-    n3.bind_to(o2, 'bondType1')
-    n4 = Atom(name='N4', atom_type='N')
-    n4.position = (3, 4, 0)
-    n4.bind_to(o2, 'bondType1')
-    left_atoms = [c1, o1, o2, n1, n2, n3, n4]
+    o2.position = (3, 2, 0)
+    o2.bind_to(n1, 'bondType1')
+    o3 = Atom(name='O3', atom_type='O')
+    o3.position = (3, 3, 0)
+    o3.bind_to(n2, 'bondType1')
+    o4 = Atom(name='O4', atom_type='O')
+    o4.position = (3, 4, 0)
+    o4.bind_to(n2, 'bondType1')
+    pyramid_left = [c1, n1, n2, o1, o2, o3, o4]
 
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (1, 3, 0)
-    o11.bind_to(c11, 'bondType1')
-    o12 = Atom(name='O12', atom_type='O')
-    o12.position = (2, 3, 0)
-    o12.bind_to(c11, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (3, 1, 0)
-    n11.bind_to(o11, 'bondType1')
-    n12 = Atom(name='N12', atom_type='N')
-    n12.position = (3, 2, 0)
-    n12.bind_to(o11, 'bondType1')
-    n13 = Atom(name='N13', atom_type='N')
-    n13.position = (3, 3, 0)
-    n13.bind_to(o12, 'bondType1')
-    n14 = Atom(name='N14', atom_type='N')
-    n14.position = (3, 4, 0)
-    n14.bind_to(o12, 'bondType1')
-    right_atoms = [c11, o11, o12, n11, n12, n13, n14]
+    pyramid_right = copy.deepcopy(pyramid_left)
 
-    # should generate one topology which has one "symmetry"
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    assert len(suptops) == 1
-    suptop = suptops.pop()
 
-    # check if the main solution is correct
-    correct_overlaps = [('C1', 'C11'),
-                        ('O1', 'O11'), ('O2', 'O12'),
-                        ('N1', 'N11'), ('N2', 'N12'), ('N3', 'N13'), ('N4', 'N14')]
+    suptop = _overlay(c1, pyramid_right[0], parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(pyramid_left, pyramid_right))
+
+    correct_overlaps = [('C1', 'C1'),
+                        ('N1', 'N1'), ('N2', 'N2'),
+                        ('O1', 'O1'), ('O2', 'O2'), ('O3', 'O3'), ('O4', 'O4')]
     for atomName1, atomName2 in correct_overlaps:
         assert suptop.contains_atom_name_pair(atomName1, atomName2)
 
-    # fixme - check the mirrors and esnure that they are properly stored.
 
-
-def test_2sameAtoms_2Cs_symmetry():
+def test_2sameAtoms_2Cs_symmetry(CC):
     """
     Two solutions with different starting points.
 
@@ -436,179 +218,54 @@ def test_2sameAtoms_2Cs_symmetry():
         C2              C12
     """
     # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    left_atoms = [c1, c2]
-
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (1, 2, 0)
-    c11.bind_to(c12, 'bondType1')
-    right_atoms = [c11, c12]
+    c1, c2 = CC
+    c11, c12 = copy.deepcopy(CC)
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CC, [c11, c12]))
     assert len(suptop) == 2
-    assert suptop.contains_atom_name_pair('C1', 'C11')
-    assert suptop.contains_atom_name_pair('C2', 'C12')
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('C2', 'C2')
 
-    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CC, [c11, c12]))
     assert len(suptop) == 2
-    assert suptop.contains_atom_name_pair('C1', 'C12')
-    assert suptop.contains_atom_name_pair('C2', 'C11')
+    assert suptop.contains_atom_name_pair('C1', 'C2')
+    assert suptop.contains_atom_name_pair('C2', 'C1')
 
 
-def test_methyl():
+def test_mutation_separate_unique_match(CNO):
     """
-    Two solutions with different starting points.
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-       / | \            / | \
-     H1 H2 H3        H11 H12 H13
-    """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    h1 = Atom(name='H1', atom_type='H')
-    h1.position = (2, 1, 0)
-    c1.bind_to(h1, 'bondType1')
-    h2 = Atom(name='H2', atom_type='H')
-    h2.position = (2, 2, 0)
-    c1.bind_to(h2, 'bondType1')
-    h3 = Atom(name='H3', atom_type='H')
-    h3.position = (2, 3, 0)
-    c1.bind_to(h3, 'bondType1')
-    left_atoms = [c1, h1, h2, h3]
-
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    h11 = Atom(name='H11', atom_type='H')
-    h11.position = (2, 1, 0)
-    c11.bind_to(h11, 'bondType1')
-    h12 = Atom(name='H12', atom_type='H')
-    h12.position = (2, 2, 0)
-    c11.bind_to(h12, 'bondType1')
-    h13 = Atom(name='H13', atom_type='H')
-    h13.position = (2, 3, 0)
-    c11.bind_to(h13, 'bondType1')
-    right_atoms = [c11, h11, h12, h13]
-
-    # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    assert suptop.contains_atom_name_pair('C1', 'C11')
-    assert suptop.contains_atom_name_pair('H1', 'H11')
-    assert suptop.contains_atom_name_pair('H2', 'H12')
-    assert suptop.contains_atom_name_pair('H3', 'H13')
-
-
-def test_mutation_separate_unique_match():
-    """
-    Two commponents separated by the mutation.
+    Separated by the mutation.
 
      LIGAND 1        LIGAND 2
         C1              C11
         |                |
-        S1              O11
+        N1              S11
         |                |
-        N1               N11
+        O1               O11
     """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    s1 = Atom(name='S2', atom_type='S')
-    s1.position = (2, 1, 0)
-    c1.bind_to(s1, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (3, 1, 0)
-    n1.bind_to(s1, 'bondType1')
+    CSO = copy.deepcopy(CNO)
+    c1, n1, o1 = CNO
+    c11, s11, o11 = CSO
 
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (2, 1, 0)
-    c11.bind_to(o11, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (3, 1, 0)
-    n11.bind_to(o11, 'bondType1')
+    s11.element = 'S'
+    s11.name = 'S11'
 
     # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atom_name_pair('C1', 'C11')
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CNO, CSO))
+    assert len(suptop) == 1
+    assert suptop.contains_atom_name_pair('C1', 'C1')
 
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None))
-    assert len(suptops) == 1
-    assert suptops[0].contains_atom_name_pair('N1', 'N11')
-
-
-def test_mutation_separate_unique_match():
-    """
-    Two commponents separated by the mutation.
-
-     LIGAND 1        LIGAND 2
-        C1              C11
-        |                |
-        C2              C12
-        |                |
-        C3              O11
-        |                |
-        N1              N11
-    """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (2, 1, 0)
-    c2.bind_to(c1, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 1, 0)
-    c3.bind_to(c2, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (3, 1, 0)
-    n1.bind_to(c3, 'bondType1')
-    left_atoms = [c1, c2, c3, n1]
-
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (2, 1, 0)
-    c12.bind_to(c11, 'bondType1')
-    o11 = Atom(name='O11', atom_type='O')
-    o11.position = (3, 1, 0)
-    o11.bind_to(c12, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (3, 1, 0)
-    n11.bind_to(o11, 'bondType1')
-    right_atoms = [c11, c12, o11, n11]
-
-    # should return a list with an empty sup_top
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    assert suptop.contains_atom_name_pair('C1', 'C11')
-
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    assert suptop.contains_atom_name_pair('N1', 'N11')
+    suptop = _overlay(o1, o11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CNO, CSO))
+    assert len(suptop) == 1
+    assert suptop.contains_atom_name_pair('O1', 'O1')
 
 
-def test_3C_circle():
+def test_3C_circle(CCC):
     """
     A circle should be detected.
     Many solutions (3 starting conditions, etc)
@@ -618,150 +275,91 @@ def test_3C_circle():
         /  \            /   \
       C2 - C3         C12 - C13
     """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    c3.bind_to(c2, 'bondType1')
-    left_atoms = [c1, c2, c3]
+    c1, c2, c3 = CCC
+    c2.bind_to(c3, 'bondType1')
+    CCC2 = copy.deepcopy([c1, c2, c3])
+    c11, c12, c13 = CCC2
 
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (1, 2, 0)
-    c11.bind_to(c12, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (2, 2, 0)
-    c13.bind_to(c11, 'bondType1')
-    c13.bind_to(c12, 'bondType1')
-    right_atoms = [c11, c12, c13]
-
-    suptops = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    # there is one main component - that is the good solution
-    suptop = suptops.pop()
+    suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     # there is one symmetrical way to traverse it
     assert len(suptop.mirrors) == 1
-    wrong_st = suptop.mirrors[0]
 
-    assert suptop.contains_atom_name_pair('C2', 'C12') and suptop.contains_atom_name_pair('C3', 'C13')
-    assert wrong_st.contains_atom_name_pair('C2', 'C13') and wrong_st.contains_atom_name_pair('C3', 'C12')
-    # both solutions should have the same starting situation
-    assert all(st.contains_atom_name_pair('C1', 'C11') for st in [suptop, wrong_st])
-    # there should be one circle in each
-    assert all(st.same_circle_number() for st in [suptop, wrong_st])
-    assert all(st.get_circle_number() == (1, 1) for st in [suptop, wrong_st])
+    assert suptop.contains_atom_name_pair('C1', 'C1')
+    assert suptop.contains_atom_name_pair('C2', 'C2')
+    assert suptop.contains_atom_name_pair('C3', 'C3')
 
-    suptops = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
     # there should be one circle in each
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c1, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c1, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c2, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c2, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c2, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c3, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
-    suptops = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop()
-    # there should be one circle in each
+    suptop = _overlay(c3, c12, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
+    assert suptop.same_circle_number()
+    assert suptop.get_circle_number() == (1, 1)
+
+    suptop = _overlay(c3, c13, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(CCC, CCC2))
     assert suptop.same_circle_number()
     assert suptop.get_circle_number() == (1, 1)
 
 
-def test_3C_circle_bonds():
+def test_3C_circle_bonds(CCC):
     """
     Check if each pair is linked to two other pairs
-
       LIGAND 1        LIGAND 2
          C1              C11
         /  \            /   \
       C2 - C3         C12 - C13
     """
-    # construct the LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    c3.bind_to(c2, 'bondType1')
-    left_atoms = [c1, c2, c3]
-
-    # construct the LIGAND 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (1, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (1, 2, 0)
-    c11.bind_to(c12, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (2, 2, 0)
-    c13.bind_to(c11, 'bondType1')
-    c13.bind_to(c12, 'bondType1')
-    right_atoms = [c11, c12, c13]
+    c1, c2, c3 = CCC
+    c2.bind_to(c3, 'bondType1')
+    CCC2 = copy.deepcopy([c1, c2, c3])
+    c11, c12, c13 = CCC2
 
     suptop = _overlay(c1, c11, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms)).pop()
+                      suptop=SuperimposedTopology(CCC, CCC2))
 
     # check that each pair is linked to two other pairs
     for pair, linked_pairs in suptop.matched_pairs_bonds.items():
         assert len(linked_pairs) == 2
 
 
-def test_mcl1_l12l35():
+def test_mcl1_l12l35(indole_cl1, indole_cl2):
     """
-    Molecule inspired by Agastya's dataset (mcl1_l12l35).
+    Molecule inspired by mcl1_l12l35
 
     Ligand 1
-
          C1 - C2
          /      \
     Cl1-C3      C4
@@ -773,7 +371,6 @@ def test_mcl1_l12l35():
              C8
              |
              C9
-
 
     Ligand 2
                  Cl11
@@ -790,90 +387,12 @@ def test_mcl1_l12l35():
              |
              C19
     """
-    # construct LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    cl1 = Atom(name='CL1', atom_type='Cl')
-    cl1.position = (2, 1, 0)
-    cl1.bind_to(c3, 'bondType1')
-    c4 = Atom(name='C4', atom_type='C')
-    c4.position = (2, 3, 0)
-    c4.bind_to(c2, 'bondType1')
-    c5 = Atom(name='C5', atom_type='C')
-    c5.position = (3, 1, 0)
-    c5.bind_to(c3, 'bondType1')
-    c6 = Atom(name='C6', atom_type='C')
-    c6.position = (3, 2, 0)
-    c6.bind_to(c5, 'bondType1')
-    c6.bind_to(c4, 'bondType1')
-    c7 = Atom(name='C7', atom_type='C')
-    c7.position = (4, 2, 0)
-    c7.bind_to(c5, 'bondType1')
-    c10 = Atom(name='C10', atom_type='C')
-    c10.position = (4, 1, 0)
-    c10.bind_to(c7, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (4, 3, 0)
-    n1.bind_to(c6, 'bondType1')
-    c8 = Atom(name='C8', atom_type='C')
-    c8.position = (5, 1, 0)
-    c8.bind_to(c7, 'bondType1')
-    c8.bind_to(n1, 'bondType1')
-    c9 = Atom(name='C9', atom_type='C')
-    c9.position = (6, 1, 0)
-    c9.bind_to(c8, 'bondType1')
-    left_atoms = [c1, c2, c3, cl1, c4, c5, c6, c7, c8, c9, c10, n1]
-
-    # construct Ligand 2
-    cl11 = Atom(name='Cl11', atom_type='Cl')
-    cl11.position = (1, 1, 0)
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (2, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (2, 2, 0)
-    c12.bind_to(c11, 'bondType1')
-    c12.bind_to(cl11, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (3, 1, 0)
-    c13.bind_to(c11, 'bondType1')
-    c14 = Atom(name='C14', atom_type='C')
-    c14.position = (3, 2, 0)
-    c14.bind_to(c12, 'bondType1')
-    c15 = Atom(name='C15', atom_type='C')
-    c15.position = (4, 1, 0)
-    c15.bind_to(c13, 'bondType1')
-    c16 = Atom(name='C16', atom_type='C')
-    c16.position = (4, 2, 0)
-    c16.bind_to(c15, 'bondType1')
-    c16.bind_to(c14, 'bondType1')
-    c17 = Atom(name='C17', atom_type='C')
-    c17.position = (5, 2, 0)
-    c17.bind_to(c15, 'bondType1')
-    c20 = Atom(name='C20', atom_type='C')
-    c20.position = (5, 1, 0)
-    c20.bind_to(c17, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (5, 3, 0)
-    n11.bind_to(c16, 'bondType1')
-    c18 = Atom(name='C18', atom_type='C')
-    c18.position = (6, 1, 0)
-    c18.bind_to(c17, 'bondType1')
-    c18.bind_to(n11, 'bondType1')
-    c19 = Atom(name='C19', atom_type='C')
-    c19.position = (7, 1, 0)
-    c19.bind_to(c18, 'bondType1')
-    right_atoms = [cl11, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, n11]
+    _, _, _, _, _, c5, _, _, _, _, _, c9, _, _ = indole_cl1
+    _, _, _, c14, _, _, _, _, _, c19, _, _ = indole_cl2
 
     # the correct solution
-    suptops = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop(0)
+    suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(indole_cl1, indole_cl2))
     assert len(suptop) == 11
 
     """
@@ -882,130 +401,21 @@ def test_mcl1_l12l35():
     that means that there is atom match (L1-R1) such that L1 creates a 
     cricle in its own topology, and R1 does not. 
     """
-    suptops = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop(0)
+    suptop = _overlay(c5, c14, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(indole_cl1, indole_cl2))
     assert len(suptop) != 12
 
 
-def test_mcl1_l12l35_bonds():
+def test_mcl1_l12l35_bonds(indole_cl1, indole_cl2):
     """
-    Molecule inspired by Agastya's dataset (mcl1_l12l35).
-
-    Ligand 1
-
-         C1 - C2
-         /      \
-    Cl1-C3      C4
-          \     /
-          C5 - C6
-          /     \
-     C10-C7       N1
-           \   /
-             C8
-             |
-             C9
-
-
-    Ligand 2
-                 Cl11
-                /
-         C11 - C12
-         /      \
-        C13      C14
-          \     /
-          C15 - C16
-          /     \
-     C20-C17       N11
-           \   /
-             C18
-             |
-             C19
+    Molecule inspired by mcl1_l12l35
     """
-    # construct LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    cl1 = Atom(name='CL1', atom_type='Cl')
-    cl1.position = (2, 1, 0)
-    cl1.bind_to(c3, 'bondType1')
-    c4 = Atom(name='C4', atom_type='C')
-    c4.position = (2, 3, 0)
-    c4.bind_to(c2, 'bondType1')
-    c5 = Atom(name='C5', atom_type='C')
-    c5.position = (3, 1, 0)
-    c5.bind_to(c3, 'bondType1')
-    c6 = Atom(name='C6', atom_type='C')
-    c6.position = (3, 2, 0)
-    c6.bind_to(c5, 'bondType1')
-    c6.bind_to(c4, 'bondType1')
-    c7 = Atom(name='C7', atom_type='C')
-    c7.position = (4, 2, 0)
-    c7.bind_to(c5, 'bondType1')
-    c10 = Atom(name='C10', atom_type='C')
-    c10.position = (4, 1, 0)
-    c10.bind_to(c7, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N')
-    n1.position = (4, 3, 0)
-    n1.bind_to(c6, 'bondType1')
-    c8 = Atom(name='C8', atom_type='C')
-    c8.position = (5, 1, 0)
-    c8.bind_to(c7, 'bondType1')
-    c8.bind_to(n1, 'bondType1')
-    c9 = Atom(name='C9', atom_type='C')
-    c9.position = (6, 1, 0)
-    c9.bind_to(c8, 'bondType1')
-    left_atoms = [c1, c2, c3, cl1, c4, c5, c6, c7, c8, c9, c10, n1]
-
-    # construct Ligand 2
-    cl11 = Atom(name='Cl11', atom_type='Cl')
-    cl11.position = (1, 1, 0)
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (2, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (2, 2, 0)
-    c12.bind_to(c11, 'bondType1')
-    c12.bind_to(cl11, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (3, 1, 0)
-    c13.bind_to(c11, 'bondType1')
-    c14 = Atom(name='C14', atom_type='C')
-    c14.position = (3, 2, 0)
-    c14.bind_to(c12, 'bondType1')
-    c15 = Atom(name='C15', atom_type='C')
-    c15.position = (4, 1, 0)
-    c15.bind_to(c13, 'bondType1')
-    c16 = Atom(name='C16', atom_type='C')
-    c16.position = (4, 2, 0)
-    c16.bind_to(c15, 'bondType1')
-    c16.bind_to(c14, 'bondType1')
-    c17 = Atom(name='C17', atom_type='C')
-    c17.position = (5, 2, 0)
-    c17.bind_to(c15, 'bondType1')
-    c20 = Atom(name='C20', atom_type='C')
-    c20.position = (5, 1, 0)
-    c20.bind_to(c17, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N')
-    n11.position = (5, 3, 0)
-    n11.bind_to(c16, 'bondType1')
-    c18 = Atom(name='C18', atom_type='C')
-    c18.position = (6, 1, 0)
-    c18.bind_to(c17, 'bondType1')
-    c18.bind_to(n11, 'bondType1')
-    c19 = Atom(name='C19', atom_type='C')
-    c19.position = (7, 1, 0)
-    c19.bind_to(c18, 'bondType1')
-    right_atoms = [cl11, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, n11]
+    c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9, cl1, c10 = indole_cl1
+    c11, c12, c13, c14, c15, c16, c17, n11, c18, c19, cl11, c20 = indole_cl2
 
     # the correct solution
-    suptops = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                      suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop(0)
+    suptop = _overlay(c9, c19, parent_n1=None, parent_n2=None, bond_types=(None, None),
+                      suptop=SuperimposedTopology(indole_cl1, indole_cl2))
 
     # (c1, c11) should be linked to (c2, c12), (c3, c13)
     assert {x[0] for x in suptop.matched_pairs_bonds[(c1, c11)]} == {(c2, c12), (c3, c13)}
@@ -1025,7 +435,7 @@ def test_mcl1_l12l35_bonds():
 
 def test_tyk2_l11l14_part():
     """
-    Molecule inspired by Agastya's dataset.
+
          n1             n11
          |               |
          C1-O1          C11-O11
@@ -1109,9 +519,8 @@ def test_tyk2_l11l14_part():
     right_atoms = [n11, c11, o11, h11, c12, h12, c13, c14, h13, cl11, h14]
 
     # the correct solution
-    suptops = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
+    suptop = _overlay(n1, n11, parent_n1=None, parent_n2=None, bond_types=(None, None),
                       suptop=SuperimposedTopology(left_atoms, right_atoms))
-    suptop = suptops.pop(0)
     assert len(suptop) == 10
 
     matching_pairs = [('N1', 'N11'), ('C1', 'C11'), ('O1', 'O11'),

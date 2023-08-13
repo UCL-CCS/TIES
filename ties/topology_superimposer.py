@@ -14,6 +14,7 @@ import logging
 import subprocess
 import pathlib
 import re
+from typing import Dict, List, Set, Tuple
 from functools import reduce
 from collections import OrderedDict
 
@@ -1275,7 +1276,6 @@ class SuperimposedTopology:
         the matched pairs.
         """
         net_charge = sum(n1.charge - n2.charge for n1, n2 in self.matched_pairs)
-        assert abs(net_charge) < 1
         return net_charge
 
     def get_matched_with_diff_q(self):
@@ -2431,7 +2431,7 @@ class SuperimposedTopology:
     def contains_atom_name_pair(self, atom_name1, atom_name2):
         for m1, m2 in self.matched_pairs:
             if m1.name == atom_name1 and m2.name == atom_name2:
-                return True
+                return (m1, m2)
 
         return False
 
@@ -2786,6 +2786,60 @@ def merge_compatible_suptops(suptops):
     new_suptops = [st for st in suptops if st not in all_ingredients]
     return new_suptops
 
+def are_consistent_topologies(suptops: List[SuperimposedTopology]):
+    # each to each topology has to be check if they are all consistent
+    for p1, p2 in itertools.combinations(suptops, r=2):
+        if not p1.is_consistent_with(p2):
+            return False
+
+    return True
+
+def merge_compatible_suptops_faster(pairing_suptop: Dict, min_bonds: int):
+    """
+
+    :param pairing_suptop:
+    :param min_bonds: if the End molecule at this point has only two bonds, they can be mapped to two other bonds
+        in the start molecule.
+    :return:
+    """
+
+    if len(pairing_suptop) == 1:
+        return [pairing_suptop.popitem()[1]]
+
+    # any to any
+    all_pairings = list(itertools.combinations(pairing_suptop.keys(), r=min_bonds))
+
+    selected_pairings = []
+    for pairings in all_pairings:
+        n = set()
+        for pairing in pairings:
+            n.add(pairing[0])
+            n.add(pairing[1])
+        #
+        if 2 * len(pairings) == len(n):
+            selected_pairings.append(pairings)
+
+    # attempt to combine the different traversals
+    built_topologies = []
+    for mapping in selected_pairings:
+        # mapping the different bonds to different bonds
+
+        # check if the suptops are consistent with each other
+        if not are_consistent_topologies([pairing_suptop[key] for key in mapping]):
+            continue
+
+        # merge them!
+        large_suptop = copy.copy(pairing_suptop[mapping[0]])
+        for next_map in mapping[1:]:
+            next_suptop = pairing_suptop[next_map]
+
+            # add both the pairs and the bonds that are not present in st1
+            large_suptop.merge(next_suptop)
+
+        built_topologies.append(large_suptop)
+
+    return built_topologies
+
 
 def solve_one_combination(one_atom_species, ignore_coords):
     atoms = one_atom_species
@@ -2793,7 +2847,7 @@ def solve_one_combination(one_atom_species, ignore_coords):
         # simple case,  one in the left ligands, many in the right ligand, pick the best
         atom, candidates = list(atoms.items())[0]
         largest_candidates = get_largest(list(candidates.values()))
-        best = extract_best_suptops(largest_candidates, ignore_coords)
+        best = extract_best_suptop(largest_candidates, ignore_coords)
         return best
     elif len(atoms) > 1:
         # many in the left ligand, unknown in the right ligand
@@ -2808,7 +2862,7 @@ def solve_one_combination(one_atom_species, ignore_coords):
             # just pick the best match fro the right ligand
             candidates = [list(v.values())[0] for v in atoms.values()]
             largest_candidates = get_largest(candidates)
-            best = extract_best_suptops(largest_candidates, ignore_coords)
+            best = extract_best_suptop(largest_candidates, ignore_coords)
             return best
 
         # ie one type
@@ -2886,7 +2940,7 @@ def solve_one_combination(one_atom_species, ignore_coords):
         # now that all alternatives have been computed,
         # decide which is best
         largest_candidates = get_largest(alternatives)
-        return extract_best_suptops(largest_candidates, ignore_coords)
+        return extract_best_suptop(largest_candidates, ignore_coords)
 
     raise Exception('not implemented')
 
@@ -2906,14 +2960,14 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
 
     # ignore if either of the nodes is part of the suptop
     if suptop.contains_node(n1) or suptop.contains_node(n2):
-        return []
+        return None
 
     if use_element_type and not n1.same_element(n2):
-        return []
+        return None
 
     # make more specific, ie if "use_specific_type"
     if not use_element_type and not n1.same_type(n2):
-        return []
+        return None
    
     # Check for cycles
     # if a new cycle is created by adding this node,
@@ -2933,7 +2987,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
             if not safe:  # only n1 forms a cycle
                 break
     if not safe:  # either only n1 forms cycle or both do but different cycles
-        return []
+        return None
     
     # now the same for any remaining unchecked bonds in n2
     safe = True
@@ -2948,12 +3002,12 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
             if not safe:
                 break
     if not safe:
-        return []
+        return None
 
     # check if the cycle spans multiple cycles present in the left and right molecule,
     if suptop.cycle_spans_multiple_cycles():
         log('Found a cycle spanning multiple cycles')
-        return []
+        return None
 
     log("Adding ", (n1, n2), "in", suptop.matched_pairs)
 
@@ -2993,7 +3047,9 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                                   [((n1_bonded.atom, n2_bonded.atom), (n1_bonded.type, n2_bonded.type)), ])
 
     # fixme: sort so that heavy atoms go first
-    candidate_pairings = list(itertools.product(n1.bonds.without(parent_n1), n2.bonds.without(parent_n2)))
+    p1_bonds = n1.bonds.without(parent_n1)
+    p2_bonds = n2.bonds.without(parent_n2)
+    candidate_pairings = list(itertools.product(p1_bonds, p2_bonds))
 
     # check if any of the pairs have exactly the same location, use that as a hidden signal
     # it is possible at this stage to use predetermine the distances
@@ -3013,37 +3069,46 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                     candidate_pairings.remove((n1_bond, n2_bond))
 
     # but they will be considered as a group
-    grown_further = []
+    larger_suptops = []
+    pairing_and_suptop = {}
     for n1_bond, n2_bond in candidate_pairings:
         # fixme - ideally we would allow other typing than just the chemical element
         if n1_bond.atom.element is not n2_bond.atom.element:
             continue
 
-        print('sampling', n1_bond, n2_bond)
+        logger.debug('sampling', n1_bond, n2_bond)
 
         # create a copy of the sup_top to allow for different traversals
         # fixme: note that you could just send bonds, and that would have both parent etc with a bit of work
-        suptops = _overlay(n1_bond.atom, n2_bond.atom,
+        larger_suptop = _overlay(n1_bond.atom, n2_bond.atom,
                                   parent_n1=n1, parent_n2=n2,
                                   bond_types=(n1_bond.type, n2_bond.type),
                                   suptop=suptop,
                                   ignore_coords=ignore_coords,
                                   use_element_type=use_element_type,
                                   exact_coords_cue=exact_coords_cue)
-        grown_further.extend(suptops)
+
+        if larger_suptop is not None:
+            larger_suptops.append(larger_suptop)
+            pairing_and_suptop[(n1_bond, n2_bond)] = larger_suptop
 
     # todo
     # check for "predetermined" atoms. Ie if they have the same coordinates,
     # then that's the path to take, rather than a competing path??
 
     # nothing further grown out of this suptop, so it is final
-    if not grown_further:
-        return [suptop]
+    if not larger_suptops:
+        return suptop
 
     # fixme: compare every two pairs of returned suptops, if they are compatible, join them
     # fixme - note that we are repeating this partly below
     # it also removes subgraph suptops
-    all_solutions = merge_compatible_suptops(grown_further)
+    #all_solutions = merge_compatible_suptops(larger_suptops)
+    all_solutions = merge_compatible_suptops_faster(pairing_and_suptop, min(len(p1_bonds), len(p2_bonds)))
+
+    # if you couldn't merge any solutions, return the largest one
+    if not all_solutions:
+        all_solutions = list(pairing_and_suptop.values())
 
     # sort in the descending order
     all_solutions.sort(key=lambda st: len(st), reverse=True)
@@ -3053,7 +3118,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
             if sol2 in all_solutions:
                 all_solutions.remove(sol2)
 
-    best_suptop = extract_best_suptops(all_solutions, ignore_coords)
+    best_suptop = extract_best_suptop(all_solutions, ignore_coords)
     return best_suptop
 
 
@@ -3087,8 +3152,7 @@ def superimpose_topologies(top1_nodes,
     TODO:
     - check if each molecule topology is connected
     """
-    # align_molecules = True
-    # ignore_coords = False
+
     if not ignore_charges_completely:
         whole_charge = SuperimposedTopology.validate_charges(top1_nodes, top2_nodes)
 
@@ -3100,6 +3164,10 @@ def superimpose_topologies(top1_nodes,
                   f"This will make it harder to trace back any problems. "
                   f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
 
+    if config is None:
+        weights = [1, 1]
+    else:
+        weights = config.weights
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
@@ -3108,7 +3176,7 @@ def superimpose_topologies(top1_nodes,
                                       use_general_type=use_general_type,
                                       starting_pairs_heuristics=starting_pairs_heuristics,
                                       starting_pair_seed=starting_pair_seed,
-                                      weights=config.weights)
+                                      weights=weights)
     if not suptops:
         raise Exception('Error: Did not find a single superimposition state.'
                         'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
@@ -3257,20 +3325,18 @@ def superimpose_topologies(top1_nodes,
         #
         # assert len(suptops) == 1, suptops
 
-    suptops = extract_best_suptops(suptops, ignore_coords)
+    suptop = extract_best_suptop(suptops, ignore_coords, get_list=False)
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
         # assume that none of the suptops are disjointed
         logger.warning('Assuming that all suptops are separate at this point')
-        for suptop in suptops:
-            suptop.redistribute_charges()
+        # fixme: apply distribution of q only on the first st, that's the best one anyway,
+
+        # we only want to apply redistribution once on the largest piece for now
+        suptop.redistribute_charges()
 
     # atom ID assignment has to come after any removal of atoms due to their mismatching charges
-    start_atom_id = 1
-    for suptop in suptops:
-        start_atom_id = suptop.assign_atoms_ids(start_atom_id)
-        # increase the start ID by 1 so that the next sup top assigns them
-        start_atom_id += 1
+    suptop.assign_atoms_ids(1)
 
     # there might be several best solutions, order them according the RMSDs
     # suptops.sort(key=lambda st: st.rmsd())
@@ -3282,23 +3348,20 @@ def superimpose_topologies(top1_nodes,
 
     # carry out a check. Each
     if align_molecules:
-        for st in suptops:
-            main_rmsd = st.align_ligands_using_mcs()
-            for mirror in st.mirrors:
-                mirror_rmsd = mirror.align_ligands_using_mcs()
-                if mirror_rmsd < main_rmsd:
-                    print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-            st.align_ligands_using_mcs(overwrite_original=True)
+        main_rmsd = suptop.align_ligands_using_mcs()
+        for mirror in suptop.mirrors:
+            mirror_rmsd = mirror.align_ligands_using_mcs()
+            if mirror_rmsd < main_rmsd:
+                print('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
+        suptop.align_ligands_using_mcs(overwrite_original=True)
 
     # print a general summary
     print('-------- Summary -----------')
-    for st in suptops:
-        print(f'Final number of matched pairs: {len(st.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
-        print(f'Disappearing atoms: { (len(top1_nodes) - len(st.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
-        print(f'Appearing atoms: { (len(top2_nodes) - len(st.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
-        # print('Introduced q imbalance: ')
+    print(f'Final number of matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
+    print(f'Disappearing atoms: { (len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
+    print(f'Appearing atoms: { (len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
 
-    return suptops
+    return suptop
 
 
 def calculate_rmsd(atom_pairs):
@@ -3309,7 +3372,7 @@ def calculate_rmsd(atom_pairs):
     return np.sqrt(np.mean(((np.array(deviations)) ** 2)))
 
 
-def extract_best_suptops(suptops, ignore_coords, weights=[1, 1]):
+def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
     """
     Assumes that any merging possible already took place.
     We now have a set of solutions and have to select the best ones.
@@ -3337,7 +3400,10 @@ def extract_best_suptops(suptops, ignore_coords, weights=[1, 1]):
     if len(suptops) == 0:
         raise Exception('Cannot decide on the best mapping without any suptops...')
     elif len(suptops) == 1:
-        return suptops
+        if get_list:
+            return suptops
+        else:
+            return suptops[0]
 
     #candidates = copy.copy(suptops)
 
@@ -3365,7 +3431,10 @@ def extract_best_suptops(suptops, ignore_coords, weights=[1, 1]):
     # if they have a different length, there must be a reason why it is better.
     # todo
 
-    return different_length_suptops
+    if get_list:
+        return different_length_suptops
+
+    return different_length_suptops[0]
 
 
 def best_rmsd_match(suptops):
@@ -3413,32 +3482,31 @@ def best_rmsd_match(suptops):
     return candidate_superimposed_top
 
 
-def seen(suptop, suptops):
-    for next_suptop in suptops:
-        if next_suptop.eq(suptop):
+def exists_in(candidate_suptop, suptops):
+    for suptop in suptops:
+        if candidate_suptop.eq(suptop):
             return True
 
     return False
 
 
-def is_mirror_of_one(suptop, suptops, ignore_coords):
+def is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
     """
     "Mirror" in the sense that it is an alternative topological way to traverse the molecule.
 
     Depending on the "better" fit between the two mirrors, we pick the one that is better.
     """
     for next_suptop in suptops:
-        if next_suptop.is_mirror_of(suptop):
+        if next_suptop.is_mirror_of(candidate_suptop):
             # the suptop saved as the mirror should be the suptop
             # that is judged to be of a lower quality
-            best_suptop = extract_best_suptops([suptop, next_suptop], ignore_coords)[0]
-            next_suptop_better = next_suptop is best_suptop
+            best_suptop = extract_best_suptop([candidate_suptop, next_suptop], ignore_coords)
 
-            if next_suptop_better:
-                next_suptop.add_mirror_suptop(suptop)
+            if next_suptop is best_suptop:
+                next_suptop.add_mirror_suptop(candidate_suptop)
             else:
                 suptops.remove(next_suptop)
-                suptops.append(suptop)
+                suptops.append(candidate_suptop)
 
             return True
 
@@ -3480,10 +3548,11 @@ def solve_partial_overlaps(candidate_suptop, suptops):
                     suptops.remove(suptop)
 
 
-def sub_graph_of(candidate_suptop, suptops):
+def subgraph_of(candidate_suptop, suptops):
     # check if the newly found subgraph is a subgraph of any other sup top
     # fixme - is this even possible?
     # fixme can any subgraph be a subgraph of another?
+    # fixme: check only suptops that are bigger
     for suptop in suptops:
         if candidate_suptop.is_subgraph_of(suptop):
             return True
@@ -3651,19 +3720,18 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
             print('Using heuristics to select the initial pairs for searching the maximum overlap.'
                   'Could produce non-optimal results.')
         else:
-            starting_node_pairs = itertools.product(top1_nodes, top2_nodes)
+            starting_node_pairs = list(itertools.product(top1_nodes, top2_nodes))
             print('Checking all possible initial pairs to find the optimal MCS. ')
 
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component
         suptop = SuperimposedTopology(list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes)
         # fixme turn into a property
-        candidate_suptops = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
+        candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
                                     suptop=suptop,
                                     ignore_coords=ignore_coords,
                                     use_element_type=use_general_type)
-        print('\n ###', candidate_suptops)
-        if candidate_suptops is None or len(candidate_suptops) == 0:
+        if candidate_suptop is None:
             # there is no overlap, ignore this case
             continue
 
@@ -3671,36 +3739,31 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         # Optimise - can you at this point finish the superimposition if the molecules are fully superimposed?
         # candidate_suptop.is_subgraph_of_global_top()
 
+        if exists_in(candidate_suptop, suptops):
+            continue
 
-        for candidate_suptop in candidate_suptops[::-1]:
-            # ignore if this topology was found before
-            if seen(candidate_suptop, suptops):
-                candidate_suptops.remove(candidate_suptop)
+        # ignore if it is a subgraph of another solution
+        if subgraph_of(candidate_suptop, suptops):
+            continue
 
-            # ignore if it is a subgraph of another solution
-            elif sub_graph_of(candidate_suptop, suptops):
-                candidate_suptops.remove(candidate_suptop)
+        # check if this superimposed topology is a mirror of one that already exists
+        # fixme the order matters in this place
+        # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
+        if is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
+            continue
 
-            # check if this superimposed topology is a mirror of one that already exists
-            # fixme the order matters in this place
-            # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
-            elif is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
-                candidate_suptops.remove(candidate_suptop)
+        #
+        remove_candidates_subgraphs(candidate_suptop, suptops)
 
-            removed_subgraphs = remove_candidates_subgraphs(candidate_suptop, suptops)
-            if removed_subgraphs:
-                suptops.append(candidate_suptop)
-                continue
+        # while comparing partial overlaps, suptops can be modified
+        # and_ignore = solve_partial_overlaps(candidate_suptop, suptops)
+        # if and_ignore:
+        #     continue
 
-            # while comparing partial overlaps, suptops can be modified
-            # and_ignore = solve_partial_overlaps(candidate_suptop, suptops)
-            # if and_ignore:
-            #     continue
-
-            # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
-            # follow a rule: if this node was used before in a larger superimposed topology, than it should
-            # not be in the final list (we guarantee that each node is used only once)
-            suptops.append(candidate_suptop)
+        # fixme - what to do when about the odd pairs randomH-randomH etc? they won't be found in other graphs
+        # follow a rule: if this node was used before in a larger superimposed topology, than it should
+        # not be in the final list (we guarantee that each node is used only once)
+        suptops.append(candidate_suptop)
 
     # if there are only hydrogens superimposed without a connection to any heavy atoms, ignore these too
     for suptop in suptops[::-1]:
@@ -3731,7 +3794,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     log("Found altogether overlays", len(suptops))
 
     # finally, once again, order the suptops and return the best one
-    suptops = extract_best_suptops(suptops, ignore_coords, weights)
+    suptops = extract_best_suptop(suptops, ignore_coords, weights, get_list=True)
 
     # fixme - return other info
     return suptops

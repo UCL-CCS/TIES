@@ -35,15 +35,15 @@ setup(
     author_email='bieniekmat@gmail.com',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=[
-        'numpy',
-        'cython',
-        'setuptools',
-        'matplotlib',
-        'networkx',
-        'dimod',
-        'tabulate',
-        'dwave-networkx'],
+    # install_requires=[
+    #     'numpy',
+    #     'cython',
+    #     'setuptools',
+    #     'matplotlib',
+    #     'networkx',
+    #     'dimod',
+    #     'tabulate',
+    #     'dwave-networkx'],
     entry_points={
         'console_scripts': [
             'ties = ties:cli.command_line_script'
