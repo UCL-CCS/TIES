@@ -4,9 +4,9 @@ channels:
   - defaults
 
 dependencies:
-  - conda-forge::ambertools >=20.0
+  - conda-forge::ambertools >=21.0
   - ties_md
-  - numpy <=1.23.5
+  - numpy
   - cython
   - setuptools
   - matplotlib
