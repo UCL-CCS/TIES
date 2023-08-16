@@ -18,8 +18,6 @@ This implementation is copyright
 """
 
 import copy
-from ctypes import cdll
-from pathlib import Path
 
 import numpy
 from .pyqcprotext import pyqcprot
