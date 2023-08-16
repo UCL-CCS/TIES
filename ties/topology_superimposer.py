@@ -3198,7 +3198,7 @@ def superimpose_topologies(top1_nodes,
 
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
-    if align_molecules:
+    if align_molecules and not ignore_coords:
         def take_largest(x, y):
             return x if len(x) > len(y) else y
         reduce(take_largest, suptops).align_ligands_using_mcs()
@@ -3347,7 +3347,7 @@ def superimpose_topologies(top1_nodes,
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
     # carry out a check. Each
-    if align_molecules:
+    if align_molecules and not ignore_coords:
         main_rmsd = suptop.align_ligands_using_mcs()
         for mirror in suptop.mirrors:
             mirror_rmsd = mirror.align_ligands_using_mcs()
@@ -3382,8 +3382,6 @@ def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
     :return:
     """
     # fixme - ignore coords currently does not work
-    if ignore_coords:
-        raise NotImplementedError('Ignoring coords during superimposition is currently not possible')
     # multiple different paths to traverse the topologies were found
     # this means some kind of symmetry in the topologies
     # For example, in the below drawn case (starting from C1-C11) there are two
@@ -3397,18 +3395,24 @@ def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
     # Here we decide which of the mappings is better.
     # fixme - uses coordinates to decide which mapping is better.
     #  - Improve: use dihedral angles to decide which mapping is better too
-    if len(suptops) == 0:
-        raise Exception('Cannot decide on the best mapping without any suptops...')
-    elif len(suptops) == 1:
+    def item_or_list(suptops):
         if get_list:
             return suptops
         else:
             return suptops[0]
 
+    if len(suptops) == 0:
+        raise Exception('Cannot decide on the best mapping without any suptops...')
+    elif len(suptops) == 1:
+        return item_or_list(suptops)
+
     #candidates = copy.copy(suptops)
 
     # sort from largest to smallest
     suptops.sort(key=lambda st: len(st), reverse=True)
+
+    if ignore_coords:
+        return item_or_list(suptops)
 
     # when length is the same, take the smaller RMSD
     # most likely this is about hydrogens
@@ -3431,10 +3435,7 @@ def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
     # if they have a different length, there must be a reason why it is better.
     # todo
 
-    if get_list:
-        return different_length_suptops
-
-    return different_length_suptops[0]
+    return item_or_list(different_length_suptops)
 
 
 def best_rmsd_match(suptops):

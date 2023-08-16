@@ -1,11 +1,8 @@
 from setuptools import setup, find_packages
 from distutils.extension import Extension
 
-try:
-    import numpy
-    numpy.get_include()
-except ModuleNotFoundError:
-    pass
+import numpy
+numpy_include = numpy.get_include()
 
 # handle cython modules: pyqcprot module for the rotation matrix
 try:
@@ -18,8 +15,8 @@ except ImportError:
 finally:
     print (f'use_cython: {use_cython}')
 
-ext_modules = [Extension("ties/pyqcprot_ext/pyqcprot", [f"ties/pyqcprot_ext/pyqcprot.{'pyx' if use_cython else 'c'}"],
-                         include_dirs=[],
+ext_modules = [Extension("ties/pyqcprotext/pyqcprot", [f"ties/pyqcprotext/pyqcprot.{'pyx' if use_cython else 'c'}"],
+                         include_dirs=[numpy_include],
                          extra_compile_args=["-O3","-ffast-math"])]
 
 setup(
