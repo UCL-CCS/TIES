@@ -20,7 +20,7 @@ This implementation is copyright
 import copy
 
 import numpy
-from .pyqcprot_ext import pyqcprot
+from .pyqcprotext import pyqcprot
 
 
 def test():

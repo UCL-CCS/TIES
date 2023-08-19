@@ -155,7 +155,7 @@ class Pair():
             print('Starting nodes will be used:', starting_node_pairs)
 
         # fixme - simplify to only take the ParmEd as input
-        suptops = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
+        suptop = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                          disjoint_components=self.config.allow_disjoint_components,
                                          net_charge_filter=True,
                                          pair_charge_atol=self.config.atom_pair_q_atol,
@@ -173,16 +173,16 @@ class Pair():
                                          force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
                                          parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
-                                         starting_pair_seed=self.config.superimposition_starting_pair)
+                                         starting_pair_seed=self.config.superimposition_starting_pair,
+                                         config=self.config)
 
-        assert len(suptops) == 1
-        self.set_suptop(suptops[0], parmed_ligA, parmed_ligZ)
+        self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
-        suptops[0].config = self.config
+        suptop.config = self.config
         # attach the morph to the suptop
-        suptops[0].morph = self
+        suptop.morph = self
 
-        return suptops[0]
+        return suptop
 
     def set_suptop(self, suptop, parmed_ligA, parmed_ligZ):
         """

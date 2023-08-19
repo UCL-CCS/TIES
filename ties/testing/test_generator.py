@@ -13,11 +13,11 @@ from ties import Pair
 from ties import Config
 
 
-def test_no_same_atom_names(dual_ring1):
+def test_no_same_atom_names(indole_cl1):
     # make a copy of the atom list
-    dual_ring_cmp = [copy.copy(a) for a in dual_ring1]
-    ties.topology_superimposer.SuperimposedTopology.rename_ligands(dual_ring1, dual_ring_cmp)
-    intersection = {a.name for a in dual_ring1}.intersection({a.name for a in dual_ring_cmp})
+    dual_ring_cmp = [copy.copy(a) for a in indole_cl1]
+    ties.topology_superimposer.SuperimposedTopology.rename_ligands(indole_cl1, dual_ring_cmp)
+    intersection = {a.name for a in indole_cl1}.intersection({a.name for a in dual_ring_cmp})
     # there should be no overlap
     assert len(intersection) == 0
 

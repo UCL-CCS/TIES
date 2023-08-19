@@ -6,20 +6,20 @@ then processes the outputs to ensure the best match is found.
 TODO
 - this testing module should focus on "separated" molecules
 """
-
+import copy
 import pytest
 import numpy as np
 
 from ties.topology_superimposer import superimpose_topologies, Atom
 
 
-def test_unconnected_component_removed():
+def test_unconnected_component_removed(indole_cl1, indole_cl2):
     """
     The charges correction removed the C8-C18 and N1-N11 pairs,
     which leaves C9-C19 as a disconnected component, and
     because of that, C9-C19 should be removed
 
-    Ligand 1
+    Ligand 1 (dual_ring1)
 
          C1 - C2
          /      \
@@ -49,98 +49,47 @@ def test_unconnected_component_removed():
              |
              C19
     """
-    # construct LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    cl1 = Atom(name='CL1', atom_type='Cl')
-    cl1.position = (2, 1, 0)
-    cl1.bind_to(c3, 'bondType1')
-    c4 = Atom(name='C4', atom_type='C')
-    c4.position = (2, 3, 0)
-    c4.bind_to(c2, 'bondType1')
-    c5 = Atom(name='C5', atom_type='C')
-    c5.position = (3, 1, 0)
-    c5.bind_to(c3, 'bondType1')
-    c6 = Atom(name='C6', atom_type='C')
-    c6.position = (3, 2, 0)
-    c6.bind_to(c5, 'bondType1')
-    c6.bind_to(c4, 'bondType1')
-    c7 = Atom(name='C7', atom_type='C')
-    c7.position = (4, 2, 0)
-    c7.bind_to(c5, 'bondType1')
-    c10 = Atom(name='C10', atom_type='C')
-    c10.position = (4, 1, 0)
-    c10.bind_to(c7, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N', charge=1)
-    n1.position = (4, 3, 0)
-    n1.bind_to(c6, 'bondType1')
-    c8 = Atom(name='C8', atom_type='C', charge=-1)
-    c8.position = (5, 1, 0)
-    c8.bind_to(c7, 'bondType1')
-    c8.bind_to(n1, 'bondType1')
-    c9 = Atom(name='C9', atom_type='C')
-    c9.position = (6, 1, 0)
-    c9.bind_to(c8, 'bondType1')
-    top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
+    # for the corresponding atoms set the opposite charges
+    [a for a in indole_cl1 if a.name == 'C8'][0].charge = -1
+    [a for a in indole_cl2 if a.name == 'C8'][0].charge = 1
 
-    # construct Ligand 2
-    cl11 = Atom(name='Cl11', atom_type='Cl')
-    cl11.position = (1, 1, 0)
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (2, 1, 0)
-    c12 = Atom(name='C12', atom_type='C')
-    c12.position = (2, 2, 0)
-    c12.bind_to(c11, 'bondType1')
-    c12.bind_to(cl11, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (3, 1, 0)
-    c13.bind_to(c11, 'bondType1')
-    c14 = Atom(name='C14', atom_type='C')
-    c14.position = (3, 2, 0)
-    c14.bind_to(c12, 'bondType1')
-    c15 = Atom(name='C15', atom_type='C')
-    c15.position = (4, 1, 0)
-    c15.bind_to(c13, 'bondType1')
-    c16 = Atom(name='C16', atom_type='C')
-    c16.position = (4, 2, 0)
-    c16.bind_to(c15, 'bondType1')
-    c16.bind_to(c14, 'bondType1')
-    c17 = Atom(name='C17', atom_type='C')
-    c17.position = (5, 2, 0)
-    c17.bind_to(c15, 'bondType1')
-    c20 = Atom(name='C20', atom_type='C')
-    c20.position = (5, 1, 0)
-    c20.bind_to(c17, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N', charge=-1)
-    n11.position = (5, 3, 0)
-    n11.bind_to(c16, 'bondType1')
-    c18 = Atom(name='C18', atom_type='C', charge=1)
-    c18.position = (6, 1, 0)
-    c18.bind_to(c17, 'bondType1')
-    c18.bind_to(n11, 'bondType1')
-    c19 = Atom(name='C19', atom_type='C')
-    c19.position = (7, 1, 0)
-    c19.bind_to(c18, 'bondType1')
-    top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
+    [a for a in indole_cl1 if a.name == 'N1'][0].charge = 1
+    [a for a in indole_cl2 if a.name == 'N1'][0].charge = -1
+
 
     # we have to discriminate against this case somehow
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
-    assert not suptops[0].contains_atom_name_pair('C8', 'C18')
-    assert not suptops[0].contains_atom_name_pair('N1', 'N11')
-    assert not suptops[0].contains_atom_name_pair('C9', 'C19')
+    suptop = superimpose_topologies(indole_cl1, indole_cl2, align_molecules=False)
+    assert not suptop.contains_atom_name_pair('C8', 'C8')
+    assert not suptop.contains_atom_name_pair('N1', 'N1')
+    assert not suptop.contains_atom_name_pair('C9', 'C9')
 
 
-def test_averaging_q():
+def test_averaging_q(indole_cl1, indole_cl2):
     """
     Averages the charges across the matched pairs to 0
+    """
+    # set the corresponding atoms to small opposite charges
+    [a for a in indole_cl1 if a.name == 'C8'][0].charge = -0.02
+    [a for a in indole_cl2 if a.name == 'C8'][0].charge = 0.02
 
-    Ligand 1
+    [a for a in indole_cl1 if a.name == 'N1'][0].charge = 0.02
+    [a for a in indole_cl2 if a.name == 'N1'][0].charge = -0.02
+
+    suptop = superimpose_topologies(indole_cl1, indole_cl2, align_molecules=False)
+
+    n1, n11 = suptop.contains_atom_name_pair('N1', 'N1')
+    assert n1.charge == n11.charge == 0
+    c8, c18 = suptop.contains_atom_name_pair('C8', 'C8')
+    assert c8.charge == c18.charge == 0
+
+
+def test_averaging_q_case2(indole_cl1):
+    """
+    Averages charges. All atoms are matched, and each pair is within the charge tolerance limit of 0.1.
+
+    Averaging N1-N11 to 0.01, and CL1-CL11 to -0.01
+
+    Ligands
 
          C1 - C2
          /      \
@@ -148,234 +97,29 @@ def test_averaging_q():
           \     /
           C5 - C6
           /     \
-     C10-C7      N1 (+0.02e)
-           \   /
-             C8 (-0.02e)
-             |
-             C9
-
-
-    Ligand 2
-                 Cl11
-                /
-         C11 - C12
-         /      \
-        C13      C14
-          \     /
-          C15 - C16
-          /     \
-     C20-C17       N11 (-0.02e)
-           \   /
-             C18 (+0.02e)
-             |
-             C19
-    """
-    # construct LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    cl1 = Atom(name='CL1', atom_type='Cl')
-    cl1.position = (2, 1, 0)
-    cl1.bind_to(c3, 'bondType1')
-    c4 = Atom(name='C4', atom_type='C')
-    c4.position = (2, 3, 0)
-    c4.bind_to(c2, 'bondType1')
-    c5 = Atom(name='C5', atom_type='C')
-    c5.position = (3, 1, 0)
-    c5.bind_to(c3, 'bondType1')
-    c6 = Atom(name='C6', atom_type='C')
-    c6.position = (3, 2, 0)
-    c6.bind_to(c5, 'bondType1')
-    c6.bind_to(c4, 'bondType1')
-    c7 = Atom(name='C7', atom_type='C')
-    c7.position = (4, 2, 0)
-    c7.bind_to(c5, 'bondType1')
-    c10 = Atom(name='C10', atom_type='C')
-    c10.position = (4, 1, 0)
-    c10.bind_to(c7, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N', charge=.02)
-    n1.position = (4, 3, 0)
-    n1.bind_to(c6, 'bondType1')
-    c8 = Atom(name='C8', atom_type='C', charge=-0.02)
-    c8.position = (5, 1, 0)
-    c8.bind_to(c7, 'bondType1')
-    c8.bind_to(n1, 'bondType1')
-    c9 = Atom(name='C9', atom_type='C')
-    c9.position = (6, 1, 0)
-    c9.bind_to(c8, 'bondType1')
-    top1_list = [c1, c2, c3, c4, cl1, c5, c6, c10, c7, n1, c8, c9]
-
-    # construct Ligand 2
-    cl11 = Atom(name='Cl11', atom_type='Cl')
-    cl11.position = (1, 1, 0)
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (2, 1, 0)
-    c12 = Atom(name='C12', atom_type='C', charge=-0)
-    c12.position = (2, 2, 0)
-    c12.bind_to(c11, 'bondType1')
-    c12.bind_to(cl11, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (3, 1, 0)
-    c13.bind_to(c11, 'bondType1')
-    c14 = Atom(name='C14', atom_type='C')
-    c14.position = (3, 2, 0)
-    c14.bind_to(c12, 'bondType1')
-    c15 = Atom(name='C15', atom_type='C')
-    c15.position = (4, 1, 0)
-    c15.bind_to(c13, 'bondType1')
-    c16 = Atom(name='C16', atom_type='C')
-    c16.position = (4, 2, 0)
-    c16.bind_to(c15, 'bondType1')
-    c16.bind_to(c14, 'bondType1')
-    c17 = Atom(name='C17', atom_type='C')
-    c17.position = (5, 2, 0)
-    c17.bind_to(c15, 'bondType1')
-    c20 = Atom(name='C20', atom_type='C')
-    c20.position = (5, 1, 0)
-    c20.bind_to(c17, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N', charge=-0.02)
-    n11.position = (5, 3, 0)
-    n11.bind_to(c16, 'bondType1')
-    c18 = Atom(name='C18', atom_type='C', charge=.02)
-    c18.position = (6, 1, 0)
-    c18.bind_to(c17, 'bondType1')
-    c18.bind_to(n11, 'bondType1')
-    c19 = Atom(name='C19', atom_type='C')
-    c19.position = (7, 1, 0)
-    c19.bind_to(c18, 'bondType1')
-    top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
-
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
-    # we are averaging the charges of the atoms in the left and right,
-    assert n1.charge == n11.charge == 0
-    assert c8.charge == c18.charge == 0
-
-
-def test_averaging_q_case2():
-    """
-    Averages charges. All atoms are matched, and each pair is within the charge tolerance limit of 0.1.
-
-    Averaging N1-N11 to 0.01, and CL1-CL11 to -0.01
-
-    Ligand 1
-
-         C1 - C2
-         /      \
-        C3      C4
-          \     /
-          C5 - C6
-          /     \
-     C10-C7      N1 (+0.04e)
+     C10-C7      N1 (+0.04e vs -0.02e)
            \   /
              C8
              |
-             CL1 (-0.04e)
-
-
-    Ligand 2
-
-
-         C11 - C12
-         /      \
-        C13      C14
-          \     /
-          C15 - C16
-          /     \
-     C20-C17       N11 (-0.02e)
-           \   /
-             C18
-             |
-             CL11 (+0.02e)
+             C9 (-0.04e vs +0.02e)
     """
-    # construct LIGAND 1
-    c1 = Atom(name='C1', atom_type='C')
-    c1.position = (1, 1, 0)
-    c2 = Atom(name='C2', atom_type='C')
-    c2.position = (1, 2, 0)
-    c1.bind_to(c2, 'bondType1')
-    c3 = Atom(name='C3', atom_type='C')
-    c3.position = (2, 2, 0)
-    c3.bind_to(c1, 'bondType1')
-    c4 = Atom(name='C4', atom_type='C')
-    c4.position = (2, 3, 0)
-    c4.bind_to(c2, 'bondType1')
-    c5 = Atom(name='C5', atom_type='C')
-    c5.position = (3, 1, 0)
-    c5.bind_to(c3, 'bondType1')
-    c6 = Atom(name='C6', atom_type='C')
-    c6.position = (3, 2, 0)
-    c6.bind_to(c5, 'bondType1')
-    c6.bind_to(c4, 'bondType1')
-    c7 = Atom(name='C7', atom_type='C')
-    c7.position = (4, 2, 0)
-    c7.bind_to(c5, 'bondType1')
-    c10 = Atom(name='C10', atom_type='C')
-    c10.position = (4, 1, 0)
-    c10.bind_to(c7, 'bondType1')
-    n1 = Atom(name='N1', atom_type='N', charge=.04)
-    n1.position = (4, 3, 0)
-    n1.bind_to(c6, 'bondType1')
-    c8 = Atom(name='C8', atom_type='C')
-    c8.position = (5, 1, 0)
-    c8.bind_to(c7, 'bondType1')
-    c8.bind_to(n1, 'bondType1')
-    cl1 = Atom(name='CL1', atom_type='CL', charge=-0.04)
-    cl1.position = (6, 1, 0)
-    cl1.bind_to(c8, 'bondType1')
-    top1_list = [c1, c2, c3, c4, c5, c6, c10, c7, n1, c8, cl1]
+    indole2 = copy.deepcopy(indole_cl1)
+    [a for a in indole_cl1 if a.name == 'N1'][0].charge = 0.04
+    [a for a in indole2 if a.name == 'N1'][0].charge = -0.02
 
-    # construct Ligand 2
-    c11 = Atom(name='C11', atom_type='C')
-    c11.position = (2, 1, 0)
-    c12 = Atom(name='C12', atom_type='C', charge=-0)
-    c12.position = (2, 2, 0)
-    c12.bind_to(c11, 'bondType1')
-    c13 = Atom(name='C13', atom_type='C')
-    c13.position = (3, 1, 0)
-    c13.bind_to(c11, 'bondType1')
-    c14 = Atom(name='C14', atom_type='C')
-    c14.position = (3, 2, 0)
-    c14.bind_to(c12, 'bondType1')
-    c15 = Atom(name='C15', atom_type='C')
-    c15.position = (4, 1, 0)
-    c15.bind_to(c13, 'bondType1')
-    c16 = Atom(name='C16', atom_type='C')
-    c16.position = (4, 2, 0)
-    c16.bind_to(c15, 'bondType1')
-    c16.bind_to(c14, 'bondType1')
-    c17 = Atom(name='C17', atom_type='C')
-    c17.position = (5, 2, 0)
-    c17.bind_to(c15, 'bondType1')
-    c20 = Atom(name='C20', atom_type='C')
-    c20.position = (5, 1, 0)
-    c20.bind_to(c17, 'bondType1')
-    n11 = Atom(name='N11', atom_type='N', charge=-0.02)
-    n11.position = (5, 3, 0)
-    n11.bind_to(c16, 'bondType1')
-    c18 = Atom(name='C18', atom_type='C')
-    c18.position = (6, 1, 0)
-    c18.bind_to(c17, 'bondType1')
-    c18.bind_to(n11, 'bondType1')
-    cl11 = Atom(name='CL11', atom_type='CL', charge=.02)
-    cl11.position = (7, 1, 0)
-    cl11.bind_to(c18, 'bondType1')
-    top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, cl11]
+    [a for a in indole_cl1 if a.name == 'C9'][0].charge = -0.04
+    [a for a in indole2 if a.name == 'C9'][0].charge = 0.02
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(indole_cl1, indole2, align_molecules=False)
 
     # 10 atoms are should be matched
-    assert len(suptop) == 11
+    assert len(suptop) == 12
 
     # we are averaging the charges of the atoms in the left and right,
-    print('charges, ', n1.charge, n11.charge)
-    np.testing.assert_array_almost_equal([n1.charge, n11.charge], 0.01)
-    np.testing.assert_array_almost_equal([cl1.charge, cl11.charge], -0.01)
+    n_begin, n_end = suptop.contains_atom_name_pair('N1', 'N1')
+    np.testing.assert_array_almost_equal([n_begin.charge, n_end.charge], 0.01)
+    c9_begin, c9_end = suptop.contains_atom_name_pair('C9', 'C9')
+    np.testing.assert_array_almost_equal([c9_begin.charge, c9_end.charge], -0.01)
 
 
 def test_q_redistribution_no_affect_mutating_atoms():
@@ -451,9 +195,8 @@ def test_q_redistribution_no_affect_mutating_atoms():
     br1.bind_to(c14, 'bondType1')
     top2_list = [c11, c12, c13, c14, br1, n11]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False,
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False,
                                      redistribute_charges_over_unmatched=False)
-    suptop = suptops[0]
 
     # 5 atoms are should be matched
     assert len(suptop) == 5
@@ -582,8 +325,7 @@ def test_redistribution_q2():
     cl11.bind_to(c18, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, cl11]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False)
 
     # 10 atoms are should be matched
     assert len(suptop) == 11
@@ -716,8 +458,7 @@ def test_averaging_charges_imbalance_distribution_multiple():
     c19.bind_to(c18, 'bondType1')
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
 
     assert not suptop.contains_atom_name_pair('C9', 'C19')
     # charge averaging
@@ -967,8 +708,7 @@ def test_averaging_charges_imbalance_distribution_2to2():
     c19.bind_to(c18, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
 
     assert not suptop.contains_atom_name_pair('C9', 'C19')
     assert not suptop.contains_atom_name_pair('C8', 'C18')
@@ -1104,14 +844,14 @@ def test_filter_net_charge_too_large():
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
     # we have to discriminate against this case somehow
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=True)
     # removed because the charge difference was too large
-    assert not suptops[0].contains_atom_name_pair('C2', 'C12')
+    assert not suptop.contains_atom_name_pair('C2', 'C12')
     # removed to bring the net charge difference below 0.1e
-    assert not suptops[0].contains_atom_name_pair('N1', 'N11')
+    assert not suptop.contains_atom_name_pair('N1', 'N11')
     # this pair should remain as the net charge difference is below 0.1
-    assert suptops[0].contains_atom_name_pair('C8', 'C18')
-    assert len(suptops[0]) == 9
+    assert suptop.contains_atom_name_pair('C8', 'C18')
+    assert len(suptop) == 9
 
 
 
@@ -1229,8 +969,7 @@ def test_perfect_ring():
     c20.bind_to(c19, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False)
 
     ring_overlap = [('C1', 'C11'), ('C2', 'C12'), ('C3', 'C13'),
                     ('C4', 'C14'), ('C5', 'C15'), ('C6', 'C16')]
@@ -1356,8 +1095,7 @@ def test_partial_ring():
     c20.bind_to(c19, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=False)
-    suptop = suptops[0]
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False, partial_rings_allowed=False)
     # check if the mismatched charges removed the right atoms
     assert not suptop.contains_atom_name_pair('C2', 'C12')
     assert not suptop.contains_atom_name_pair('C4', 'C14')
@@ -1483,9 +1221,8 @@ def test_partial_ring_cascade():
     c20.bind_to(c19, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False,
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False,
                                      partial_rings_allowed=False)
-    suptop = suptops[0]
     # atoms were removed due to the charge
     assert not suptop.contains_atom_name_pair('C2', 'C12')
     assert not suptop.contains_atom_name_pair('C4', 'C14')
@@ -1601,16 +1338,14 @@ def test_partial_rings_overlap():
     c19.bind_to(c18, 'bondType1')
     top2_list = [c11, c12, c13, c14, c15, c16, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False,
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False,
                                      partial_rings_allowed=False)
-    suptop = suptops[0]
     # only one atom should be left,
     assert len(suptop) == 1
     assert suptop.contains_atom_name_pair('C9', 'C19')
 
 
-def test_averaging_q():
-    return
+def test_averaging_q_new():
     """
     Two atoms cross the pair-tolerance so each should be removed.
     However, all other atoms are fine 
@@ -1738,7 +1473,9 @@ def test_averaging_q():
     c19.bind_to(c18, 'bondType1')
     top2_list = [cl11, c11, c12, c13, c14, c15, c16, c20, c17, n11, c18, c19]
 
-    suptops = superimpose_topologies(top1_list, top2_list, align_molecules=False)
+    suptop = superimpose_topologies(top1_list, top2_list, align_molecules=False)
     # we are averaging the charges of the atoms in the left and right,
+    n1, n11 = suptop.contains_atom_name_pair('N1', 'N11')
     assert n1.charge == n11.charge == 0
+    c8, c18 = suptop.contains_atom_name_pair('C8', 'C18')
     assert c8.charge == c18.charge == 0
