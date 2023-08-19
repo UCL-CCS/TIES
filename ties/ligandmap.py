@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy
 import networkx
-import dimod
 import tabulate
+
+try:
+    import dimod
+except ModuleNotFoundError:
+    print("Could not import dimod. Please install it to make ligandmap work.")
 
 dwave = True
 try:
