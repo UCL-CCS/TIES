@@ -1,27 +1,15 @@
 from setuptools import setup, find_packages
 from distutils.extension import Extension
 
+# pyqcprot module for the rotation matrix
 import numpy
-numpy_include = numpy.get_include()
-
-# handle cython modules: pyqcprot module for the rotation matrix
-try:
-    from Cython.Distutils import build_ext
-    use_cython = True
-    cmdclass = {'build_ext': build_ext}
-except ImportError:
-    use_cython = False
-    cmdclass = {}
-finally:
-    print (f'use_cython: {use_cython}')
-
-ext_modules = [Extension("ties/pyqcprotext/pyqcprot", [f"ties/pyqcprotext/pyqcprot.{'pyx' if use_cython else 'c'}"],
-                         include_dirs=[numpy_include],
+ext_modules = [Extension("ties.pyqcprotext.pyqcprot", ["ties/pyqcprotext/pyqcprot.pyx"],
+                         include_dirs=[numpy.get_include()],
                          extra_compile_args=["-O3","-ffast-math"])]
 
 setup(
     name='ties',
-    version='20.10',
+    version=open("ties/version.txt").read().strip(),
     description='TIES: Thermodynamic Integration with Enhanced Sampling',
     long_description='Copy from README file',
     url='http://ccs.chem.ucl.ac.uk',
@@ -34,6 +22,5 @@ setup(
             'ties = ties:cli.command_line_script'
         ]
     },
-    cmdclass = cmdclass,
     ext_modules = ext_modules,
 )
