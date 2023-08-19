@@ -6,11 +6,9 @@ channels:
 dependencies:
   - conda-forge::ambertools >=21.0
   - ties_md
-  - numpy
+  - numpy==1.23.5
   - cython
   - setuptools
   - matplotlib
   - networkx
-  - dimod
   - tabulate
-  - dwave-networkx
