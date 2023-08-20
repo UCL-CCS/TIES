@@ -13,3 +13,4 @@ dependencies:
   - networkx
   - tabulate
   - rdkit
+  - openbabel

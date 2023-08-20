@@ -4,6 +4,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
+from openbabel import pybel
 import numpy as np
 import parmed
 import rdkit
@@ -33,8 +34,8 @@ class Ligand:
     GAFF_ATOM_NAMES = {'c', 'c1', 'c2', 'c3', 'ca', 'n', 'n1', 'n2', 'n3', 'n4', 'na', 'nh', 'no',
                        'f', 'cl', 'br', 'i', 'o', 'oh', 'os', 's2', 'sh', 'ss', 's4', 's6', 'hc',
                        'ha', 'hn', 'ho', 'hs', 'hp', 'p2', 'p3', 'p4', 'p5', 'h1', 'h2', 'h3',
-                       'h4', 'h5', 'n', 'nb', 'nc(nd)', 'sx', 'sy', 'cc(cd)', 'ce(cf)', 'cp(cq)',
-                       'cu', 'cv', 'cx', 'cy', 'pb', 'pc(pd)', 'pe(pf)', 'px', 'py'}
+                       'h4', 'h5', 'n', 'nb', 'nc', 'nd', 'sx', 'sy', 'cc', 'cd', 'ce', 'cf', 'cp',
+                       'cq', 'cu', 'cv', 'cx', 'cy', 'pb', 'pc', 'pd', 'pe', 'pf', 'px', 'py'}
 
     def __init__(self, ligand, config=None, save=True):
         """Constructor method
@@ -239,10 +240,11 @@ class Ligand:
 
     def uses_GAFF_atom_names(self):
         assert self.current.suffix.lower() == '.mol2'
-        mol = rdkit.Chem.MolFromMol2File(str(self.current))
-        atom_names = {atom.GetProp("_TriposAtomType") for atom in mol.GetAtoms()}
-        if len(atom_names - self.GAFF_ATOM_NAMES) > 0:
-            return False
+        ob = list(pybel.readfile('mol2', str(self.current)))[0]
+        atom_names = {a.type for a in ob.atoms}
+        if len(atom_names - self.GAFF_ATOM_NAMES):
+            # there is no names that are not GAFF atom names
+            return True
 
         return True
 
