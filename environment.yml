@@ -12,3 +12,4 @@ dependencies:
   - matplotlib
   - networkx
   - tabulate
+  - rdkit

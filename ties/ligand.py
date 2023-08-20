@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import parmed
+import rdkit
+import rdkit.Chem
 
 import ties.helpers
 from ties.config import Config
@@ -26,6 +28,13 @@ class Ligand:
     LIG_COUNTER = 0
 
     _USED_FILENAMES = set()
+
+    # see https://ambermd.org/antechamber/gaff.html
+    GAFF_ATOM_NAMES = {'c', 'c1', 'c2', 'c3', 'ca', 'n', 'n1', 'n2', 'n3', 'n4', 'na', 'nh', 'no',
+                       'f', 'cl', 'br', 'i', 'o', 'oh', 'os', 's2', 'sh', 'ss', 's4', 's6', 'hc',
+                       'ha', 'hn', 'ho', 'hs', 'hp', 'p2', 'p3', 'p4', 'p5', 'h1', 'h2', 'h3',
+                       'h4', 'h5', 'n', 'nb', 'nc(nd)', 'sx', 'sy', 'cc(cd)', 'ce(cf)', 'cp(cq)',
+                       'cu', 'cv', 'cx', 'cy', 'pb', 'pc(pd)', 'pe(pf)', 'px', 'py'}
 
     def __init__(self, ligand, config=None, save=True):
         """Constructor method
@@ -228,6 +237,15 @@ class Ligand:
     def suffix(self):
         return self.current.suffix.lower()
 
+    def uses_GAFF_atom_names(self):
+        assert self.current.suffix.lower() == '.mol2'
+        mol = rdkit.Chem.MolFromMol2File(str(self.current))
+        atom_names = {atom.GetProp("_TriposAtomType") for atom in mol.GetAtoms()}
+        if len(atom_names - self.GAFF_ATOM_NAMES) > 0:
+            return False
+
+        return True
+
     def antechamber_prepare_mol2(self, **kwargs):
         """
         Converts the ligand into a .mol2 format.
@@ -256,7 +274,7 @@ class Ligand:
         mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
 
         # copy the existing file if the file is already .mol2
-        if self.current.suffix == '.mol2' and self.config.ligands_contain_q:
+        if self.current.suffix == '.mol2' and self.config.ligands_contain_q and self.uses_GAFF_atom_names():
             print(f'Already .mol2 used. Copying {self.current} to {mol2_cwd}. ')
             shutil.copy(self.current, mol2_target)
 
