@@ -4,7 +4,6 @@ import subprocess
 import shutil
 from pathlib import Path
 
-from openbabel import pybel
 import numpy as np
 import parmed
 import rdkit
@@ -240,11 +239,11 @@ class Ligand:
 
     def uses_GAFF_atom_names(self):
         assert self.current.suffix.lower() == '.mol2'
-        ob = list(pybel.readfile('mol2', str(self.current)))[0]
-        atom_names = {a.type for a in ob.atoms}
-        if len(atom_names - self.GAFF_ATOM_NAMES):
-            # there is no names that are not GAFF atom names
-            return True
+        mol = parmed.load_file('ejm_55.mol2', structure=True)
+        atom_types = {atom.type for atom in mol.atoms}
+        if len(atom_types - self.GAFF_ATOM_NAMES) > 0:
+            # there are names that are not GAFF atom names
+            return False
 
         return True
 
