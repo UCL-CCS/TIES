@@ -110,7 +110,7 @@ def command_line_script():
                         help='This is a temporary solution. E.g. "leaprc.protein.ff19SB", '
                              ', "leaprc.ff19SB", etc.')
     parser.add_argument('-lff', '--ligand-ff', metavar='str', dest='ligand_ff_name',
-                        type=str, required=False, default='gaff',
+                        type=str, required=False, default='gaff2',
                         help='Either "gaff" or "gaff2"')
     parser.add_argument('-md', '--md-engine', metavar='str', dest='md_engine',
                         type=str, required=False, default='namd2.14',

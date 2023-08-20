@@ -66,7 +66,7 @@ class Config:
 
         self._protein_ff = None
         self._ligand_ff = 'leaprc.gaff'
-        self._ligand_ff_name = 'gaff'
+        self._ligand_ff_name = 'gaff2'
 
         # MD/NAMD production input file
         self._md_engine = 'namd'
