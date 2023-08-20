@@ -350,11 +350,9 @@ class Ligand:
                                cwd= cwd, timeout=20,  # 20 seconds
                                 )
             except subprocess.CalledProcessError as E:
-                print('ERROR file content: ', open(log_filename).read())
-                print('ERROR: An error occured during the antechamber conversion from .ac to .mol2 data type. ')
-                print(f'ERROR: The output was saved in the directory: {cwd}')
-                print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
-                raise E
+                raise Exception(f"Was not able to generate the GAFF forcefield functional forms FRCMOD. "
+                                f'ERROR: Please see the following log file and its directory '
+                                f'for more error information: {log_filename}') from E
 
         print(f'Parmchk2: created .frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
