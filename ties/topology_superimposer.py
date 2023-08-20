@@ -506,9 +506,8 @@ class SuperimposedTopology:
                 hybrid_solv = build / 'complex_nofep.pdb'  # generated
                 # check if the solvation is correct
             except subprocess.CalledProcessError as E:
-                raise Exception(f'ERROR: occurred when trying to parse the protein.pdb with tleap. {os.linesep}'
-                                f'ERROR: The output was saved in the directory: {build}{os.linesep}'
-                                f'ERROR: can be found in the file: {log_filename}{os.linesep}') from E
+                raise Exception(f'Could not parse the protein with tleap. '
+                                f'See log with its directory: {log_filename}') from E
 
         # generate the merged fep file
         complex_solvated_fep = build / 'complex.pdb'
