@@ -239,7 +239,7 @@ class Ligand:
 
     def uses_GAFF_atom_names(self):
         assert self.current.suffix.lower() == '.mol2'
-        mol = parmed.load_file('ejm_55.mol2', structure=True)
+        mol = parmed.load_file(str(self.current), structure=True)
         atom_types = {atom.type for atom in mol.atoms}
         if len(atom_types - self.GAFF_ATOM_NAMES) > 0:
             # there are names that are not GAFF atom names
