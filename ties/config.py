@@ -132,9 +132,12 @@ class Config:
             print('No protein was select. Skipping protein dG.')
             return
 
+        if pathlib.Path(path).suffix.lower() != ".pdb":
+            raise ValueError("The protein file passed is not a PDB")
+
         #  can be loaded by parmed?
         print(f'Trying to open the protein file {path} with ParmEd..')
-        parmed.load_file(str(path), structure=True)
+        parmed.read_pdb(str(path))
         self._protein = pathlib.Path(path)
 
     @property
