@@ -1394,11 +1394,13 @@ class SuperimposedTopology:
         diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=len(self))
 
         # for other strategies, take the key directly, but only if there is one
-        if diff_sorted[strategy]:
+        if strategy in diff_sorted:
             pairs_in_category = diff_sorted[strategy]
-        else:
+
+        if strategy not in diff_sorted or len(pairs_in_category) == 0:
             # if there is no option in that category, revert to greedy
             pairs_in_category = diff_sorted['greedy']
+
         return pairs_in_category[0]
 
     def _sort_pairs_into_categories_qnettol(self, pairs, best_cases_num=6):
