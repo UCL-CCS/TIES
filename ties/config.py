@@ -534,6 +534,13 @@ class Config:
 
         :return:
         """
+
+        if self._ligand_files is None:
+            raise ValueError('Wrong use of Config class. Please set the ._ligand_files attribute first. ')
+        elif len(self._ligand_files) != 2:
+            raise ValueError('Error: Too many ligands. '
+                             'Manually matching atom pairs works only with 2 ligands. ')
+
         return self._manually_matched_atom_pairs
 
     @manually_matched_atom_pairs.setter
@@ -543,11 +550,6 @@ class Config:
         if file_or_pairs is None:
             self._manually_matched_atom_pairs = []
             return
-        if self._ligand_files is None:
-            raise ValueError('Wrong use of Config class. Please set the ._ligand_files attribute first. ')
-        elif len(self._ligand_files) != 2:
-            raise ValueError('Error: Too many ligands. '
-                             'Manually matching atom pairs works only with 2 ligands. ')
 
         # TODO
         # pair_format: C1-C7 or C1-C7,C2-C8
