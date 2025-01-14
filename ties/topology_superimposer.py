@@ -1304,7 +1304,7 @@ class SuperimposedTopology:
 
         # best configuration info
         best_approach = None
-        suptop_size = 0
+        suptop_size = -1
         rm_disjoint_each_step_conf = False
 
         # try all confs
@@ -1394,13 +1394,11 @@ class SuperimposedTopology:
         diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=len(self))
 
         # for other strategies, take the key directly, but only if there is one
-        if strategy in diff_sorted:
+        if diff_sorted[strategy]:
             pairs_in_category = diff_sorted[strategy]
-
-        if strategy not in diff_sorted or len(pairs_in_category) == 0:
+        else:
             # if there is no option in that category, revert to greedy
             pairs_in_category = diff_sorted['greedy']
-
         return pairs_in_category[0]
 
     def _sort_pairs_into_categories_qnettol(self, pairs, best_cases_num=6):
