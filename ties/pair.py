@@ -226,7 +226,7 @@ class Pair():
         atom_names_overlap = len(common_atom_names) > 0
 
         if atom_names_overlap or not self.ligZ.are_atom_names_correct():
-            print(f'Renaming right molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
+            print(f'Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
             if atom_names_overlap:
                 print(f'Common atom names: {common_atom_names}')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
@@ -404,7 +404,7 @@ class Pair():
 
         modified_hybrid_frcmod = cwd / f'{self.internal_name}_corrected.frcmod'
         if missing_angles or missing_dihedrals:
-            print('WARNING: Adding dummy dihedrals/angles to frcmod to generate .top')
+            print('WARNING: Adding dummy bonds+angles+dihedrals to frcmod to generate .top')
             # read the original frcmod
             frcmod_lines = open(self.frcmod).readlines()
             # overwriting the .frcmod with dummy angles/dihedrals
