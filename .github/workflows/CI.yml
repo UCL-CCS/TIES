@@ -23,18 +23,11 @@ jobs:
           ulimit -a
 
       - name: Create Environment
-        uses: conda-incubator/setup-miniconda@v3
+        uses: mamba-org/setup-micromamba@v2
         with:
-          activate-environment: ties
           environment-file: environment.yml
+          environment-name: ties
           python-version: ${{ matrix.python-version }}
-          auto-update-conda: true
-          auto-activate-base: false
-          show-channel-urls: true
-          mamba-version: "*"
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
 
       - name: Environment Information
         shell: bash -l {0}
