@@ -23,7 +23,7 @@ jobs:
           ulimit -a
 
       - name: Create Environment
-        uses: conda-incubator/setup-miniconda@v2.1.1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: ties
           environment-file: environment.yml
