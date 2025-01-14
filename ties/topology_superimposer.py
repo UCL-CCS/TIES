@@ -744,9 +744,11 @@ class SuperimposedTopology:
 
         return False
 
-    def find_pair_with_atom(self, atom_name):
+    def find_pair_with_atom(self, atom):
         for node1, node2 in self.matched_pairs:
-            if node1.name == atom_name or node2.name == atom_name:
+            # this works because we're operating on the same instance from the beginning
+            if node1 == atom or node2 == atom:
+                assert node1._unique_counter == atom._unique_counter or node2._unique_counter == atom._unique_counter
                 return node1, node2
 
         return None
@@ -913,7 +915,7 @@ class SuperimposedTopology:
             for bond in atom.bonds:
                 unmatched_atom_id = self.get_generated_atom_id(atom)
                 # check if the unmatched atom is bonded to any pair
-                pair = self.find_pair_with_atom(bond.atom.name)
+                pair = self.find_pair_with_atom(bond.atom)
                 if pair is not None:
                     # this atom is bound to a pair, so add the bond to the pair
                     pair_id = self.get_generated_atom_id(pair[0])
