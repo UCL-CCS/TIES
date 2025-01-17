@@ -6,7 +6,6 @@ channels:
 dependencies:
   - conda-forge::ambertools >=21.0
   - numpy
-  - cython
   - setuptools
   - matplotlib
   - networkx
