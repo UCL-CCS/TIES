@@ -789,11 +789,6 @@ class SuperimposedTopology:
         :type overwrite_original: bool
         """
 
-        # cannot superimpose with fewer than 3 points
-        # return a penalty
-        if len(self.matched_pairs) < 3:
-            return sys.float_info.max
-
         if self.mda_ligA is None or self.mda_ligB is None:
             # todo comment
             return self.rmsd()
