@@ -49,8 +49,8 @@ jobs:
       - name: Run pytest
         shell: bash -l {0}
         run: |
-          cd $(mktemp -d)
-          python -m ties.testing.run
+          cd ties/testing
+          python -m pytest
 
   #    - name: Simple Ligand renaming
   #      run: |
