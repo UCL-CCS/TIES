@@ -6,9 +6,10 @@ channels:
 dependencies:
   - conda-forge::ambertools >=21.0
   - ties_md
-  - numpy==1.23.5
+  - numpy==1.23.5 # fixme? 
   - cython
   - setuptools
   - matplotlib
   - networkx
   - tabulate
+  - MDAnalysis

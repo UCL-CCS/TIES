@@ -1,11 +1,4 @@
 from setuptools import setup, find_packages
-from distutils.extension import Extension
-
-# pyqcprot module for the rotation matrix
-import numpy
-ext_modules = [Extension("ties.pyqcprotext.pyqcprot", ["ties/pyqcprotext/pyqcprot.pyx"],
-                         include_dirs=[numpy.get_include()],
-                         extra_compile_args=["-O3","-ffast-math"])]
 
 setup(
     name='ties',
@@ -22,5 +15,4 @@ setup(
             'ties = ties:cli.command_line_script'
         ]
     },
-    ext_modules = ext_modules,
 )

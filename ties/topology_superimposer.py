@@ -18,13 +18,14 @@ from typing import Dict, List, Set, Tuple
 from functools import reduce
 from collections import OrderedDict
 
+import MDAnalysis
+from MDAnalysis.analysis.align import rotation_matrix
 import numpy as np
 import networkx as nx
 import parmed
 
 import ties.config
 import ties.generator
-from .transformation import superimpose_coordinates
 
 
 logger = logging.getLogger(__name__)
@@ -254,15 +255,11 @@ class SuperimposedTopology:
     However, it can also represent the symmetrical versions that were superimposed.
     """
 
-    def __init__(self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None):
-        self.parmed_ligA = parmed_ligA
-        self.parmed_ligZ = parmed_ligZ
+    # ID distributor for instances
+    COUNTER = 0
 
-        self.can_use_mda = True
-        if self.parmed_ligA is None or self.parmed_ligZ is None:
-            # print('Will not use mda positions for aligning. Simply taking .rmsd(). ')
-            # fixme: we can now use this feature without MDAnalysis
-            self.can_use_mda = False
+    def __init__(self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None):
+        self.set_parmeds(parmed_ligA, parmed_ligZ)
 
         """
         @superimposed_nodes : a set of pairs of nodes that matched together
@@ -311,6 +308,9 @@ class SuperimposedTopology:
         # save the cycles in the left and right molecules
         if self.top1 is not None and self.top2 is not None:
             self._init_nonoverlapping_cycles()
+
+        self.id = SuperimposedTopology.COUNTER
+        SuperimposedTopology.COUNTER += 1
 
     def mcs_score(self):
         """
@@ -717,7 +717,7 @@ class SuperimposedTopology:
                 ringring_removed.append((l,r))
 
         if ringring_removed:
-            print(f'Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}')
+            print(f'(ST{self.id}) Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}')
         return ringring_removed, removed_h
 
     def is_or_was_matched(self, atom_name1, atom_name2):
@@ -788,46 +788,59 @@ class SuperimposedTopology:
             which will be saved to a file at the end.
         :type overwrite_original: bool
         """
-        if not self.can_use_mda:
-            # cannot use MDA for aligning the ligands.
-            # Simply return the rmsd of the current setting instead
-            return self.rmsd()
 
-        # extract the IDs in the MCS - order matters
-        mcs_ligA_ids = [left.id for left, right in self.matched_pairs]
-        mcs_ligZ_ids = [right.id for left, right in self.matched_pairs]
-
-        # select the MCS coordinates
-        mcs_ligA_coords = self.parmed_ligA.coordinates[mcs_ligA_ids]
-        mcs_ligZ_coords = self.parmed_ligZ.coordinates[mcs_ligZ_ids]
-
-        # cannot perform super imposition on less then 3 points, return max float to signal that this value is invalid
-        if len(mcs_ligA_coords) < 3:
+        # cannot superimpose with fewer than 3 points
+        # return a penalty
+        if len(self.matched_pairs) < 3:
             return sys.float_info.max
 
-        # obtain the rotation matrix and com that has to be applied
-        rmsd, (rotation_matrix, ligA_mcs_com, ligZ_mcs_com) = superimpose_coordinates(mcs_ligA_coords, mcs_ligZ_coords)
+        if self.mda_ligA is None or self.mda_ligB is None:
+            # todo comment
+            return self.rmsd()
+
+        ligA = self.mda_ligA
+        ligB = self.mda_ligB
+
+        # back up
+        ligA_original_positions = ligA.atoms.positions[:]
+        ligB_original_positions = ligB.atoms.positions[:]
+
+        # select the atoms for the MCS,
+        # the following uses 0-based indexing
+        mcs_ligA_ids = [left.id for left, right in self.matched_pairs]
+        mcs_ligB_ids = [right.id for left, right in self.matched_pairs]
+
+        ligA_fragment = ligA.atoms[mcs_ligA_ids]
+        ligB_fragment = ligB.atoms[mcs_ligB_ids]
+
+        # move all to the origin of the fragment
+        ligA.atoms.translate(-ligA_fragment.centroid())
+        ligB.atoms.translate(-ligB_fragment.centroid())
+
+        rotation_matrix, rmsd = MDAnalysis.analysis.align.rotation_matrix(ligA_fragment.positions, ligB_fragment.positions)
+
+        # apply the rotation to
+        ligB.atoms.rotate(rotation_matrix)
+
+        # save the superimposed coordinates
+        ligZ_sup = self.mda_ligB.atoms.positions[:]
+
+        # restore the MDAnalysis positions ("working copy")
+        # in theory you do not need to do this every time
+        self.mda_ligA.atoms.positions = ligA_original_positions
+        self.mda_ligB.atoms.positions = ligB_original_positions
 
         if not overwrite_original:
-            # Most likely this is a temporary alignment by MCS
-            # do not overwrite the internal coordinates and simply return the RMSD value
+            # return the RMSD of the superimposed matched pairs only
             return rmsd
 
         # update the atoms with the mapping done via IDs
         print(f'Aligned by MCS with the RMSD value {rmsd}')
 
-        # shift all ligZ so that its MCS is at 0
-        ligZ_mcs_origin = (self.parmed_ligZ.coordinates.T - ligZ_mcs_com).T
-
-        # rotate all positions by the same rotation needed for the MCS
-        ligZ_pos_rotated = ligZ_mcs_origin * rotation_matrix
-
-        # translate the rotated mobile atoms so that the matched area is superimposed
-        ligZ_pos_aligned = (ligZ_pos_rotated.T + ligA_mcs_com).T
-
         # for a moment, overwrite the coordinates
-        self.parmed_ligZ.coordinates = ligZ_pos_aligned
+        self.parmed_ligZ.coordinates = ligZ_sup
 
+        # ideally this would now be done with MDAnalysis which can now write .mol2
         # overwrite the internal atom positions with the final generated alignment
         for parmed_atom in self.parmed_ligZ.atoms:
             found = False
@@ -1180,6 +1193,13 @@ class SuperimposedTopology:
     def set_parmeds(self, ligA, ligZ):
         self.parmed_ligA = ligA
         self.parmed_ligZ = ligZ
+
+        self.mda_ligA = None
+        self.mda_ligB = None
+
+        if ligA is not None and ligZ is not None:
+            self.mda_ligA = MDAnalysis.Universe(self.parmed_ligA)
+            self.mda_ligB = MDAnalysis.Universe(self.parmed_ligZ)
 
     def match_gaff2_nondirectional_bonds(self):
         """
@@ -3163,7 +3183,7 @@ def superimpose_topologies(top1_nodes,
         same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
         if len(same_atom_names) != 0:
             print(f"WARNING: The atoms across the two ligands have the same atom names. "
-                  f"This will make it harder to trace back any problems. "
+                  f"This might make it harder to trace back any problems. "
                   f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
 
     if config is None:
@@ -3184,7 +3204,7 @@ def superimpose_topologies(top1_nodes,
                         'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
 
     print(f'Phase 1: The number of SupTops found: {len(suptops)}')
-    print(f'SupTops lengths:  {", ".join([str(len(st)) for st in suptops])}')
+    print(f'SupTops lengths:  {", ".join([f"ST{st.id}: {len(st)}" for st in suptops])}')
 
     # ignore bond types
     # they are ignored when creating the run file with tleap anyway
@@ -3432,8 +3452,17 @@ def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
         different_length_suptops.append(sorted_by_rmsd[0])
 
     # sort using weights
-    different_length_suptops.sort(
-        key=lambda st: ((1 - st.mcs_score()) * weights[0] + st.align_ligands_using_mcs() * weights[1]) / 2)
+    # score = mcs_score * weight - rmsd * weight ;
+    def score(st):
+        # inverse for 0 to be optimal
+        mcs_score = (1 - st.mcs_score()) * weights[0]
+
+        # rmsd 0 is best as well
+        rmsd_score = st.align_ligands_using_mcs() * weights[1]
+
+        return (mcs_score + rmsd_score) / len(weights)
+
+    different_length_suptops.sort(key=score)
     # if they have a different length, there must be a reason why it is better.
     # todo
 

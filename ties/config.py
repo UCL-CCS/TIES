@@ -46,6 +46,7 @@ class Config:
         # use only the element in the superimposition rather than the specific atom type
         self._use_element = False
         self._use_element_in_superimposition = True
+        self.starting_pairs_heuristics = True
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
         self.weights = [1, 0.5]
 
