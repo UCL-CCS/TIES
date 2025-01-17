@@ -10,3 +10,4 @@ dependencies:
   - networkx
   - tabulate
   - MDAnalysis
+  - dimod
