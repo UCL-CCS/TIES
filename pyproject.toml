@@ -23,7 +23,8 @@ requires-python = ">=3.8"
 dependencies = [
     "MDAnalysis",
     "tabulate",
-    "networkx"
+    "networkx",
+    "dimod"
 ]
 
 # Update the urls once the hosting is set up.
