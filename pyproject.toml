@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "ties"
-description = "Package for relative binding free energy calculations."
+description = "TIES: Thermodynamic Integration with Enhanced Sampling (relative binding free energy calculations)"
 dynamic = ["version"]
 readme = "README.md"
 authors = [
-    { name = "Mateusz K. Bieniek", email = "bieniekmat@gmail.com" }
+    { name = "Mateusz K. Bieniek", email = "bieniekmat@gmail.com" },
 ]
 license = { text = "MIT" }
 # See https://pypi.org/classifiers/
