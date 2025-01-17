@@ -2,16 +2,23 @@
 
 ![CI](https://github.com/UCL-CCS/TIES20/actions/workflows/CI.yml/badge.svg)
 
-## How to install ambertools and export the AMBERHOME variable
+# Install TIES
 
-Conda can be used to easily install ambertools:
-`conda install ambertools -c conda-forge`
+The easiest way to install TIES is with conda:
 
-Note that `sqm` in ambertools might need `libgfortran`. This can be installed with `apt-get install libgfortran3`. However, the conda version `conda install libgfortran -c conda-forge` should also work. 
+`conda install ties`
 
-This should set the variable AMBERHOME which will be picked up on the fly. 
+You can use your own charges with the .mol2 format:
 
-# Install TIES 20
+`ties -l l1.mol2 l2.mol2 l3.mol2 --ligand-net-charge -2`
+
+A PDB will automatically assume the need for BCC charges:
+
+`ties -l left_coor.pdb right_coor.pdb -p protein.pdb -nc 0`
+
+For help use `ties -h`
+
+# Install TIES (dev)
 
 Clone the repository:
 
@@ -19,26 +26,22 @@ Clone the repository:
 
 It is simplest to use the same conda environment where `ambertools` was installed. Once in the right environment, go to the cloned directory and type:
 
-`pip install .` 
+```
+conda env create -f environment.yml 
+conda activate ties
+pip install .
+```
 
 This should install the dependancies and make 
-ties available in the environment. For help use: 
+ties available in the environment. 
 
-`ties -h`
+Please see the `examples` directory and `test cases` for more.
 
-I recommend renaming the molecules first manually:
+## Local ambertools and export the AMBERHOME variable
 
-`ties rename -l left_coor.pdb right_coor.pdb`
+Conda can be used to easily install ambertools:
+`conda install ambertools -c conda-forge`
 
-Then in the simplest case use the BCC charges. In the following example the net charge is set to -2:
+Note that `sqm` in ambertools might need `libgfortran`. This can be installed with `apt-get install libgfortran3`. However, the conda version `conda install libgfortran -c conda-forge` should also work. 
 
-`ties create -l left_coor.pdb right_coor.pdb -p protein.pdb -nc -2`
-
-The protein is not necessary:
-`ties create -l left_coor.pdb right_coor.pdb -nc -2`
-
-You can use your own charges with the .mol2 format:
-`ties create -l l1.mol2 l2.mol2 l3.mol2 -nc -2`
-
-Please see the `examples` folder with more cases. 
-
+This should set the variable AMBERHOME which will be picked up on the fly. 
