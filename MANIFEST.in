@@ -1,3 +1,5 @@
+include CODE_OF_CONDUCT.md
+global-exclude *.py[cod] __pycache__ *.so
 include ties/scripts/openmm/*
 include ties/scripts/ambertools/*in
 include ties/scripts/namd/*namd
