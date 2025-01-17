@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,8 @@ jobs:
         with:
           environment-file: environment.yml
           environment-name: ties
-          python-version: ${{ matrix.python-version }}
+          create-args: >-
+            python=${{ matrix.python-version }}
 
       - name: Environment Information
         shell: bash -l {0}
