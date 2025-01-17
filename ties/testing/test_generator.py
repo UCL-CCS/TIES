@@ -93,7 +93,6 @@ def test_input_prep():
     config.ligand_net_charge = -1
 
     pair = Pair('../examples/mol2_2ligands_MCL1/l02.mol2', '../examples/mol2_2ligands_MCL1/l03.mol2', config=config)
-    pair.make_atom_names_unique()
     hybrid = pair.superimpose()
 
     hybrid.prepare_inputs()

@@ -169,7 +169,7 @@ class Pair():
                                          # fixme - not the same ... use_element_in_superimposition,
                                          use_only_element=False,
                                          check_atom_names_unique=True,  # fixme - remove?
-                                         starting_pairs_heuristics=True,  # fixme - add to config
+                                         starting_pairs_heuristics=self.config.starting_pairs_heuristics,  # fixme - add to config
                                          force_mismatch=new_mismatch_names,
                                          starting_node_pairs=starting_node_pairs,
                                          parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
