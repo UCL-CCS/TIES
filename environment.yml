@@ -5,9 +5,9 @@ channels:
 
 dependencies:
   - conda-forge::ambertools >=21.0
-  - numpy
   - setuptools
   - matplotlib
   - networkx
   - tabulate
   - MDAnalysis
+  - dimod
