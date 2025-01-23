@@ -12,21 +12,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-# Incase the project was not installed
-import os
-import sys
-sys.path.insert(0, os.path.abspath('..'))
-
-import ties
-
-
-html_context = {
-  'current_version' : "1.0",
-  'versions' : [["1.0", "link to 1.0"], ["2.0", "link to 2.0"]],
-  'current_language': 'en',
-  'languages': [["en", "link to en"], ["de", "link to de"]]
-}
-
 # -- Project information -----------------------------------------------------
 
 project = 'ties'
