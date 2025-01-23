@@ -1,10 +1,11 @@
 import os
 import sys
 import pathlib
-import csv
 import subprocess
 import tempfile
 from collections.abc import Iterable
+
+import csv
 
 import parmed
 
