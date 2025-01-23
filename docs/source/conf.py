@@ -20,6 +20,13 @@ sys.path.insert(0, os.path.abspath('..'))
 import ties
 
 
+html_context = {
+  'current_version' : "1.0",
+  'versions' : [["1.0", "link to 1.0"], ["2.0", "link to 2.0"]],
+  'current_language': 'en',
+  'languages': [["en", "link to en"], ["de", "link to de"]]
+}
+
 # -- Project information -----------------------------------------------------
 
 project = 'ties'
@@ -93,7 +100,7 @@ pygments_style = 'default'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
