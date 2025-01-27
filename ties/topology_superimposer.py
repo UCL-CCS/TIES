@@ -14,6 +14,7 @@ import logging
 import subprocess
 import pathlib
 import re
+import warnings
 from typing import Dict, List, Set, Tuple
 from functools import reduce
 from collections import OrderedDict
@@ -3195,8 +3196,8 @@ def superimpose_topologies(top1_nodes,
                                       starting_pair_seed=starting_pair_seed,
                                       weights=weights)
     if not suptops:
-        raise Exception('Error: Did not find a single superimposition state.'
-                        'Error: Not even a single atom is common across the two molecules? Something must be wrong. ')
+        warnings.warn('Did not find a single superimposition state.')
+        return None
 
     print(f'Phase 1: The number of SupTops found: {len(suptops)}')
     print(f'SupTops lengths:  {", ".join([f"ST{st.id}: {len(st)}" for st in suptops])}')
@@ -3419,7 +3420,9 @@ def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
             return suptops[0]
 
     if len(suptops) == 0:
-        raise Exception('Cannot decide on the best mapping without any suptops...')
+        warnings.warn('Cannot decide on the best mapping without any suptops...')
+        return None
+
     elif len(suptops) == 1:
         return item_or_list(suptops)
 

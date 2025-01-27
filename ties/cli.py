@@ -200,6 +200,9 @@ def command_line_script():
 
         hybrid = pair.superimpose()
 
+        if hybrid is None:
+            continue
+
         # save metadata
         hybrid.write_metadata()
         hybrid.write_pdb()
@@ -220,6 +223,9 @@ def command_line_script():
     ##########################################################
     # ------------------   Ligand ----------------------------
     for pair in selected_pairs:
+        if pair.suptop is None:
+            continue
+
         pair.suptop.prepare_inputs(protein=None)
         print(f'Ligand {pair} directory populated successfully')
 
