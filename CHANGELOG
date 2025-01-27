@@ -2,6 +2,10 @@
  * fixes:
   * restricting the atom names to 4 characters
 
- * version 22.6.0:
-  * transitioned all MDAnalysis features to parmed and pyqtprot
-  * embedded pyqtprot into ties20
+
+ * version 2.*.*:
+  * ignoring empty suptops and returning
+  None if nothing can be created (#PR343)
+
+ * version 2.1.0:
+  * transitioned to MDAnalysis for superimposition
