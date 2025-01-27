@@ -178,9 +178,11 @@ class Pair():
 
         self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
-        suptop.config = self.config
-        # attach the morph to the suptop
-        suptop.morph = self
+
+        if suptop is not None:
+            suptop.config = self.config
+            # attach the morph to the suptop
+            suptop.morph = self
 
         return suptop
 
