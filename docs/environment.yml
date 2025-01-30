@@ -1,0 +1,13 @@
+name: ties
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - conda-forge::ambertools >=21.0
+  - setuptools
+  - matplotlib
+  - networkx
+  - tabulate
+  - MDAnalysis
+  - dimod
