@@ -40,6 +40,4 @@ jobs:
 
         git fetch --all --prune
         
-        conda run --no-capture-output mamba env create --file docs/environment.yml
-        conda run --no-capture-output conda activate docs
-        conda run --no-capture-output mike docs-deploy --push --update-aliases $(VERSION)
+        mike docs-deploy --push --update-aliases $(VERSION)
