@@ -10,16 +10,12 @@ on: [push]
 jobs:
   deploy-docs:
 
-    runs-on: ubuntu-latest
-    container: condaforge/mambaforge:latest
-
     steps:
-    - name: Prepare container
-      run: |
-        apt update && apt install -y git make
-
-    - name: Checkout
-      uses: actions/checkout@v3.3.0
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - run: pip install -r docs/requirements.txt
 
     - name: Determine Version
       shell: bash
