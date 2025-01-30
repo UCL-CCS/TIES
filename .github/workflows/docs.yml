@@ -1,4 +1,4 @@
-name: Publish Documentation
+name: Publish Docs to branch
 
 on: [push]
 #  push:
