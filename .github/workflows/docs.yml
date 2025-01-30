@@ -46,4 +46,4 @@ jobs:
         
         conda run --no-capture-output mamba env create --file docs/environment.yml
         conda run --no-capture-output conda activate docs
-        mike docs-deploy --push --update-aliases $(VERSION)
+        conda run --no-capture-output mike docs-deploy --push --update-aliases $(VERSION)
