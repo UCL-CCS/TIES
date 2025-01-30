@@ -26,9 +26,11 @@ jobs:
       run: |
         if [ "$GITHUB_REF" = "refs/heads/mkdocs" ]; then
           echo "VERSION=latest" >> $GITHUB_ENV
+          echo "Docs: latest version"
         elif [ "${GITHUB_REF#refs/tags/}" != "$GITHUB_REF" ]; then
           VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
           echo "VERSION=$VERSION stable" >> $GITHUB_ENV
+          echo "Docs: new tag $VERSION + stable"
         else
           echo "Invalid ref: $GITHUB_REF"
           exit 1
@@ -44,4 +46,5 @@ jobs:
         git fetch --all --prune
          
         mamba env create --file docs/environment.yml
+        conda activate docs
         mike docs-deploy --push --update-aliases $(VERSION)
