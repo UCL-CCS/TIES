@@ -1,13 +1,14 @@
-name: ties
+name: docs
 channels:
   - conda-forge
-  - defaults
 
 dependencies:
-  - conda-forge::ambertools >=21.0
-  - setuptools
-  - matplotlib
-  - networkx
-  - tabulate
-  - MDAnalysis
-  - dimod
+  - mkdocs
+  - mkdocs-material
+  - mike
+  - mkdocstrings
+  - mkdocstrings-python
+  - mkdocs-gen-files
+  - griffe-pydantic
+  - mkdocs-literate-nav
+  - mkdocs-bibtex
