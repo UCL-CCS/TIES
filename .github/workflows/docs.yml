@@ -1,11 +1,11 @@
 name: Publish Documentation
 
-on:
-  push:
+on: [push]
+#  push:
 #    branches:
 #      - main
-    tags:
-      - '*'
+#    tags:
+#      - '*'
 
 jobs:
   deploy-docs:
