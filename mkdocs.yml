@@ -54,6 +54,7 @@ theme:
 #    scheme: default
     primary: light blue
   favicon: images/favicon-32x32.png
+  logo: images/favicon-32x32.png
 
 
 #markdown_extensions:
