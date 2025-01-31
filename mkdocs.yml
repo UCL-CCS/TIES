@@ -53,7 +53,7 @@ theme:
   palette:
 #    scheme: default
     primary: light blue
-  favicon: latest/images/favicon.png
+  favicon: images/favicon.png
 
 
 #markdown_extensions:
