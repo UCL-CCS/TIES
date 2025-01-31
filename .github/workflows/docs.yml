@@ -40,4 +40,4 @@ jobs:
 
         git fetch --all --prune
         
-        mike docs-deploy --push --update-aliases $(VERSION)
+        mike docs-deploy --push --update-aliases $VERSION
