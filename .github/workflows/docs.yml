@@ -22,7 +22,7 @@ jobs:
     - name: Determine Version
       shell: bash
       run: |
-        if [ "$GITHUB_REF" = "refs/heads/mkdocs" ]; then
+        if [ "$GITHUB_REF" = "refs/heads/master" ]; then
           echo "VERSION=latest" >> $GITHUB_ENV
         elif [ "${GITHUB_REF#refs/tags/}" != "$GITHUB_REF" ]; then
           VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
