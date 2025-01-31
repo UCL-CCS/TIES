@@ -1,0 +1,45 @@
+name: Publish Docs to branch
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - run: |
+        pip install -r docs/requirements.txt
+        pip install --no-deps -e .
+
+    - name: Determine Version
+      shell: bash
+      run: |
+        if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+          echo "VERSION=latest" >> $GITHUB_ENV
+        elif [ "${GITHUB_REF#refs/tags/}" != "$GITHUB_REF" ]; then
+          VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+          echo "VERSION=$VERSION stable" >> $GITHUB_ENV
+        else
+          echo "Invalid ref: $GITHUB_REF"
+          exit 1
+        fi
+        echo "Docs version: $VERSION" 
+
+    - name: Build and Deploy Documentation
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git config --global --add safe.directory "$PWD"
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+
+        git fetch --all --prune
+        
+        mike deploy --push --update-aliases $VERSION
