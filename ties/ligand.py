@@ -348,9 +348,8 @@ class Ligand:
                                cwd= cwd, timeout=20,  # 20 seconds
                                 )
             except subprocess.CalledProcessError as E:
-                raise Exception(f"Was not able to generate the GAFF forcefield functional forms FRCMOD. "
-                                f'ERROR: Please see the following log file and its directory '
-                                f'for more error information: {log_filename}') from E
+                raise Exception(f"GAFF Error: Could not generate FRCMOD for file: {self.current} . "
+                                f'See more here: {log_filename}') from E
 
         print(f'Parmchk2: created .frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
