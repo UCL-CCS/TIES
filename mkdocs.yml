@@ -20,13 +20,14 @@ extra:
 nav:
 - Home:
   - Overview: index.md
-  - Publications: publications.md
-  - WebTIES: webties.md
+- Install: installation.md
+- Publications: publications.md
 - Usage: usage.md
 - API reference: reference/
 - Theory:
   - Theory: theory.md
   - Superimposition: superimposition.md
+- WebTIES: webties.md
 
 #theme:
 #  name: material
