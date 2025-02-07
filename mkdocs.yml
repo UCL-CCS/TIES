@@ -25,7 +25,11 @@ nav:
 - Usage:
   - CLI: usage/cli.md
   - API: usage/api.md
-- API reference: reference/
+- API reference:
+  - Ligand: api/ligand.md
+  - Pair: api/pair.md
+  - Config: api/config.md
+  - All: reference/
 - Theory:
   - Theory: theory.md
   - Superimposition: superimposition.md
