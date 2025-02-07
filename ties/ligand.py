@@ -273,7 +273,7 @@ class Ligand:
                 except subprocess.CalledProcessError as ProcessError:
                     raise Exception(f'Could not convert the ligand into .mol2 file with antechamber. '
                                     f'See the log and its directory: {log_filename} . '
-                                    f'Command used: {" ".join(cmd)}') from ProcessError
+                                    f'Command used: {" ".join(map(str, cmd))}') from ProcessError
             print(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
         else:
             print(f'File {mol2_target} already exists. Skipping. ')
