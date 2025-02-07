@@ -30,7 +30,7 @@ def command_line_script():
                              'If more than 2 ligands are provided, '
                              'Lead Optimisation Mapping (TIES MAP) will be used.')
     parser.add_argument('-dir', '--ties-output-dir', metavar='directory', dest='workdir',
-                        type=pathlib.Path, required=False, default="ties",
+                        type=pathlib.Path, required=False, default="ties-input",
                         help='The destination directory for the output. Default: "ties".')
     parser.add_argument('-nc', '--ligand-net-charge', metavar='integer', dest='ligand_net_charge',
                         type=int, required=False,
