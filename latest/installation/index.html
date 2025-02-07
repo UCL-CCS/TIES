@@ -10,11 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://github.com/UCL-CCS/TIES/latest/superimposition/">
+        <link rel="canonical" href="https://github.com/UCL-CCS/TIES/latest/installation/">
       
       
-        <link rel="prev" href="../theory/">
+        <link rel="prev" href="..">
       
+      
+        <link rel="next" href="../publications/">
       
       
       <link rel="icon" href="../images/favicon-32x32.png">
@@ -22,7 +24,7 @@
     
     
       
-        <title>Superimposition - TIES</title>
+        <title>Installation - TIES</title>
       
     
     
@@ -73,6 +75,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#development-version" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -108,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Superimposition
+              Installation
             
           </span>
         </div>
@@ -203,9 +210,11 @@
         
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="../installation/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
     
@@ -277,12 +286,10 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../theory/" class="md-tabs__link">
           
   
@@ -409,10 +416,29 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../installation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -422,6 +448,33 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#development-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development version
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1079,10 +1132,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1093,22 +1144,19 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -1120,7 +1168,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             Theory
@@ -1153,17 +1201,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../superimposition/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1173,7 +1214,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1204,6 +1244,23 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#development-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development version
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1221,9 +1278,21 @@
   
 
 
-  <h1>Superimposition</h1>
+  <h1>Installation</h1>
 
-<p>superimposition</p>
+<p>The easiest way to start is to use the latest 
+published conda-forge package. Create a new 
+environment and use: </p>
+<div class="highlight"><pre><span></span><code>conda<span class="w"> </span>install<span class="w"> </span>ties
+</code></pre></div>
+<h2 id="development-version">Development version</h2>
+<p>Whereas most of the dependancies can be installed with pip, 
+ambertools has to be either compiled. 
+The easiest way is to use the conda-forge environment:   </p>
+<div class="highlight"><pre><span></span><code>mamba<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+conda<span class="w"> </span>activate<span class="w"> </span>ties<span class="w"> </span>
+pip<span class="w"> </span>install<span class="w"> </span>--no-deps<span class="w"> </span>.<span class="w"> </span>
+</code></pre></div>
 
 
 
@@ -1259,7 +1328,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../theory/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Theory">
+          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1269,11 +1338,27 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Theory
+                Overview
               </div>
             </div>
           </a>
         
+        
+          
+          <a href="../publications/" class="md-footer__link md-footer__link--next" aria-label="Next: Publications">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Publications
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
         
       </nav>
     
