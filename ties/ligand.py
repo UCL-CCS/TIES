@@ -260,19 +260,20 @@ class Ligand:
             log_filename = mol2_cwd / "antechamber.log"
             with open(log_filename, 'w') as LOG:
                 try:
-                    subprocess.run([self.config.ambertools_antechamber,
-                        '-i', self.current, '-fi', self.current.suffix[1:],
-                        '-o', mol2_target, '-fo', 'mol2',
-                        '-at', self.config.ligand_ff_name, '-nc', str(self.config.ligand_net_charge),
-                        '-dr', str(self.config.antechamber_dr)] + self.config.antechamber_charge_type,
-                       cwd=mol2_cwd,
-                       stdout=LOG, stderr=LOG,
-                       check=True, text=True,
-                       timeout=60 * 30  # 30 minutes
-                       )
+                    cmd = [self.config.ambertools_antechamber, '-i', self.current, '-fi',
+                                   self.current.suffix[1:], '-o', mol2_target, '-fo', 'mol2', '-at',
+                                   self.config.ligand_ff_name, '-nc', str(self.config.ligand_net_charge), '-dr',
+                                   str(self.config.antechamber_dr)] + self.config.antechamber_charge_type
+                    subprocess.run(cmd,
+                                   cwd=mol2_cwd,
+                                   stdout=LOG, stderr=LOG,
+                                   check=True, text=True,
+                                   timeout=60 * 30  # 30 minutes
+                                   )
                 except subprocess.CalledProcessError as ProcessError:
-                    raise Exception(f'Could not convert the input into .mol2 file with antechamber. '
-                                    f'See the log and its directory: {log_filename}') from ProcessError
+                    raise Exception(f'Could not convert the ligand into .mol2 file with antechamber. '
+                                    f'See the log and its directory: {log_filename} . '
+                                    f'Command used: {" ".join(cmd)}') from ProcessError
             print(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
         else:
             print(f'File {mol2_target} already exists. Skipping. ')
