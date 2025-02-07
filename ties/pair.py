@@ -460,11 +460,17 @@ class Pair():
             4) the percentage of the appearing atoms  in the appearing molecule
         :rtype: [float, float, float, float]
         """
-        matched_fraction_left = len(self.suptop.matched_pairs) / float(len(self.suptop.top1))
-        matched_fraction_right = len(self.suptop.matched_pairs) / float(len(self.suptop.top2))
-        disappearing_atoms_fraction = (len(self.suptop.top1) - len(self.suptop.matched_pairs)) \
+
+        if self.suptop is None:
+            return 0, 0, float('inf'), float('inf')
+        else:
+            mcs_size = len(self.suptop.matched_pairs)
+
+        matched_fraction_left = mcs_size / float(len(self.suptop.top1))
+        matched_fraction_right = mcs_size / float(len(self.suptop.top2))
+        disappearing_atoms_fraction = (len(self.suptop.top1) - mcs_size) \
                                    / float(len(self.suptop.top1)) * 100
-        appearing_atoms_fraction = (len(self.suptop.top2) - len(self.suptop.matched_pairs)) \
+        appearing_atoms_fraction = (len(self.suptop.top2) - mcs_size) \
                                    / float(len(self.suptop.top2)) * 100
 
         return matched_fraction_left, matched_fraction_right, disappearing_atoms_fraction, appearing_atoms_fraction

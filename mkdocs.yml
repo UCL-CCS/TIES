@@ -20,19 +20,20 @@ extra:
 nav:
 - Home:
   - Overview: index.md
-  - Publications: publications.md
-  - WebTIES: webties.md
-- Usage: usage.md
-- API reference: reference/
+- Installation: installation.md
+- Publications: publications.md
+- Usage:
+  - CLI: usage/cli.md
+  - API: usage/api.md
+- API reference:
+  - Ligand: api/ligand.md
+  - Pair: api/pair.md
+  - Config: api/config.md
+  - All: reference/
 - Theory:
   - Theory: theory.md
   - Superimposition: superimposition.md
-
-#theme:
-#  name: material
-##  - toc.follow
-#  palette:
-#    primary: light blue
+#- WebTIES: webties.md
 
 theme:
   name: material
@@ -56,23 +57,22 @@ theme:
   favicon: images/favicon-32x32.png
   logo: images/android-chrome-192x192.png
 
-
-#markdown_extensions:
+markdown_extensions:
 #- attr_list
 #- md_in_html
 #- def_list
-#- admonition
+- admonition
 #- footnotes
 #- pymdownx.highlight:
 #    anchor_linenums: true
 #    line_spans: __span
 #    pygments_lang_class: true
 #- pymdownx.inlinehilite
-#- pymdownx.superfences
+- pymdownx.superfences
 #- pymdownx.magiclink
 #- pymdownx.snippets:
 #    check_paths: true
-#- pymdownx.details
+- pymdownx.details
 #- pymdownx.arithmatex:
 #    generic: true
 #- pymdownx.tabbed:
@@ -85,16 +85,6 @@ plugins:
 - search
 - bibtex:
     bib_file: "docs/references.bib"
-#- mkdocstrings:
-#    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
-#    default_handler: python
-#    handlers:
-#      python:
-#        paths: [ties/]
-#        options:
-#          show_source: false
-#          show_submodules: true
-#          show_labels: true
 - gen-files:
     scripts:
     - docs/scripts/gen_ref_pages.py
@@ -104,10 +94,6 @@ plugins:
     handlers:
       python:
         paths: [ties/]
-        import:
-          - https://parmed.github.io/ParmEd/html/objects.inv
-          - http://docs.openmm.org/latest/api-python/objects.inv
-          - https://www.mdtraj.org/1.9.6/objects.inv
         options:
           extensions: [ griffe_pydantic ]
           docstring_options:
@@ -128,7 +114,7 @@ plugins:
           summary: true
           members_order: source
 
-#extra_javascript:
-#  - javascripts/mathjax.js
-#  - https://polyfill.io/v3/polyfill.min.js?features=es6
-#  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

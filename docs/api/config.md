@@ -1,0 +1,2 @@
+::: ties.Config
+    handler: python

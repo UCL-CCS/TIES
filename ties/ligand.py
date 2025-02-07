@@ -255,29 +255,30 @@ class Ligand:
         mol2_cwd.mkdir(parents=True, exist_ok=True)
         mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
 
-        # copy the existing file if the file is already .mol2
-        if self.current.suffix == '.mol2' and self.config.ligands_contain_q:
-            print(f'Already .mol2 used. Copying {self.current} to {mol2_cwd}. ')
-            shutil.copy(self.current, mol2_target)
-
         # do not redo if the target file exists
         if not (mol2_target).is_file():
             log_filename = mol2_cwd / "antechamber.log"
             with open(log_filename, 'w') as LOG:
                 try:
-                    subprocess.run([self.config.ambertools_antechamber,
-                        '-i', self.current, '-fi', self.current.suffix[1:],
-                        '-o', mol2_target, '-fo', 'mol2',
-                        '-at', self.config.ligand_ff_name, '-nc', str(self.config.ligand_net_charge),
-                        '-dr', str(self.config.antechamber_dr)] + self.config.antechamber_charge_type,
-                       cwd=mol2_cwd,
-                       stdout=LOG, stderr=LOG,
-                       check=True, text=True,
-                       timeout=60 * 30  # 30 minutes
-                       )
+                    cmd = [self.config.ambertools_antechamber,
+                           '-i', self.current,
+                           '-fi', self.current.suffix[1:],
+                           '-o', mol2_target,
+                           '-fo', 'mol2',
+                           '-at', self.config.ligand_ff_name,
+                           '-nc', str(self.config.ligand_net_charge),
+                           '-dr', str(self.config.antechamber_dr)
+                           ] +  self.config.antechamber_charge_type
+                    subprocess.run(cmd,
+                                   cwd=mol2_cwd,
+                                   stdout=LOG, stderr=LOG,
+                                   check=True, text=True,
+                                   timeout=60 * 30  # 30 minutes
+                                   )
                 except subprocess.CalledProcessError as ProcessError:
-                    raise Exception(f'Could not convert the input into .mol2 file with antechamber. '
-                                    f'See the log and its directory: {log_filename}') from ProcessError
+                    raise Exception(f'Could not convert the ligand into .mol2 file with antechamber. '
+                                    f'See the log and its directory: {log_filename} . '
+                                    f'Command used: {" ".join(map(str, cmd))}') from ProcessError
             print(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
         else:
             print(f'File {mol2_target} already exists. Skipping. ')
@@ -348,9 +349,8 @@ class Ligand:
                                cwd= cwd, timeout=20,  # 20 seconds
                                 )
             except subprocess.CalledProcessError as E:
-                raise Exception(f"Was not able to generate the GAFF forcefield functional forms FRCMOD. "
-                                f'ERROR: Please see the following log file and its directory '
-                                f'for more error information: {log_filename}') from E
+                raise Exception(f"GAFF Error: Could not generate FRCMOD for file: {self.current} . "
+                                f'See more here: {log_filename}') from E
 
         print(f'Parmchk2: created .frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
