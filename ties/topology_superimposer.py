@@ -810,16 +810,19 @@ class SuperimposedTopology:
         ligB_fragment = ligB.atoms[mcs_ligB_ids]
 
         # move all to the origin of the fragment
-        ligA.atoms.translate(-ligA_fragment.centroid())
+        ligA_mcs_centre = ligA_fragment.centroid()
+        ligA.atoms.translate(-ligA_mcs_centre)
         ligB.atoms.translate(-ligB_fragment.centroid())
 
-        rotation_matrix, rmsd = MDAnalysis.analysis.align.rotation_matrix(ligA_fragment.positions, ligB_fragment.positions)
+        rotation_matrix, rmsd = MDAnalysis.analysis.align.rotation_matrix(ligB_fragment.positions, ligA_fragment.positions)
 
         # apply the rotation to
         ligB.atoms.rotate(rotation_matrix)
+        # move back to ligA
+        ligB.atoms.translate(ligA_mcs_centre)
 
         # save the superimposed coordinates
-        ligZ_sup = self.mda_ligB.atoms.positions[:]
+        ligB_sup = self.mda_ligB.atoms.positions[:]
 
         # restore the MDAnalysis positions ("working copy")
         # in theory you do not need to do this every time
@@ -833,8 +836,8 @@ class SuperimposedTopology:
         # update the atoms with the mapping done via IDs
         print(f'Aligned by MCS with the RMSD value {rmsd}')
 
-        # for a moment, overwrite the coordinates
-        self.parmed_ligZ.coordinates = ligZ_sup
+        # use the aligned coordinates
+        self.parmed_ligZ.coordinates = ligB_sup
 
         # ideally this would now be done with MDAnalysis which can now write .mol2
         # overwrite the internal atom positions with the final generated alignment
@@ -846,6 +849,8 @@ class SuperimposedTopology:
                     found = True
                     break
             assert found
+
+        return rmsd
 
     def rm_matched_pairs_with_different_bonds(self):
         """
