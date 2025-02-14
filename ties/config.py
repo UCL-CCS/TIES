@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import pathlib
@@ -10,6 +11,9 @@ import csv
 import parmed
 
 from ties.helpers import ArgparseChecker
+
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -115,7 +119,7 @@ class Config:
             # current directory
             self._workdir = pathlib.Path(os.getcwd()) / 'ties'
             self._workdir.mkdir(exist_ok=True)
-        print(f'Working Directory: {self._workdir}')
+        logger.info(f'Working Directory: {self._workdir}')
 
     # --------------- general
     @property
@@ -131,11 +135,11 @@ class Config:
     @protein.setter
     def protein(self, path):
         if path is None:
-            print('No protein was select. Skipping protein dG.')
+            logger.info('No protein was select. Skipping protein dG.')
             return
 
         #  can be loaded by parmed?
-        print(f'Trying to open the protein file {path} with ParmEd..')
+        logger.info(f'Opening the protein file {path} with ParmEd..')
         parmed.load_file(str(path), structure=True)
         self._protein = pathlib.Path(path)
 
@@ -157,33 +161,33 @@ class Config:
             files = [pathlib.Path(files)]
 
         if len(files) < 1:
-            print('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
+            logger.error('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
             sys.exit(1)
 
         # check if the ligands have the same extension
         if len({l.suffix for l in files}) != 1:
             # fixme - does it actually matter? you parse it anyway?
-            print('Error: ligands (-l) have different extensions. '
+            logger.error('ligands (-l) have different extensions. '
                   'Please ensure all ligands have the same extension')
             sys.exit()
 
         # files must have unique names
         filenames = [l.stem for l in files]
         if len(filenames) != len(set(filenames)):
-            print('Error: some ligand (-l) names are the same. '
-                  'Error: ensure your ligands have unique names. ')
+            logger.error('Some ligand (-l) names are the same. '
+                  'ensure your ligands have unique names. ')
             sys.exit()
 
         # verify the files with ParmEd if possible
         for ligand in files:
             if ligand.suffix.lower() in ('.ac', '.prep'):
-                print(f'Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. ')
+                logger.warning(f'Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. ')
             else:
-                print(f'Trying to open the ligand {ligand} with ParmEd..')
+                logger.debug(f'Opening the ligand {ligand} with ParmEd..')
                 lig = parmed.load_file(str(ligand), structure=True)
                 # there should be one residue
                 if len({a.residue.name for a in lig.atoms}) > 1:
-                    print(f'Warning: more than one residue name detected in the ligand {ligand}')
+                    logger.warning(f'more than one residue name detected in the ligand {ligand}')
 
         # TODO - ensure that it is a connected component and there is no extra atoms
 
@@ -207,7 +211,7 @@ class Config:
                 path = pathlib.Path(os.getenv('AMBER_PREFIX'))
             else:
                 # try to deduce the env from the location of antechamber binary
-                print('WARNING: $AMBERHOME not found. Guessing the location by looking up antechamber. ')
+                logger.warning('$AMBERHOME not found. Guessing the location by looking up antechamber. ')
                 proc = subprocess.run(['which', 'antechamber'], capture_output=True)
                 decode = proc.stdout.decode('utf-8').strip()
                 if "not found" not in decode:
@@ -216,9 +220,9 @@ class Config:
                         path = ant_path.parent.parent
 
             if path is None:
-                print('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-                print('Option 1: source your ambertools script amber.sh')
-                print('Option 2: specify manually the path to amberhome with -ambertools option')
+                logger.error('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
+                logger.error('Option 1: source your ambertools script amber.sh')
+                logger.error('Option 2: specify manually the path to amberhome with -ambertools option')
                 raise Exception('No ambertools')
 
             assert path.exists()
@@ -259,7 +263,7 @@ class Config:
 
         path = pathlib.Path(path)
         if not path.exists():
-            print('Error: The provided ambertools home path does not point towards the directory.'
+            logger.error('The provided ambertools home path does not point towards the directory.'
                   f'{path}')
 
         self._ambertools_home = path
@@ -280,7 +284,7 @@ class Config:
             self._antechamber_dr = 'yes'
         else:
             self._antechamber_dr = 'no'
-        print(f'Antechamber dr: {self._antechamber_dr}')
+        logger.debug(f'Antechamber dr: {self._antechamber_dr}')
 
     @property
     def ligand_net_charge(self):
@@ -291,7 +295,7 @@ class Config:
         :return:
         """
         if self._ligand_net_charge is None:
-            print(f'WARNING: Ligand net charge not provided (-nc) by the user. Assuming 0. ')
+            logger.warning(f'Ligand net charge not provided (-nc) by the user. Assuming 0. ')
             self._ligand_net_charge = 0
 
         return self._ligand_net_charge
@@ -299,10 +303,10 @@ class Config:
     @ligand_net_charge.setter
     def ligand_net_charge(self, net_charge):
         if net_charge is None:
-            print('Ligand net charge was not supplied (-nc). Only limited functionalities will be available. ')
+            logger.warning('Ligand net charge was not supplied (-nc). Neutral charge will be assumed. ')
 
         self._ligand_net_charge = net_charge
-        print(f'Ligand net charge (-nc): {net_charge}')
+        logger.debug(f'Ligand net charge (-nc): {net_charge}')
 
     @property
     def coordinates_file(self):
@@ -318,7 +322,7 @@ class Config:
         if file is None:
             return
 
-        print(f'ParmEd: verifying the coordinate file {file}')
+        logger.debug(f'ParmEd: verifying the coordinate file {file}')
         parmed.load_file(file, structure=True)
         # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
         self._coordinates_file = file
@@ -339,7 +343,7 @@ class Config:
     @atom_pair_q_atol.setter
     def atom_pair_q_atol(self, atol):
         self._atom_pair_q_atol = atol
-        print(f'The maximum acceptable difference in charge between two paired atoms: {atol:.2f}')
+        logger.debug(f'The maximum acceptable difference in charge between two paired atoms: {atol:.2f}')
 
     @property
     def net_charge_threshold(self):
@@ -356,7 +360,7 @@ class Config:
     @net_charge_threshold.setter
     def net_charge_threshold(self, threshold):
         self._net_charge_threshold = threshold
-        print(f'Using MCS net charge difference threshold of {threshold}')
+        logger.debug(f'Using MCS net charge difference threshold of {threshold}')
 
     @property
     def ignore_charges_completely(self):
@@ -371,7 +375,7 @@ class Config:
     def ignore_charges_completely(self, bool):
         self._ignore_charges_completely = bool
         if bool:
-            print('Ignoring the charges. ')
+            logger.debug('Ignoring the charges. ')
             self.redistribute_q_over_unmatched = False
 
     @property
@@ -388,7 +392,7 @@ class Config:
     @allow_disjoint_components.setter
     def allow_disjoint_components(self, boolean):
         self._allow_disjoint_components = boolean
-        print(f'Allowing disjoint components: {self._allow_disjoint_components}')
+        logger.debug(f'Allowing disjoint components: {self._allow_disjoint_components}')
 
     @property
     def use_element_in_superimposition(self):
@@ -405,7 +409,7 @@ class Config:
     def use_element_in_superimposition(self, bool):
         self._use_element_in_superimposition = bool
         if bool:
-            print('Warning. Ignoring the specific atom types during superimposition. '
+            logger.warning('Ignoring the specific atom types during superimposition. '
                   'The results should not be used in production simulations.')
 
     @property
@@ -424,7 +428,7 @@ class Config:
         # align the coordinates in ligZ to the ligA using the MCS
         self._align_molecules_using_mcs = boolean
         # fixme - should be using the MCS before charges change
-        print(f'Will align the coordinates using the final MCS: {boolean}')
+        logger.debug(f'Will align the coordinates using the final MCS: {boolean}')
 
     @property
     def use_original_coor(self):
@@ -469,7 +473,7 @@ class Config:
         """
 
         if self._ligand_files is None:
-            print('The fact whether the ligands contain charges has not been configured. Guessing. ')
+            logger.warning('Whether ligands contain charges has not been configured. Guessing. ')
             self._ligand_files = self._guess_ligands_contain_q()
 
         # does the file type contain charges?
@@ -478,7 +482,7 @@ class Config:
             if ligand_ext in {'.mol2', '.ac'}:
                 self._ligands_contain_q = True
             else:
-                print('ERROR: If charges are provided with the ligands, '
+                logger.error('If charges are provided with the ligands, '
                       'the filetypes .mol2 or .ac have to be used.')
                 sys.exit(1)
         elif self._ligands_contain_q is False:
@@ -488,12 +492,12 @@ class Config:
             if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                print('Assuming that charges are provided based on the filetype .ac/.mol2')
+                logger.info('Appears that charges are provided based on the filetype .ac/.mol2')
             elif ligand_ext == '.pdb':
                 self._ligands_contain_q = False
-                print('Assuming that charges are not provided in the given .pdb ligand files. ')
+                logger.debug('Assuming that charges are not provided in the given .pdb ligand files. ')
             else:
-                print(f'Error: unrecognized file type {ligand_ext}. ')
+                logger.error(f'Error: unrecognized file type {ligand_ext}. ')
                 sys.exit(1)
 
         # fixme?
@@ -502,7 +506,7 @@ class Config:
             # TODO - ensure that when antechamber_charge_type is accessed ,this function is used? implement in another
             self.antechamber_charge_type = []
 
-        print(f'Ligand files already contain charges: {self._ligands_contain_q}')
+        logger.debug(f'Ligand files already contain charges: {self._ligands_contain_q}')
 
         return self._ligands_contain_q
 
@@ -584,8 +588,7 @@ class Config:
         if value is not None:
             path = pathlib.Path(value)
             if not path.is_file():
-                print(f'Exception: the provided file for mismatching pairs cannot be found: {value}')
-                raise Exception('Could not find the file. ')
+                raise Exception(f'Input file containing mismatching pairs cannot be found: {value}')
 
             with open(path) as IN:
                 for left_atom, right_atom in csv.reader(IN, delimiter='-'):
@@ -603,12 +606,10 @@ class Config:
         :rtype: string
         """
         if self.protein is None:
-            print('INFO: Protein FF was requested even though protein was not provided. '
-                  'Ignoring the protein ff request.')
             return None
 
         if self._protein_ff is None:
-            print('WARNING: Protein FF is not configured in the config.protein_ff. '
+            logger.warning('Protein FF is not configured in the config.protein_ff. '
                   'Setting the default leaprc.ff19SB')
             # fixme - update to a later ff
             self._protein_ff = 'leaprc.protein.ff19SB'
@@ -617,7 +618,7 @@ class Config:
     @protein_ff.setter
     def protein_ff(self, ff):
         self._protein_ff = ff
-        print(f'Protein force field name: {self._protein_ff}')
+        logger.debug(f'Protein force field name: {self._protein_ff}')
 
     @property
     def md_engine(self):
@@ -647,7 +648,7 @@ class Config:
         else:
             raise ValueError('Unknown engine {}. Supported engines {}'.format(value, supported))
 
-        print(f'MD Engine: {value}')
+        logger.debug(f'MD Engine: {value}')
 
     @property
     def lambda_rep_dir_tree(self):
@@ -702,7 +703,7 @@ class Config:
     def redistribute_q_over_unmatched(self, boolean):
         # Redistribute charge imbalances created due to atom-pair averaging
         self._redistribute_q_over_unmatched = boolean
-        print(f'Distribute the introduced charge disparity in the alchemical region: '
+        logger.debug(f'Distribute the introduced charge disparity in the alchemical region: '
               f'{self._redistribute_q_over_unmatched}')
 
     @property

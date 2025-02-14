@@ -1,6 +1,11 @@
+import logging
 
 import ties.generator
 from ties.config import Config
+
+
+logger = logging.getLogger(__name__)
+
 
 class Protein:
     """
@@ -35,7 +40,7 @@ class Protein:
                                                                    config.ambertools_tleap, config.tleap_check_protein,
                                                                    config.protein_ff)
 
-        print(f'Protein net charge: {self.protein_net_charge}')
+        logger.info(f'Protein net charge: {self.protein_net_charge}')
 
     def get_path(self):
         """

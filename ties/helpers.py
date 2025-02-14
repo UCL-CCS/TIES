@@ -8,6 +8,7 @@ import argparse
 import subprocess
 import warnings
 import pathlib
+import logging
 
 
 
@@ -123,6 +124,31 @@ class ArgparseChecker():
             return False
         else:
             raise argparse.ArgumentTypeError('Boolean value expected.')
+
+    @staticmethod
+    def logging_lvl(v):
+        "ArgumentParser tool to figure out the bool value"
+        logging_levels = {
+            'NOTSET': logging.NOTSET,
+              'DEBUG': logging.DEBUG,
+              'INFO': logging.INFO,
+              'WARNING': logging.WARNING,
+              'ERROR': logging.ERROR,
+              'CRITICAL': logging.CRITICAL,
+              # extras
+               "ALL": logging.INFO,
+               "FALSE": logging.ERROR
+                          }
+
+        if isinstance(v, bool) and v is True:
+            return logging.WARNING
+        elif isinstance(v, bool) and v is False:
+            # effectively we disable logging until an error happens
+            return logging.ERROR
+        elif v.upper() in logging_levels:
+            return logging_levels[v.upper()]
+        else:
+            raise argparse.ArgumentTypeError('Meaningful logging level expected.')
 
     @staticmethod
     def ratio(v):
