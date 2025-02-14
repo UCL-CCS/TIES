@@ -3,6 +3,7 @@ import json
 import copy
 import shutil
 import subprocess
+import logging
 from pathlib import Path
 
 import parmed
@@ -12,6 +13,9 @@ from ties.generator import get_atoms_bonds_from_mol2
 from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
+
+
+logger = logging.getLogger(__name__)
 
 
 class Pair():
@@ -109,7 +113,7 @@ class Pair():
         new_mismatch_names = []
         for a, z in self.config.manually_mismatched_pairs:
             new_names = (self.ligA.rev_renaming_map[a], self.ligZ.rev_renaming_map[z])
-            print(f'Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}')
+            logger.debug(f'Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}')
             new_mismatch_names.append(new_names)
 
         # assign
@@ -152,7 +156,7 @@ class Pair():
             starting_node_pairs.append([found_left_node, found_right_node])
 
         if starting_node_pairs:
-            print('Starting nodes will be used:', starting_node_pairs)
+            logger.debug(f'Starting nodes will be used: {starting_node_pairs}')
 
         # fixme - simplify to only take the ParmEd as input
         suptop = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
@@ -228,9 +232,9 @@ class Pair():
         atom_names_overlap = len(common_atom_names) > 0
 
         if atom_names_overlap or not self.ligZ.are_atom_names_correct():
-            print(f'Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
+            logger.debug(f'Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
             if atom_names_overlap:
-                print(f'Common atom names: {common_atom_names}')
+                logger.debug(f'Common atom names: {common_atom_names}')
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
             _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
             self.ligZ.renaming_map = renaming_map
@@ -367,7 +371,7 @@ class Pair():
                                 protein_ff=protein_ff, ligand_ff=ligand_ff))
 
         # attempt generating the .top
-        print('Create amber7 topology .top')
+        logger.debug('Create amber7 topology .top')
         try:
             tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test],
                                            cwd=cwd, text=True, timeout=20,
@@ -381,7 +385,7 @@ class Pair():
         open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
 
         if 'Errors = 0' in tleap_process.stdout:
-            print('Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.')
+            logger.debug('Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.')
             return False
 
         # extract the missing angles/dihedrals
@@ -406,7 +410,7 @@ class Pair():
 
         modified_hybrid_frcmod = cwd / f'{self.internal_name}_corrected.frcmod'
         if missing_angles or missing_dihedrals:
-            print('WARNING: Adding dummy bonds+angles+dihedrals to frcmod to generate .top')
+            logger.debug('Adding dummy bonds+angles+dihedrals to frcmod to generate .top')
             # read the original frcmod
             frcmod_lines = open(self.frcmod).readlines()
             # overwriting the .frcmod with dummy angles/dihedrals
@@ -417,17 +421,17 @@ class Pair():
                         for bond  in missing_bonds:
                             dummy_bond = f'{bond:<14}0  180  \t\t# Dummy bond\n'
                             NEW_FRCMOD.write(dummy_bond)
-                            print(f'Added dummy bond: "{dummy_bond}"')
+                            logger.debug(f'Added dummy bond: "{dummy_bond}"')
                     if 'ANGLE' in line:
                         for angle in missing_angles:
                             dummy_angle = f'{angle:<14}0  120.010  \t\t# Dummy angle\n'
                             NEW_FRCMOD.write(dummy_angle)
-                            print(f'Added dummy angle: "{dummy_angle}"')
+                            logger.debug(f'Added dummy angle: "{dummy_angle}"')
                     if 'DIHE' in line:
                         for dihedral in missing_dihedrals:
                             dummy_dihedral = f'{dihedral:<14}1  0.00  180.000  2.000   \t\t# Dummy dihedrals\n'
                             NEW_FRCMOD.write(dummy_dihedral)
-                            print(f'Added dummy dihedral: "{dummy_dihedral}"')
+                            logger.debug(f'Added dummy dihedral: "{dummy_dihedral}"')
 
             # update our tleap input test to use the corrected file
             leap_in_test_corrected = cwd / 'leap_test_morph_corrected.in'
@@ -444,7 +448,7 @@ class Pair():
                 raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
 
 
-        print('Morph .frcmod after the insertion of dummy angle/dihedrals: OK')
+        logger.debug('Morph .frcmod after the insertion of dummy angle/dihedrals: OK')
         # set this .frcmod as the correct one now,
         self.frcmod_before_correction = self.frcmod
         self.frcmod = modified_hybrid_frcmod

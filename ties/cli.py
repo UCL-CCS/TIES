@@ -4,6 +4,7 @@ Exposes a terminal interface to TIES 20.
 """
 import time
 import itertools
+import logging
 import pathlib
 import shutil
 import sys
@@ -15,6 +16,9 @@ import ties.ligand
 import ties.pair
 import ties.ligandmap
 import ties.protein
+
+
+logger = logging.getLogger(__name__)
 
 
 def command_line_script():
@@ -57,6 +61,11 @@ def command_line_script():
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
                              'the generated maximum common substructure (MCS).')
+    parser.add_argument("-v", "--logging-level", metavar="str or bool", dest="logging_level",
+                        type=ArgparseChecker.logging_lvl, required=False, default="WARNING",
+                        help="Logging level. Can be a boolean value "
+                             "(False disables logging by setting it to ERROR). "
+                             "A string should specify a logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). ")
     parser.add_argument('-ant-dr', '--antechamber-dr', metavar='boolean', dest='antechamber_dr',
                         type=ArgparseChecker.str2bool, required=False, default=False,
                         help='Antechamber dr is turned off by default. It is playing up with .mol2 files. '
@@ -142,6 +151,13 @@ def command_line_script():
 
     # initialise the config class
     args = parser.parse_args()
+
+    # logging.basicConfig(level=args.logging_level, force=True)
+
+    logger.setLevel(args.logging_level)
+    for handler in logger.handlers:
+        handler.setLevel(args.logging_level)
+
     command = args.command.lower()
     delattr(args, 'command')
     # assign all the parsed arguments to the Config class
@@ -159,12 +175,12 @@ def command_line_script():
             raise Exception('ERROR: to rename atoms to be unique across two ligands, '
                   'you have to provide exactly two ligands with -l.'
                   'E.g. ties rename -l init.mol2 final.mol2')
-        print('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
+        logger.info('Atom names will be renamed to ensure that the atom names are unique across the two molecules.')
         pair = ties.pair.Pair(ligands[0], ligands[1], config)
         pair.make_atom_names_unique()
         sys.exit()
     elif command == 'mergecrd':
-        print('Merging coordinates. Will add coordinates from an external file.')
+        logger.info('Merging coordinates. Will add coordinates from an external file.')
         if len(ligands) > 1:
             raise Exception('ERROR: too many ligands ligand (-l). '
                   'Use one ligand when assigning coordinates from another file.')
@@ -190,9 +206,9 @@ def command_line_script():
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
     # superimpose the paired topologies
-    start_time = time.perf_counter()
     for pair in pairs:
-        print(f'Next ligand pair: {pair.internal_name}')
+        start_time = time.perf_counter()
+        logger.info(f'Next ligand pair: {pair.internal_name}')
 
         # rename the atom names to ensure they are unique across the two molecules
         if args.unique_atom_names:
@@ -207,7 +223,7 @@ def command_line_script():
         hybrid.write_metadata()
         hybrid.write_pdb()
         hybrid.write_mol2()
-    print(f'Compared ligands to each other in: {time.perf_counter() - start_time:.1f} s')
+        logger.info(f'Compared pair of ligands: {time.perf_counter() - start_time:.1f} s')
 
     # transformation hunter
     if len(ligands) == 2:
@@ -227,7 +243,7 @@ def command_line_script():
             continue
 
         pair.suptop.prepare_inputs(protein=None)
-        print(f'Ligand {pair} directory populated successfully')
+        logger.info(f'Ligand {pair} directory populated successfully')
 
     ##########################################################
     # ------------------ Complex  ----------------------------
@@ -235,13 +251,13 @@ def command_line_script():
         protein = ties.protein.Protein(config.protein, config)
         for pair in selected_pairs:
             pair.suptop.prepare_inputs(protein=protein)
-            print(f'Protein {pair} directory populated successfully')
+            logger.info(f'Protein {pair} directory populated successfully')
 
     # prepare the post-analysis scripts
     shutil.copy(config.namd_script_dir / "check_namd_outputs.py", config.workdir)
     shutil.copy(config.namd_script_dir / "ddg.py", config.workdir)
 
-    print('TIES 20 Finished')
+    logger.info('TIES finished')
 
 
 if __name__ == '__main__':

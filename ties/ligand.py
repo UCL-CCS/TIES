@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import shutil
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +10,9 @@ import parmed
 
 import ties.helpers
 from ties.config import Config
+
+
+logger = logging.getLogger(__name__)
 
 
 class Ligand:
@@ -43,8 +47,7 @@ class Ligand:
 
         # ligand names have to be unique
         if self.internal_name in Ligand._USED_FILENAMES and self.config.uses_cmd:
-            print(f'ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. ')
-            sys.exit(1)
+            raise ValueError(f'ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. ')
         else:
             Ligand._USED_FILENAMES.add(self.internal_name)
 
@@ -84,7 +87,7 @@ class Ligand:
             cwd.mkdir(parents=True, exist_ok=True)
 
         # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-        print(f'Antechamber: converting {filetype} to mol2')
+        logger.debug(f'Antechamber: converting {filetype} to mol2')
         new_current = cwd / (self.internal_name + '.mol2')
 
         log_filename = cwd / "antechamber_conversion.log"
@@ -98,15 +101,14 @@ class Ligand:
                                check=True, text=True,
                                cwd=cwd, timeout=30)
             except subprocess.CalledProcessError as E:
-                print('ERROR: An error occurred during the antechamber conversion from .ac to .mol2 data type. ')
-                print(f'ERROR: The output was saved in the directory: {cwd}')
-                print(f'ERROR: Please see the log file for the exact error information: {log_filename}')
-                raise E
+                raise Exception('An error occurred during the antechamber conversion from .ac to .mol2 data type. '
+                                f'The output was saved in the directory: {cwd}'
+                                f'Please see the log file for the exact error information: {log_filename}') from E
 
         # update
         self.original_ac = self.current
         self.current = new_current
-        print(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
+        logger.debug(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
 
     def are_atom_names_correct(self):
         """
@@ -173,15 +175,15 @@ class Ligand:
         if self.are_atom_names_correct():
             return
 
-        print(f'Ligand {self.internal_name} will have its atom names renamed. ')
+        logger.debug(f'Ligand {self.internal_name} will have its atom names renamed. ')
 
         ligand = parmed.load_file(str(self.current), structure=True)
 
-        print(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
+        logger.debug(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
               f'or do not follow NameDigit format (e.g. C15). Renaming')
         _, renaming_map = ties.helpers.get_new_atom_names(ligand.atoms)
         self._renaming_map = renaming_map
-        print(f'Rename map: {renaming_map}')
+        logger.debug(f'Rename map: {renaming_map}')
 
         # save the output here
         os.makedirs(self.config.lig_unique_atom_names_dir, exist_ok=True)
@@ -243,11 +245,10 @@ class Ligand:
         """
         self.config.set_configs(**kwargs)
 
-        print('Antechamber: converting to .mol2 and generating charges if necessary')
         if self.config.ligands_contain_q:
-            print('Antechamber: Generating .mol2 file with BCC charges')
+            logger.info('Antechamber: Generating .mol2 file with BCC charges')
         if not self.config.antechamber_charge_type:
-            print('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
+            logger.info('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
         
         mol2_cwd = self.config.lig_dir / self.internal_name
 
@@ -279,9 +280,9 @@ class Ligand:
                     raise Exception(f'Could not convert the ligand into .mol2 file with antechamber. '
                                     f'See the log and its directory: {log_filename} . '
                                     f'Command used: {" ".join(map(str, cmd))}') from ProcessError
-            print(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
+            logger.debug(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
         else:
-            print(f'File {mol2_target} already exists. Skipping. ')
+            logger.info(f'File {mol2_target} already exists. Skipping. ')
 
         self.antechamber_mol2 = mol2_target
         self.current = mol2_target
@@ -313,7 +314,7 @@ class Ligand:
             atom.residue.delete_atom(atom)
         # save the updated molecule
         mol2.save(str(self.current))
-        print('Removed dummy atoms with type "DU"')
+        logger.debug('Removed dummy atoms with type "DU"')
 
     def generate_frcmod(self, **kwargs):
         """
@@ -323,12 +324,12 @@ class Ligand:
         """
         self.config.set_configs(**kwargs)
 
-        print(f'INFO: frcmod for {self} was computed before. Not repeating.')
+        logger.debug(f'INFO: frcmod for {self} was computed before. Not repeating.')
         if hasattr(self, 'frcmod'):
             return
 
         # fixme - work on the file handles instaed of the constant stitching
-        print(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
+        logger.debug(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
 
         # prepare cwd
         cwd = self.config.lig_frcmod_dir / self.internal_name
@@ -352,7 +353,7 @@ class Ligand:
                 raise Exception(f"GAFF Error: Could not generate FRCMOD for file: {self.current} . "
                                 f'See more here: {log_filename}') from E
 
-        print(f'Parmchk2: created .frcmod: {target_frcmod}')
+        logger.debug(f'Parmchk2: created frcmod: {target_frcmod}')
         self.frcmod = cwd / target_frcmod
 
     def overwrite_coordinates_with(self, file, output_file):
@@ -372,7 +373,7 @@ class Ligand:
         by_general_atom_type = False
 
         # mol2_filename will be overwritten!
-        print(f'Writing to {self.current} the coordinates from {file}. ')
+        logger.info(f'Writing to {self.current} the coordinates from {file}. ')
 
         coords_sum = np.sum(coords.atoms.positions)
 
@@ -410,7 +411,7 @@ class Ligand:
                 mol2_atom.position = ref_atom.position
 
         if np.testing.assert_almost_equal(coords_sum, np.sum(mda_template.atoms.positions), decimal=2):
-            print('Different positions sums:', coords_sum, np.sum(mda_template.atoms.positions))
+            logger.debug('Different positions sums:', coords_sum, np.sum(mda_template.atoms.positions))
             raise Exception('Copying of the coordinates did not work correctly')
 
         # save the output file
