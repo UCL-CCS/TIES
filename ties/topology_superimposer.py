@@ -1203,8 +1203,13 @@ class SuperimposedTopology:
         self.mda_ligB = None
 
         if ligA is not None and ligZ is not None:
-            self.mda_ligA = MDAnalysis.Universe(self.parmed_ligA)
-            self.mda_ligB = MDAnalysis.Universe(self.parmed_ligZ)
+            # do not guess the masses
+            # this removes the INFO / warning from MDAnalysis
+            # hydrogens are ignored anyway in the suptop
+            # we are using directly the positions
+            # therefore weight=1 for each heavy atom
+            self.mda_ligA = MDAnalysis.Universe(self.parmed_ligA, to_guess=())
+            self.mda_ligB = MDAnalysis.Universe(self.parmed_ligZ, to_guess=())
 
     def match_gaff2_nondirectional_bonds(self):
         """
