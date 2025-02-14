@@ -2357,7 +2357,7 @@ class SuperimposedTopology:
         if net_charge != net_charge_test:
             raise Exception('The internally computed net charges of the molecules are different')
         # fixme - use the one passed by the user?
-        logger.info(f'Internally computed net charge: {net_charge}')
+        logger.debug(f'Internally computed net charge: {net_charge}')
 
         # the total charge in the matched region before the changes
         matched_total_charge_l = sum(left.charge for left, right in self.matched_pairs)
@@ -3223,7 +3223,7 @@ def superimpose_topologies(top1_nodes,
         def take_largest(x, y):
             return x if len(x) > len(y) else y
         reduce(take_largest, suptops).align_ligands_using_mcs()
-        logger.info(f'RMSD of the best overlay: {suptops[0].align_ligands_using_mcs():.2f}')
+        logger.debug(f'RMSD of the best overlay: {suptops[0].align_ligands_using_mcs():.2f}')
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
@@ -3378,7 +3378,7 @@ def superimpose_topologies(top1_nodes,
 
     # print a general summary
     logger.info('-------- Summary -----------')
-    logger.info(f'Number of matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
+    logger.info(f'Matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
     logger.info(f'Disappearing atoms: { (len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
     logger.info(f'Appearing atoms: { (len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
 
@@ -3656,7 +3656,7 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
         right_count_by_type = sum([1 for right_atom in right_atoms if right_atom.type == atom_type])
         per_type_max_counter[atom_type] = min(left_count_by_type, right_count_by_type)
     max_overlap_size = sum(per_type_max_counter.values())
-    logger.info(f'Largest MCS size: {max_overlap_size}')
+    logger.debug(f'Largest MCS size: {max_overlap_size}')
 
     left_atoms_starting = left_atoms_noh[:]
     right_atoms_starting = right_atoms_noh[:]
@@ -3824,7 +3824,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     # clean the overlays by removing sub_overlays.
     # ie if all atoms in an overlay are found to be a bigger part of another overlay,
     # then that overlay is better
-    logger.info(f"Found overlays: {len(suptops)}")
+    logger.debug(f"Found overlays: {len(suptops)}")
 
     # finally, once again, order the suptops and return the best one
     suptops = extract_best_suptop(suptops, ignore_coords, weights, get_list=True)
