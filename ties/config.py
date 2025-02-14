@@ -295,8 +295,14 @@ class Config:
         :return:
         """
         if self._ligand_net_charge is None:
-            logger.warning(f'Ligand net charge not provided (-nc) by the user. Assuming 0. ')
-            self._ligand_net_charge = 0
+            if self._ligands_contain_q:
+                net_q = self._get_first_ligand_net_q()
+                logger.info(f"Using the first ligand's net q = {net_q} "
+                              f"(from partial charges)")
+                self._ligand_net_charge = net_q
+            else:
+                logger.warning('Ligand net charge not provided (-nc). Assuming 0. ')
+                self._ligand_net_charge = 0
 
         return self._ligand_net_charge
 
@@ -448,6 +454,10 @@ class Config:
         self._use_original_coor = boolean
 
     def _guess_ligands_contain_q(self):
+        """
+        Checks if the first .mol2 file contains charges.
+        :return:
+        """
         # if all ligands are .mol2, then charges are provided
         if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
             # if all atoms have q = 0 that means they're a placeholder
@@ -460,6 +470,16 @@ class Config:
 
         return False
 
+    def _get_first_ligand_net_q(self):
+        """
+        :return: Returns the net charge from the parmed file with partial charges.
+        """
+
+        # if all atoms have q = 0 that means they're a placeholder
+        u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
+        net_q = sum(a.charge == 0 for a in u.atoms)
+        return net_q
+
     @property
     def ligands_contain_q(self):
         """
@@ -471,10 +491,6 @@ class Config:
         :return: default (None)
         :rtype: bool
         """
-
-        if self._ligand_files is None:
-            logger.warning('Whether ligands contain charges has not been configured. Guessing. ')
-            self._ligand_files = self._guess_ligands_contain_q()
 
         # does the file type contain charges?
         ligand_ext = set(l.suffix.lower() for l in self.ligand_files).pop()
@@ -492,7 +508,7 @@ class Config:
             if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                logger.info(f'Existing atom charges detected (filetype .ac/.mol2). ')
+                logger.info(f'Existing atom charges detected (filetype .ac/.mol2)')
             elif ligand_ext == '.pdb':
                 self._ligands_contain_q = False
                 logger.debug('Assuming that charges are not provided in the given .pdb ligand files. ')
