@@ -152,8 +152,6 @@ def command_line_script():
     # initialise the config class
     args = parser.parse_args()
 
-    # logging.basicConfig(level=args.logging_level, force=True)
-
     logger.setLevel(args.logging_level)
     for handler in logger.handlers:
         handler.setLevel(args.logging_level)
