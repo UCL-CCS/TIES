@@ -245,10 +245,8 @@ class Ligand:
         """
         self.config.set_configs(**kwargs)
 
-        if self.config.ligands_contain_q:
-            logger.info('Antechamber: Generating .mol2 file with BCC charges')
-        if not self.config.antechamber_charge_type:
-            logger.info('Antechamber: Ignoring atom charges. The user-provided atom charges will be used. ')
+        if self.config.ligands_contain_q or not self.config.antechamber_charge_type:
+            logger.info(f'Antechamber: User-provided atom charges will be reused ({self.current.name})')
         
         mol2_cwd = self.config.lig_dir / self.internal_name
 
