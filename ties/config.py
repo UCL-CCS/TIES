@@ -92,6 +92,11 @@ class Config:
         # assign all the initial configuration values
         self.set_configs(**kwargs)
 
+        # logging
+        self.logging_breakdown = False
+        self.logging_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.logging_level = logging.INFO
+
     @property
     def workdir(self):
         """
@@ -898,6 +903,9 @@ class Config:
         ser = {}
         for k, v in self.__dict__.items():
             if k in host_specific:
+                continue
+
+            if type(v) is logging.Formatter:
                 continue
 
             if type(v) is pathlib.PosixPath:

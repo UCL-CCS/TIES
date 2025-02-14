@@ -158,6 +158,8 @@ class Pair():
         if starting_node_pairs:
             logger.debug(f'Starting nodes will be used: {starting_node_pairs}')
 
+        logging_key = str(self)
+
         # fixme - simplify to only take the ParmEd as input
         suptop = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
                                          disjoint_components=self.config.allow_disjoint_components,
@@ -178,6 +180,7 @@ class Pair():
                                          starting_node_pairs=starting_node_pairs,
                                          parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
                                          starting_pair_seed=self.config.superimposition_starting_pair,
+                                         logging_key=logging_key,
                                          config=self.config)
 
         self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
