@@ -1714,7 +1714,10 @@ object passed in the constructor.</p>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
-<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Please see :class:`Config` class for the documentation of kwargs. The passed kwargs overwrite the config</span>
 <span class="sd">    object passed in the constructor.</span>
@@ -1788,6 +1791,8 @@ object passed in the constructor.</p>
     <span class="k">if</span> <span class="n">starting_node_pairs</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Starting nodes will be used: </span><span class="si">{</span><span class="n">starting_node_pairs</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
+    <span class="n">logging_key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
     <span class="c1"># fixme - simplify to only take the ParmEd as input</span>
     <span class="n">suptop</span> <span class="o">=</span> <span class="n">superimpose_topologies</span><span class="p">(</span><span class="n">ligand1_nodes</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">ligand2_nodes</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
                                      <span class="n">disjoint_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">allow_disjoint_components</span><span class="p">,</span>
@@ -1808,6 +1813,7 @@ object passed in the constructor.</p>
                                      <span class="n">starting_node_pairs</span><span class="o">=</span><span class="n">starting_node_pairs</span><span class="p">,</span>
                                      <span class="n">parmed_ligA</span><span class="o">=</span><span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="o">=</span><span class="n">parmed_ligZ</span><span class="p">,</span>
                                      <span class="n">starting_pair_seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">superimposition_starting_pair</span><span class="p">,</span>
+                                     <span class="n">logging_key</span><span class="o">=</span><span class="n">logging_key</span><span class="p">,</span>
                                      <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">set_suptop</span><span class="p">(</span><span class="n">suptop</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="p">)</span>
@@ -1845,17 +1851,17 @@ object passed in the constructor.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">196</span>
 <span class="normal">197</span>
 <span class="normal">198</span>
 <span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
 <span class="normal">202</span>
-<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_suptop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="p">):</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_suptop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Attach a SuperimposedTopology object along with the ParmEd objects for the ligA and ligZ.</span>
 
@@ -1900,10 +1906,7 @@ object passed in the constructor.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">208</span>
 <span class="normal">209</span>
 <span class="normal">210</span>
 <span class="normal">211</span>
@@ -1961,7 +1964,10 @@ object passed in the constructor.</p>
 <span class="normal">263</span>
 <span class="normal">264</span>
 <span class="normal">265</span>
-<span class="normal">266</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_atom_names_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_ligA_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_ligZ_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_atom_names_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_ligA_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_ligZ_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ensure that each that atoms across the two ligands have unique names.</span>
 
@@ -2050,10 +2056,7 @@ can be used as a seed for the superimposition.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
 <span class="normal">274</span>
@@ -2063,7 +2066,10 @@ can be used as a seed for the superimposition.</p>
 <span class="normal">278</span>
 <span class="normal">279</span>
 <span class="normal">280</span>
-<span class="normal">281</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performance optimisation in case TIES is rerun again. Return the first matched atoms which</span>
 <span class="sd">    can be used as a seed for the superimposition.</span>
@@ -2106,10 +2112,7 @@ the merge works correctly.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">283</span>
-<span class="normal">284</span>
-<span class="normal">285</span>
-<span class="normal">286</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">286</span>
 <span class="normal">287</span>
 <span class="normal">288</span>
 <span class="normal">289</span>
@@ -2166,7 +2169,10 @@ the merge works correctly.</p>
 <span class="normal">340</span>
 <span class="normal">341</span>
 <span class="normal">342</span>
-<span class="normal">343</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_frcmod_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligcom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_frcmod_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligcom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merges the .frcmod files generated for each ligand separately, simply by adding them together.</span>
 
@@ -2252,10 +2258,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
-<span class="normal">348</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">348</span>
 <span class="normal">349</span>
 <span class="normal">350</span>
 <span class="normal">351</span>
@@ -2362,7 +2365,10 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 <span class="normal">452</span>
 <span class="normal">453</span>
 <span class="normal">454</span>
-<span class="normal">455</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">):</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check that the output library can be used to create a valid amber topology.</span>
 <span class="sd">    Add missing terms with no force to pass the topology creation.</span>
@@ -2501,10 +2507,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">457</span>
-<span class="normal">458</span>
-<span class="normal">459</span>
-<span class="normal">460</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">460</span>
 <span class="normal">461</span>
 <span class="normal">462</span>
 <span class="normal">463</span>
@@ -2524,7 +2527,10 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 <span class="normal">477</span>
 <span class="normal">478</span>
 <span class="normal">479</span>
-<span class="normal">480</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overlap_fractions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overlap_fractions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate the size of the common area.</span>
 
