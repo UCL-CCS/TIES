@@ -119,7 +119,7 @@ class Config:
             # current directory
             self._workdir = pathlib.Path(os.getcwd()) / 'ties'
             self._workdir.mkdir(exist_ok=True)
-        logger.info(f'Working Directory: {self._workdir}')
+        logger.debug(f'Working Directory: {self._workdir}')
 
     # --------------- general
     @property
@@ -492,7 +492,7 @@ class Config:
             if ligand_ext in {'.mol2', '.ac', '.prep'}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                logger.info('Appears that charges are provided based on the filetype .ac/.mol2')
+                logger.info(f'Existing atom charges detected (filetype .ac/.mol2). ')
             elif ligand_ext == '.pdb':
                 self._ligands_contain_q = False
                 logger.debug('Assuming that charges are not provided in the given .pdb ligand files. ')
