@@ -3175,7 +3175,7 @@ def superimpose_topologies(top1_nodes,
     - check if each molecule topology is connected
     """
 
-    if config.logging_breakdown:
+    if config is not None and config.logging_breakdown:
         file_log_handler = logging.FileHandler(config.workdir / f'{logging_key}.log')
         file_log_handler.setLevel(config.logging_level)
         file_log_handler.setFormatter(config.logging_formatter)
@@ -3389,7 +3389,7 @@ def superimpose_topologies(top1_nodes,
     logger.info(f'Disappearing atoms: { (len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
     logger.info(f'Appearing atoms: { (len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
 
-    if config.logging_breakdown:
+    if config is not None and config.logging_breakdown:
         logger.removeHandler(file_log_handler)
 
     return suptop

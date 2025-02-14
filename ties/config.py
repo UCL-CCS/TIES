@@ -93,7 +93,7 @@ class Config:
         self.set_configs(**kwargs)
 
         # logging
-        self.logging_breakdown = True
+        self.logging_breakdown = False
         self.logging_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.logging_level = logging.INFO
 

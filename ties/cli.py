@@ -205,6 +205,8 @@ def command_line_script():
     # generate all pairings
     pairs = [ties.pair.Pair(ligA, ligZ, config) for ligA, ligZ in itertools.combinations(ligands, r=2)]
 
+    config.logging_breakdown = True
+
     # superimpose the paired topologies
     for pair in pairs:
         start_time = time.perf_counter()
