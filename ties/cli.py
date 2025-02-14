@@ -62,7 +62,7 @@ def command_line_script():
                         help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
                              'the generated maximum common substructure (MCS).')
     parser.add_argument("-v", "--logging-level", metavar="str or bool", dest="logging_level",
-                        type=ArgparseChecker.logging_lvl, required=False, default="WARNING",
+                        type=ArgparseChecker.logging_lvl, required=False, default="INFO",
                         help="Logging level. Can be a boolean value "
                              "(False disables logging by setting it to ERROR). "
                              "A string should specify a logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). ")
@@ -152,6 +152,8 @@ def command_line_script():
     # initialise the config class
     args = parser.parse_args()
 
+    # set the root logger
+    logging.getLogger().setLevel(args.logging_level)
     logger.setLevel(args.logging_level)
     for handler in logger.handlers:
         handler.setLevel(args.logging_level)
