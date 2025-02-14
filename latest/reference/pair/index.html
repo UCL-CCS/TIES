@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.4">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.d7758b05.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -1564,11 +1564,7 @@ It offers functionality related to a pair of ligands (a transformation).</p>
 
                   <details class="quote">
                     <summary>Source code in <code>ties/pair.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
@@ -1606,7 +1602,11 @@ It offers functionality related to a pair of ligands (a transformation).</p>
 <span class="normal">69</span>
 <span class="normal">70</span>
 <span class="normal">71</span>
-<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligA</span><span class="p">,</span> <span class="n">ligZ</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligA</span><span class="p">,</span> <span class="n">ligZ</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Please use the Config class for the documentation of the possible kwargs.</span>
 <span class="sd">    Each kwarg is passed to the config class.</span>
@@ -1688,11 +1688,7 @@ object passed in the constructor.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 83</span>
-<span class="normal"> 84</span>
-<span class="normal"> 85</span>
-<span class="normal"> 86</span>
-<span class="normal"> 87</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 87</span>
 <span class="normal"> 88</span>
 <span class="normal"> 89</span>
 <span class="normal"> 90</span>
@@ -1792,7 +1788,11 @@ object passed in the constructor.</p>
 <span class="normal">184</span>
 <span class="normal">185</span>
 <span class="normal">186</span>
-<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Please see :class:`Config` class for the documentation of kwargs. The passed kwargs overwrite the config</span>
 <span class="sd">    object passed in the constructor.</span>
@@ -1821,7 +1821,7 @@ object passed in the constructor.</p>
     <span class="n">new_mismatch_names</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">manually_mismatched_pairs</span><span class="p">:</span>
         <span class="n">new_names</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">rev_renaming_map</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligZ</span><span class="o">.</span><span class="n">rev_renaming_map</span><span class="p">[</span><span class="n">z</span><span class="p">])</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Selecting mismatching atoms. The mismatch </span><span class="si">{</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">)</span><span class="si">}</span><span class="s1">) was renamed to </span><span class="si">{</span><span class="n">new_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Selecting mismatching atoms. The mismatch </span><span class="si">{</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">)</span><span class="si">}</span><span class="s1">) was renamed to </span><span class="si">{</span><span class="n">new_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">new_mismatch_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_names</span><span class="p">)</span>
 
     <span class="c1"># assign</span>
@@ -1864,7 +1864,7 @@ object passed in the constructor.</p>
         <span class="n">starting_node_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">found_left_node</span><span class="p">,</span> <span class="n">found_right_node</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">starting_node_pairs</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Starting nodes will be used:&#39;</span><span class="p">,</span> <span class="n">starting_node_pairs</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Starting nodes will be used: </span><span class="si">{</span><span class="n">starting_node_pairs</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="c1"># fixme - simplify to only take the ParmEd as input</span>
     <span class="n">suptop</span> <span class="o">=</span> <span class="n">superimpose_topologies</span><span class="p">(</span><span class="n">ligand1_nodes</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">ligand2_nodes</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
@@ -1923,17 +1923,17 @@ object passed in the constructor.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">193</span>
 <span class="normal">194</span>
 <span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
 <span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_suptop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="p">):</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_suptop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Attach a SuperimposedTopology object along with the ParmEd objects for the ligA and ligZ.</span>
 
@@ -1978,11 +1978,7 @@ object passed in the constructor.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
@@ -2039,7 +2035,11 @@ object passed in the constructor.</p>
 <span class="normal">259</span>
 <span class="normal">260</span>
 <span class="normal">261</span>
-<span class="normal">262</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_atom_names_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_ligA_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_ligZ_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">make_atom_names_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_ligA_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_ligZ_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ensure that each that atoms across the two ligands have unique names.</span>
 
@@ -2069,9 +2069,9 @@ object passed in the constructor.</p>
     <span class="n">atom_names_overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">common_atom_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
     <span class="k">if</span> <span class="n">atom_names_overlap</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligZ</span><span class="o">.</span><span class="n">are_atom_names_correct</span><span class="p">():</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Renaming (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) molecule (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ligZ</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) atom names are either reused or do not follow the correct format. &#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Renaming (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) molecule (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ligZ</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) atom names are either reused or do not follow the correct format. &#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">atom_names_overlap</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Common atom names: </span><span class="si">{</span><span class="n">common_atom_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Common atom names: </span><span class="si">{</span><span class="n">common_atom_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">name_counter_L_nodes</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_atom_names_counter</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">renaming_map</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_new_atom_names</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">name_counter</span><span class="o">=</span><span class="n">name_counter_L_nodes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ligZ</span><span class="o">.</span><span class="n">renaming_map</span> <span class="o">=</span> <span class="n">renaming_map</span>
@@ -2128,11 +2128,7 @@ can be used as a seed for the superimposition.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">268</span>
 <span class="normal">269</span>
 <span class="normal">270</span>
 <span class="normal">271</span>
@@ -2141,7 +2137,11 @@ can be used as a seed for the superimposition.</p>
 <span class="normal">274</span>
 <span class="normal">275</span>
 <span class="normal">276</span>
-<span class="normal">277</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performance optimisation in case TIES is rerun again. Return the first matched atoms which</span>
 <span class="sd">    can be used as a seed for the superimposition.</span>
@@ -2184,11 +2184,7 @@ the merge works correctly.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">279</span>
-<span class="normal">280</span>
-<span class="normal">281</span>
-<span class="normal">282</span>
-<span class="normal">283</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">283</span>
 <span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
@@ -2244,7 +2240,11 @@ the merge works correctly.</p>
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_frcmod_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligcom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_frcmod_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligcom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merges the .frcmod files generated for each ligand separately, simply by adding them together.</span>
 
@@ -2330,11 +2330,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">345</span>
 <span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
@@ -2440,7 +2436,11 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 <span class="normal">448</span>
 <span class="normal">449</span>
 <span class="normal">450</span>
-<span class="normal">451</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">):</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check that the output library can be used to create a valid amber topology.</span>
 <span class="sd">    Add missing terms with no force to pass the topology creation.</span>
@@ -2469,7 +2469,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
                             <span class="n">protein_ff</span><span class="o">=</span><span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="o">=</span><span class="n">ligand_ff</span><span class="p">))</span>
 
     <span class="c1"># attempt generating the .top</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Create amber7 topology .top&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Create amber7 topology .top&#39;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">tleap_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="n">leap_in_test</span><span class="p">],</span>
                                        <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
@@ -2483,7 +2483,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
     <span class="nb">open</span><span class="p">(</span><span class="n">cwd</span> <span class="o">/</span> <span class="s1">&#39;tleap_scan_check.log&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span> <span class="o">+</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s1">&#39;Errors = 0&#39;</span> <span class="ow">in</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="c1"># extract the missing angles/dihedrals</span>
@@ -2508,7 +2508,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 
     <span class="n">modified_hybrid_frcmod</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">_corrected.frcmod&#39;</span>
     <span class="k">if</span> <span class="n">missing_angles</span> <span class="ow">or</span> <span class="n">missing_dihedrals</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING: Adding dummy bonds+angles+dihedrals to frcmod to generate .top&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Adding dummy bonds+angles+dihedrals to frcmod to generate .top&#39;</span><span class="p">)</span>
         <span class="c1"># read the original frcmod</span>
         <span class="n">frcmod_lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
         <span class="c1"># overwriting the .frcmod with dummy angles/dihedrals</span>
@@ -2519,17 +2519,17 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
                     <span class="k">for</span> <span class="n">bond</span>  <span class="ow">in</span> <span class="n">missing_bonds</span><span class="p">:</span>
                         <span class="n">dummy_bond</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">bond</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">0  180  </span><span class="se">\t\t</span><span class="s1"># Dummy bond</span><span class="se">\n</span><span class="s1">&#39;</span>
                         <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_bond</span><span class="p">)</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy bond: &quot;</span><span class="si">{</span><span class="n">dummy_bond</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy bond: &quot;</span><span class="si">{</span><span class="n">dummy_bond</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="s1">&#39;ANGLE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">missing_angles</span><span class="p">:</span>
                         <span class="n">dummy_angle</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">0  120.010  </span><span class="se">\t\t</span><span class="s1"># Dummy angle</span><span class="se">\n</span><span class="s1">&#39;</span>
                         <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_angle</span><span class="p">)</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy angle: &quot;</span><span class="si">{</span><span class="n">dummy_angle</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy angle: &quot;</span><span class="si">{</span><span class="n">dummy_angle</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="s1">&#39;DIHE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">dihedral</span> <span class="ow">in</span> <span class="n">missing_dihedrals</span><span class="p">:</span>
                         <span class="n">dummy_dihedral</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dihedral</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">1  0.00  180.000  2.000   </span><span class="se">\t\t</span><span class="s1"># Dummy dihedrals</span><span class="se">\n</span><span class="s1">&#39;</span>
                         <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_dihedral</span><span class="p">)</span>
-                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy dihedral: &quot;</span><span class="si">{</span><span class="n">dummy_dihedral</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy dihedral: &quot;</span><span class="si">{</span><span class="n">dummy_dihedral</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
 
         <span class="c1"># update our tleap input test to use the corrected file</span>
         <span class="n">leap_in_test_corrected</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="s1">&#39;leap_test_morph_corrected.in&#39;</span>
@@ -2546,7 +2546,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;ERROR: Could not generate the .top file after adding dummy angles/dihedrals&#39;</span><span class="p">)</span>
 
 
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Morph .frcmod after the insertion of dummy angle/dihedrals: OK&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Morph .frcmod after the insertion of dummy angle/dihedrals: OK&#39;</span><span class="p">)</span>
     <span class="c1"># set this .frcmod as the correct one now,</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">frcmod_before_correction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span> <span class="o">=</span> <span class="n">modified_hybrid_frcmod</span>
@@ -2579,11 +2579,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
-<span class="normal">456</span>
-<span class="normal">457</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">457</span>
 <span class="normal">458</span>
 <span class="normal">459</span>
 <span class="normal">460</span>
@@ -2602,7 +2598,11 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
 <span class="normal">473</span>
 <span class="normal">474</span>
 <span class="normal">475</span>
-<span class="normal">476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overlap_fractions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overlap_fractions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate the size of the common area.</span>
 

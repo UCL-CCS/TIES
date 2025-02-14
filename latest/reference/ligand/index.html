@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.4">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.d7758b05.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -1615,11 +1615,7 @@ Specifically, it tracks the different copies of the original input files as it i
 
                   <details class="quote">
                     <summary>Source code in <code>ties/ligand.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
@@ -1648,7 +1644,10 @@ Specifically, it tracks the different copies of the original input files as it i
 <span class="normal">60</span>
 <span class="normal">61</span>
 <span class="normal">62</span>
-<span class="normal">63</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligand</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligand</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor method</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1664,8 +1663,7 @@ Specifically, it tracks the different copies of the original input files as it i
 
     <span class="c1"># ligand names have to be unique</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span> <span class="ow">in</span> <span class="n">Ligand</span><span class="o">.</span><span class="n">_USED_FILENAMES</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">uses_cmd</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR: the ligand filename </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1"> is not unique in the list of ligands. &#39;</span><span class="p">)</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR: the ligand filename </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1"> is not unique in the list of ligands. &#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">Ligand</span><span class="o">.</span><span class="n">_USED_FILENAMES</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="p">)</span>
 
@@ -1741,10 +1739,7 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 69</span>
-<span class="normal"> 70</span>
-<span class="normal"> 71</span>
-<span class="normal"> 72</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 72</span>
 <span class="normal"> 73</span>
 <span class="normal"> 74</span>
 <span class="normal"> 75</span>
@@ -1781,7 +1776,9 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
-<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert_acprep_to_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert_acprep_to_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    If the file is not a prep/ac file, this function does not do anything.</span>
 <span class="sd">    Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</span>
@@ -1799,7 +1796,7 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
         <span class="n">cwd</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Antechamber: converting </span><span class="si">{</span><span class="n">filetype</span><span class="si">}</span><span class="s1"> to mol2&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Antechamber: converting </span><span class="si">{</span><span class="n">filetype</span><span class="si">}</span><span class="s1"> to mol2&#39;</span><span class="p">)</span>
     <span class="n">new_current</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span> <span class="o">+</span> <span class="s1">&#39;.mol2&#39;</span><span class="p">)</span>
 
     <span class="n">log_filename</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="s2">&quot;antechamber_conversion.log&quot;</span>
@@ -1813,15 +1810,14 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
                            <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                            <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">E</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: An error occurred during the antechamber conversion from .ac to .mol2 data type. &#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR: The output was saved in the directory: </span><span class="si">{</span><span class="n">cwd</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR: Please see the log file for the exact error information: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">E</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;An error occurred during the antechamber conversion from .ac to .mol2 data type. &#39;</span>
+                            <span class="sa">f</span><span class="s1">&#39;The output was saved in the directory: </span><span class="si">{</span><span class="n">cwd</span><span class="si">}</span><span class="s1">&#39;</span>
+                            <span class="sa">f</span><span class="s1">&#39;Please see the log file for the exact error information: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">E</span>
 
     <span class="c1"># update</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">original_ac</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">new_current</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Converted .ac file to .mol2. The location of the new file: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Converted .ac file to .mol2. The location of the new file: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1852,9 +1848,7 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 </details>
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">113</span>
 <span class="normal">114</span>
 <span class="normal">115</span>
 <span class="normal">116</span>
@@ -1863,7 +1857,9 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 <span class="normal">119</span>
 <span class="normal">120</span>
 <span class="normal">121</span>
-<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">are_atom_names_correct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">are_atom_names_correct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if atom names:</span>
 <span class="sd">     - are unique</span>
@@ -1908,9 +1904,7 @@ characters which can lead to inconsistencies.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">126</span>
 <span class="normal">127</span>
 <span class="normal">128</span>
 <span class="normal">129</span>
@@ -1944,7 +1938,9 @@ characters which can lead to inconsistencies.</p>
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span>
-<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_do_atom_names_have_correct_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check if the atom name is followed by a number, e.g. &quot;C15&quot;</span>
@@ -2015,9 +2011,7 @@ characters which can lead to inconsistencies.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
 <span class="normal">167</span>
@@ -2049,7 +2043,9 @@ characters which can lead to inconsistencies.</p>
 <span class="normal">193</span>
 <span class="normal">194</span>
 <span class="normal">195</span>
-<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_atom_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_atom_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ensure that each atom name:</span>
 <span class="sd">     - is unique</span>
@@ -2063,15 +2059,15 @@ characters which can lead to inconsistencies.</p>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">are_atom_names_correct</span><span class="p">():</span>
         <span class="k">return</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Ligand </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1"> will have its atom names renamed. &#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Ligand </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1"> will have its atom names renamed. &#39;</span><span class="p">)</span>
 
     <span class="n">ligand</span> <span class="o">=</span> <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Atom names in the molecule (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) are either not unique &#39;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Atom names in the molecule (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">) are either not unique &#39;</span>
           <span class="sa">f</span><span class="s1">&#39;or do not follow NameDigit format (e.g. C15). Renaming&#39;</span><span class="p">)</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">renaming_map</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_new_atom_names</span><span class="p">(</span><span class="n">ligand</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_renaming_map</span> <span class="o">=</span> <span class="n">renaming_map</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Rename map: </span><span class="si">{</span><span class="n">renaming_map</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Rename map: </span><span class="si">{</span><span class="n">renaming_map</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="c1"># save the output here</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">lig_unique_atom_names_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -2114,9 +2110,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
 <span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
@@ -2173,7 +2167,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">287</span>
 <span class="normal">288</span>
 <span class="normal">289</span>
-<span class="normal">290</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">antechamber_prepare_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">290</span>
+<span class="normal">291</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">antechamber_prepare_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts the ligand into a .mol2 format.</span>
 
@@ -2188,11 +2183,10 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set_configs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Antechamber: converting to .mol2 and generating charges if necessary&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligands_contain_q</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Antechamber: Generating .mol2 file with BCC charges&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Antechamber: Generating .mol2 file with BCC charges&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_charge_type</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Antechamber: Ignoring atom charges. The user-provided atom charges will be used. &#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Antechamber: Ignoring atom charges. The user-provided atom charges will be used. &#39;</span><span class="p">)</span>
 
     <span class="n">mol2_cwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">lig_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span>
 
@@ -2224,9 +2218,9 @@ Any DU atoms created in the antechamber call are removed.</p>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Could not convert the ligand into .mol2 file with antechamber. &#39;</span>
                                 <span class="sa">f</span><span class="s1">&#39;See the log and its directory: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1"> . &#39;</span>
                                 <span class="sa">f</span><span class="s1">&#39;Command used: </span><span class="si">{</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">))</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ProcessError</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Converted </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s1"> into .mol2, Log: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Converted </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s1"> into .mol2, Log: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;File </span><span class="si">{</span><span class="n">mol2_target</span><span class="si">}</span><span class="s1"> already exists. Skipping. &#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;File </span><span class="si">{</span><span class="n">mol2_target</span><span class="si">}</span><span class="s1"> already exists. Skipping. &#39;</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">antechamber_mol2</span> <span class="o">=</span> <span class="n">mol2_target</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">mol2_target</span>
@@ -2259,8 +2253,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">292</span>
-<span class="normal">293</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
 <span class="normal">296</span>
@@ -2283,7 +2276,8 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 <span class="normal">313</span>
 <span class="normal">314</span>
 <span class="normal">315</span>
-<span class="normal">316</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">removeDU_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">316</span>
+<span class="normal">317</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">removeDU_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ambertools antechamber creates sometimes DU dummy atoms.</span>
 <span class="sd">    These are not created when BCC charges are computed from scratch.</span>
@@ -2307,7 +2301,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
         <span class="n">atom</span><span class="o">.</span><span class="n">residue</span><span class="o">.</span><span class="n">delete_atom</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
     <span class="c1"># save the updated molecule</span>
     <span class="n">mol2</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Removed dummy atoms with type &quot;DU&quot;&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Removed dummy atoms with type &quot;DU&quot;&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2333,8 +2327,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">318</span>
-<span class="normal">319</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">319</span>
 <span class="normal">320</span>
 <span class="normal">321</span>
 <span class="normal">322</span>
@@ -2371,7 +2364,8 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 <span class="normal">353</span>
 <span class="normal">354</span>
 <span class="normal">355</span>
-<span class="normal">356</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">356</span>
+<span class="normal">357</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        params</span>
 <span class="sd">         - parmchk2</span>
@@ -2379,12 +2373,12 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set_configs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;INFO: frcmod for </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s1"> was computed before. Not repeating.&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;INFO: frcmod for </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s1"> was computed before. Not repeating.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;frcmod&#39;</span><span class="p">):</span>
         <span class="k">return</span>
 
     <span class="c1"># fixme - work on the file handles instaed of the constant stitching</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Parmchk2: generate the .frcmod for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">.mol2&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Parmchk2: generate the .frcmod for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">.mol2&#39;</span><span class="p">)</span>
 
     <span class="c1"># prepare cwd</span>
     <span class="n">cwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">lig_frcmod_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span>
@@ -2408,7 +2402,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GAFF Error: Could not generate FRCMOD for file: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="si">}</span><span class="s2"> . &quot;</span>
                             <span class="sa">f</span><span class="s1">&#39;See more here: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">E</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Parmchk2: created .frcmod: </span><span class="si">{</span><span class="n">target_frcmod</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Parmchk2: created frcmod: </span><span class="si">{</span><span class="n">target_frcmod</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="n">target_frcmod</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2433,8 +2427,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">358</span>
-<span class="normal">359</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">359</span>
 <span class="normal">360</span>
 <span class="normal">361</span>
 <span class="normal">362</span>
@@ -2492,7 +2485,8 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
 <span class="normal">414</span>
 <span class="normal">415</span>
 <span class="normal">416</span>
-<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overwrite_coordinates_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
+<span class="normal">417</span>
+<span class="normal">418</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">overwrite_coordinates_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load coordinates from another file and overwrite the coordinates in the current file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2509,7 +2503,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
     <span class="n">by_general_atom_type</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># mol2_filename will be overwritten!</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Writing to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="si">}</span><span class="s1"> the coordinates from </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s1">. &#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Writing to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="si">}</span><span class="s1"> the coordinates from </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s1">. &#39;</span><span class="p">)</span>
 
     <span class="n">coords_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">)</span>
 
@@ -2547,7 +2541,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
             <span class="n">mol2_atom</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">ref_atom</span><span class="o">.</span><span class="n">position</span>
 
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="n">coords_sum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mda_template</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">),</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Different positions sums:&#39;</span><span class="p">,</span> <span class="n">coords_sum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mda_template</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Different positions sums:&#39;</span><span class="p">,</span> <span class="n">coords_sum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mda_template</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Copying of the coordinates did not work correctly&#39;</span><span class="p">)</span>
 
     <span class="c1"># save the output file</span>
