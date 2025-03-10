@@ -3353,6 +3353,9 @@ def superimpose_topologies(top1_nodes,
         #
         # assert len(suptops) == 1, suptops
 
+    if len(suptops) == 0:
+        return None
+
     suptop = extract_best_suptop(suptops, ignore_coords, get_list=False)
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
