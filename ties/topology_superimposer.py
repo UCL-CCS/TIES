@@ -1406,7 +1406,11 @@ class SuperimposedTopology:
         # get pairs with different charges
         diff_q_pairs = self.get_matched_with_diff_q()
         if len(diff_q_pairs) == 0:
-            raise Exception('Did not find any pairs with a different q even though the net tol is not met? ')
+            warnings.warn('No pairs with different partial charges, '
+                          'even though the net tol is not met. '
+                          'Ignoring this transformation (workaround). ')
+            # fixme - this is a simple workaround
+            return [self.matched_pairs[0], ]
 
         # sort the pairs into categories
         # use 5 pairs with the largest difference
