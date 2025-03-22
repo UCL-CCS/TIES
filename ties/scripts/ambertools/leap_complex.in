@@ -13,7 +13,10 @@ protein = LoadPdb protein.pdb
 sys = Combine {{lig protein}}
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
-solvateoct sys TIP3PBOX 14
+
+# solvateoct sys TIP3PBOX 14
+solvateBox sys TIP3PBOX 14
+
 # generating charges manually:
 {NaIons}
 {ClIons}
