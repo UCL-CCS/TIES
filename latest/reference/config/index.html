@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.9">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -1249,24 +1249,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ties.config.Config._guess_ligands_contain_q" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_guess_ligands_contain_q
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ties.config.Config._get_first_ligand_net_q" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_get_first_ligand_net_q
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#ties.config.Config.get_element_map" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_element_map
@@ -1987,24 +1969,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ties.config.Config._guess_ligands_contain_q" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_guess_ligands_contain_q
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ties.config.Config._get_first_ligand_net_q" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_get_first_ligand_net_q
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#ties.config.Config.get_element_map" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_element_map
@@ -2064,6 +2028,7 @@
 
 
 
+
 <p><span class="doc-section-title">Classes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
@@ -2108,6 +2073,7 @@
         <p>The configuration with parameters that can be used to define the entire protocol.
 The settings can be overridden later in the actual classes.</p>
 <p>The settings are stored as properties in the object and can be overwritten.</p>
+
 
 
 
@@ -2795,6 +2761,7 @@ The settings can be overridden later in the actual classes.</p>
 If None, a temporary directory in /tmp/ will be used.</p>
 <p>:return: Work dir
 :rtype: str</p>
+
     </div>
 
 </div>
@@ -2821,6 +2788,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
         <p>Path to the protein</p>
 <p>:return: Protein filename
 :rtype: str</p>
+
     </div>
 
 </div>
@@ -2846,6 +2814,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>A list of ligand filenames.
 :return:</p>
+
     </div>
 
 </div>
@@ -2871,6 +2840,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>Ambertools HOME path. If not configured, the env variable AMBERHOME as AMBER_PREFIX will be checked.</p>
 <p>:return: ambertools path</p>
+
     </div>
 
 </div>
@@ -2895,6 +2865,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>Antechamber path based on the .ambertools_home</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -2919,6 +2890,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>Parmchk2 path based on the .ambertools_home
 :return:</p>
+
     </div>
 
 </div>
@@ -2943,6 +2915,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>Tleap path based on the .ambertools_home
 :return:</p>
+
     </div>
 
 </div>
@@ -2968,6 +2941,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
 
         <p>Whether to use -dr setting when calling antechamber.</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -2994,6 +2968,7 @@ If None, a temporary directory in /tmp/ will be used.</p>
         <p>The ligand charge. If not provided, neutral charge is assumed.
 The charge is necessary for calling antechamber (-nc).</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -3019,6 +2994,7 @@ The charge is necessary for calling antechamber (-nc).</p>
 
         <p>A file from which coordinate can be taken.</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -3048,6 +3024,7 @@ If the two atoms differ in charge more than this value,
 they will be unmatched and added to the alchemical regions.</p>
 <p>:return: default (0.1e)
 :rtype: float</p>
+
     </div>
 
 </div>
@@ -3076,6 +3053,7 @@ If the total exceeds the thresholds, atom pairs will be unmatched
 until the threshold is met.</p>
 <p>:return: default (0.1e)
 :rtype: float</p>
+
     </div>
 
 </div>
@@ -3102,6 +3080,7 @@ until the threshold is met.</p>
         <p>Ignore the charges during the superimposition. Useful for debugging.
 :return: default (False)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3129,6 +3108,7 @@ until the threshold is met.</p>
 separated by alchemical region.</p>
 <p>:return: default (False)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3156,6 +3136,7 @@ separated by alchemical region.</p>
 during the joint-traversal of the two molecules.</p>
 <p>:return: default (False)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3183,6 +3164,7 @@ during the joint-traversal of the two molecules.</p>
 use it to align the coordinates of the second molecule to the first.</p>
 <p>:return: default (False)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3211,6 +3193,7 @@ If that's the case, use the original charges in order to correct this slight
 divergence in coordinates.</p>
 <p>:return: default (?)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3239,6 +3222,7 @@ If all charges are set to 0, then it assumes that charges are not provided.</p>
 <p>If set to False explicitly, charges are ignored and computed again.</p>
 <p>:return: default (None)
 :rtype: bool</p>
+
     </div>
 
 </div>
@@ -3265,6 +3249,7 @@ If all charges are set to 0, then it assumes that charges are not provided.</p>
         <p>Set a starting pair for the superimposition to narrow down the MCS search.
 E.g. "C2-C12"</p>
 <p>:rtype: str</p>
+
     </div>
 
 </div>
@@ -3291,6 +3276,7 @@ E.g. "C2-C12"</p>
         <p>Either a list of pairs or a file with a list of pairs of atoms
 that should be superimposed/matched.</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -3315,6 +3301,7 @@ that should be superimposed/matched.</p>
     <div class="doc doc-contents ">
 
         <p>A path to a file with a list of a pairs that should be mismatched.</p>
+
     </div>
 
 </div>
@@ -3341,6 +3328,7 @@ that should be superimposed/matched.</p>
         <p>The protein forcefield to be used by ambertools for the protein parameterisation.</p>
 <p>:return: default (leaprc.ff19SB)
 :rtype: string</p>
+
     </div>
 
 </div>
@@ -3367,6 +3355,7 @@ that should be superimposed/matched.</p>
         <p>The MD engine, with the supported values NAMD2.13, NAMD2.14, NAMD3 and OpenMM</p>
 <p>:return: NAMD2.13, NAMD2.14, NAMD3 and OpenMM
 :rtype: string</p>
+
     </div>
 
 </div>
@@ -3390,6 +3379,7 @@ that should be superimposed/matched.</p>
     <div class="doc doc-contents ">
 
         <p>The forcefield for the ligand.</p>
+
     </div>
 
 </div>
@@ -3415,6 +3405,7 @@ that should be superimposed/matched.</p>
 
         <p>Either GAFF or GAFF2</p>
 <p>:return:</p>
+
     </div>
 
 </div>
@@ -3443,6 +3434,7 @@ Taking an average charge between any two atoms introduces imbalances
 in the net charge of the alchemical regions, due to
 the different charge distribution.</p>
 <p>:return: default(True)</p>
+
     </div>
 
 </div>
@@ -3468,6 +3460,7 @@ the different charge distribution.</p>
 
         <p>Hybrid single dual topology (experimental). Currently not implemented.</p>
 <p>:return: default(False).</p>
+
     </div>
 
 </div>
@@ -3493,6 +3486,7 @@ the different charge distribution.</p>
         <p>The name of the tleap input file for ambertools for the ligand.</p>
 <p>:return: Default ('leap_ligand.in')
 :rtype: string</p>
+
     </div>
 
 </div>
@@ -3518,6 +3512,7 @@ the different charge distribution.</p>
         <p>The tleap input file for the complex.</p>
 <p>:return: Default 'leap_complex.in'
 :type: string</p>
+
     </div>
 
 </div>
@@ -3542,6 +3537,7 @@ the different charge distribution.</p>
 
         <p>Path to the <code>prep</code> directory. Currently in the <code>workdir</code></p>
 <p>:return: Default (workdir/prep)</p>
+
     </div>
 
 </div>
@@ -3566,6 +3562,7 @@ the different charge distribution.</p>
 
         <p>Path to the .frcmod files for the morph.</p>
 <p>:return: Default (workdir/prep/morph_frcmods)</p>
+
     </div>
 
 </div>
@@ -3590,6 +3587,7 @@ the different charge distribution.</p>
 
         <p>Path to the location where a test is carried out with .frcmod</p>
 <p>:return: Default (workdir/prep/morph_frcmods/tests)</p>
+
     </div>
 
 </div>
@@ -3614,6 +3612,7 @@ the different charge distribution.</p>
 
         <p>Location of the morph files with unique filenames.</p>
 <p>:return: Default (workdir/prep/morph_unique_atom_names)</p>
+
     </div>
 
 </div>
@@ -3638,6 +3637,7 @@ the different charge distribution.</p>
 
         <p>Directory location for files with unique atom names.</p>
 <p>:return: Default (workdir/prep/unique_atom_names)</p>
+
     </div>
 
 </div>
@@ -3662,6 +3662,7 @@ the different charge distribution.</p>
 
         <p>Directory location with the .frcmod created for each ligand.</p>
 <p>:return: Default (workdir/prep/ligand_frcmods)</p>
+
     </div>
 
 </div>
@@ -3686,6 +3687,7 @@ the different charge distribution.</p>
 
         <p>Directory location where the .ac charges are converted into the .mol2 format.</p>
 <p>:return: Default (workdir/prep/acprep_to_mol2)</p>
+
     </div>
 
 </div>
@@ -3710,106 +3712,12 @@ the different charge distribution.</p>
 
         <p>Directory location with the .mol2 files.</p>
 <p>:return: Default (workdir/mol2)</p>
+
     </div>
 
 </div>
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="ties.config.Config._guess_ligands_contain_q" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">_guess_ligands_contain_q</span>
-
-
-</h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">_guess_ligands_contain_q</span><span class="p">()</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Checks if the first .mol2 file contains charges.
-:return:</p>
-
-            <details class="quote">
-              <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">461</span>
-<span class="normal">462</span>
-<span class="normal">463</span>
-<span class="normal">464</span>
-<span class="normal">465</span>
-<span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_guess_ligands_contain_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checks if the first .mol2 file contains charges.</span>
-<span class="sd">    :return:</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># if all ligands are .mol2, then charges are provided</span>
-    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;.mol2&#39;</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">):</span>
-        <span class="c1"># if all atoms have q = 0 that means they&#39;re a placeholder</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">all_q_0</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">charge</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">all_q_0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="k">return</span> <span class="kc">False</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="ties.config.Config._get_first_ligand_net_q" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">_get_first_ligand_net_q</span>
-
-
-</h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">_get_first_ligand_net_q</span><span class="p">()</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>:return: Returns the net charge from the parmed file with partial charges.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">478</span>
-<span class="normal">479</span>
-<span class="normal">480</span>
-<span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span>
-<span class="normal">485</span>
-<span class="normal">486</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_get_first_ligand_net_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    :return: Returns the net charge from the parmed file with partial charges.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># if all atoms have q = 0 that means they&#39;re a placeholder</span>
-    <span class="n">u</span> <span class="o">=</span> <span class="n">parmed</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ligand_files</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">structure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">net_q</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">charge</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">net_q</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
@@ -3829,6 +3737,7 @@ the different charge distribution.</p>
     <div class="doc doc-contents ">
 
         <p>:return:</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
@@ -3899,6 +3808,7 @@ including each suptop.get_serializable() so that you can record
 specific information such as the charge changes etc.</p>
 <p>:return: Dictionary {key:value} with the settings
 :rtype: Dictionary</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>

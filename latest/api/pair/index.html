@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.9">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -730,15 +730,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ties.Pair._check_hybrid_frcmod" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_check_hybrid_frcmod
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#ties.Pair.overlap_fractions" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;overlap_fractions
@@ -1364,15 +1355,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ties.Pair._check_hybrid_frcmod" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_check_hybrid_frcmod
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#ties.Pair.overlap_fractions" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;overlap_fractions
@@ -1427,6 +1409,7 @@ It offers functionality related to a pair of ligands (a transformation).</p>
         <p>fixme - list all relevant kwargs here</p>
 <pre><code>param ligand_net_charge: integer, net charge of each ligand (has to be the same)
 </code></pre>
+
 
 
 
@@ -1607,6 +1590,7 @@ object passed in the constructor.</p>
 :param manually_matched_atom_pairs:
 :param manually_mismatched_pairs:
 :param redistribute_q_over_unmatched:</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
@@ -1849,6 +1833,7 @@ object passed in the constructor.</p>
 :param parmed_ligA: An ParmEd for the ligA
 :param parmed_ligZ: An ParmEd for the ligZ</p>
 
+
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">196</span>
@@ -1903,6 +1888,7 @@ object passed in the constructor.</p>
 :type out_ligZ_filename: string or bool
 :param save: Whether to save to the disk the ligands after renaming the atoms
 :type save: bool</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
@@ -2054,6 +2040,7 @@ can be used as a seed for the superimposition.</p>
     gets one of the matched atoms.
 :rtype: [(ligA_atom, ligZ_atom)]</p>
 
+
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">271</span>
@@ -2109,6 +2096,7 @@ the merge works correctly.</p>
 <p>:param ligcom: Either "lig" if only ligands are present, or "com" if the complex is present.
     Helps with the directory structure.
 :type ligcom: string "lig" or "com"</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>
@@ -2242,252 +2230,6 @@ the merge works correctly.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="ties.Pair._check_hybrid_frcmod" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">_check_hybrid_frcmod</span>
-
-
-</h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Check that the output library can be used to create a valid amber topology.
-Add missing terms with no force to pass the topology creation.
-Returns the corrected .frcmod content, otherwise throws an exception.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>ties/pair.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
-<span class="normal">409</span>
-<span class="normal">410</span>
-<span class="normal">411</span>
-<span class="normal">412</span>
-<span class="normal">413</span>
-<span class="normal">414</span>
-<span class="normal">415</span>
-<span class="normal">416</span>
-<span class="normal">417</span>
-<span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
-<span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
-<span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
-<span class="normal">456</span>
-<span class="normal">457</span>
-<span class="normal">458</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_hybrid_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">ambertools_script_dir</span><span class="p">,</span> <span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Check that the output library can be used to create a valid amber topology.</span>
-<span class="sd">    Add missing terms with no force to pass the topology creation.</span>
-<span class="sd">    Returns the corrected .frcmod content, otherwise throws an exception.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># prepare the working directory</span>
-    <span class="n">cwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pair_morphfrmocs_tests_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">cwd</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-        <span class="n">cwd</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">protein_ff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">protein_ff</span> <span class="o">=</span> <span class="s1">&#39;# no protein ff needed&#39;</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">protein_ff</span> <span class="o">=</span> <span class="s1">&#39;source &#39;</span> <span class="o">+</span> <span class="n">protein_ff</span>
-
-    <span class="c1"># prepare the superimposed .mol2 file if needed</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suptop</span><span class="p">,</span> <span class="s1">&#39;mol2&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">suptop</span><span class="o">.</span><span class="n">write_mol2</span><span class="p">()</span>
-
-    <span class="c1"># prepare tleap input</span>
-    <span class="n">leap_in_test</span> <span class="o">=</span> <span class="s1">&#39;leap_test_morph.in&#39;</span>
-    <span class="n">leap_in_conf</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">ambertools_script_dir</span> <span class="o">/</span> <span class="n">leap_in_test</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-    <span class="nb">open</span><span class="p">(</span><span class="n">cwd</span> <span class="o">/</span> <span class="n">leap_in_test</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">leap_in_conf</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">mol2</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suptop</span><span class="o">.</span><span class="n">mol2</span><span class="p">,</span> <span class="n">cwd</span><span class="p">),</span>
-                            <span class="n">frcmod</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span><span class="p">,</span> <span class="n">cwd</span><span class="p">),</span>
-                            <span class="n">protein_ff</span><span class="o">=</span><span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="o">=</span><span class="n">ligand_ff</span><span class="p">))</span>
-
-    <span class="c1"># attempt generating the .top</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Create amber7 topology .top&#39;</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">tleap_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="n">leap_in_test</span><span class="p">],</span>
-                                       <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-                                       <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s1">&#39;ERROR: Testing the topology with tleap broke. Return code: </span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s1"> &#39;</span>
-            <span class="sa">f</span><span class="s1">&#39;ERROR: Ambertools output: </span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="n">stdout</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
-
-    <span class="c1"># save stdout and stderr</span>
-    <span class="nb">open</span><span class="p">(</span><span class="n">cwd</span> <span class="o">/</span> <span class="s1">&#39;tleap_scan_check.log&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span> <span class="o">+</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="s1">&#39;Errors = 0&#39;</span> <span class="ow">in</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">False</span>
-
-    <span class="c1"># extract the missing angles/dihedrals</span>
-    <span class="n">missing_bonds</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="n">missing_angles</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">missing_dihedrals</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
-        <span class="k">if</span> <span class="s2">&quot;Could not find bond parameter for:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-            <span class="n">bond</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-            <span class="n">missing_bonds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="s2">&quot;Could not find angle parameter:&quot;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">or</span> \
-                <span class="s2">&quot;Could not find angle parameter for atom types:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-            <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
-            <span class="n">angle</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">angle</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">missing_angles</span><span class="p">:</span>
-                <span class="n">missing_angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="s2">&quot;No torsion terms for&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-            <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-            <span class="n">torsion</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">torsion</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">missing_dihedrals</span><span class="p">:</span>
-                <span class="n">missing_dihedrals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torsion</span><span class="p">)</span>
-
-    <span class="n">modified_hybrid_frcmod</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s1">_corrected.frcmod&#39;</span>
-    <span class="k">if</span> <span class="n">missing_angles</span> <span class="ow">or</span> <span class="n">missing_dihedrals</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Adding dummy bonds+angles+dihedrals to frcmod to generate .top&#39;</span><span class="p">)</span>
-        <span class="c1"># read the original frcmod</span>
-        <span class="n">frcmod_lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
-        <span class="c1"># overwriting the .frcmod with dummy angles/dihedrals</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">modified_hybrid_frcmod</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">NEW_FRCMOD</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">frcmod_lines</span><span class="p">:</span>
-                <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
-                <span class="k">if</span> <span class="s1">&#39;BOND&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">bond</span>  <span class="ow">in</span> <span class="n">missing_bonds</span><span class="p">:</span>
-                        <span class="n">dummy_bond</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">bond</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">0  180  </span><span class="se">\t\t</span><span class="s1"># Dummy bond</span><span class="se">\n</span><span class="s1">&#39;</span>
-                        <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_bond</span><span class="p">)</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy bond: &quot;</span><span class="si">{</span><span class="n">dummy_bond</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="s1">&#39;ANGLE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">missing_angles</span><span class="p">:</span>
-                        <span class="n">dummy_angle</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">0  120.010  </span><span class="se">\t\t</span><span class="s1"># Dummy angle</span><span class="se">\n</span><span class="s1">&#39;</span>
-                        <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_angle</span><span class="p">)</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy angle: &quot;</span><span class="si">{</span><span class="n">dummy_angle</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="s1">&#39;DIHE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">dihedral</span> <span class="ow">in</span> <span class="n">missing_dihedrals</span><span class="p">:</span>
-                        <span class="n">dummy_dihedral</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">dihedral</span><span class="si">:</span><span class="s1">&lt;14</span><span class="si">}</span><span class="s1">1  0.00  180.000  2.000   </span><span class="se">\t\t</span><span class="s1"># Dummy dihedrals</span><span class="se">\n</span><span class="s1">&#39;</span>
-                        <span class="n">NEW_FRCMOD</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dummy_dihedral</span><span class="p">)</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Added dummy dihedral: &quot;</span><span class="si">{</span><span class="n">dummy_dihedral</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
-
-        <span class="c1"># update our tleap input test to use the corrected file</span>
-        <span class="n">leap_in_test_corrected</span> <span class="o">=</span> <span class="n">cwd</span> <span class="o">/</span> <span class="s1">&#39;leap_test_morph_corrected.in&#39;</span>
-        <span class="nb">open</span><span class="p">(</span><span class="n">leap_in_test_corrected</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">leap_in_conf</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">mol2</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suptop</span><span class="o">.</span><span class="n">mol2</span><span class="p">,</span> <span class="n">cwd</span><span class="p">),</span>
-                            <span class="n">frcmod</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">modified_hybrid_frcmod</span><span class="p">,</span> <span class="n">cwd</span><span class="p">),</span>
-                            <span class="n">protein_ff</span><span class="o">=</span><span class="n">protein_ff</span><span class="p">,</span> <span class="n">ligand_ff</span><span class="o">=</span><span class="n">ligand_ff</span><span class="p">))</span>
-
-        <span class="c1"># verify that adding the dummy angles/dihedrals worked</span>
-        <span class="n">tleap_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="n">leap_in_test_corrected</span><span class="p">],</span>
-                                       <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="s2">&quot;Errors = 0&quot;</span> <span class="ow">in</span> <span class="n">tleap_process</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;ERROR: Could not generate the .top file after adding dummy angles/dihedrals&#39;</span><span class="p">)</span>
-
-
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Morph .frcmod after the insertion of dummy angle/dihedrals: OK&#39;</span><span class="p">)</span>
-    <span class="c1"># set this .frcmod as the correct one now,</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">frcmod_before_correction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">frcmod</span> <span class="o">=</span> <span class="n">modified_hybrid_frcmod</span>
-    <span class="k">return</span> <span class="kc">True</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
 <h2 id="ties.Pair.overlap_fractions" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">overlap_fractions</span>
 
@@ -2504,6 +2246,7 @@ Returns the corrected .frcmod content, otherwise throws an exception.</p>
     3) the percentage of the disappearing atoms in the disappearing molecule
     4) the percentage of the appearing atoms  in the appearing molecule
 :rtype: [float, float, float, float]</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/pair.py</code></summary>

@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.9">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -684,15 +684,6 @@
   <a href="#ties.Ligand.are_atom_names_correct" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;are_atom_names_correct
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ties.Ligand._do_atom_names_have_correct_format" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_do_atom_names_have_correct_format
     </span>
   </a>
   
@@ -1364,15 +1355,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ties.Ligand._do_atom_names_have_correct_format" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;_do_atom_names_have_correct_format
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#ties.Ligand.correct_atom_names" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;correct_atom_names
@@ -1459,6 +1441,7 @@ Specifically, it tracks the different copies of the original input files as it i
 :type config: :class:<code>Config</code>
 :param save: write a file with unique atom names for further inspection
 :type save: bool</p>
+
 
 
 
@@ -1642,6 +1625,7 @@ Specifically, it tracks the different copies of the original input files as it i
 
         <p>Otherwise, key: newName, value: oldName.</p>
 <p>If None, means no renaming took place.</p>
+
     </div>
 
 </div>
@@ -1664,6 +1648,7 @@ Specifically, it tracks the different copies of the original input files as it i
         <p>If the file is not a prep/ac file, this function does not do anything.
 Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p>
 <p>Returns: the name of the original file, or of it was .prepi, a new filename with .mol2</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
@@ -1774,6 +1759,7 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 <li>have a correct format "LettersNumbers" e.g. C17</li>
 </ul>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">113</span>
@@ -1808,112 +1794,6 @@ Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.</p
 <div class="doc doc-object doc-function">
 
 
-<h2 id="ties.Ligand._do_atom_names_have_correct_format" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">_do_atom_names_have_correct_format</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
-  </span>
-
-</h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">_do_atom_names_have_correct_format</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Check if the atom name is followed by a number, e.g. "C15"
-Note that the full atom name cannot be more than 4 characters.
-This is because the PDB format does not allow for more
-characters which can lead to inconsistencies.</p>
-<p>:param names: a list of atom names
-:type names: list[str]
-:return True if they all follow the correct format.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_do_atom_names_have_correct_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Check if the atom name is followed by a number, e.g. &quot;C15&quot;</span>
-<span class="sd">    Note that the full atom name cannot be more than 4 characters.</span>
-<span class="sd">    This is because the PDB format does not allow for more</span>
-<span class="sd">    characters which can lead to inconsistencies.</span>
-
-<span class="sd">    :param names: a list of atom names</span>
-<span class="sd">    :type names: list[str]</span>
-<span class="sd">    :return True if they all follow the correct format.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
-        <span class="c1"># cannot exceed 4 characters</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="c1"># count letters before any digit</span>
-        <span class="n">letter_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">letter</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
-                <span class="k">break</span>
-
-            <span class="n">letter_count</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c1"># at least one character</span>
-        <span class="k">if</span> <span class="n">letter_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="c1"># extrac the number suffix</span>
-        <span class="n">atom_number</span> <span class="o">=</span> <span class="n">name</span><span class="p">[</span><span class="n">letter_count</span><span class="p">:]</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">atom_number</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-    <span class="k">return</span> <span class="kc">True</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
 <h2 id="ties.Ligand.correct_atom_names" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">correct_atom_names</span>
 
@@ -1936,6 +1816,7 @@ characters which can lead to inconsistencies.</p>
 </details>        <p>E.g. C17, NX23</p>
 <p>:param self.save: if the path is provided, the updated file
     will be saved with the unique names and a handle to the new file (ParmEd) will be returned.</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
@@ -2035,6 +1916,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 :type atom_type:
 :param net_charge:
 :type net_charge: int</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
@@ -2175,6 +2057,7 @@ These are not created when BCC charges are computed from scratch.
 They are only created if you reuse existing charges.
 They appear to be a side effect. We remove the dummy atoms therefore.</p>
 
+
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">291</span>
@@ -2248,6 +2131,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
         <p>params
  - parmchk2
  - atom_type</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
@@ -2348,6 +2232,7 @@ They appear to be a side effect. We remove the dummy atoms therefore.</p>
     <div class="doc doc-contents ">
 
         <p>Load coordinates from another file and overwrite the coordinates in the current file.</p>
+
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
