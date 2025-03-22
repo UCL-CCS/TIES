@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import copy
 import shutil
@@ -316,7 +317,7 @@ def get_PBC_coords(pdb_file):
     return (x, y, z)
 
 
-def extract_PBC_oct_from_tleap_log(leap_log):
+def extract_PBC_from_tleap_log(leap_log):
     """
     http://ambermd.org/namd/namd_amber.html
     Return the 9 numbers for the truncated octahedron unit cell in namd
@@ -324,19 +325,37 @@ def extract_PBC_oct_from_tleap_log(leap_log):
     cellBasisVector2  (-1/3)*d (2/3)sqrt(2)*d  0.0
     cellBasisVector3  (-1/3)*d (-1/3)sqrt(2)*d (-1/3)sqrt(6)*d
     """
-    leapl_log_lines = open(leap_log).readlines()
-    line_to_extract = "Total bounding box for atom centers:"
-    line_of_interest = list(filter(lambda l: line_to_extract in l, leapl_log_lines))
-    d1, d2, d3 = line_of_interest[-1].split(line_to_extract)[1].split()
-    d1, d2, d3 = float(d1), float(d2), float(d3)
-    assert d1 == d2 == d3
-    # scale the d since after minimisation the system turns out to be much smaller?
-    d = d1 * 0.8
-    return {
-        'cbv1': d, 'cbv2': 0, 'cbv3': 0,
-        'cbv4': (1/3.0)*d, 'cbv5': (2/3.0)*np.sqrt(2)*d, 'cbv6': 0,
-        'cbv7': (-1/3.0)*d, 'cbv8': (1/3.0)*np.sqrt(2)*d, 'cbv9': (1/3)*np.sqrt(6)*d,
-    }
+
+    leap_log = open(leap_log).read()
+
+    # octahedral box
+    if "> solvateoct" in leap_log:
+        leapl_log_lines = leap_log.split(os.linesep)
+        line_to_extract = "Total bounding box for atom centers:"
+        line_of_interest = list(filter(lambda l: line_to_extract in l, leapl_log_lines))
+        d1, d2, d3 = line_of_interest[-1].split(line_to_extract)[1].split()
+        d1, d2, d3 = float(d1), float(d2), float(d3)
+        assert d1 == d2 == d3
+        # scale the d since after minimisation the system turns out to be much smaller?
+        d = d1 * 0.8
+        return {
+            'cbv1': d, 'cbv2': 0, 'cbv3': 0,
+            'cbv4': (1/3.0)*d, 'cbv5': (2/3.0)*np.sqrt(2)*d, 'cbv6': 0,
+            'cbv7': (-1/3.0)*d, 'cbv8': (1/3.0)*np.sqrt(2)*d, 'cbv9': (1/3)*np.sqrt(6)*d,
+        }
+
+    # rectangular cuboid
+    elif re.search(r"> solvateBox", leap_log, flags=re.RegexFlag.IGNORECASE):
+        dims_str = re.search("Total vdw box size:\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)", leap_log).groups()
+        x, y, z = [float(dim) for dim in dims_str]
+        return {
+            'cbv1': x, 'cbv2': 0, 'cbv3': 0,
+            'cbv4': 0, 'cbv5': y, 'cbv6': 0,
+            'cbv7': 0, 'cbv8': 0, 'cbv9': z,
+        }
+    else:
+        raise NotImplementedError("Only octahedral and regular boxes are implemented atm. ")
+
 
 
 def prepare_antechamber_parmchk2(source_script, target_script, net_charge):

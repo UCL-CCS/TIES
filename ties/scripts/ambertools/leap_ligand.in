@@ -7,7 +7,10 @@ loadamberparams hybrid.frcmod
 sys = loadMol2 hybrid.mol2
 # https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/solvate.html
 # https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/solvate/solvate.html
-solvateoct sys TIP3PBOX 14
+
+# solvateoct sys TIP3PBOX 14
+solvateBox sys TIP3PBOX 14
+
 # fixme - this should be handled appropriately, ie the software won't understand dual topologies
 {NaIons}
 {ClIons}

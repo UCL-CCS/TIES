@@ -523,7 +523,7 @@ class SuperimposedTopology:
         # fixme - check that the protein does not have the same resname?
 
         # calculate PBC for an octahedron
-        solv_oct_boc = ties.generator.extract_PBC_oct_from_tleap_log(build / "leap.log")
+        solv_oct_boc = ties.generator.extract_PBC_from_tleap_log(build / "leap.log")
 
         #Write an config file for TIES_MD
         if protein is not None:
