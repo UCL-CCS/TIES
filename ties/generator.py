@@ -239,7 +239,7 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
     source_sys.save(new_pdb_filename, use_hetatoms=False)  # , file_format='PDB') - fixme?
 
 
-def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
+def correct_fep_tempfactor(suptop, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
     """
     fixme - this function does not need to use the file?
     we have the json information available here.
@@ -249,18 +249,17 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
     Requires by NAMD in order to know which atoms
     appear (1) and which disappear (-1).
     """
-    if hybrid_topology:
-        # delegate correcting fep column in the pdb file
-        return _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename)
 
     pmdpdb = parmed.load_file(str(source_pdb_filename), structure=True)
     if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
         raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
 
+    # the IDs (0-based) in this PDB correspond to the rank in the MOL2 (1-based)
+    id_to_tom = {idx - 1: atom for atom, idx in suptop.internal_ids.items()}
+
     # dual-topology info
-    matched = list(fep_summary['superimposition']['matched'].keys())
-    appearing_atoms = fep_summary['superimposition']['appearing']
-    disappearing_atoms = fep_summary['superimposition']['disappearing']
+    appearing_atoms = suptop.get_appearing_atoms()
+    disappearing_atoms = suptop.get_disappearing_atoms()
 
     # update the Temp column
     for atom in pmdpdb.atoms:
@@ -270,15 +269,18 @@ def correct_fep_tempfactor(fep_summary, source_pdb_filename, new_pdb_filename, h
         if atom.residue.name != 'HYB':
             continue
 
+        # recover the atom (or pair) via the ID
+        internal_atom = id_to_tom[atom.idx]
+
         # if the atom was "matched", meaning present in both ligands (left and right)
         # then ignore
         # note: we only use the left ligand
-        if atom.name in matched:
+        if internal_atom in suptop.matched_pairs:
             continue
-        elif atom.name in appearing_atoms:
+        elif internal_atom in appearing_atoms:
             # appearing atoms should
             atom.bfactor = 1
-        elif atom.name in disappearing_atoms:
+        elif internal_atom in disappearing_atoms:
             atom.bfactor = -1
         else:
             raise Exception('This should never happen. It has to be one of the cases')
