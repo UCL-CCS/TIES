@@ -517,7 +517,7 @@ class SuperimposedTopology:
 
         # generate the merged fep file
         complex_solvated_fep = build / 'complex.pdb'
-        ties.generator.correct_fep_tempfactor(self.morph.suptop.toJSON(), hybrid_solv, complex_solvated_fep,
+        ties.generator.correct_fep_tempfactor(self.morph.suptop, hybrid_solv, complex_solvated_fep,
                                hybrid_topology=self.config.use_hybrid_single_dual_top)
 
         # fixme - check that the protein does not have the same resname?
