@@ -2971,7 +2971,7 @@ def solve_one_combination(one_atom_species, ignore_coords):
 
 
 def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=False, use_element_type=True,
-             exact_coords_cue=False):
+             exact_coords_cue=False, weights=(1, 0.01)):
     """
     Jointly and recursively traverse the molecule while building up the suptop.
 
@@ -3111,7 +3111,8 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                                   suptop=suptop,
                                   ignore_coords=ignore_coords,
                                   use_element_type=use_element_type,
-                                  exact_coords_cue=exact_coords_cue)
+                                  exact_coords_cue=exact_coords_cue,
+                                  weights=weights)
 
         if larger_suptop is not None:
             larger_suptops.append(larger_suptop)
@@ -3143,7 +3144,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
             if sol2 in all_solutions:
                 all_solutions.remove(sol2)
 
-    best_suptop = extract_best_suptop(all_solutions, ignore_coords)
+    best_suptop = extract_best_suptop(all_solutions, ignore_coords, weights=weights)
     return best_suptop
 
 
@@ -3199,7 +3200,7 @@ def superimpose_topologies(top1_nodes,
     if config is None:
         weights = [1, 1]
     else:
-        weights = config.weights
+        weights = config.weights_ratio
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
@@ -3780,7 +3781,8 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
                                     suptop=suptop,
                                     ignore_coords=ignore_coords,
-                                    use_element_type=use_general_type)
+                                    use_element_type=use_general_type,
+                                    weights=weights)
         if candidate_suptop is None:
             # there is no overlap, ignore this case
             continue

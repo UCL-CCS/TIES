@@ -53,7 +53,7 @@ class Config:
         self._use_element_in_superimposition = True
         self.starting_pairs_heuristics = True
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
-        self.weights = [1, 0.5]
+        self.weights_ratio = [1, 0]
 
         # coordinates
         self._align_molecules_using_mcs = False
@@ -572,9 +572,6 @@ class Config:
             return
         if self._ligand_files is None:
             raise ValueError('Wrong use of Config class. Please set the ._ligand_files attribute first. ')
-        elif len(self._ligand_files) != 2:
-            raise ValueError('Error: Too many ligands. '
-                             'Manually matching atom pairs works only with 2 ligands. ')
 
         # TODO
         # pair_format: C1-C7 or C1-C7,C2-C8
