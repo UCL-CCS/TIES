@@ -146,7 +146,7 @@ def command_line_script():
                         type=ArgparseChecker.ratio, required=False, default='1:0.00',
                         help='The weights for the weighted sum of 1) MCS overlap size to 2) RMSD '
                              'when coordinates are used for selection of the best structure. '
-                             'Default it is "1:1" for "MCS:RMSD".  '
+                             'Default it is "1:0" for "MCS:RMSD".  '
                              'MCS is defined (1 - MCS fraction), so lower value is better.')
 
     # initialise the config class
