@@ -2673,23 +2673,17 @@ class SuperimposedTopology:
         """"
             Extract all the important information and return a json string.
         """
-        meta = {}
+        summary = {}
+
         if self.config.unique_atom_names:
             # renamed atoms, new name : old name
-            meta['renamed_atoms'] = {
+            summary['renamed_atoms'] = {
                 'start_ligand': {(a.name, a.id): a.original_name for a in self.top1},
                 'end_ligand': {(a.name, a.id): a.original_name for a in self.top2},
             }
 
-        summary = {
-            # metadata
-            # 'renamed_atoms' : {
-            #     'start_ligand': {a.name: a.original_name for a in self.top1},
-            #     'end_ligand': {a.name: a.original_name for a in self.top2},
-            # },
-
-            # the dual topology information
-            'superimposition': {
+        # the dual topology information
+        summary['superimposition'] = {
                 'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
                 'matched_id': {n1.id: n2.id for n1, n2 in self.matched_pairs},
                 'appearing': list(map(str, self.get_appearing_atoms())),
@@ -2711,10 +2705,10 @@ class SuperimposedTopology:
                     'start_ligand': {a.name: a.charge - a._original_charge for a in self.top1 if a._original_charge != a.charge},
                     'end_ligand': {a.name: a.charge - a._original_charge for a in self.top2 if a._original_charge != a.charge}
                 }
-            },
-            'config': self.config.get_serializable(),
-            'internal': 'atoms' # fixme
-        }
+            }
+        summary['config'] = self.config.get_serializable()
+        summary['internal'] = 'atoms'
+
         return summary
 
 
