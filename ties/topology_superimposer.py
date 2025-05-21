@@ -2673,23 +2673,37 @@ class SuperimposedTopology:
         """"
             Extract all the important information and return a json string.
         """
+        meta = {}
+        if self.config.unique_atom_names:
+            # renamed atoms, new name : old name
+            meta['renamed_atoms'] = {
+                'start_ligand': {(a.name, a.id): a.original_name for a in self.top1},
+                'end_ligand': {(a.name, a.id): a.original_name for a in self.top2},
+            }
+
         summary = {
             # metadata
-            # renamed atoms, new name : old name
-            'renamed_atoms': {
-                'start_ligand': {a.name: a.original_name for a in self.top1},
-                'end_ligand': {a.name: a.original_name for a in self.top2},
-            },
+            # 'renamed_atoms' : {
+            #     'start_ligand': {a.name: a.original_name for a in self.top1},
+            #     'end_ligand': {a.name: a.original_name for a in self.top2},
+            # },
+
             # the dual topology information
             'superimposition': {
                 'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
+                'matched_id': {n1.id: n2.id for n1, n2 in self.matched_pairs},
                 'appearing': list(map(str, self.get_appearing_atoms())),
-                'disappearing': list(map(str, self.get_disappearing_atoms())),
+                'disappearing': [str(a) for a in self.get_disappearing_atoms()],
+                'appearing_id': [a.id for a in self.get_appearing_atoms()],
+                'disappearing_id': [a.id for a in self.get_disappearing_atoms()],
                 'removed': { # because of:
                     # replace atoms with their names
                     'net_charge': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_due_to_net_charge],
+                    'net_charge_id': [((a1.id, a2.id), d) for (a1, a2), d in self._removed_due_to_net_charge],
                     'pair_q': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
-                    'disjointed': [(a1.name, a2.name) for a1, a2 in self._removed_because_disjointed_cc],
+                    'pair_q_id': [((a1.id, a2.id), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
+                    'disjointed': [((a1.name, a2.name), ) for a1, a2 in self._removed_because_disjointed_cc],
+                    'disjointed_id': [((a1.id, a2.id),) for a1, a2 in self._removed_because_disjointed_cc],
                     'bonds': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_diff_bonds],
                     'unmatched_rings': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_unmatched_rings],
                 },
