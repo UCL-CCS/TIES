@@ -37,6 +37,8 @@ class Config:
         self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
         self.vmd_vis_script_sh = self.script_dir / 'vmd' / 'vis_morph.sh'
 
+        self.unique_atom_names = False
+
         self._workdir = None
         self._antechamber_dr = False
         self._ambertools_home = None
