@@ -87,6 +87,14 @@ def command_line_script():
                              'traversal to find the superimposition. '
                              'Example: "C1-C34" where C1 is in the disappearing molecule, '
                              'and C34 is in the appearing molecule. ')
+    parser.add_argument('-heuristic', '--superimposition-starting-heuristic', metavar='number',
+                        dest='superimposition_starting_heuristic',
+                        type=float, required=False, default=0.6,
+                        help='Use heuristic superimposition to decrease the number of searches. '
+                             '0 means that all pairs will be used and heuristics is turned off. '
+                             'The value 0.2 means that 20%% of rare pairs will be used. '
+                             ' All carbons in cycles are ignored. '
+                             'Default: 0.6')
     parser.add_argument('-unmatch', '--manual-unmatch', metavar='file or pair', dest='manually_mismatched_pairs',
                         type=pathlib.Path, required=False,  # fixme - implement
                         help='A path to a file that contains atom-pairs (one per line).'

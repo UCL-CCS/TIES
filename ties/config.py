@@ -71,6 +71,7 @@ class Config:
         self._complex_tleap_in = None
 
         self._superimposition_starting_pair = None
+        self._superimposition_starting_heuristic = 0
 
         self._protein_ff = None
         self._ligand_ff = 'leaprc.gaff'
@@ -554,6 +555,14 @@ class Config:
         else:
             atom_name_disappearing, atom_name_appearing = value.split('-')
             self. _superimposition_starting_pair = (atom_name_disappearing, atom_name_appearing)
+
+    @property
+    def superimposition_starting_heuristic(self):
+        return self._superimposition_starting_heuristic
+
+    @superimposition_starting_heuristic.setter
+    def superimposition_starting_heuristic(self, value):
+        self._superimposition_starting_heuristic = value
 
     @property
     def manually_matched_atom_pairs(self):
