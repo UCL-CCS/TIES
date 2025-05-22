@@ -2623,7 +2623,8 @@ The settings can be overridden later in the actual classes.</p>
 <span class="normal"> 97</span>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
-<span class="normal">100</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="c1"># set the path to the scripts</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">code_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
@@ -2670,6 +2671,7 @@ The settings can be overridden later in the actual classes.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_complex_tleap_in</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_superimposition_starting_pair</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_superimposition_starting_heuristic</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_protein_ff</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ligand_ff</span> <span class="o">=</span> <span class="s1">&#39;leaprc.gaff&#39;</span>
@@ -3713,16 +3715,7 @@ the different charge distribution.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">859</span>
-<span class="normal">860</span>
-<span class="normal">861</span>
-<span class="normal">862</span>
-<span class="normal">863</span>
-<span class="normal">864</span>
-<span class="normal">865</span>
-<span class="normal">866</span>
-<span class="normal">867</span>
-<span class="normal">868</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">868</span>
 <span class="normal">869</span>
 <span class="normal">870</span>
 <span class="normal">871</span>
@@ -3733,7 +3726,16 @@ the different charge distribution.</p>
 <span class="normal">876</span>
 <span class="normal">877</span>
 <span class="normal">878</span>
-<span class="normal">879</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">879</span>
+<span class="normal">880</span>
+<span class="normal">881</span>
+<span class="normal">882</span>
+<span class="normal">883</span>
+<span class="normal">884</span>
+<span class="normal">885</span>
+<span class="normal">886</span>
+<span class="normal">887</span>
+<span class="normal">888</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_element_map</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
@@ -3784,16 +3786,7 @@ specific information such as the charge changes etc.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">885</span>
-<span class="normal">886</span>
-<span class="normal">887</span>
-<span class="normal">888</span>
-<span class="normal">889</span>
-<span class="normal">890</span>
-<span class="normal">891</span>
-<span class="normal">892</span>
-<span class="normal">893</span>
-<span class="normal">894</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">894</span>
 <span class="normal">895</span>
 <span class="normal">896</span>
 <span class="normal">897</span>
@@ -3821,7 +3814,16 @@ specific information such as the charge changes etc.</p>
 <span class="normal">919</span>
 <span class="normal">920</span>
 <span class="normal">921</span>
-<span class="normal">922</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a JSON serializable structure of the config.</span>
 
