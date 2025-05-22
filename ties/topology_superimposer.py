@@ -3177,7 +3177,7 @@ def superimpose_topologies(top1_nodes,
                            use_general_type=True,
                            use_only_element=False,
                            check_atom_names_unique=True,
-                           starting_pairs_heuristics=True,
+                           starting_pairs_heuristics=0.2,
                            starting_pair_seed=None,
                            logging_key=None,
                            config=None):
@@ -3662,9 +3662,11 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
         @parameter filter_ring_c: filter out the carbon elements in the rings to avoid any issues
             with the symmetry. This assumes that a ring usually has one N element, etc.
 
-    TODO - ignore hydrogens?
+
     """
     logger.debug('Superimposition: optimising the search by narrowing down the starting configuration. ')
+
+    # ignore hydrogens
     left_atoms_noh = list(filter(lambda a: a.element != 'H', left_atoms))
     right_atoms_noh = list(filter(lambda a: a.element != 'H', right_atoms))
 
@@ -3748,7 +3750,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                             starting_node_pairs=None,
                             ignore_coords=False,
                             use_general_type=True,
-                            starting_pairs_heuristics=True,
+                            starting_pairs_heuristics: float = 0,
                             starting_pair_seed=None,
                             weights=[1, 1]):
     """
@@ -3768,19 +3770,19 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     # - Proposal 1: find junctions and use them to start the search
     # - Analyse components of the graph (ie rotatable due to a single bond connection) and
     #   pick a starting point from each component
-    if not starting_node_pairs:
+    if starting_node_pairs is None or len(starting_node_pairs) == 0:
         # generate each to each nodes
         if starting_pair_seed:
             left_atom = [a for a in list(top1_nodes) if a.name == starting_pair_seed[0]][0]
             right_atom = [a for a in list(top2_nodes) if a.name == starting_pair_seed[1]][0]
             starting_node_pairs = [(left_atom, right_atom), ]
-        elif starting_pairs_heuristics:
-            starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes)
-            logger.debug('Using heuristics to select the initial pairs for searching the maximum overlap.'
-                  'Could produce non-optimal results.')
-        else:
+        elif starting_pairs_heuristics == 0:
+            logger.debug('Heuristics is off. All pairs will be searched. ')
             starting_node_pairs = list(itertools.product(top1_nodes, top2_nodes))
-            logger.debug('Checking all possible initial pairs to find the optimal MCS. ')
+        else:
+            starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes, fraction=starting_pairs_heuristics)
+            logger.debug('Using heuristics to select the initial pairs for searching the maximum overlap.'
+                  f'Could produce non-optimal results. Using pairs: {starting_node_pairs}')
 
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component
