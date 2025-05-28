@@ -2842,18 +2842,27 @@ def merge_compatible_suptops_faster(pairing_suptop: Dict, min_bonds: int):
     # any to any
     all_pairings = list(itertools.combinations(pairing_suptop.keys(), r=min_bonds))
 
-    selected_pairings = []
-    for pairings in all_pairings:
-        n = set()
-        for pairing in pairings:
-            n.add(pairing[0])
-            n.add(pairing[1])
-        #
-        if 2 * len(pairings) == len(n):
-            selected_pairings.append(pairings)
+    if min_bonds == 3:
+        all_pairings += list(itertools.combinations(pairing_suptop.keys(), r=2))
+    selected_pairings = all_pairings
+
+    # selected_pairings = []
+    # for pairings in all_pairings:
+    #     n = set()
+    #     for pairing in pairings:
+    #         n.add(pairing[0])
+    #         n.add(pairing[1])
+    #     #
+    #     if 2 * len(pairings) == len(n):
+    #         selected_pairings.append(pairings)
+
+    # start with all the suptops as starting points
+    # this is because it might be impossible to merge
+    # any of the paths
+    # in which case the default paths will be the best
+    built_topologies = list(pairing_suptop.values())
 
     # attempt to combine the different traversals
-    built_topologies = []
     for mapping in selected_pairings:
         # mapping the different bonds to different bonds
 
