@@ -3359,7 +3359,7 @@ def superimpose_topologies(top1_nodes,
         [st.largest_cc_survives() for st in suptops]
 
         for st in suptops:
-            logger.debug('Removed disjoint components: ', st._removed_because_disjointed_cc)
+            logger.debug(f'Removed disjoint components: {st._removed_because_disjointed_cc}')
 
         # fixme
         # remove the smaller suptop, or one arbitrary if they are equivalent
