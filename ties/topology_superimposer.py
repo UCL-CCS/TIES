@@ -3761,7 +3761,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                             use_general_type=True,
                             starting_pairs_heuristics: float = 0,
                             starting_pair_seed=None,
-                            weights=[1, 1]):
+                            weights=[1, 0]):
     """
     Superimpose two molecules.
 
