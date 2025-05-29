@@ -8870,7 +8870,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
         <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">largest_cc_survives</span><span class="p">()</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">suptops</span><span class="p">]</span>
 
         <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">suptops</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Removed disjoint components: &#39;</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">_removed_because_disjointed_cc</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Removed disjoint components: </span><span class="si">{</span><span class="n">st</span><span class="o">.</span><span class="n">_removed_because_disjointed_cc</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
         <span class="c1"># fixme</span>
         <span class="c1"># remove the smaller suptop, or one arbitrary if they are equivalent</span>
