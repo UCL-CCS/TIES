@@ -70,6 +70,12 @@ jobs:
           cd ties/examples/mol2_2ligands_MCL1
           python3 api.py
 
+      - name: Run problem with the kink issue
+        shell: bash -l {0}
+        run: |
+          cd ties/examples/large_alch
+          python3 run.py
+
       - name: CMD hybrid
         shell: bash -l {0}
         run: |
