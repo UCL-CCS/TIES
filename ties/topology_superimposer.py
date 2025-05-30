@@ -3372,7 +3372,7 @@ def superimpose_topologies(top1_nodes,
     if len(suptops) == 0:
         return None
 
-    suptop = extract_best_suptop(suptops, ignore_coords, get_list=False)
+    suptop = extract_best_suptop(suptops, ignore_coords, weights=weights, get_list=False)
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
         # assume that none of the suptops are disjointed
@@ -3422,7 +3422,7 @@ def calculate_rmsd(atom_pairs):
     return np.sqrt(np.mean(((np.array(deviations)) ** 2)))
 
 
-def extract_best_suptop(suptops, ignore_coords, weights=[1, 1], get_list=False):
+def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
     """
     Assumes that any merging possible already took place.
     We now have a set of solutions and have to select the best ones.
@@ -3552,9 +3552,11 @@ def exists_in(candidate_suptop, suptops):
     return False
 
 
-def is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
+def is_mirror_of_one(candidate_suptop, suptops, ignore_coords, extract_weight_ratio):
     """
     "Mirror" in the sense that it is an alternative topological way to traverse the molecule.
+
+    extract_weight_ratio: refers to the extract_best_suptop function parameter
 
     Depending on the "better" fit between the two mirrors, we pick the one that is better.
     """
@@ -3562,7 +3564,7 @@ def is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
         if next_suptop.is_mirror_of(candidate_suptop):
             # the suptop saved as the mirror should be the suptop
             # that is judged to be of a lower quality
-            best_suptop = extract_best_suptop([candidate_suptop, next_suptop], ignore_coords)
+            best_suptop = extract_best_suptop([candidate_suptop, next_suptop], ignore_coords, weights=extract_weight_ratio)
 
             if next_suptop is best_suptop:
                 next_suptop.add_mirror_suptop(candidate_suptop)
@@ -3818,7 +3820,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
         # check if this superimposed topology is a mirror of one that already exists
         # fixme the order matters in this place
         # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
-        if is_mirror_of_one(candidate_suptop, suptops, ignore_coords):
+        if is_mirror_of_one(candidate_suptop, suptops, ignore_coords, weights):
             continue
 
         #
