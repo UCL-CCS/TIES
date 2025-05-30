@@ -8736,7 +8736,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
                                       <span class="n">ignore_coords</span><span class="o">=</span><span class="n">ignore_coords</span><span class="p">,</span>
                                       <span class="n">use_general_type</span><span class="o">=</span><span class="n">use_general_type</span><span class="p">,</span>
                                       <span class="n">starting_pairs_heuristics</span><span class="o">=</span><span class="n">starting_pairs_heuristics</span><span class="p">,</span>
-                                      <span class="n">starting_pair_seed</span><span class="o">=</span><span class="n">starting_pair_seed</span><span class="p">,</span>
+                                      <span class="n">starting_pairs</span><span class="o">=</span><span class="n">starting_pair_seed</span><span class="p">,</span>
                                       <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">suptops</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Did not find a single superimposition state.&#39;</span><span class="p">)</span>
@@ -9478,11 +9478,7 @@ Use:
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4101</span>
-<span class="normal">4102</span>
-<span class="normal">4103</span>
-<span class="normal">4104</span>
-<span class="normal">4105</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4105</span>
 <span class="normal">4106</span>
 <span class="normal">4107</span>
 <span class="normal">4108</span>
@@ -9524,7 +9520,11 @@ Use:
 <span class="normal">4144</span>
 <span class="normal">4145</span>
 <span class="normal">4146</span>
-<span class="normal">4147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_mol2</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">4147</span>
+<span class="normal">4148</span>
+<span class="normal">4149</span>
+<span class="normal">4150</span>
+<span class="normal">4151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_mol2</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use Parmed to load the files.</span>
 
@@ -9599,11 +9599,7 @@ and overwrite the coordinates from ParmEd.
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4150</span>
-<span class="normal">4151</span>
-<span class="normal">4152</span>
-<span class="normal">4153</span>
-<span class="normal">4154</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4154</span>
 <span class="normal">4155</span>
 <span class="normal">4156</span>
 <span class="normal">4157</span>
@@ -9619,7 +9615,11 @@ and overwrite the coordinates from ParmEd.
 <span class="normal">4167</span>
 <span class="normal">4168</span>
 <span class="normal">4169</span>
-<span class="normal">4170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
+<span class="normal">4170</span>
+<span class="normal">4171</span>
+<span class="normal">4172</span>
+<span class="normal">4173</span>
+<span class="normal">4174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Match the atoms from the ParmEd object based on a .pdb file</span>
 <span class="sd">    and overwrite the coordinates from ParmEd.</span>
