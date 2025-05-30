@@ -3225,7 +3225,7 @@ def superimpose_topologies(top1_nodes,
                                       ignore_coords=ignore_coords,
                                       use_general_type=use_general_type,
                                       starting_pairs_heuristics=starting_pairs_heuristics,
-                                      starting_pair_seed=starting_pair_seed,
+                                      starting_pairs=starting_pair_seed,
                                       weights=weights)
     if not suptops:
         warnings.warn('Did not find a single superimposition state.')
@@ -3760,7 +3760,7 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                             ignore_coords=False,
                             use_general_type=True,
                             starting_pairs_heuristics: float = 0,
-                            starting_pair_seed=None,
+                            starting_pairs=None,
                             weights=[1, 0]):
     """
     Superimpose two molecules.
@@ -3781,17 +3781,21 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     #   pick a starting point from each component
     if starting_node_pairs is None or len(starting_node_pairs) == 0:
         # generate each to each nodes
-        if starting_pair_seed:
-            left_atom = [a for a in list(top1_nodes) if a.name == starting_pair_seed[0]][0]
-            right_atom = [a for a in list(top2_nodes) if a.name == starting_pair_seed[1]][0]
-            starting_node_pairs = [(left_atom, right_atom), ]
+        if starting_pairs:
+            starting_node_pairs = []
+            for dis_atom, app_atom in starting_pairs:
+                left_atom = [a for a in list(top1_nodes) if a.name == dis_atom][0]
+                right_atom = [a for a in list(top2_nodes) if a.name == app_atom][0]
+                starting_node_pairs.append((left_atom, right_atom))
         elif starting_pairs_heuristics == 0:
             logger.debug('Heuristics is off. All pairs will be searched. ')
             starting_node_pairs = list(itertools.product(top1_nodes, top2_nodes))
         else:
             starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes, fraction=starting_pairs_heuristics)
             logger.debug('Using heuristics to select the initial pairs for searching the maximum overlap.'
-                  f'Could produce non-optimal results. Using pairs: {starting_node_pairs}')
+                  f'Could produce non-optimal results. ')
+
+    logger.debug(f"Seed Pairs: {starting_node_pairs}")
 
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component

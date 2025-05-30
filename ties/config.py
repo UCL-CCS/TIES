@@ -70,7 +70,7 @@ class Config:
         self._ligand_tleap_in = None
         self._complex_tleap_in = None
 
-        self._superimposition_starting_pair = None
+        self._superimposition_starting_pairs = None
         self._superimposition_starting_heuristic = 0
 
         self._protein_ff = None
@@ -539,22 +539,25 @@ class Config:
         self._ligands_contain_q = boolean
 
     @property
-    def superimposition_starting_pair(self):
+    def superimposition_starting_pairs(self):
         """
         Set a starting pair for the superimposition to narrow down the MCS search.
         E.g. "C2-C12"
 
         :rtype: str
         """
-        return self._superimposition_starting_pair
+        return self._superimposition_starting_pairs
 
-    @superimposition_starting_pair.setter
-    def superimposition_starting_pair(self, value):
+    @superimposition_starting_pairs.setter
+    def superimposition_starting_pairs(self, value):
+
         if value == None:
-            self._superimposition_starting_pair = None
-        else:
-            atom_name_disappearing, atom_name_appearing = value.split('-')
-            self. _superimposition_starting_pair = (atom_name_disappearing, atom_name_appearing)
+            self._superimposition_starting_pairs = None
+            return
+
+        # split the different starting pairs
+        pairs = value.split(";")
+        self. _superimposition_starting_pairs = [pair.split("-") for pair in pairs]
 
     @property
     def superimposition_starting_heuristic(self):
