@@ -162,26 +162,26 @@ class Pair():
 
         # fixme - simplify to only take the ParmEd as input
         suptop = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                         disjoint_components=self.config.allow_disjoint_components,
-                                         net_charge_filter=True,
-                                         pair_charge_atol=self.config.atom_pair_q_atol,
-                                         net_charge_threshold=self.config.net_charge_threshold,
-                                         redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
-                                         ignore_charges_completely=self.config.ignore_charges_completely,
-                                         ignore_bond_types=True,
-                                         ignore_coords=False,
-                                         align_molecules=self.config.align_molecules_using_mcs,
-                                         use_general_type=self.config.use_element_in_superimposition,
-                                         # fixme - not the same ... use_element_in_superimposition,
-                                         use_only_element=False,
-                                         check_atom_names_unique=True,  # fixme - remove?
-                                         starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
-                                         force_mismatch=new_mismatch_names,
-                                         starting_node_pairs=starting_node_pairs,
-                                         parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
-                                         starting_pair_seed=self.config.superimposition_starting_pair,
-                                         logging_key=logging_key,
-                                         config=self.config)
+                                        disjoint_components=self.config.allow_disjoint_components,
+                                        net_charge_filter=True,
+                                        pair_charge_atol=self.config.atom_pair_q_atol,
+                                        net_charge_threshold=self.config.net_charge_threshold,
+                                        redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
+                                        ignore_charges_completely=self.config.ignore_charges_completely,
+                                        ignore_bond_types=True,
+                                        ignore_coords=False,
+                                        align_molecules=self.config.align_molecules_using_mcs,
+                                        use_general_type=self.config.use_element_in_superimposition,
+                                        # fixme - not the same ... use_element_in_superimposition,
+                                        use_only_element=False,
+                                        check_atom_names_unique=True,  # fixme - remove?
+                                        starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
+                                        force_mismatch=new_mismatch_names,
+                                        starting_node_pairs=starting_node_pairs,
+                                        parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
+                                        starting_pair_seed=self.config.superimposition_starting_pairs,
+                                        logging_key=logging_key,
+                                        config=self.config)
 
         self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop

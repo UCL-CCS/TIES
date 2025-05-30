@@ -79,13 +79,13 @@ def command_line_script():
                         help='A path to a file that contains atom-pairs (one per line).'
                              'Each pair should be separated by dash "-" character.'
                              'For example a line with CL2-BR2 means that CL2 atom will be transformed to BR2 atom.')
-    parser.add_argument('-supseed', '--superimposition-starting-pair', metavar='pair',
-                        dest='superimposition_starting_pair',
+    parser.add_argument('-seeds', '--superimposition-starting-pairs', metavar='pairs',
+                        dest='superimposition_starting_pairs',
                         type=str, required=False,
                         help='A starting seed for the superimposition. '
-                             'This is the pair from which the superimposition algorithm will start the '
+                             'The semi-colon delimited pairs from which the superimposition algorithm will start the '
                              'traversal to find the superimposition. '
-                             'Example: "C1-C34" where C1 is in the disappearing molecule, '
+                             'Example with 2 pairs: "C1-C34;C2-C35" where C1 is in the disappearing molecule, '
                              'and C34 is in the appearing molecule. ')
     parser.add_argument('-heuristic', '--superimposition-starting-heuristic', metavar='number',
                         dest='superimposition_starting_heuristic',
