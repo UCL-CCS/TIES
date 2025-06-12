@@ -121,7 +121,7 @@ class Ligand:
 
         are_uniqe = len(set(atom_names)) == len(atom_names)
 
-        return are_uniqe and self._do_atom_names_have_correct_format(atom_names)
+        return are_uniqe
 
     @staticmethod
     def _do_atom_names_have_correct_format(names):
