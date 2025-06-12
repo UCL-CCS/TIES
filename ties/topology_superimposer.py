@@ -3045,7 +3045,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         logger.debug('Found a cycle spanning multiple cycles')
         return None
 
-    logger.debug(f"Adding {(n1, n2)} to suptop.matched_pairs")
+    # logger.debug(f"Adding {(n1, n2)} to suptop.matched_pairs")
 
     # all looks good, create a new copy for this suptop
     suptop = copy.copy(suptop)
@@ -3111,8 +3111,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         # fixme - ideally we would allow other typing than just the chemical element
         if n1_bond.atom.element is not n2_bond.atom.element:
             continue
-
-        logger.debug(f'sampling {n1_bond}, {n2_bond}')
 
         # create a copy of the sup_top to allow for different traversals
         # fixme: note that you could just send bonds, and that would have both parent etc with a bit of work
