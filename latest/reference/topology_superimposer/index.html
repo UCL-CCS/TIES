@@ -5666,13 +5666,13 @@ the matched pairs.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1305</span>
-<span class="normal">1306</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1306</span>
 <span class="normal">1307</span>
 <span class="normal">1308</span>
 <span class="normal">1309</span>
 <span class="normal">1310</span>
-<span class="normal">1311</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_net_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1311</span>
+<span class="normal">1312</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_net_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate the net charge difference across</span>
 <span class="sd">    the matched pairs.</span>
@@ -5704,13 +5704,13 @@ sorted in the descending order (the first pair has the largest q diff).</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1313</span>
-<span class="normal">1314</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1314</span>
 <span class="normal">1315</span>
 <span class="normal">1316</span>
 <span class="normal">1317</span>
 <span class="normal">1318</span>
-<span class="normal">1319</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_matched_with_diff_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1319</span>
+<span class="normal">1320</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_matched_with_diff_q</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a list of matched atom pairs that have a different q,</span>
 <span class="sd">    sorted in the descending order (the first pair has the largest q diff).</span>
@@ -5748,8 +5748,7 @@ can create disjoint blocks which creates issues in themselves.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1321</span>
-<span class="normal">1322</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1322</span>
 <span class="normal">1323</span>
 <span class="normal">1324</span>
 <span class="normal">1325</span>
@@ -5871,7 +5870,6 @@ can create disjoint blocks which creates issues in themselves.</p>
 
     <span class="c1"># apply the best strategy to this suptop</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Pair removal strategy (q net tol): </span><span class="si">{</span><span class="n">best_approach</span><span class="si">}</span><span class="s1"> with disjoint CC removed at each step: </span><span class="si">{</span><span class="n">rm_disjoint_each_step_conf</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;To meet q net tol: </span><span class="si">{</span><span class="n">best_approach</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="n">total_diff</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">rm_disjoint_each_step_conf</span><span class="p">:</span>
@@ -5945,8 +5943,7 @@ they have to be attached to node_pairB, as a rule of being a match.</p>
 <span class="normal">1558</span>
 <span class="normal">1559</span>
 <span class="normal">1560</span>
-<span class="normal">1561</span>
-<span class="normal">1562</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_attached_hydrogens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_pair</span><span class="p">):</span>
+<span class="normal">1561</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_attached_hydrogens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_pair</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The node_pair to which these hydrogens are attached was removed.</span>
 <span class="sd">    Remove the dangling hydrogens.</span>
@@ -5959,7 +5956,6 @@ they have to be attached to node_pairB, as a rule of being a match.</p>
 
     <span class="c1"># skip if no hydrogens found</span>
     <span class="k">if</span> <span class="n">node_pair</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_pairs_bonds</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;No dangling hydrogens&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[]</span>
 
     <span class="n">attached_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matched_pairs_bonds</span><span class="p">[</span><span class="n">node_pair</span><span class="p">]</span>
@@ -6001,7 +5997,8 @@ the atoms better.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1564</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1563</span>
+<span class="normal">1564</span>
 <span class="normal">1565</span>
 <span class="normal">1566</span>
 <span class="normal">1567</span>
@@ -6020,8 +6017,7 @@ the atoms better.</p>
 <span class="normal">1580</span>
 <span class="normal">1581</span>
 <span class="normal">1582</span>
-<span class="normal">1583</span>
-<span class="normal">1584</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_lowest_rmsd_mirror</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1583</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_lowest_rmsd_mirror</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Walk through the different mirrors and out of all options select the one</span>
 <span class="sd">    that has the lowest RMSD. This way we increase the chance of getting a better match.</span>
@@ -6067,7 +6063,8 @@ the atoms better.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1586</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1585</span>
+<span class="normal">1586</span>
 <span class="normal">1587</span>
 <span class="normal">1588</span>
 <span class="normal">1589</span>
@@ -6075,8 +6072,7 @@ the atoms better.</p>
 <span class="normal">1591</span>
 <span class="normal">1592</span>
 <span class="normal">1593</span>
-<span class="normal">1594</span>
-<span class="normal">1595</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_subgraph_of_global_top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1594</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_subgraph_of_global_top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check if after superimposition, one graph is a subgraph of another</span>
 <span class="sd">    :return:</span>
@@ -6110,7 +6106,8 @@ the atoms better.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1597</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1596</span>
+<span class="normal">1597</span>
 <span class="normal">1598</span>
 <span class="normal">1599</span>
 <span class="normal">1600</span>
@@ -6120,8 +6117,7 @@ the atoms better.</p>
 <span class="normal">1604</span>
 <span class="normal">1605</span>
 <span class="normal">1606</span>
-<span class="normal">1607</span>
-<span class="normal">1608</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">rmsd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1607</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">rmsd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    For each pair take the distance, and then get rmsd, so root(mean(square(deviation)))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -6157,7 +6153,8 @@ the atoms better.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1637</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1636</span>
+<span class="normal">1637</span>
 <span class="normal">1638</span>
 <span class="normal">1639</span>
 <span class="normal">1640</span>
@@ -6168,8 +6165,7 @@ the atoms better.</p>
 <span class="normal">1645</span>
 <span class="normal">1646</span>
 <span class="normal">1647</span>
-<span class="normal">1648</span>
-<span class="normal">1649</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">link_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_pair</span><span class="p">,</span> <span class="n">pairs</span><span class="p">):</span>
+<span class="normal">1648</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">link_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_pair</span><span class="p">,</span> <span class="n">pairs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This helps take care of the bonds.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -6208,7 +6204,8 @@ the atoms better.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1695</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1694</span>
+<span class="normal">1695</span>
 <span class="normal">1696</span>
 <span class="normal">1697</span>
 <span class="normal">1698</span>
@@ -6226,8 +6223,7 @@ the atoms better.</p>
 <span class="normal">1710</span>
 <span class="normal">1711</span>
 <span class="normal">1712</span>
-<span class="normal">1713</span>
-<span class="normal">1714</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_mirror_choices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1713</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_mirror_choices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    For each pair (A1, B1) find all the other options in the mirrors where (A1, B2)</span>
 <span class="sd">    # ie Ignore (X, B1) search, if we repair from A to B, then B to A should be repaired too</span>
@@ -6272,12 +6268,12 @@ but that the self is better (e.g. lower rmsd) than the other one</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1716</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1715</span>
+<span class="normal">1716</span>
 <span class="normal">1717</span>
 <span class="normal">1718</span>
 <span class="normal">1719</span>
-<span class="normal">1720</span>
-<span class="normal">1721</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_alternative_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weird_symmetry</span><span class="p">):</span>
+<span class="normal">1720</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_alternative_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weird_symmetry</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This means that there is another way to traverse and overlap the two molecules,</span>
 <span class="sd">    but that the self is better (e.g. lower rmsd) than the other one</span>
@@ -6310,7 +6306,8 @@ whereas all the mirrors represent the other poor matches.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1723</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1722</span>
+<span class="normal">1723</span>
 <span class="normal">1724</span>
 <span class="normal">1725</span>
 <span class="normal">1726</span>
@@ -6401,8 +6398,7 @@ whereas all the mirrors represent the other poor matches.</p>
 <span class="normal">1811</span>
 <span class="normal">1812</span>
 <span class="normal">1813</span>
-<span class="normal">1814</span>
-<span class="normal">1815</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_for_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1814</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_for_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use the coordinates of the atoms, to figure out which symmetries are the correct ones.</span>
 <span class="sd">    Rearrange so that the overall topology represents the one that has appropriate coordinates,</span>
@@ -6524,7 +6520,8 @@ therefore cascading removing further rings.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1828</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1827</span>
+<span class="normal">1828</span>
 <span class="normal">1829</span>
 <span class="normal">1830</span>
 <span class="normal">1831</span>
@@ -6578,8 +6575,7 @@ therefore cascading removing further rings.</p>
 <span class="normal">1879</span>
 <span class="normal">1880</span>
 <span class="normal">1881</span>
-<span class="normal">1882</span>
-<span class="normal">1883</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">enforce_no_partial_rings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1882</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">enforce_no_partial_rings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    http://www.alchemistry.org/wiki/Constructing_a_Pathway_of_Intermediate_States</span>
 <span class="sd">    It is the opening or closing of the rings that is an issue.</span>
@@ -6681,7 +6677,8 @@ that</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1924</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1923</span>
+<span class="normal">1924</span>
 <span class="normal">1925</span>
 <span class="normal">1926</span>
 <span class="normal">1927</span>
@@ -6741,8 +6738,7 @@ that</p>
 <span class="normal">1981</span>
 <span class="normal">1982</span>
 <span class="normal">1983</span>
-<span class="normal">1984</span>
-<span class="normal">1985</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_topology_similarity_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1984</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_topology_similarity_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Having the superimposed A(Left) and B(Right), score the match.</span>
 <span class="sd">    This is a rather naive approach. It compares A-B match by checking</span>
@@ -6830,7 +6826,8 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1987</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1986</span>
+<span class="normal">1987</span>
 <span class="normal">1988</span>
 <span class="normal">1989</span>
 <span class="normal">1990</span>
@@ -6860,8 +6857,7 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 <span class="normal">2014</span>
 <span class="normal">2015</span>
 <span class="normal">2016</span>
-<span class="normal">2017</span>
-<span class="normal">2018</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unmatch_pairs_with_different_charges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atol</span><span class="p">):</span>
+<span class="normal">2017</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unmatch_pairs_with_different_charges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Removes the matched pairs where atom charges are more different</span>
 <span class="sd">    than the provided absolute tolerance atol (units in Electrons).</span>
@@ -6928,7 +6924,8 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2044</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2043</span>
+<span class="normal">2044</span>
 <span class="normal">2045</span>
 <span class="normal">2046</span>
 <span class="normal">2047</span>
@@ -6952,8 +6949,7 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 <span class="normal">2065</span>
 <span class="normal">2066</span>
 <span class="normal">2067</span>
-<span class="normal">2068</span>
-<span class="normal">2069</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_consistent_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">):</span>
+<span class="normal">2068</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_consistent_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conditions:</span>
 <span class="sd">        - There should be a minimal overlap of at least 1 node.</span>
@@ -7003,14 +6999,14 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2191</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2190</span>
+<span class="normal">2191</span>
 <span class="normal">2192</span>
 <span class="normal">2193</span>
 <span class="normal">2194</span>
 <span class="normal">2195</span>
 <span class="normal">2196</span>
-<span class="normal">2197</span>
-<span class="normal">2198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_circles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">2197</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_circles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return circles found in the matched pairs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -7042,7 +7038,8 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2200</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2199</span>
+<span class="normal">2200</span>
 <span class="normal">2201</span>
 <span class="normal">2202</span>
 <span class="normal">2203</span>
@@ -7051,8 +7048,7 @@ than the provided absolute tolerance atol (units in Electrons).</p>
 <span class="normal">2206</span>
 <span class="normal">2207</span>
 <span class="normal">2208</span>
-<span class="normal">2209</span>
-<span class="normal">2210</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_original_circles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">2209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_original_circles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the original circles present in the input topologies.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -7089,7 +7085,8 @@ fixme - could this lead to a special case?</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2241</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2240</span>
+<span class="normal">2241</span>
 <span class="normal">2242</span>
 <span class="normal">2243</span>
 <span class="normal">2244</span>
@@ -7120,8 +7117,7 @@ fixme - could this lead to a special case?</p>
 <span class="normal">2269</span>
 <span class="normal">2270</span>
 <span class="normal">2271</span>
-<span class="normal">2272</span>
-<span class="normal">2273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cycle_spans_multiple_cycles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">2272</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cycle_spans_multiple_cycles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># This filter checks whether a newly created suptop cycle spans multiple cycles</span>
     <span class="c1"># this is one of the filters (#106)</span>
     <span class="c1"># fixme - should this be applied whenever we work with more than 1 cycle?</span>
@@ -7180,7 +7176,8 @@ in the current sup top.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2284</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2283</span>
+<span class="normal">2284</span>
 <span class="normal">2285</span>
 <span class="normal">2286</span>
 <span class="normal">2287</span>
@@ -7214,8 +7211,7 @@ in the current sup top.</p>
 <span class="normal">2315</span>
 <span class="normal">2316</span>
 <span class="normal">2317</span>
-<span class="normal">2318</span>
-<span class="normal">2319</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">):</span>
+<span class="normal">2318</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suptop</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Absorb the other suptop by adding all the node pairs that are not present</span>
 <span class="sd">    in the current sup top.</span>
@@ -7281,7 +7277,8 @@ in the current sup top.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2321</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2320</span>
+<span class="normal">2321</span>
 <span class="normal">2322</span>
 <span class="normal">2323</span>
 <span class="normal">2324</span>
@@ -7300,8 +7297,7 @@ in the current sup top.</p>
 <span class="normal">2337</span>
 <span class="normal">2338</span>
 <span class="normal">2339</span>
-<span class="normal">2340</span>
-<span class="normal">2341</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">2340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_charges</span><span class="p">(</span><span class="n">atom_list_l</span><span class="p">,</span> <span class="n">atom_list_right</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check the original charges:</span>
@@ -7353,7 +7349,8 @@ ie at the end of anything that could modify the atom pairing.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2343</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2342</span>
+<span class="normal">2343</span>
 <span class="normal">2344</span>
 <span class="normal">2345</span>
 <span class="normal">2346</span>
@@ -7446,8 +7443,7 @@ ie at the end of anything that could modify the atom pairing.</p>
 <span class="normal">2433</span>
 <span class="normal">2434</span>
 <span class="normal">2435</span>
-<span class="normal">2436</span>
-<span class="normal">2437</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redistribute_charges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">2436</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">redistribute_charges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    After the match is made and the user commits to the superimposed topology,</span>
 <span class="sd">    the charges can be revised.</span>
@@ -7566,14 +7562,14 @@ ie at the end of anything that could modify the atom pairing.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2510</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2509</span>
+<span class="normal">2510</span>
 <span class="normal">2511</span>
 <span class="normal">2512</span>
 <span class="normal">2513</span>
 <span class="normal">2514</span>
 <span class="normal">2515</span>
-<span class="normal">2516</span>
-<span class="normal">2517</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">contains_same_atoms_symmetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
+<span class="normal">2516</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">contains_same_atoms_symmetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The atoms can be paired differently, but they are the same.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -7606,7 +7602,8 @@ Or if any mirror topology is a subgraph.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2559</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2558</span>
+<span class="normal">2559</span>
 <span class="normal">2560</span>
 <span class="normal">2561</span>
 <span class="normal">2562</span>
@@ -7624,8 +7621,7 @@ Or if any mirror topology is a subgraph.</p>
 <span class="normal">2574</span>
 <span class="normal">2575</span>
 <span class="normal">2576</span>
-<span class="normal">2577</span>
-<span class="normal">2578</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_subgraph_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
+<span class="normal">2577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_subgraph_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if this superimposed topology is a subgraph of another superimposed topology.</span>
 <span class="sd">    Or if any mirror topology is a subgraph.</span>
@@ -7672,7 +7668,8 @@ Or if any mirror topology is a subgraph.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2580</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2579</span>
+<span class="normal">2580</span>
 <span class="normal">2581</span>
 <span class="normal">2582</span>
 <span class="normal">2583</span>
@@ -7707,8 +7704,7 @@ Or if any mirror topology is a subgraph.</p>
 <span class="normal">2612</span>
 <span class="normal">2613</span>
 <span class="normal">2614</span>
-<span class="normal">2615</span>
-<span class="normal">2616</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">subgraph_relationship</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
+<span class="normal">2615</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">subgraph_relationship</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return</span>
 <span class="sd">    1 if self is a supergraph of other,</span>
@@ -7776,7 +7772,8 @@ this means that
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2618</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2617</span>
+<span class="normal">2618</span>
 <span class="normal">2619</span>
 <span class="normal">2620</span>
 <span class="normal">2621</span>
@@ -7794,8 +7791,7 @@ this means that
 <span class="normal">2633</span>
 <span class="normal">2634</span>
 <span class="normal">2635</span>
-<span class="normal">2636</span>
-<span class="normal">2637</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
+<span class="normal">2636</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_sup_top</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    this is a naive check</span>
 <span class="sd">    fixme - check if the found superimposed topology is the same (ie the same matches), what then?</span>
@@ -7840,7 +7836,8 @@ other topology (but possibly in a different order)</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2654</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2653</span>
+<span class="normal">2654</span>
 <span class="normal">2655</span>
 <span class="normal">2656</span>
 <span class="normal">2657</span>
@@ -7853,8 +7850,7 @@ other topology (but possibly in a different order)</p>
 <span class="normal">2664</span>
 <span class="normal">2665</span>
 <span class="normal">2666</span>
-<span class="normal">2667</span>
-<span class="normal">2668</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">eq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sup_top</span><span class="p">):</span>
+<span class="normal">2667</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">eq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sup_top</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check if the superimposed topology is &quot;the same&quot;. This means that every pair has a corresponding pair in the</span>
 <span class="sd">    other topology (but possibly in a different order)</span>
@@ -7894,7 +7890,8 @@ Extract all the important information and return a json string.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2670</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2669</span>
+<span class="normal">2670</span>
 <span class="normal">2671</span>
 <span class="normal">2672</span>
 <span class="normal">2673</span>
@@ -7933,8 +7930,7 @@ Extract all the important information and return a json string.</p>
 <span class="normal">2706</span>
 <span class="normal">2707</span>
 <span class="normal">2708</span>
-<span class="normal">2709</span>
-<span class="normal">2710</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toJSON</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">2709</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toJSON</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;</span>
 <span class="sd">        Extract all the important information and return a json string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -8008,13 +8004,13 @@ Extract all the important information and return a json string.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2713</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2712</span>
+<span class="normal">2713</span>
 <span class="normal">2714</span>
 <span class="normal">2715</span>
 <span class="normal">2716</span>
 <span class="normal">2717</span>
-<span class="normal">2718</span>
-<span class="normal">2719</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_largest</span><span class="p">(</span><span class="n">lists</span><span class="p">):</span>
+<span class="normal">2718</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_largest</span><span class="p">(</span><span class="n">lists</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    return a list of largest solutions</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -8046,7 +8042,8 @@ Merge suptop2 into suptop1.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2722</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2721</span>
+<span class="normal">2722</span>
 <span class="normal">2723</span>
 <span class="normal">2724</span>
 <span class="normal">2725</span>
@@ -8078,8 +8075,7 @@ Merge suptop2 into suptop1.</p>
 <span class="normal">2751</span>
 <span class="normal">2752</span>
 <span class="normal">2753</span>
-<span class="normal">2754</span>
-<span class="normal">2755</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">long_merge</span><span class="p">(</span><span class="n">suptop1</span><span class="p">,</span> <span class="n">suptop2</span><span class="p">):</span>
+<span class="normal">2754</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">long_merge</span><span class="p">(</span><span class="n">suptop1</span><span class="p">,</span> <span class="n">suptop2</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Carry out a merge and apply all checks.</span>
 <span class="sd">    Merge suptop2 into suptop1.</span>
@@ -8141,7 +8137,8 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2757</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2756</span>
+<span class="normal">2757</span>
 <span class="normal">2758</span>
 <span class="normal">2759</span>
 <span class="normal">2760</span>
@@ -8198,8 +8195,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">2811</span>
 <span class="normal">2812</span>
 <span class="normal">2813</span>
-<span class="normal">2814</span>
-<span class="normal">2815</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_compatible_suptops</span><span class="p">(</span><span class="n">suptops</span><span class="p">):</span>
+<span class="normal">2814</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_compatible_suptops</span><span class="p">(</span><span class="n">suptops</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Imagine mapping of two carbons C1 and C2 to another pair of carbons C1&#39; and C2&#39;.</span>
 <span class="sd">    If C1 was mapped to C1&#39;, and C2 to C2&#39;, and each craeted a suptop, then we have to join the two suptops.</span>
@@ -8285,7 +8281,8 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2825</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">2824</span>
+<span class="normal">2825</span>
 <span class="normal">2826</span>
 <span class="normal">2827</span>
 <span class="normal">2828</span>
@@ -8337,8 +8334,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">2874</span>
 <span class="normal">2875</span>
 <span class="normal">2876</span>
-<span class="normal">2877</span>
-<span class="normal">2878</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_compatible_suptops_faster</span><span class="p">(</span><span class="n">pairing_suptop</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">min_bonds</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="normal">2877</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_compatible_suptops_faster</span><span class="p">(</span><span class="n">pairing_suptop</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">min_bonds</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    :param pairing_suptop:</span>
@@ -8418,7 +8414,10 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3162</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3159</span>
+<span class="normal">3160</span>
+<span class="normal">3161</span>
+<span class="normal">3162</span>
 <span class="normal">3163</span>
 <span class="normal">3164</span>
 <span class="normal">3165</span>
@@ -8668,9 +8667,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">3409</span>
 <span class="normal">3410</span>
 <span class="normal">3411</span>
-<span class="normal">3412</span>
-<span class="normal">3413</span>
-<span class="normal">3414</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose_topologies</span><span class="p">(</span><span class="n">top1_nodes</span><span class="p">,</span>
+<span class="normal">3412</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose_topologies</span><span class="p">(</span><span class="n">top1_nodes</span><span class="p">,</span>
                            <span class="n">top2_nodes</span><span class="p">,</span>
                            <span class="n">pair_charge_atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
                            <span class="n">use_charges</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -8737,7 +8734,8 @@ You could keep a list of "combinations" in a queue, and each time you make a new
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Phase 1: The number of SupTops found: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">suptops</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SupTops lengths:  </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;ST</span><span class="si">{</span><span class="n">st</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">st</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">suptops</span><span class="p">])</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">suptops</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ST - </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> - len: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span><span class="si">}</span><span class="s1"> - </span><span class="si">{</span><span class="n">st</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="c1"># ignore bond types</span>
     <span class="c1"># they are ignored when creating the run file with tleap anyway</span>
@@ -8951,7 +8949,9 @@ We now have a set of solutions and have to select the best ones.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3425</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3423</span>
+<span class="normal">3424</span>
+<span class="normal">3425</span>
 <span class="normal">3426</span>
 <span class="normal">3427</span>
 <span class="normal">3428</span>
@@ -9023,9 +9023,7 @@ We now have a set of solutions and have to select the best ones.</p>
 <span class="normal">3494</span>
 <span class="normal">3495</span>
 <span class="normal">3496</span>
-<span class="normal">3497</span>
-<span class="normal">3498</span>
-<span class="normal">3499</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="normal">3497</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Assumes that any merging possible already took place.</span>
 <span class="sd">    We now have a set of solutions and have to select the best ones.</span>
@@ -9126,7 +9124,9 @@ We now have a set of solutions and have to select the best ones.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3555</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3553</span>
+<span class="normal">3554</span>
+<span class="normal">3555</span>
 <span class="normal">3556</span>
 <span class="normal">3557</span>
 <span class="normal">3558</span>
@@ -9146,9 +9146,7 @@ We now have a set of solutions and have to select the best ones.</p>
 <span class="normal">3572</span>
 <span class="normal">3573</span>
 <span class="normal">3574</span>
-<span class="normal">3575</span>
-<span class="normal">3576</span>
-<span class="normal">3577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of_one</span><span class="p">(</span><span class="n">candidate_suptop</span><span class="p">,</span> <span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">extract_weight_ratio</span><span class="p">):</span>
+<span class="normal">3575</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of_one</span><span class="p">(</span><span class="n">candidate_suptop</span><span class="p">,</span> <span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">extract_weight_ratio</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    &quot;Mirror&quot; in the sense that it is an alternative topological way to traverse the molecule.</span>
 
@@ -9196,7 +9194,9 @@ We now have a set of solutions and have to select the best ones.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3639</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3637</span>
+<span class="normal">3638</span>
+<span class="normal">3639</span>
 <span class="normal">3640</span>
 <span class="normal">3641</span>
 <span class="normal">3642</span>
@@ -9208,9 +9208,7 @@ We now have a set of solutions and have to select the best ones.</p>
 <span class="normal">3648</span>
 <span class="normal">3649</span>
 <span class="normal">3650</span>
-<span class="normal">3651</span>
-<span class="normal">3652</span>
-<span class="normal">3653</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_nxg_from_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">):</span>
+<span class="normal">3651</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_nxg_from_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Helper function. Generates a graph from a list of atoms</span>
 <span class="sd">    @parameter atoms: follow the internal format for atoms</span>
@@ -9259,7 +9257,9 @@ Use:
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3656</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3654</span>
+<span class="normal">3655</span>
+<span class="normal">3656</span>
 <span class="normal">3657</span>
 <span class="normal">3658</span>
 <span class="normal">3659</span>
@@ -9352,9 +9352,7 @@ Use:
 <span class="normal">3746</span>
 <span class="normal">3747</span>
 <span class="normal">3748</span>
-<span class="normal">3749</span>
-<span class="normal">3750</span>
-<span class="normal">3751</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_starting_configurations</span><span class="p">(</span><span class="n">left_atoms</span><span class="p">,</span> <span class="n">right_atoms</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">filter_ring_c</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">3749</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_starting_configurations</span><span class="p">(</span><span class="n">left_atoms</span><span class="p">,</span> <span class="n">right_atoms</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">filter_ring_c</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Minimise the number of starting configurations to optimise the process speed.</span>
 <span class="sd">        Use:</span>
@@ -9477,7 +9475,9 @@ Use:
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4101</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4099</span>
+<span class="normal">4100</span>
+<span class="normal">4101</span>
 <span class="normal">4102</span>
 <span class="normal">4103</span>
 <span class="normal">4104</span>
@@ -9521,9 +9521,7 @@ Use:
 <span class="normal">4142</span>
 <span class="normal">4143</span>
 <span class="normal">4144</span>
-<span class="normal">4145</span>
-<span class="normal">4146</span>
-<span class="normal">4147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_mol2</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">4145</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_mol2</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use Parmed to load the files.</span>
 
@@ -9598,7 +9596,9 @@ and overwrite the coordinates from ParmEd.
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4150</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4148</span>
+<span class="normal">4149</span>
+<span class="normal">4150</span>
 <span class="normal">4151</span>
 <span class="normal">4152</span>
 <span class="normal">4153</span>
@@ -9616,9 +9616,7 @@ and overwrite the coordinates from ParmEd.
 <span class="normal">4165</span>
 <span class="normal">4166</span>
 <span class="normal">4167</span>
-<span class="normal">4168</span>
-<span class="normal">4169</span>
-<span class="normal">4170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
+<span class="normal">4168</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Match the atoms from the ParmEd object based on a .pdb file</span>
 <span class="sd">    and overwrite the coordinates from ParmEd.</span>
