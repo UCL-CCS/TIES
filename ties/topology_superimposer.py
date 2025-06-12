@@ -3149,7 +3149,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     all_solutions.sort(key=lambda st: len(st), reverse=True)
     for sol1, sol2 in itertools.combinations(all_solutions, r=2):
         if sol1.eq(sol2):
-            logger.debug(f"Found the same solution and removing, solution: {sol1.matched_pairs}")
+            logger.debug(f"Removing duplication solution: {sol1.matched_pairs}")
             if sol2 in all_solutions:
                 all_solutions.remove(sol2)
 
