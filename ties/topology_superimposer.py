@@ -1300,7 +1300,8 @@ class SuperimposedTopology:
             # get dangling hydrogens
 
             removed_hydrogens = self.remove_attached_hydrogens((a1, a2))
-            logger.debug(f'Removed earlier general-match general type:{a1}-{a2} with dangling hydrogens: {removed_hydrogens}')
+            hydrogen_text = f" and dangling {removed_hydrogens}" if removed_hydrogens else ""
+            logger.debug(f'Removing {a1}-{a2} because of types {a1.type}-{a2.type}{hydrogen_text}')
 
     def get_net_charge(self):
         """
@@ -1370,7 +1371,6 @@ class SuperimposedTopology:
 
         # apply the best strategy to this suptop
         logger.debug(f'Pair removal strategy (q net tol): {best_approach} with disjoint CC removed at each step: {rm_disjoint_each_step_conf}')
-        logger.debug(f'To meet q net tol: {best_approach}')
 
         total_diff = 0
         if rm_disjoint_each_step_conf:
@@ -1527,7 +1527,7 @@ class SuperimposedTopology:
         for bound_pair, bond_type in bound_pairs:
             if bond_type[0] != bond_type[1]:
                 # fixme - this requires more attention
-                logger.debug('While removing a pair noticed that it has a different bond type')
+                logger.debug(f'Removed {bound_pair} which had different bond types {bond_type}')
             # remove their binding to the removed pair
             bound_pair_bonds = self.matched_pairs_bonds[bound_pair]
             bound_pair_bonds.remove((node_pair, bond_type))
@@ -1545,7 +1545,6 @@ class SuperimposedTopology:
 
         # skip if no hydrogens found
         if node_pair not in self.matched_pairs_bonds:
-            logger.debug('No dangling hydrogens')
             return []
 
         attached_pairs = self.matched_pairs_bonds[node_pair]
@@ -3045,7 +3044,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         logger.debug('Found a cycle spanning multiple cycles')
         return None
 
-    logger.debug(f"Adding {(n1, n2)} to suptop.matched_pairs")
+    # logger.debug(f"Adding {(n1, n2)} to suptop.matched_pairs")
 
     # all looks good, create a new copy for this suptop
     suptop = copy.copy(suptop)
@@ -3112,8 +3111,6 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
         if n1_bond.atom.element is not n2_bond.atom.element:
             continue
 
-        logger.debug(f'sampling {n1_bond}, {n2_bond}')
-
         # create a copy of the sup_top to allow for different traversals
         # fixme: note that you could just send bonds, and that would have both parent etc with a bit of work
         larger_suptop = _overlay(n1_bond.atom, n2_bond.atom,
@@ -3151,7 +3148,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     all_solutions.sort(key=lambda st: len(st), reverse=True)
     for sol1, sol2 in itertools.combinations(all_solutions, r=2):
         if sol1.eq(sol2):
-            logger.debug(f"Found the same solution and removing, solution: {sol1.matched_pairs}")
+            logger.debug(f"Removing duplicate {sol1.matched_pairs}")
             if sol2 in all_solutions:
                 all_solutions.remove(sol2)
 
@@ -3226,7 +3223,8 @@ def superimpose_topologies(top1_nodes,
         return None
 
     logger.debug(f'Phase 1: The number of SupTops found: {len(suptops)}')
-    logger.debug(f'SupTops lengths:  {", ".join([f"ST{st.id}: {len(st)}" for st in suptops])}')
+    for i, st in enumerate(suptops):
+        logger.debug(f'ST - {i} - len: {len(st)} - {st}')
 
     # ignore bond types
     # they are ignored when creating the run file with tleap anyway
