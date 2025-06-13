@@ -61,6 +61,12 @@ def command_line_script():
                         type=ArgparseChecker.str2bool, required=False, default=True,
                         help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
                              'the generated maximum common substructure (MCS).')
+    parser.add_argument('-align-cc', '--align-removed-cc', metavar='boolean', dest='align_add_removed_mcs',
+                        type=ArgparseChecker.str2bool, required=False, default=False,
+                        help='Align the coordinates in the "END" ligand to the "INITIAL" ligand using '
+                             'the generated maximum common substructure (MCS) and any smaller "disconnected components".'
+                             'This is because TIES removes atoms due to charges from the MCS, which '
+                             'can potentially introduce issues with the alignment. ')
     parser.add_argument("-v", "--logging-level", metavar="str or bool", dest="logging_level",
                         type=ArgparseChecker.logging_lvl, required=False, default="INFO",
                         help="Logging level. Can be a boolean value "

@@ -784,7 +784,7 @@ class SuperimposedTopology:
         """
         return self.unique_atom_count
 
-    def align_ligands_using_mcs(self, overwrite_original=False):
+    def align_ligands_using_mcs(self, overwrite_original=False, use_disjointed=False):
         """
         Align the two ligands using the MCS (Maximum Common Substructure).
         The ligA here is the reference (docked) to which the ligZ is aligned.
@@ -805,10 +805,17 @@ class SuperimposedTopology:
         ligA_original_positions = ligA.atoms.positions[:]
         ligB_original_positions = ligB.atoms.positions[:]
 
+        left_disjointed_cc = []
+        right_disjointed_cc = []
+
+        if use_disjointed and self._removed_because_disjointed_cc:
+            left_disjointed_cc = [l.id for l, _ in self._removed_because_disjointed_cc]
+            right_disjointed_cc = [r.id for _, r in self._removed_because_disjointed_cc]
+
         # select the atoms for the MCS,
         # the following uses 0-based indexing
-        mcs_ligA_ids = [left.id for left, right in self.matched_pairs]
-        mcs_ligB_ids = [right.id for left, right in self.matched_pairs]
+        mcs_ligA_ids = [left.id for left, right in self.matched_pairs] + left_disjointed_cc
+        mcs_ligB_ids = [right.id for left, right in self.matched_pairs] + right_disjointed_cc
 
         ligA_fragment = ligA.atoms[mcs_ligA_ids]
         ligB_fragment = ligB.atoms[mcs_ligB_ids]
@@ -3398,7 +3405,7 @@ def superimpose_topologies(top1_nodes,
             mirror_rmsd = mirror.align_ligands_using_mcs()
             if mirror_rmsd < main_rmsd:
                 logger.debug('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-        suptop.align_ligands_using_mcs(overwrite_original=True)
+        suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=config.align_add_removed_mcs)
 
     # print a general summary
     logger.info('-------- Summary -----------')

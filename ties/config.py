@@ -59,6 +59,7 @@ class Config:
 
         # coordinates
         self._align_molecules_using_mcs = False
+        self.align_add_removed_mcs = False
         self._use_original_coor = False
         self._coordinates_file = None
 
