@@ -2624,7 +2624,8 @@ The settings can be overridden later in the actual classes.</p>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
 <span class="normal">100</span>
-<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">101</span>
+<span class="normal">102</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="c1"># set the path to the scripts</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">code_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
@@ -2659,6 +2660,7 @@ The settings can be overridden later in the actual classes.</p>
 
     <span class="c1"># coordinates</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_align_molecules_using_mcs</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">align_add_removed_mcs</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_use_original_coor</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_file</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -3715,8 +3717,7 @@ the different charge distribution.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">871</span>
-<span class="normal">872</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">872</span>
 <span class="normal">873</span>
 <span class="normal">874</span>
 <span class="normal">875</span>
@@ -3735,7 +3736,8 @@ the different charge distribution.</p>
 <span class="normal">888</span>
 <span class="normal">889</span>
 <span class="normal">890</span>
-<span class="normal">891</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">891</span>
+<span class="normal">892</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_element_map</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
@@ -3786,8 +3788,7 @@ specific information such as the charge changes etc.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">897</span>
-<span class="normal">898</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">898</span>
 <span class="normal">899</span>
 <span class="normal">900</span>
 <span class="normal">901</span>
@@ -3823,7 +3824,8 @@ specific information such as the charge changes etc.</p>
 <span class="normal">931</span>
 <span class="normal">932</span>
 <span class="normal">933</span>
-<span class="normal">934</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">934</span>
+<span class="normal">935</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a JSON serializable structure of the config.</span>
 
