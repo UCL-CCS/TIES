@@ -3212,10 +3212,13 @@ def superimpose_topologies(top1_nodes,
                   f"This might make it harder to trace back any problems. "
                   f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
 
+    # deal with the situation where the config is not passed
     if config is None:
         weights = [1, 1]
+        align_add_removed_mcs = False
     else:
         weights = config.weights_ratio
+        align_add_removed_mcs = config.align_add_removed_mcs
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
@@ -3405,7 +3408,7 @@ def superimpose_topologies(top1_nodes,
             mirror_rmsd = mirror.align_ligands_using_mcs()
             if mirror_rmsd < main_rmsd:
                 logger.debug('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-        suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=config.align_add_removed_mcs)
+        suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=align_add_removed_mcs)
 
     # print a general summary
     logger.info('-------- Summary -----------')
