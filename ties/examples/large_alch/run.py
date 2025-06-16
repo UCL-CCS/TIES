@@ -32,3 +32,4 @@ hybrid = pair.superimpose(superimposition_starting_pairs="O1-O3")
 
 assert len(hybrid) == 26
 
+assert False
