@@ -887,6 +887,9 @@ class SuperimposedTopology:
         B_pos = np.array([a.position for a in self.get_appearing_atoms()])
         A_pos = np.array([a.position for a in self.get_disappearing_atoms()])
 
+        if not B_pos.size or not A_pos.size:
+            return 0, 0, 0, 0
+
         # shortest distances from B to any alchemical atom in A
         # B - A
         shortest_B_to_A = MDAnalysis.lib.distances.distance_array(B_pos, A_pos).min(axis=1)
