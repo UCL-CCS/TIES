@@ -20,6 +20,8 @@ from functools import reduce
 from collections import OrderedDict
 
 import MDAnalysis
+from MDAnalysis.lib.distances import distance_array
+
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings("ignore",
                         "The Bio.Application modules and modules relying on it have been deprecated.",
@@ -844,9 +846,6 @@ class SuperimposedTopology:
             # return the RMSD of the superimposed matched pairs only
             return rmsd
 
-        # update the atoms with the mapping done via IDs
-        logger.debug(f'Aligned by MCS with the RMSD value {rmsd}')
-
         # use the aligned coordinates
         self.parmed_ligZ.coordinates = ligB_sup
 
@@ -862,6 +861,46 @@ class SuperimposedTopology:
             assert found
 
         return rmsd
+
+    def alchemical_overlap_check(self) -> tuple[float]:
+        """
+        Calculate how well the alchemical regions overlap using distances between them.
+
+        For A (left) and B (right). For each atom in B,
+        find the distance to closest alchemical atom in A to get B-A distances.
+        Then apply RMS(B-A).
+
+        Do the same steps in reverse to get A-B.
+
+        For B-A:
+            0, B and A are the same size.
+            >0, B is growing
+
+        If both, B-A and A-B > 0, this means the alchemical regions are divergent.
+
+        This function takes the coordinates as they come.
+
+        :return: RMS(A-B), max(A-B), RMS(B-A), max(B-A)
+        """
+
+        # alchemical areas
+        B_pos = np.array([a.position for a in self.get_appearing_atoms()])
+        A_pos = np.array([a.position for a in self.get_disappearing_atoms()])
+
+        if not B_pos.size or not A_pos.size:
+            return 0, 0, 0, 0
+
+        # shortest distances from B to any alchemical atom in A
+        # B - A
+        shortest_B_to_A = MDAnalysis.lib.distances.distance_array(B_pos, A_pos).min(axis=1)
+        B_to_A_rmsd = np.sqrt(np.square(shortest_B_to_A).mean())
+
+        # shortest distances from A to any alchemical atom in B
+        # A - B
+        shortest_A_to_B = MDAnalysis.lib.distances.distance_array(A_pos, B_pos).min(axis=1)
+        A_to_B_rmsd = np.sqrt(np.square(shortest_A_to_B).mean())
+
+        return A_to_B_rmsd, max(shortest_A_to_B), B_to_A_rmsd, max(shortest_B_to_A)
 
     def rm_matched_pairs_with_different_bonds(self):
         """
@@ -3401,6 +3440,11 @@ def superimpose_topologies(top1_nodes,
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
+    logger.info('-------- Summary -----------')
+    logger.info(f'Matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
+    logger.info(f'Disappearing atoms: {(len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
+    logger.info(f'Appearing atoms: {(len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
+
     # carry out a check. Each
     if align_molecules and not ignore_coords:
         main_rmsd = suptop.align_ligands_using_mcs()
@@ -3408,13 +3452,15 @@ def superimpose_topologies(top1_nodes,
             mirror_rmsd = mirror.align_ligands_using_mcs()
             if mirror_rmsd < main_rmsd:
                 logger.debug('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-        suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=align_add_removed_mcs)
+        rmsd = suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=align_add_removed_mcs)
+        logger.info(f'Aligned Common Area RMSD: {rmsd:.2f}')
 
-    # print a general summary
-    logger.info('-------- Summary -----------')
-    logger.info(f'Matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
-    logger.info(f'Disappearing atoms: { (len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
-    logger.info(f'Appearing atoms: { (len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
+    A_minus_B, A_minus_B_max, B_minus_A, B_minus_A_max = suptop.alchemical_overlap_check()
+    logger.info(f"Alchemical Area Overlap:\n"
+                f"\tRMS(A-B): {A_minus_B:.2f} Angstrom\n"
+                f"\tmax(A-B): {A_minus_B_max:.2f} Angstrom\n"
+                f"\tRMS(B-A): {B_minus_A:.2f} Angstrom\n"
+                f"\tmax(B-A): {B_minus_A_max:.2f} Angstrom")
 
     if config is not None and config.logging_breakdown:
         logger.removeHandler(file_log_handler)
