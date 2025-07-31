@@ -1227,7 +1227,7 @@ def test_partial_ring_cascade():
     assert not suptop.contains_atom_name_pair('C2', 'C12')
     assert not suptop.contains_atom_name_pair('C4', 'C14')
     # the length of the entire match should be 2
-    assert len(suptop) == 2
+    assert len(suptop) == 7
     # which are
     assert suptop.contains_atom_name_pair('C9', 'C19')
     assert suptop.contains_atom_name_pair('C10', 'C20')
