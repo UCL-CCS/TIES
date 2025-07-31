@@ -53,6 +53,7 @@ class Config:
         # use only the element in the superimposition rather than the specific atom type
         self._use_element = False
         self._use_element_in_superimposition = True
+        self._partial_ring_allowed = False
         self.starting_pairs_heuristics = True
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
         self.weights_ratio = [1, 0]
@@ -424,8 +425,14 @@ class Config:
     def use_element_in_superimposition(self, bool):
         self._use_element_in_superimposition = bool
         if bool:
-            logger.warning('Ignoring the specific atom types during superimposition. '
-                  'The results should not be used in production simulations.')
+            logger.warning(
+                "Ignoring the specific atom types during superimposition. "
+                "The results should not be used in production simulations."
+            )
+
+    @property
+    def partial_ring_allowed(self):
+        return self._partial_ring_allowed
 
     @property
     def align_molecules_using_mcs(self):

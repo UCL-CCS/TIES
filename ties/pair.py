@@ -170,6 +170,7 @@ class Pair():
                                         ignore_charges_completely=self.config.ignore_charges_completely,
                                         ignore_bond_types=True,
                                         ignore_coords=False,
+                                        partial_rings_allowed=self.config.partial_ring_allowed,
                                         align_molecules=self.config.align_molecules_using_mcs,
                                         use_general_type=self.config.use_element_in_superimposition,
                                         # fixme - not the same ... use_element_in_superimposition,
