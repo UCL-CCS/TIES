@@ -1859,73 +1859,85 @@ class SuperimposedTopology:
 
         return avg_dst
 
-    def are_matched_sets(self, l_atoms, r_atoms):
+    def is_area_overlapping_fully(self, l_atoms, r_atoms):
+        """
+        Each atom in one set has to be matched to an atom in the second set. And vice versa.
+
+        :param l_atoms:
+        :param r_atoms:
+        :return:
+        """
         if len(l_atoms) != len(r_atoms):
             return False
 
         for atom in l_atoms:
+            if not self.contains_node(atom):
+                return False
+
             _, matched_r = self.get_pair_with_atom(atom)
             if matched_r not in r_atoms:
                 return False
 
         return True
 
+    def is_area_overlapping(self, l_atoms, r_atoms):
+        """
+        Even a small overlap will return True.
+
+        :param l_atoms:
+        :param r_atoms:
+        :return:
+        """
+
+        for atom in l_atoms:
+            _, matched_r = self.get_pair_with_atom(atom)
+            if matched_r in r_atoms:
+                return True
+
+        return False
+
     def enforce_no_partial_rings(self):
         """
-        http://www.alchemistry.org/wiki/Constructing_a_Pathway_of_Intermediate_States
-        It is the opening or closing of the rings that is an issue.
-        This means that if any atom on a ring disappears, it breaks the ring,
-        and therefore the entire ring should be removed and appeared again.
-
-        If any atom is removed, it should check if it affects other rings,
-        therefore cascading removing further rings.
+        Ensure that rings are either fully matched,
+        or not matched with anything at all.
         """
-        MAX_CIRCLE_SIZE = 7
 
-        # get circles in the original ligands
-        l_circles, r_circles = self.get_original_circles()
-        l_matched_circles, r_matched_circles = self.get_circles()
+        # circles from the original ligands
+        l_cycles, r_cycles = self.get_original_circles()
 
-        # right now we are filtering out circles that are larger than 7 atoms,
-        l_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, l_circles))
-        r_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, r_circles))
-        l_matched_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, l_matched_circles))
-        r_matched_circles = list(filter(lambda c: len(c) <= MAX_CIRCLE_SIZE, r_matched_circles))
+        # keep track of the fully matched cycles
+        atoms_in_good_cycles = set()
 
-        # first, see which matched circles eliminate themselves (simply matched circles)
-        correct_circles = []
-        for l_matched_circle in l_matched_circles[::-1]:
-            for r_matched_circle in r_matched_circles[::-1]:
-                if self.are_matched_sets(l_matched_circle, r_matched_circle):
-                    # These two circles fully overlap, so they are fine
-                    l_matched_circles.remove(l_matched_circle)
-                    r_matched_circles.remove(r_matched_circle)
-                    # update the original circles
-                    l_circles.remove(l_matched_circle)
-                    r_circles.remove(r_matched_circle)
-                    correct_circles.append((l_matched_circle, r_matched_circle))
+        # find the fully matched cycles
+        for l_cycle in l_cycles[::-1]:
+            for r_cycle in r_cycles[::-1]:
+                if not self.is_area_overlapping_fully(l_cycle, r_cycle):
+                    continue
 
-        # at this point, we should not have any matched circles, in either R and L
-        # this is because we do not allow one ligand to have a matched circle, while another ligand not
-        assert len(l_matched_circles) == len(r_matched_circles) == 0
+                # these rings are matched perfectly
+                l_cycles.remove(l_cycle)
+                r_cycles.remove(r_cycle)
+                atoms_in_good_cycles.update(l_cycle)
+                atoms_in_good_cycles.update(r_cycle)
 
-        while True:
-            # so now we have to work with the original rings which have not been overlapped,
-            # these most likely means that there are mutations preventing it from overlapping
-            l_removed_pairs = self._remove_unmatched_ring_atoms(l_circles)
-            r_removed_pairs = self._remove_unmatched_ring_atoms(r_circles)
+        def remove_partial_rings(circles):
+            for atom in [atom for sublist in circles for atom in sublist]:
+                # account for the fused rings
+                # the correct part of the fused ring should remain untouched
+                if atom in atoms_in_good_cycles:
+                    continue
 
-            for l_circle, r_circle in correct_circles:
-                # checked if any removed atom affected any of the correct circles
-                affected_l_circle = any(l_atom in l_circle for l_atom, r_atom in l_removed_pairs)
-                affected_r_circle = any(r_atom in r_circle for l_atom, r_atom in r_removed_pairs)
-                # add the circle to be disassembled
-                if affected_l_circle or affected_r_circle:
-                    l_circles.append(l_circle)
-                    r_circles.append(r_circle)
+                if not self.contains_node(atom):
+                    continue
 
-            if len(l_removed_pairs) == len(r_removed_pairs) == 0:
-                break
+                left, right  = self.get_pair_with_atom(atom)
+                self._remove_unmatched_ring_atom(right)
+                self._remove_unmatched_ring_atom(left)
+
+        # remove any other matched ring atoms
+        # at this point we cannot be certain what they are matched to
+        remove_partial_rings(l_cycles)
+        remove_partial_rings(r_cycles)
 
     def _remove_unmatched_ring_atoms(self, circles):
         """
@@ -1956,6 +1968,30 @@ class SuperimposedTopology:
                     self._removed_because_unmatched_rings.append(pair)
                     removed_pairs.append(pair)
         return removed_pairs
+
+    def _remove_unmatched_ring_atom(self, atom):
+        """
+        Unmatches a pair with the given atom.
+
+        The removed atoms are classified as unmatched_rings.
+
+        Parameters
+        ----------
+        atom : atom
+            An atom that is part of the matched
+
+        Returns
+        -------
+        removed : (pair)
+            The removed pair of atoms.
+        """
+        if self.contains_node(atom):
+            # remove the pair from matched
+            pair = self.get_pair_with_atom(atom)
+            self.remove_node_pair(pair)
+            self._removed_because_unmatched_rings.append((pair, None))
+            return pair
+        return None
 
     def get_pair_with_atom(self, atom):
         for a1, a2 in self.matched_pairs:
