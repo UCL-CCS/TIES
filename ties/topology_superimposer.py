@@ -3238,31 +3238,33 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     return best_suptop
 
 
-def superimpose_topologies(top1_nodes,
-                           top2_nodes,
-                           pair_charge_atol=0.1,
-                           use_charges=True,
-                           use_coords=True,
-                           starting_node_pairs=None,
-                           force_mismatch=None,
-                           disjoint_components=False,
-                           net_charge_filter=True,
-                           net_charge_threshold=0.1,
-                           redistribute_charges_over_unmatched=True,
-                           parmed_ligA=None,
-                           parmed_ligZ=None,
-                           align_molecules=True,
-                           partial_rings_allowed=True,
-                           ignore_charges_completely=False,
-                           ignore_bond_types=True,
-                           ignore_coords=False,
-                           use_general_type=True,
-                           use_only_element=False,
-                           check_atom_names_unique=True,
-                           starting_pairs_heuristics=0.2,
-                           starting_pair_seed=None,
-                           logging_key=None,
-                           config=None):
+def superimpose_topologies(
+    top1_nodes,
+    top2_nodes,
+    pair_charge_atol=0.1,
+    use_charges=True,
+    use_coords=True,
+    starting_node_pairs=None,
+    force_mismatch=None,
+    disjoint_components=False,
+    net_charge_filter=True,
+    net_charge_threshold=0.1,
+    redistribute_charges_over_unmatched=True,
+    parmed_ligA=None,
+    parmed_ligZ=None,
+    align_molecules=True,
+    partial_rings_allowed=False,
+    ignore_charges_completely=False,
+    ignore_bond_types=True,
+    ignore_coords=False,
+    use_general_type=True,
+    use_only_element=False,
+    check_atom_names_unique=True,
+    starting_pairs_heuristics=0.2,
+    starting_pair_seed=None,
+    logging_key=None,
+    config=None,
+):
     """
     The main function that manages the entire process.
 
@@ -3384,16 +3386,14 @@ def superimpose_topologies(top1_nodes,
     # becomes two different atoms with different IDs
     if use_charges and not ignore_charges_completely:
         for sup_top in suptops:
-            removed = sup_top.unmatch_pairs_with_different_charges(atol=pair_charge_atol)
+            removed = sup_top.unmatch_pairs_with_different_charges(
+                atol=pair_charge_atol
+            )
             if removed:
-                logger.debug(f'Removed pairs with charge incompatibility: '
-                      f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}')
-
-    if not partial_rings_allowed:
-        # We once again check if partial rings were created due to different charges on atoms.
-        for suptop in suptops:
-            suptop.enforce_no_partial_rings()
-            logger.debug(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+                logger.debug(
+                    f"Removed pairs with charge incompatibility: "
+                    f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}'
+                )
 
     if net_charge_filter and not ignore_charges_completely:
         # Note that we apply this rule to each suptop.
@@ -3414,14 +3414,10 @@ def superimpose_topologies(top1_nodes,
 
             # Display information
             if suptop._removed_due_to_net_charge:
-                logger.debug(f'SupTop: Removed pairs due to net charge: '
-                      f'{[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}')
-
-    if not partial_rings_allowed:
-        # This is the 3rd check of partial rings. This time they might have been created due to net_charges.
-        for suptop in suptops:
-            suptop.enforce_no_partial_rings()
-            logger.debug(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+                logger.debug(
+                    f"SupTop: Removed pairs due to net charge: "
+                    f'{[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}'
+                )
 
     # remove the suptops that are empty
     for st in suptops[::-1]:
