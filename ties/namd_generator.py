@@ -6,7 +6,7 @@ frcmod file format: http://ambermd.org/FileFormats.php#frcmod
 """
 from os import path
 import MDAnalysis as mda
-from ties.topology_superimposer import get_atoms_bonds_from_mol2, superimpose_topologies, assign_coords_from_pdb
+from ties.topology_superimposer import get_atoms_bonds_from_file, superimpose_topologies, assign_coords_from_pdb
 import os
 import json
 
@@ -17,7 +17,7 @@ def getSuptop():
     # ~/code/BAC2020/
     # fixme - you've switched to .mol2 format, so use mdanalysis for everything
     leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, mda_l1, mda_l2 = \
-        get_atoms_bonds_from_mol2('namd_tests/l18-l39/init_l18.mol2', 'namd_tests/l18-l39/final_l39.mol2')
+        get_atoms_bonds_from_file('namd_tests/l18-l39/init_l18.mol2', 'namd_tests/l18-l39/final_l39.mol2')
 
     # assign
     # fixme - there must be a better way to match these

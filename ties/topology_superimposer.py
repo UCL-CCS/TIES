@@ -18,6 +18,7 @@ import warnings
 from typing import Dict, List, Set, Tuple
 from functools import reduce
 from collections import OrderedDict
+from ast import literal_eval
 
 import MDAnalysis
 from MDAnalysis.lib.distances import distance_array
@@ -30,6 +31,7 @@ from MDAnalysis.analysis.align import rotation_matrix
 import numpy as np
 import networkx as nx
 import parmed
+import rdkit.Chem
 
 import ties.config
 import ties.generator
@@ -4184,7 +4186,46 @@ def get_atoms_bonds_from_ac(ac_file):
     return atoms, bonds
 
 
-def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True):
+def ties_pmd_from_rdmol(mol: rdkit.Chem.Mol):
+    """
+    Generate a parmed structure from an RDKit Mol.
+
+    The atom types and charges are extracted from the properties.
+
+    :param mol:
+    :return:
+    """
+    parmed_structure = parmed.load_rdkit(mol)
+
+    # verify that they are the same structures
+    for rd_a, pmd_a in zip(mol.GetAtoms(), parmed_structure.atoms):
+        assert rd_a.GetAtomicNum() == pmd_a.atomic_number
+
+    # extract the charges and the atom types
+    pq_prop_openff = "atom.dprop.PartialCharge"
+    if mol.HasProp(pq_prop_openff):
+        pqs = list(map(float, mol.GetProp(pq_prop_openff).split()))
+        assert len(pqs) == mol.GetNumAtoms()
+        for atom, pq in zip(parmed_structure.atoms, pqs):
+            atom.charge = pq
+    else:
+        warnings.warn(
+            f"Missing partial charges property ({pq_prop_openff}) from the RDKit Mol"
+        )
+
+    at_prop = "BCCAtomTypes"
+    if mol.HasProp("%s" % at_prop):
+        ats = literal_eval(mol.GetProp("%s" % at_prop))
+        assert len(ats) == mol.GetNumAtoms()
+        for atom, pq in zip(parmed_structure.atoms, ats):
+            atom.type = pq
+    else:
+        warnings.warn(f"Missing atom types property ({at_prop}) in the RDKit molecule")
+
+    return parmed_structure
+
+
+def _get_atoms_bonds_using_parmed(filename, use_general_type=True):
     """
     Use Parmed to load the files.
 
@@ -4192,8 +4233,17 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
     """
-    ref = parmed.load_file(str(ref_filename), structure=True)
-    mobile = parmed.load_file(str(mob_filename), structure=True)
+    # manually load the file if it's .sdf
+    if filename.suffix.lower() == ".sdf":
+        warnings.warn(
+            f"Reading .sdf ({filename}) via RDKit - using only the first conformer. "
+        )
+        mol = rdkit.Chem.SDMolSupplier(filename, removeHs=False)[0]
+        parmed_structure = ties_pmd_from_rdmol(mol)
+    else:
+        parmed_structure = parmed.load_file(str(filename), structure=True)
+
+    periodic_table = rdkit.Chem.GetPeriodicTable()
 
     def create_atoms(parmed_atoms):
         """
@@ -4202,35 +4252,81 @@ def get_atoms_bonds_from_mol2(ref_filename, mob_filename, use_general_type=True)
         atoms = []
         for parmed_atom in parmed_atoms:
             atom_type = parmed_atom.type
+
+            if not atom_type:
+                # extract the element symbol from the atomic number
+                atom_type = periodic_table.GetElementSymbol(parmed_atom.atomic_number)
+
             # atom type might be empty if
             if not atom_type:
                 # use the atom name as the atom type, e.g. C7
                 atom_type = parmed_atom.name
 
-
             try:
-                atom = Atom(name=parmed_atom.name, atom_type=atom_type, charge=parmed_atom.charge, use_general_type=use_general_type)
+                atom = Atom(
+                    name=parmed_atom.name,
+                    atom_type=atom_type,
+                    charge=parmed_atom.charge,
+                    use_general_type=use_general_type,
+                )
             except AttributeError:
                 # most likely the charges were missing, manually set the charges to 0
-                atom = Atom(name=parmed_atom.name, atom_type=atom_type, charge=0.0, use_general_type=use_general_type)
-                logger.warning('One of the input files is missing charges. Setting the charge to 0')
+                atom = Atom(
+                    name=parmed_atom.name,
+                    atom_type=atom_type,
+                    charge=0.0,
+                    use_general_type=use_general_type,
+                )
+                logger.warning(
+                    "One of the input files is missing charges. Setting the charge to 0"
+                )
             atom.id = parmed_atom.idx
             atom.position = [parmed_atom.xx, parmed_atom.xy, parmed_atom.xz]
             atom.resname = parmed_atom.residue.name
             atoms.append(atom)
         return atoms
 
-    universe_ref_atoms = create_atoms(ref.atoms)
-    # note that these coordinate should be superimposed
-    universe_mob_atoms = create_atoms(mobile.atoms)
+    universe_atoms = create_atoms(parmed_structure.atoms)
 
     # fixme - add a check that all the charges come to 0 as declared in the header
-    universe_ref_bonds = [(b.atom1.idx, b.atom2.idx, b.order) for b in ref.bonds]
-    universe_mob_bonds = [(b.atom1.idx, b.atom2.idx, b.order) for b in mobile.bonds]
+    universe_bonds = [
+        (b.atom1.idx, b.atom2.idx, b.order) for b in parmed_structure.bonds
+    ]
 
-    return universe_ref_atoms, universe_ref_bonds, \
-           universe_mob_atoms, universe_mob_bonds, \
-           ref, mobile
+    return universe_atoms, universe_bonds, parmed_structure
+
+
+def get_atoms_bonds_from_file(ref_filename, mob_filename, use_general_type=True):
+    """
+    Use Parmed to load the files.
+
+    # returns
+    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
+    # 2) a list of bonds
+    """
+    supported_file_ext = {".sdf", ".mol2"}
+
+    if (
+        ref_filename.suffix.lower() in supported_file_ext
+        and mob_filename.suffix.lower() in supported_file_ext
+    ):
+        universe_ref_atoms, universe_ref_bonds, ref = _get_atoms_bonds_using_parmed(
+            ref_filename, use_general_type=use_general_type
+        )
+        universe_mob_atoms, universe_mob_bonds, mobile = _get_atoms_bonds_using_parmed(
+            mob_filename, use_general_type=use_general_type
+        )
+    else:
+        raise NotImplementedError("Not implemented filetypes")
+
+    return (
+        universe_ref_atoms,
+        universe_ref_bonds,
+        universe_mob_atoms,
+        universe_mob_bonds,
+        ref,
+        mobile,
+    )
 
 
 def assign_coords_from_pdb(atoms, pdb_atoms):

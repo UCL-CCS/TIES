@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import parmed
+import rdkit.Chem
 
 import ties.helpers
 from ties.config import Config
@@ -32,12 +33,24 @@ class Ligand:
     _USED_FILENAMES = set()
 
     def __init__(self, ligand, config=None, save=True):
-        """Constructor method
-        """
+        """Constructor method"""
 
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
+
+        if issubclass(type(ligand), rdkit.Chem.Mol):
+            import uuid
+
+            short_uuid = str(uuid.uuid4())[:8]
+
+            lig_path = self.config.workdir / f"{short_uuid}.sdf"
+            with rdkit.Chem.SDWriter(lig_path) as SD:
+                SD.write(ligand)
+
+            # provide the path of the jsut saved molecule
+            ligand = lig_path
+
         self.config.ligand_files = ligand
 
         self.original_input = Path(ligand).absolute()

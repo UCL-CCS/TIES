@@ -8,11 +8,12 @@ TODO
 """
 import copy
 
+import rdkit.Chem
 import pytest
 import json
-from ties import Pair
-from ties import Config
-from ties.topology_superimposer import _superimpose_topologies, Atom, get_starting_configurations
+
+from ties import Ligand, Pair, Config
+from ties.topology_superimposer import _superimpose_topologies, _get_atoms_bonds_using_parmed, Atom, get_starting_configurations
 
 
 def test_2diff_atoms_cn(CN):
@@ -267,3 +268,25 @@ def test_get_starting_configuration(indole_cl1, indole_cl2):
 
     # N-N, Cl1-Cl2, Cl2-Cl1
     assert len(starting_configurations) == 3
+
+
+def test_atom_extraction_from_rdkit_mol():
+    """
+    Internal function - check if atoms are recovered from a molecule
+    """
+    atoms_smiles = "CCO"
+    rd_mol = rdkit.Chem.MolFromSmiles(atoms_smiles)
+
+    ligand = Ligand(rd_mol)
+    atoms, bonds, pmd_mol = _get_atoms_bonds_using_parmed(ligand.current)
+
+    periodic_table = rdkit.Chem.GetPeriodicTable()
+
+    for atom, ref_atom in zip(atoms, atoms_smiles):
+        assert atom.element == ref_atom
+
+    for pmd_atom, rd_atom in zip(pmd_mol.atoms, rd_mol.GetAtoms()):
+        assert pmd_atom.atomic_number == rd_atom.GetAtomicNum()
+
+    for atom, rd_atom in zip(atoms, rd_mol.GetAtoms()):
+        assert atom.type == rd_atom.GetSymbol()

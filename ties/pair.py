@@ -9,7 +9,7 @@ from pathlib import Path
 import parmed
 
 import ties.helpers
-from ties.generator import get_atoms_bonds_from_mol2
+from ties.generator import get_atoms_bonds_from_file
 from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
@@ -103,7 +103,7 @@ class Pair():
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
         leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, parmed_ligA, parmed_ligZ = \
-            get_atoms_bonds_from_mol2(self.current_ligA, self.current_ligZ,
+            get_atoms_bonds_from_file(self.current_ligA, self.current_ligZ,
                                       use_general_type=self.config.use_element_in_superimposition)
         # fixme - manual match should be improved here and allow for a sensible format.
 

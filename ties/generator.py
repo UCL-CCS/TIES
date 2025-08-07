@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 import parmed
 
-from ties.topology_superimposer import get_atoms_bonds_from_mol2, \
+from ties.topology_superimposer import get_atoms_bonds_from_file, \
     superimpose_topologies, get_atoms_bonds_from_ac
 
 

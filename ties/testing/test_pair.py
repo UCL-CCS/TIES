@@ -2,6 +2,7 @@
 These tests focus on the Ligand
 """
 import parmed
+import rdkit.Chem
 
 from ties import Ligand, Pair
 
@@ -18,3 +19,11 @@ def test_atom_names_uniqe():
 
     common_atom_names = {a.name for a in ligA.atoms}.intersection({a.name for a in ligZ.atoms})
     assert len(common_atom_names) == 0
+
+
+def test_rdkit_mols():
+    cco = rdkit.Chem.MolFromSmiles("CCO")
+    ccco = rdkit.Chem.MolFromSmiles("CCCO")
+    pair = Pair(cco, ccco)
+    suptop = pair.superimpose()
+    assert len(suptop) == 3
