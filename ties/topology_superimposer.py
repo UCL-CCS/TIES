@@ -4304,20 +4304,13 @@ def get_atoms_bonds_from_file(ref_filename, mob_filename, use_general_type=True)
     # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
     # 2) a list of bonds
     """
-    supported_file_ext = {".sdf", ".mol2"}
 
-    if (
-        ref_filename.suffix.lower() in supported_file_ext
-        and mob_filename.suffix.lower() in supported_file_ext
-    ):
-        universe_ref_atoms, universe_ref_bonds, ref = _get_atoms_bonds_using_parmed(
-            ref_filename, use_general_type=use_general_type
-        )
-        universe_mob_atoms, universe_mob_bonds, mobile = _get_atoms_bonds_using_parmed(
-            mob_filename, use_general_type=use_general_type
-        )
-    else:
-        raise NotImplementedError("Not implemented filetypes")
+    universe_ref_atoms, universe_ref_bonds, ref = _get_atoms_bonds_using_parmed(
+        ref_filename, use_general_type=use_general_type
+    )
+    universe_mob_atoms, universe_mob_bonds, mobile = _get_atoms_bonds_using_parmed(
+        mob_filename, use_general_type=use_general_type
+    )
 
     return (
         universe_ref_atoms,
