@@ -927,12 +927,22 @@ class Config:
         :rtype: Dictionary
         """
 
-        host_specific = ['code_root', 'script_dir0', 'namd_script_dir',
-                         'ambertools_script_dir', 'tleap_check_protein', 'vmd_vis_script']
+        exclude = [
+            "_workdir_tempdir", # exists (during runtime) for cleaning up purposes
+                   ]
+
+        host_specific = [
+            "code_root",
+            "script_dir0",
+            "namd_script_dir",
+            "ambertools_script_dir",
+            "tleap_check_protein",
+            "vmd_vis_script",
+        ]
 
         ser = {}
         for k, v in self.__dict__.items():
-            if k in host_specific:
+            if k in host_specific or k in exclude:
                 continue
 
             if type(v) is logging.Formatter:
