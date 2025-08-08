@@ -11,4 +11,5 @@ dependencies:
   - tabulate
   - MDAnalysis
   - dimod
+  - rdkit
   - numpy < 2.3 # temporary fix until Parmed moves away from the removed numpy.compat

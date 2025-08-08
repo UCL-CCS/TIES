@@ -9,6 +9,7 @@ from collections.abc import Iterable
 import csv
 
 import parmed
+import rdkit.Chem
 
 from ties.helpers import ArgparseChecker
 
@@ -114,7 +115,11 @@ class Config:
         if self._workdir is None:
             # this is API, so avoid making a directory
             # keep the 'ties' in case the output directory structured needs to be generated/harvested
-            self._workdir = pathlib.Path(tempfile.TemporaryDirectory().name) / 'ties'
+            temp_dir = tempfile.TemporaryDirectory(prefix="ties")
+            self._workdir = pathlib.Path(temp_dir.name)
+
+            # store the temporary directory to trigger its removal when the Config stops existing
+            self._workdir_tempdir = temp_dir
 
         return self._workdir
 
@@ -190,14 +195,20 @@ class Config:
 
         # verify the files with ParmEd if possible
         for ligand in files:
-            if ligand.suffix.lower() in ('.ac', '.prep'):
-                logger.warning(f'Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. ')
+            if ligand.suffix.lower() in (".ac", ".prep"):
+                logger.warning(
+                    f"Cannot verify .ac/.prep {ligand} with ParmEd. Skipping. "
+                )
+            elif ligand.suffix.lower() in (".sdf"):
+                lig = rdkit.Chem.SDMolSupplier(ligand)
             else:
-                logger.debug(f'Opening the ligand {ligand} with ParmEd..')
+                logger.debug(f"Opening the ligand {ligand} with ParmEd..")
                 lig = parmed.load_file(str(ligand), structure=True)
                 # there should be one residue
                 if len({a.residue.name for a in lig.atoms}) > 1:
-                    logger.warning(f'more than one residue name detected in the ligand {ligand}')
+                    logger.warning(
+                        f"more than one residue name detected in the ligand {ligand}"
+                    )
 
         # TODO - ensure that it is a connected component and there is no extra atoms
 
@@ -916,12 +927,22 @@ class Config:
         :rtype: Dictionary
         """
 
-        host_specific = ['code_root', 'script_dir0', 'namd_script_dir',
-                         'ambertools_script_dir', 'tleap_check_protein', 'vmd_vis_script']
+        exclude = [
+            "_workdir_tempdir", # exists (during runtime) for cleaning up purposes
+                   ]
+
+        host_specific = [
+            "code_root",
+            "script_dir0",
+            "namd_script_dir",
+            "ambertools_script_dir",
+            "tleap_check_protein",
+            "vmd_vis_script",
+        ]
 
         ser = {}
         for k, v in self.__dict__.items():
-            if k in host_specific:
+            if k in host_specific or k in exclude:
                 continue
 
             if type(v) is logging.Formatter:
