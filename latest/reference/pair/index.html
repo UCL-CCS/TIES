@@ -1847,7 +1847,7 @@ object passed in the constructor.</p>
     <span class="c1"># fixme - move this to the Morph class instead of this place,</span>
     <span class="c1"># fixme - should not squash all messsages. For example, wrong type file should not be squashed</span>
     <span class="n">leftlig_atoms</span><span class="p">,</span> <span class="n">leftlig_bonds</span><span class="p">,</span> <span class="n">rightlig_atoms</span><span class="p">,</span> <span class="n">rightlig_bonds</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligZ</span> <span class="o">=</span> \
-        <span class="n">get_atoms_bonds_from_mol2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_ligA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_ligZ</span><span class="p">,</span>
+        <span class="n">get_atoms_bonds_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_ligA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_ligZ</span><span class="p">,</span>
                                   <span class="n">use_general_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">use_element_in_superimposition</span><span class="p">)</span>
     <span class="c1"># fixme - manual match should be improved here and allow for a sensible format.</span>
 
