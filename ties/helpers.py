@@ -2,6 +2,7 @@
 A list of functions with a clear purpose that does
 not belong specifically to any of the existing units.
 """
+
 import os
 import sys
 import argparse
@@ -9,7 +10,6 @@ import subprocess
 import warnings
 import pathlib
 import logging
-
 
 
 def get_new_atom_names(atoms, name_counter=None):
@@ -51,7 +51,9 @@ def get_new_atom_names(atoms, name_counter=None):
         # shorten the number of letters
         if len(new_name) > 4:
             # the name is too long, use only the first character
-            new_name = letters[:4-len(str(last_used_counter))] + str(last_used_counter)
+            new_name = letters[: 4 - len(str(last_used_counter))] + str(
+                last_used_counter
+            )
 
             # we assume that there is fewer than 1000 atoms with that name
             assert len(str(last_used_counter)) < 1000
@@ -95,50 +97,48 @@ def parse_frcmod_sections(filename):
     Copied from the previous TIES. It's simpler and this approach must be fine then.
     """
     frcmod_info = {}
-    section = 'REMARK'
+    section = "REMARK"
 
     with open(filename) as F:
         for line in F:
             start_line = line[0:9].strip()
 
-            if start_line in ['MASS', 'BOND', 'IMPROPER',
-                              'NONBON', 'ANGLE', 'DIHE']:
+            if start_line in ["MASS", "BOND", "IMPROPER", "NONBON", "ANGLE", "DIHE"]:
                 section = start_line
                 frcmod_info[section] = []
-            elif line.strip() and section != 'REMARK':
+            elif line.strip() and section != "REMARK":
                 frcmod_info[section].append(line)
 
     return frcmod_info
 
 
-class ArgparseChecker():
-
+class ArgparseChecker:
     @staticmethod
     def str2bool(v):
         "ArgumentParser tool to figure out the bool value"
         if isinstance(v, bool):
             return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        if v.lower() in ("yes", "true", "t", "y", "1"):
             return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        elif v.lower() in ("no", "false", "f", "n", "0"):
             return False
         else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
+            raise argparse.ArgumentTypeError("Boolean value expected.")
 
     @staticmethod
     def logging_lvl(v):
         "ArgumentParser tool to figure out the bool value"
         logging_levels = {
-            'NOTSET': logging.NOTSET,
-              'DEBUG': logging.DEBUG,
-              'INFO': logging.INFO,
-              'WARNING': logging.WARNING,
-              'ERROR': logging.ERROR,
-              'CRITICAL': logging.CRITICAL,
-              # extras
-               "ALL": logging.INFO,
-               "FALSE": logging.ERROR
-                          }
+            "NOTSET": logging.NOTSET,
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+            # extras
+            "ALL": logging.INFO,
+            "FALSE": logging.ERROR,
+        }
 
         if isinstance(v, bool) and v is True:
             return logging.WARNING
@@ -148,20 +148,20 @@ class ArgparseChecker():
         elif v.upper() in logging_levels:
             return logging_levels[v.upper()]
         else:
-            raise argparse.ArgumentTypeError('Meaningful logging level expected.')
+            raise argparse.ArgumentTypeError("Meaningful logging level expected.")
 
     @staticmethod
     def ratio(v):
-        if ':' not in v:
+        if ":" not in v:
             argparse.ArgumentTypeError('The ratio has to be separated by ":".')
-        mcs, rmsd = v.split(':')
+        mcs, rmsd = v.split(":")
         return [float(mcs), float(rmsd)]
 
     @staticmethod
     def existing_file(v):
         # check ligand arguments
         if not pathlib.Path(v).is_file():
-            raise argparse.ArgumentTypeError(f'The file {v} could not be found.')
+            raise argparse.ArgumentTypeError(f"The file {v} could not be found.")
         return pathlib.Path(v)
 
     @staticmethod
@@ -169,11 +169,17 @@ class ArgparseChecker():
         # check if this path points to ambertools
         amber_home = pathlib.Path(path)
         if not amber_home.is_dir():
-            raise argparse.ArgumentTypeError(f'The path to ambertools does not point towards a directory. ')
+            raise argparse.ArgumentTypeError(
+                f"The path to ambertools does not point towards a directory. "
+            )
         # check if the bin directory, antechamber and antechamber
-        if not (amber_home / 'bin').is_dir():
-            raise argparse.ArgumentTypeError(f'The path to ambertools does not contain the "bin" directory. ')
-        if not (amber_home / 'bin' / 'antechamber').is_dir():
-            raise argparse.ArgumentTypeError(f'The path to ambertools does not contain the "bin/antechamber" file. ')
+        if not (amber_home / "bin").is_dir():
+            raise argparse.ArgumentTypeError(
+                f'The path to ambertools does not contain the "bin" directory. '
+            )
+        if not (amber_home / "bin" / "antechamber").is_dir():
+            raise argparse.ArgumentTypeError(
+                f'The path to ambertools does not contain the "bin/antechamber" file. '
+            )
 
         return amber_home

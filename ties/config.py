@@ -31,12 +31,12 @@ class Config:
 
         # scripts/input files,
         # these are specific to the host
-        self.script_dir = self.code_root / 'scripts'
-        self.namd_script_dir = self.script_dir / 'namd'
-        self.ambertools_script_dir = self.script_dir / 'ambertools'
-        self.tleap_check_protein = self.ambertools_script_dir / 'check_prot.in'
-        self.vmd_vis_script = self.script_dir / 'vmd' / 'vis_morph.vmd'
-        self.vmd_vis_script_sh = self.script_dir / 'vmd' / 'vis_morph.sh'
+        self.script_dir = self.code_root / "scripts"
+        self.namd_script_dir = self.script_dir / "namd"
+        self.ambertools_script_dir = self.script_dir / "ambertools"
+        self.tleap_check_protein = self.ambertools_script_dir / "check_prot.in"
+        self.vmd_vis_script = self.script_dir / "vmd" / "vis_morph.vmd"
+        self.vmd_vis_script_sh = self.script_dir / "vmd" / "vis_morph.sh"
 
         self.unique_atom_names = False
 
@@ -77,13 +77,13 @@ class Config:
         self._superimposition_starting_heuristic = 0
 
         self._protein_ff = None
-        self._ligand_ff = 'leaprc.gaff'
-        self._ligand_ff_name = 'gaff'
+        self._ligand_ff = "leaprc.gaff"
+        self._ligand_ff_name = "gaff"
 
         # MD/NAMD production input file
-        self._md_engine = 'namd'
-        #default to modern CPU version
-        self.namd_version = '2.14'
+        self._md_engine = "namd"
+        # default to modern CPU version
+        self.namd_version = "2.14"
         self._lambda_rep_dir_tree = False
 
         # experimental
@@ -100,7 +100,9 @@ class Config:
 
         # logging
         self.logging_breakdown = False
-        self.logging_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.logging_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
         self.logging_level = logging.INFO
 
     @property
@@ -132,9 +134,9 @@ class Config:
             self._workdir = cwd.absolute()
         else:
             # current directory
-            self._workdir = pathlib.Path(os.getcwd()) / 'ties'
+            self._workdir = pathlib.Path(os.getcwd()) / "ties"
             self._workdir.mkdir(exist_ok=True)
-        logger.debug(f'Working Directory: {self._workdir}')
+        logger.debug(f"Working Directory: {self._workdir}")
 
     # --------------- general
     @property
@@ -150,11 +152,11 @@ class Config:
     @protein.setter
     def protein(self, path):
         if path is None:
-            logger.info('No protein was select. Skipping protein dG.')
+            logger.info("No protein was select. Skipping protein dG.")
             return
 
         #  can be loaded by parmed?
-        logger.info(f'Opening the protein file {path} with ParmEd..')
+        logger.info(f"Opening the protein file {path} with ParmEd..")
         parmed.load_file(str(path), structure=True)
         self._protein = pathlib.Path(path)
 
@@ -169,28 +171,34 @@ class Config:
     @ligand_files.setter
     def ligand_files(self, files):
         """
-            str or Path,
-            a Ligand object will converted into a Path
+        str or Path,
+        a Ligand object will converted into a Path
         """
         if isinstance(files, str) or isinstance(files, pathlib.Path):
             files = [pathlib.Path(files)]
 
         if len(files) < 1:
-            logger.error('Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb')
+            logger.error(
+                "Please supply at least one ligand file with -l (--ligands). E.g. -l file1.pdb file2.pdb"
+            )
             sys.exit(1)
 
         # check if the ligands have the same extension
         if len({l.suffix for l in files}) != 1:
             # fixme - does it actually matter? you parse it anyway?
-            logger.error('ligands (-l) have different extensions. '
-                  'Please ensure all ligands have the same extension')
+            logger.error(
+                "ligands (-l) have different extensions. "
+                "Please ensure all ligands have the same extension"
+            )
             sys.exit()
 
         # files must have unique names
         filenames = [l.stem for l in files]
         if len(filenames) != len(set(filenames)):
-            logger.error('Some ligand (-l) names are the same. '
-                  'ensure your ligands have unique names. ')
+            logger.error(
+                "Some ligand (-l) names are the same. "
+                "ensure your ligands have unique names. "
+            )
             sys.exit()
 
         # verify the files with ParmEd if possible
@@ -226,25 +234,31 @@ class Config:
         path = None
         if self._ambertools_home is None:
             # otherwise check env paths
-            if os.getenv('AMBERHOME'):
-                path = pathlib.Path(os.getenv('AMBERHOME'))
-            elif os.getenv('AMBER_PREFIX'):
-                path = pathlib.Path(os.getenv('AMBER_PREFIX'))
+            if os.getenv("AMBERHOME"):
+                path = pathlib.Path(os.getenv("AMBERHOME"))
+            elif os.getenv("AMBER_PREFIX"):
+                path = pathlib.Path(os.getenv("AMBER_PREFIX"))
             else:
                 # try to deduce the env from the location of antechamber binary
-                logger.warning('$AMBERHOME not found. Guessing the location by looking up antechamber. ')
-                proc = subprocess.run(['which', 'antechamber'], capture_output=True)
-                decode = proc.stdout.decode('utf-8').strip()
+                logger.warning(
+                    "$AMBERHOME not found. Guessing the location by looking up antechamber. "
+                )
+                proc = subprocess.run(["which", "antechamber"], capture_output=True)
+                decode = proc.stdout.decode("utf-8").strip()
                 if "not found" not in decode:
                     ant_path = pathlib.Path(decode)
                     if ant_path.is_file():
                         path = ant_path.parent.parent
 
             if path is None:
-                logger.error('Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty')
-                logger.error('Option 1: source your ambertools script amber.sh')
-                logger.error('Option 2: specify manually the path to amberhome with -ambertools option')
-                raise Exception('No ambertools')
+                logger.error(
+                    "Error: Cannot find ambertools. $AMBERHOME and $AMBER_PREFIX are empty"
+                )
+                logger.error("Option 1: source your ambertools script amber.sh")
+                logger.error(
+                    "Option 2: specify manually the path to amberhome with -ambertools option"
+                )
+                raise Exception("No ambertools")
 
             assert path.exists()
             self._ambertools_home = path
@@ -258,7 +272,7 @@ class Config:
 
         :return:
         """
-        return self.ambertools_home / 'bin' / 'antechamber'
+        return self.ambertools_home / "bin" / "antechamber"
 
     @property
     def ambertools_parmchk2(self):
@@ -266,7 +280,7 @@ class Config:
         Parmchk2 path based on the .ambertools_home
         :return:
         """
-        return self.ambertools_home / 'bin' / 'parmchk2'
+        return self.ambertools_home / "bin" / "parmchk2"
 
     @property
     def ambertools_tleap(self):
@@ -274,7 +288,7 @@ class Config:
         Tleap path based on the .ambertools_home
         :return:
         """
-        return self.ambertools_home / 'bin' / 'tleap'
+        return self.ambertools_home / "bin" / "tleap"
 
     @ambertools_home.setter
     def ambertools_home(self, path):
@@ -284,8 +298,10 @@ class Config:
 
         path = pathlib.Path(path)
         if not path.exists():
-            logger.error('The provided ambertools home path does not point towards the directory.'
-                  f'{path}')
+            logger.error(
+                "The provided ambertools home path does not point towards the directory."
+                f"{path}"
+            )
 
         self._ambertools_home = path
 
@@ -302,10 +318,10 @@ class Config:
     def antechamber_dr(self, bool):
         # using ambertools antechamber dr mode?
         if bool is True:
-            self._antechamber_dr = 'yes'
+            self._antechamber_dr = "yes"
         else:
-            self._antechamber_dr = 'no'
-        logger.debug(f'Antechamber dr: {self._antechamber_dr}')
+            self._antechamber_dr = "no"
+        logger.debug(f"Antechamber dr: {self._antechamber_dr}")
 
     @property
     def ligand_net_charge(self):
@@ -318,11 +334,12 @@ class Config:
         if self._ligand_net_charge is None:
             if self._ligands_contain_q:
                 net_q = self._get_first_ligand_net_q()
-                logger.info(f"Using the first ligand's net q = {net_q} "
-                              f"(from partial charges)")
+                logger.info(
+                    f"Using the first ligand's net q = {net_q} (from partial charges)"
+                )
                 self._ligand_net_charge = net_q
             else:
-                logger.warning('Ligand net charge not provided (-nc). Assuming 0. ')
+                logger.warning("Ligand net charge not provided (-nc). Assuming 0. ")
                 self._ligand_net_charge = 0
 
         return self._ligand_net_charge
@@ -330,10 +347,12 @@ class Config:
     @ligand_net_charge.setter
     def ligand_net_charge(self, net_charge):
         if net_charge is None:
-            logger.warning('Ligand net charge was not supplied (-nc). Neutral charge will be assumed. ')
+            logger.warning(
+                "Ligand net charge was not supplied (-nc). Neutral charge will be assumed. "
+            )
 
         self._ligand_net_charge = net_charge
-        logger.debug(f'Ligand net charge (-nc): {net_charge}')
+        logger.debug(f"Ligand net charge (-nc): {net_charge}")
 
     @property
     def coordinates_file(self):
@@ -349,7 +368,7 @@ class Config:
         if file is None:
             return
 
-        logger.debug(f'ParmEd: verifying the coordinate file {file}')
+        logger.debug(f"ParmEd: verifying the coordinate file {file}")
         parmed.load_file(file, structure=True)
         # fixme - warn if the atom names are not uniq, warn if there is more than one residue, no water, etc
         self._coordinates_file = file
@@ -370,7 +389,9 @@ class Config:
     @atom_pair_q_atol.setter
     def atom_pair_q_atol(self, atol):
         self._atom_pair_q_atol = atol
-        logger.debug(f'The maximum acceptable difference in charge between two paired atoms: {atol:.2f}')
+        logger.debug(
+            f"The maximum acceptable difference in charge between two paired atoms: {atol:.2f}"
+        )
 
     @property
     def net_charge_threshold(self):
@@ -387,7 +408,7 @@ class Config:
     @net_charge_threshold.setter
     def net_charge_threshold(self, threshold):
         self._net_charge_threshold = threshold
-        logger.debug(f'Using MCS net charge difference threshold of {threshold}')
+        logger.debug(f"Using MCS net charge difference threshold of {threshold}")
 
     @property
     def ignore_charges_completely(self):
@@ -402,7 +423,7 @@ class Config:
     def ignore_charges_completely(self, bool):
         self._ignore_charges_completely = bool
         if bool:
-            logger.debug('Ignoring the charges. ')
+            logger.debug("Ignoring the charges. ")
             self.redistribute_q_over_unmatched = False
 
     @property
@@ -419,7 +440,7 @@ class Config:
     @allow_disjoint_components.setter
     def allow_disjoint_components(self, boolean):
         self._allow_disjoint_components = boolean
-        logger.debug(f'Allowing disjoint components: {self._allow_disjoint_components}')
+        logger.debug(f"Allowing disjoint components: {self._allow_disjoint_components}")
 
     @property
     def use_element_in_superimposition(self):
@@ -461,7 +482,7 @@ class Config:
         # align the coordinates in ligZ to the ligA using the MCS
         self._align_molecules_using_mcs = boolean
         # fixme - should be using the MCS before charges change
-        logger.debug(f'Will align the coordinates using the final MCS: {boolean}')
+        logger.debug(f"Will align the coordinates using the final MCS: {boolean}")
 
     @property
     def use_original_coor(self):
@@ -486,7 +507,7 @@ class Config:
         :return:
         """
         # if all ligands are .mol2, then charges are provided
-        if all(l.suffix.lower() == '.mol2' for l in self.ligand_files):
+        if all(l.suffix.lower() == ".mol2" for l in self.ligand_files):
             # if all atoms have q = 0 that means they're a placeholder
             u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
             all_q_0 = all(a.charge == 0 for a in u.atoms)
@@ -522,25 +543,29 @@ class Config:
         # does the file type contain charges?
         ligand_ext = set(l.suffix.lower() for l in self.ligand_files).pop()
         if self._ligands_contain_q is True:
-            if ligand_ext in {'.mol2', '.ac'}:
+            if ligand_ext in {".mol2", ".ac"}:
                 self._ligands_contain_q = True
             else:
-                logger.error('If charges are provided with the ligands, '
-                      'the filetypes .mol2 or .ac have to be used.')
+                logger.error(
+                    "If charges are provided with the ligands, "
+                    "the filetypes .mol2 or .ac have to be used."
+                )
                 sys.exit(1)
         elif self._ligands_contain_q is False:
             self._ligands_contain_q = False
         elif self._ligands_contain_q is None:
             # determine whether charges are provided using the file extensions
-            if ligand_ext in {'.mol2', '.ac', '.prep'}:
+            if ligand_ext in {".mol2", ".ac", ".prep"}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                logger.info(f'Existing atom charges detected (filetype .ac/.mol2)')
-            elif ligand_ext == '.pdb':
+                logger.info(f"Existing atom charges detected (filetype .ac/.mol2)")
+            elif ligand_ext == ".pdb":
                 self._ligands_contain_q = False
-                logger.debug('Assuming that charges are not provided in the given .pdb ligand files. ')
+                logger.debug(
+                    "Assuming that charges are not provided in the given .pdb ligand files. "
+                )
             else:
-                logger.error(f'Error: unrecognized file type {ligand_ext}. ')
+                logger.error(f"Error: unrecognized file type {ligand_ext}. ")
                 sys.exit(1)
 
         # fixme?
@@ -549,7 +574,7 @@ class Config:
             # TODO - ensure that when antechamber_charge_type is accessed ,this function is used? implement in another
             self.antechamber_charge_type = []
 
-        logger.debug(f'Ligand files already contain charges: {self._ligands_contain_q}')
+        logger.debug(f"Ligand files already contain charges: {self._ligands_contain_q}")
 
         return self._ligands_contain_q
 
@@ -569,14 +594,13 @@ class Config:
 
     @superimposition_starting_pairs.setter
     def superimposition_starting_pairs(self, value):
-
         if value == None:
             self._superimposition_starting_pairs = None
             return
 
         # split the different starting pairs
         pairs = value.split(";")
-        self. _superimposition_starting_pairs = [pair.split("-") for pair in pairs]
+        self._superimposition_starting_pairs = [pair.split("-") for pair in pairs]
 
     @property
     def superimposition_starting_heuristic(self):
@@ -604,7 +628,9 @@ class Config:
             self._manually_matched_atom_pairs = []
             return
         if self._ligand_files is None:
-            raise ValueError('Wrong use of Config class. Please set the ._ligand_files attribute first. ')
+            raise ValueError(
+                "Wrong use of Config class. Please set the ._ligand_files attribute first. "
+            )
 
         # TODO
         # pair_format: C1-C7 or C1-C7,C2-C8
@@ -613,11 +639,13 @@ class Config:
         manually_matched = []
         if file_or_pairs is not None and pathlib.Path(file_or_pairs).is_file():
             with open(file_or_pairs) as IN:
-                for left_atom, right_atom in csv.reader(IN, delimiter='-'):
+                for left_atom, right_atom in csv.reader(IN, delimiter="-"):
                     manually_matched.append((left_atom.strip(), right_atom.strip()))
 
         if len(manually_matched) > 1:
-            raise NotImplementedError('Currently only one atom pair can be matched - others were not tested')
+            raise NotImplementedError(
+                "Currently only one atom pair can be matched - others were not tested"
+            )
 
         self._manually_matched_atom_pairs = manually_matched
 
@@ -639,10 +667,12 @@ class Config:
         if value is not None:
             path = pathlib.Path(value)
             if not path.is_file():
-                raise Exception(f'Input file containing mismatching pairs cannot be found: {value}')
+                raise Exception(
+                    f"Input file containing mismatching pairs cannot be found: {value}"
+                )
 
             with open(path) as IN:
-                for left_atom, right_atom in csv.reader(IN, delimiter='-'):
+                for left_atom, right_atom in csv.reader(IN, delimiter="-"):
                     mismatch.append((left_atom.strip(), right_atom.strip()))
 
         self._manually_mismatched_pairs = mismatch
@@ -660,16 +690,18 @@ class Config:
             return None
 
         if self._protein_ff is None:
-            logger.warning('Protein FF is not configured in the config.protein_ff. '
-                  'Setting the default leaprc.ff19SB')
+            logger.warning(
+                "Protein FF is not configured in the config.protein_ff. "
+                "Setting the default leaprc.ff19SB"
+            )
             # fixme - update to a later ff
-            self._protein_ff = 'leaprc.protein.ff19SB'
+            self._protein_ff = "leaprc.protein.ff19SB"
         return self._protein_ff
 
     @protein_ff.setter
     def protein_ff(self, ff):
         self._protein_ff = ff
-        logger.debug(f'Protein force field name: {self._protein_ff}')
+        logger.debug(f"Protein force field name: {self._protein_ff}")
 
     @property
     def md_engine(self):
@@ -683,23 +715,25 @@ class Config:
 
     @md_engine.setter
     def md_engine(self, value):
-        supported = ['NAMD2.13', 'NAMD2.14', 'NAMD3', 'OpenMM']
-        if type(value) == str and value.lower() == 'namd2.14':
-            self._md_engine = 'namd'
-            self.namd_version = '2.14'
-        elif type(value) == str and value.lower() == 'namd2.13':
-            self._md_engine = 'namd'
-            self.namd_version = '2.13'
-        elif type(value) == str and value.lower() == 'namd3':
-            self._md_engine = 'namd3'
-            self.namd_version = '3'
-        elif type(value) == str and value.lower() == 'openmm':
-            self._md_engine = 'openmm'
-            self.namd_version = ''
+        supported = ["NAMD2.13", "NAMD2.14", "NAMD3", "OpenMM"]
+        if type(value) == str and value.lower() == "namd2.14":
+            self._md_engine = "namd"
+            self.namd_version = "2.14"
+        elif type(value) == str and value.lower() == "namd2.13":
+            self._md_engine = "namd"
+            self.namd_version = "2.13"
+        elif type(value) == str and value.lower() == "namd3":
+            self._md_engine = "namd3"
+            self.namd_version = "3"
+        elif type(value) == str and value.lower() == "openmm":
+            self._md_engine = "openmm"
+            self.namd_version = ""
         else:
-            raise ValueError('Unknown engine {}. Supported engines {}'.format(value, supported))
+            raise ValueError(
+                "Unknown engine {}. Supported engines {}".format(value, supported)
+            )
 
-        logger.debug(f'MD Engine: {value}')
+        logger.debug(f"MD Engine: {value}")
 
     @property
     def lambda_rep_dir_tree(self):
@@ -728,13 +762,15 @@ class Config:
     @ligand_ff_name.setter
     def ligand_ff_name(self, atom_type):
         # save also the atom type
-        if atom_type == 'gaff':
+        if atom_type == "gaff":
             # they both use the same ff
-            self._ligand_ff = 'leaprc.gaff'
-        elif atom_type == 'gaff2':
-            self._ligand_ff = 'leaprc.gaff2'
+            self._ligand_ff = "leaprc.gaff"
+        elif atom_type == "gaff2":
+            self._ligand_ff = "leaprc.gaff2"
         else:
-            raise ValueError('Argument -lff cannot be anything else but "gaff" or "gaff2". ')
+            raise ValueError(
+                'Argument -lff cannot be anything else but "gaff" or "gaff2". '
+            )
 
         self._ligand_ff_name = atom_type
 
@@ -754,8 +790,10 @@ class Config:
     def redistribute_q_over_unmatched(self, boolean):
         # Redistribute charge imbalances created due to atom-pair averaging
         self._redistribute_q_over_unmatched = boolean
-        logger.debug(f'Distribute the introduced charge disparity in the alchemical region: '
-              f'{self._redistribute_q_over_unmatched}')
+        logger.debug(
+            f"Distribute the introduced charge disparity in the alchemical region: "
+            f"{self._redistribute_q_over_unmatched}"
+        )
 
     @property
     def use_hybrid_single_dual_top(self):
@@ -771,11 +809,13 @@ class Config:
     def use_hybrid_single_dual_top(self, boolean):
         if boolean:
             self._use_hybrid_single_dual_top = True
-            self._complex_tleap_in = 'leap_complex_sdtop.in'
+            self._complex_tleap_in = "leap_complex_sdtop.in"
             if self._ignore_charges_completely != True:
-                raise Exception('Charges have to be ignored completely when using hybrid single-dual topology.')
+                raise Exception(
+                    "Charges have to be ignored completely when using hybrid single-dual topology."
+                )
         else:
-            self._complex_tleap_in = 'leap_complex.in'
+            self._complex_tleap_in = "leap_complex.in"
 
         self._use_hybrid_single_dual_top = boolean
 
@@ -792,10 +832,10 @@ class Config:
             return self._ligand_tleap_in
         if self.use_hybrid_single_dual_top:
             # return the default option for the hybrid
-            return 'leap_ligand_sdtop.in'
+            return "leap_ligand_sdtop.in"
 
         # return the default
-        return 'leap_ligand.in'
+        return "leap_ligand.in"
 
     @property
     def complex_tleap_in(self):
@@ -811,7 +851,7 @@ class Config:
             # self._complex_tleap_in = 'leap_complex_sdtop.in'
             self.use_hybrid_single_dual_top = False
 
-            self._complex_tleap_in = 'leap_complex.in'
+            self._complex_tleap_in = "leap_complex.in"
         return self._complex_tleap_in
 
     # PAIR constants configuration
@@ -822,7 +862,7 @@ class Config:
 
         :return: Default (workdir/prep)
         """
-        return self.workdir /  pathlib.Path('prep')
+        return self.workdir / pathlib.Path("prep")
 
     @property
     def pair_morphfrcmods_dir(self):
@@ -831,7 +871,7 @@ class Config:
 
         :return: Default (workdir/prep/morph_frcmods)
         """
-        return self.prep_dir / 'morph_frcmods'
+        return self.prep_dir / "morph_frcmods"
 
     @property
     def pair_morphfrmocs_tests_dir(self):
@@ -840,7 +880,7 @@ class Config:
 
         :return: Default (workdir/prep/morph_frcmods/tests)
         """
-        return self.pair_morphfrcmods_dir / 'tests'
+        return self.pair_morphfrcmods_dir / "tests"
 
     @property
     def pair_unique_atom_names_dir(self):
@@ -849,7 +889,7 @@ class Config:
 
         :return: Default (workdir/prep/morph_unique_atom_names)
         """
-        return self.prep_dir / 'morph_unique_atom_names'
+        return self.prep_dir / "morph_unique_atom_names"
 
     @property
     def lig_unique_atom_names_dir(self):
@@ -858,7 +898,7 @@ class Config:
 
         :return: Default (workdir/prep/unique_atom_names)
         """
-        return self.prep_dir / 'unique_atom_names'
+        return self.prep_dir / "unique_atom_names"
 
     @property
     def lig_frcmod_dir(self):
@@ -867,7 +907,7 @@ class Config:
 
         :return: Default (workdir/prep/ligand_frcmods)
         """
-        return self.prep_dir / 'ligand_frcmods'
+        return self.prep_dir / "ligand_frcmods"
 
     @property
     def lig_acprep_dir(self):
@@ -876,7 +916,7 @@ class Config:
 
         :return: Default (workdir/prep/acprep_to_mol2)
         """
-        return self.prep_dir / 'acprep_to_mol2'
+        return self.prep_dir / "acprep_to_mol2"
 
     @property
     def lig_dir(self):
@@ -885,7 +925,7 @@ class Config:
 
         :return: Default (workdir/mol2)
         """
-        return self.workdir / 'mol2'
+        return self.workdir / "mol2"
 
     @staticmethod
     def get_element_map():
@@ -895,14 +935,21 @@ class Config:
         :return:
         """
         # Get the mapping of atom types to elements
-        element_map_filename = pathlib.Path(os.path.dirname(__file__)) / 'data' / 'element_atom_type_map.txt'
+        element_map_filename = (
+            pathlib.Path(os.path.dirname(__file__))
+            / "data"
+            / "element_atom_type_map.txt"
+        )
         # remove the comments lines with #
-        lines = filter(lambda l: not l.strip().startswith('#') and not l.strip() == '', open(element_map_filename).readlines())
+        lines = filter(
+            lambda l: not l.strip().startswith("#") and not l.strip() == "",
+            open(element_map_filename).readlines(),
+        )
         # convert into a dictionary
 
         element_map = {}
         for line in lines:
-            element, atom_types = line.split('=')
+            element, atom_types = line.split("=")
 
             for atom_type in atom_types.split():
                 element_map[atom_type.strip()] = element.strip()
@@ -911,7 +958,7 @@ class Config:
 
     # fixme - this should be determined at the location where it is relevant rather than here in the conf
     # antechamber parameters, by default compute AM1-BCC charges
-    antechamber_charge_type = ['-c', 'bcc']
+    antechamber_charge_type = ["-c", "bcc"]
 
     def get_serializable(self):
         """
@@ -928,8 +975,8 @@ class Config:
         """
 
         exclude = [
-            "_workdir_tempdir", # exists (during runtime) for cleaning up purposes
-                   ]
+            "_workdir_tempdir",  # exists (during runtime) for cleaning up purposes
+        ]
 
         host_specific = [
             "code_root",
@@ -952,10 +999,10 @@ class Config:
                 v = str(v)
 
             # account for the ligands being pathlib objects
-            if k == 'ligands' and v is not None:
+            if k == "ligands" and v is not None:
                 # a list of ligands, convert to strings
                 v = [str(l) for l in v]
-            if k == '_ligand_files':
+            if k == "_ligand_files":
                 continue
 
             ser[k] = v
@@ -964,7 +1011,7 @@ class Config:
 
     def set_configs(self, **kwargs):
         # set all the configs one by one
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             # skip None values, these come from the command line
             if v is None:
                 continue

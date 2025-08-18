@@ -1,6 +1,7 @@
 """
 The main module responsible for the superimposition.
 """
+
 import sys
 import os
 import hashlib
@@ -24,9 +25,11 @@ import MDAnalysis
 from MDAnalysis.lib.distances import distance_array
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
-warnings.filterwarnings("ignore",
-                        "The Bio.Application modules and modules relying on it have been deprecated.",
-                        module="Bio.Application")
+warnings.filterwarnings(
+    "ignore",
+    "The Bio.Application modules and modules relying on it have been deprecated.",
+    module="Bio.Application",
+)
 from MDAnalysis.analysis.align import rotation_matrix
 import numpy as np
 import networkx as nx
@@ -39,6 +42,7 @@ import ties.generator
 
 logger = logging.getLogger(__name__)
 
+
 class Bond:
     def __init__(self, atom, type):
         self.atom = atom
@@ -47,10 +51,11 @@ class Bond:
     def __repr__(self):
         return f"Bond to {self.atom}"
 
-class Bonds(set):
 
+class Bonds(set):
     def without(self, atom):
         return {bond for bond in self if bond.atom is not atom}
+
 
 class Atom:
     counter = 1
@@ -68,7 +73,7 @@ class Atom:
         self._original_charge = charge
 
         self.resid = None
-        self.bonds:Bonds = Bonds()
+        self.bonds: Bonds = Bonds()
         self.use_general_type = use_general_type
         self.hash_value = None
 
@@ -128,7 +133,7 @@ class Atom:
         # fixme - ideally it would use the config class that would use the right mapping
         element_map = ties.config.Config.get_element_map()
         # strip the element from the associated digits/numbers
-        no_trailing_digits = re.match('[A-Za-z]*', self.type)[0]
+        no_trailing_digits = re.match("[A-Za-z]*", self.type)[0]
         self.element = element_map[no_trailing_digits]
 
     @property
@@ -138,10 +143,10 @@ class Atom:
     @position.setter
     def position(self, pos):
         # switch the type to float32 for any coordinate work with MDAnalysis
-        self._position = np.array([pos[0], pos[1], pos[2]], dtype='float32')
+        self._position = np.array([pos[0], pos[1], pos[2]], dtype="float32")
 
     def is_hydrogen(self):
-        if self.element == 'H':
+        if self.element == "H":
             return True
 
         return False
@@ -155,10 +160,12 @@ class Atom:
 
     @property
     def united_charge(self):
-        '''
+        """
         United atom charge: summed charges of this atom and the bonded hydrogens.
-        '''
-        return self.charge + sum(bond.atom.charge for bond in self.bonds if bond.atom.is_hydrogen())
+        """
+        return self.charge + sum(
+            bond.atom.charge for bond in self.bonds if bond.atom.is_hydrogen()
+        )
 
     def __hash__(self):
         # Compute the hash key once
@@ -168,11 +175,11 @@ class Atom:
         m = hashlib.md5()
         # fixme - ensure that each node is characterised by its chemistry,
         # fixme - id might not be unique, so check before the input data
-        m.update(str(self.charge).encode('utf-8'))
+        m.update(str(self.charge).encode("utf-8"))
         # use the unique counter to distinguish between created atoms
-        m.update(str(self._unique_counter).encode('utf-8'))
+        m.update(str(self._unique_counter).encode("utf-8"))
         # include the number of bonds
-        m.update(str(len(self.bonds)).encode('utf-8'))
+        m.update(str(len(self.bonds)).encode("utf-8"))
         self.hash_value = int(m.hexdigest(), 16)
         return self.hash_value
 
@@ -236,15 +243,15 @@ class AtomPair:
 
     def _gen_hash(self):
         m = hashlib.md5()
-        m.update(str(hash(self.left_atom)).encode('utf-8'))
-        m.update(str(hash(self.right_atom)).encode('utf-8'))
+        m.update(str(hash(self.left_atom)).encode("utf-8"))
+        m.update(str(hash(self.right_atom)).encode("utf-8"))
         return int(m.hexdigest(), 16)
 
     def __hash__(self):
         return self.hash_value
 
     def is_heavy_atom(self):
-        if self.left_atom.element == 'H':
+        if self.left_atom.element == "H":
             return False
 
         return True
@@ -267,7 +274,9 @@ class SuperimposedTopology:
     # ID distributor for instances
     COUNTER = 0
 
-    def __init__(self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None):
+    def __init__(
+        self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None
+    ):
         self.set_parmeds(parmed_ligA, parmed_ligZ)
 
         """
@@ -308,8 +317,8 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []    # atom-atom charge decided by qtol
-        self._removed_because_disjointed_cc = []    # disjointed segment
+        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
         self._removed_because_diff_bonds = []  # the atoms pair uses a different bond
@@ -345,20 +354,26 @@ class SuperimposedTopology:
         # store at the root for now
         # fixme - should either be created or generated API
         if filename is None:
-            matching_json = self.config.workdir / f'meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json'
+            matching_json = (
+                self.config.workdir
+                / f"meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json"
+            )
         else:
             matching_json = pathlib.Path(filename)
 
         matching_json.parent.mkdir(parents=True, exist_ok=True)
 
-        json.dump(self.toJSON(), open(matching_json, 'w'))
+        json.dump(self.toJSON(), open(matching_json, "w"))
 
     def write_pdb(self, filename=None):
         """
-            param filename: name or a filepath of the new file. If None, standard preconfigured pattern will be used.
+        param filename: name or a filepath of the new file. If None, standard preconfigured pattern will be used.
         """
         if filename is None:
-            morph_pdb_path = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb'
+            morph_pdb_path = (
+                self.config.workdir
+                / f"{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb"
+            )
         else:
             morph_pdb_path = filename
 
@@ -373,7 +388,9 @@ class SuperimposedTopology:
 
             # first, set all the matched pairs to -2 and 2 (single topology)
             # regardless of how they were mismatched
-            raise NotImplementedError('Cannot yet write hybrid single dual topology .pdb file')
+            raise NotImplementedError(
+                "Cannot yet write hybrid single dual topology .pdb file"
+            )
 
             # then, set the different atoms to -1 and 1 (dual topology)
 
@@ -387,7 +404,7 @@ class SuperimposedTopology:
         # save the ligand with all the appropriate atomic positions, write it using the pdb format
         # pdb file format: http://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM
         # write a dual .pdb file
-        with open(morph_pdb_path, 'w') as FOUT:
+        with open(morph_pdb_path, "w") as FOUT:
             for atom in self.parmed_ligA.atoms:
                 """
                 There is only one forcefield which is shared across the two topologies. 
@@ -400,75 +417,91 @@ class SuperimposedTopology:
                 # note that ParmEd does not have the information on a residue ID
                 REMAINS = 0
                 if self.contains_left_atom(atom.idx):
-                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
-                           f"{1:>4d}    " \
-                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
-                           f"{1.0:>6.2f}{REMAINS:>6.2f}" + (' ' * 11) + \
-                           '  ' + '  ' + '\n'
+                    line = (
+                        f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  "
+                        f"{1:>4d}    "
+                        f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}"
+                        f"{1.0:>6.2f}{REMAINS:>6.2f}" + (" " * 11) + "  " + "  " + "\n"
+                    )
                     FOUT.write(line)
                 else:
                     # this atom was not found, this means it disappears, so we should update the
                     DISAPPEARING_ATOM = -1.0
-                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
-                           f"{1:>4d}    " \
-                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
-                           f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}" + \
-                           (' ' * 11) + \
-                           '  ' + '  ' + '\n'
+                    line = (
+                        f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  "
+                        f"{1:>4d}    "
+                        f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}"
+                        f"{1.0:>6.2f}{DISAPPEARING_ATOM:>6.2f}"
+                        + (" " * 11)
+                        + "  "
+                        + "  "
+                        + "\n"
+                    )
                     FOUT.write(line)
             # add atoms from the right topology,
             # which are going to be created
             for atom in self.parmed_ligZ.atoms:
                 if not self.contains_right_atom(atom.idx):
                     APPEARING_ATOM = 1.0
-                    line = f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  " \
-                           f"{1:>4d}    " \
-                           f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}" \
-                           f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}" + \
-                           (' ' * 11) + \
-                           '  ' + '  ' + '\n'
+                    line = (
+                        f"ATOM  {atom.idx:>5d} {atom.name:>4s} {atom.residue.name:>3s}  "
+                        f"{1:>4d}    "
+                        f"{atom.xx:>8.3f}{atom.xy:>8.3f}{atom.xz:>8.3f}"
+                        f"{1.0:>6.2f}{APPEARING_ATOM:>6.2f}"
+                        + (" " * 11)
+                        + "  "
+                        + "  "
+                        + "\n"
+                    )
                     FOUT.write(line)
         self.pdb = morph_pdb_path
 
     def prepare_inputs(self, protein=None):
-        logger.debug('Ambertools parmchk2 generating frcmod files for ligands')
+        logger.debug("Ambertools parmchk2 generating frcmod files for ligands")
         self.morph.ligA.generate_frcmod()
         self.morph.ligZ.generate_frcmod()
 
         # select the right tleap input file and directory
         if protein is None:
-            dir_ligcom = 'lig'
+            dir_ligcom = "lig"
             tleap_in = self.config.ligand_tleap_in
         else:
-            dir_ligcom = 'com'
+            dir_ligcom = "com"
             tleap_in = self.config.complex_tleap_in
 
-        logger.debug('Joining frcmod files from ligands and checking parmchk2')
+        logger.debug("Joining frcmod files from ligands and checking parmchk2")
         self.morph.merge_frcmod_files(ligcom=dir_ligcom)
 
-        cwd = self.config.workdir / f'ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}' / dir_ligcom
+        cwd = (
+            self.config.workdir
+            / f"ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}"
+            / dir_ligcom
+        )
         cwd.mkdir(parents=True, exist_ok=True)
 
         # Agastya: simple format for appearing and disappearing atoms
-        open(cwd / 'disappearing_atoms.txt', 'w').write(
-            ' '.join([a.name for a in self.morph.suptop.get_disappearing_atoms()]))
-        open(cwd / 'appearing_atoms.txt', 'w').write(' '.join([a.name for a in self.morph.suptop.get_appearing_atoms()]))
+        open(cwd / "disappearing_atoms.txt", "w").write(
+            " ".join([a.name for a in self.morph.suptop.get_disappearing_atoms()])
+        )
+        open(cwd / "appearing_atoms.txt", "w").write(
+            " ".join([a.name for a in self.morph.suptop.get_appearing_atoms()])
+        )
 
-        build = cwd / 'build'
+        build = cwd / "build"
         build.mkdir(parents=True, exist_ok=True)
 
         # copy the protein complex.pdb and save charge for later box neutralization
         if protein is not None:
-            shutil.copy(protein.get_path(), build / 'protein.pdb')
+            shutil.copy(protein.get_path(), build / "protein.pdb")
             protein_charge = protein.protein_net_charge
         else:
             protein_charge = 0.0
 
         # copy the hybrid ligand (topology and .frcmod)
-        shutil.copy(self.morph.suptop.mol2, build / 'hybrid.mol2')
+        shutil.copy(self.morph.suptop.mol2, build / "hybrid.mol2")
 
         # calculate total system charge by adding ligand and protein charges.
-        system_charge = self.config.ligand_net_charge+protein_charge
+        system_charge = self.config.ligand_net_charge + protein_charge
 
         # determine the number of ions to neutralise the system charge
         Cl_num = Na_num = 0
@@ -479,90 +512,113 @@ class SuperimposedTopology:
 
         # set the number of ions manually
         if Na_num == 0:
-            tleap_Na_ions = '# no Na+ added'
+            tleap_Na_ions = "# no Na+ added"
         elif Na_num > 0:
-            tleap_Na_ions = 'addIons sys Na+ %d' % Na_num
+            tleap_Na_ions = "addIons sys Na+ %d" % Na_num
         if Cl_num == 0:
-            tleap_Cl_ions = '# no Cl- added'
+            tleap_Cl_ions = "# no Cl- added"
         elif Cl_num > 0:
-            tleap_Cl_ions = 'addIons sys Cl- %d' % Cl_num
+            tleap_Cl_ions = "addIons sys Cl- %d" % Cl_num
 
         # prepare protein ff
         if self.config.protein_ff is None:
-            protein_ff = '# no protein ff'
+            protein_ff = "# no protein ff"
         else:
-            protein_ff = 'source ' + self.config.protein_ff
+            protein_ff = "source " + self.config.protein_ff
 
         leap_in_conf = open(self.config.ambertools_script_dir / tleap_in).read()
-        open(build / 'leap.in', 'w').write(leap_in_conf.format(protein_ff=protein_ff,
-                                                             ligand_ff=self.config.ligand_ff,
-                                                             NaIons=tleap_Na_ions,
-                                                             ClIons=tleap_Cl_ions))
+        open(build / "leap.in", "w").write(
+            leap_in_conf.format(
+                protein_ff=protein_ff,
+                ligand_ff=self.config.ligand_ff,
+                NaIons=tleap_Na_ions,
+                ClIons=tleap_Cl_ions,
+            )
+        )
 
         # ambertools tleap: combine ligand+complex, solvate, generate amberparm
-        log_filename = build / 'generate_top.log'
-        with open(log_filename, 'w') as LOG:
+        log_filename = build / "generate_top.log"
+        with open(log_filename, "w") as LOG:
             try:
-                output = subprocess.run([self.config.ambertools_tleap, '-s', '-f', 'leap.in'],
-                               stdout=LOG, stderr=LOG,
-                               cwd=build,
-                               check=True, text=True, timeout=30)
+                output = subprocess.run(
+                    [self.config.ambertools_tleap, "-s", "-f", "leap.in"],
+                    stdout=LOG,
+                    stderr=LOG,
+                    cwd=build,
+                    check=True,
+                    text=True,
+                    timeout=30,
+                )
 
                 # check if there were errors
-                if 'Errors = 0' not in open(log_filename).read()[-100:]:
-                    raise subprocess.CalledProcessError('Errors found in antechamber', 'antechamber')
+                if "Errors = 0" not in open(log_filename).read()[-100:]:
+                    raise subprocess.CalledProcessError(
+                        "Errors found in antechamber", "antechamber"
+                    )
 
-                hybrid_solv = build / 'complex_nofep.pdb'  # generated
+                hybrid_solv = build / "complex_nofep.pdb"  # generated
                 # check if the solvation is correct
             except subprocess.CalledProcessError as E:
-                raise Exception(f'ERROR: occurred when trying to parse the protein.pdb with tleap. {os.linesep}'
-                                f'ERROR: The output was saved in the directory: {build}{os.linesep}'
-                                f'ERROR: can be found in the file: {log_filename}{os.linesep}') from E
+                raise Exception(
+                    f"ERROR: occurred when trying to parse the protein.pdb with tleap. {os.linesep}"
+                    f"ERROR: The output was saved in the directory: {build}{os.linesep}"
+                    f"ERROR: can be found in the file: {log_filename}{os.linesep}"
+                ) from E
 
         # generate the merged fep file
-        complex_solvated_fep = build / 'complex.pdb'
-        ties.generator.correct_fep_tempfactor(self.morph.suptop, hybrid_solv, complex_solvated_fep,
-                               hybrid_topology=self.config.use_hybrid_single_dual_top)
+        complex_solvated_fep = build / "complex.pdb"
+        ties.generator.correct_fep_tempfactor(
+            self.morph.suptop,
+            hybrid_solv,
+            complex_solvated_fep,
+            hybrid_topology=self.config.use_hybrid_single_dual_top,
+        )
 
         # fixme - check that the protein does not have the same resname?
 
         # calculate PBC for an octahedron
         solv_oct_boc = ties.generator.extract_PBC_from_tleap_log(build / "leap.log")
 
-        #Write an config file for TIES_MD
+        # Write an config file for TIES_MD
         if protein is not None:
-            cons_file = 'cons.pdb'
+            cons_file = "cons.pdb"
         else:
-            cons_file = 'na'
-        if self.config.md_engine == 'namd':
-            engine = self.config.md_engine+self.config.namd_version
-            est = 'TI'
+            cons_file = "na"
+        if self.config.md_engine == "namd":
+            engine = self.config.md_engine + self.config.namd_version
+            est = "TI"
         else:
             engine = self.config.md_engine
-            est = 'FEP, TI'
-        ties_script = open(self.config.script_dir/ 'openmm' / 'TIES.cfg').read().format(engine=engine,
-                                                                                        cons_file=cons_file,
-                                                                                        estimators=est,
-                                                                                        **solv_oct_boc)
-        open(cwd / 'TIES.cfg', 'w').write(ties_script)
+            est = "FEP, TI"
+        ties_script = (
+            open(self.config.script_dir / "openmm" / "TIES.cfg")
+            .read()
+            .format(engine=engine, cons_file=cons_file, estimators=est, **solv_oct_boc)
+        )
+        open(cwd / "TIES.cfg", "w").write(ties_script)
 
         # populate the build dir with positions, parameters and constraints
         # generate 4 different constraint .pdb files (it uses B column), note constraint_files unused
         if protein is not None:
-            ties.generator.create_constraint_files(build / hybrid_solv, os.path.join(build, cons_file))
+            ties.generator.create_constraint_files(
+                build / hybrid_solv, os.path.join(build, cons_file)
+            )
 
         # copy the visualisation script as hidden
-        shutil.copy(self.config.vmd_vis_script, cwd / 'vis.vmd')
+        shutil.copy(self.config.vmd_vis_script, cwd / "vis.vmd")
         # simplify the vis.vmd use
-        shutil.copy(self.config.vmd_vis_script_sh, cwd / 'vis.sh')
-        (cwd / 'vis.sh').chmod(0o755)
+        shutil.copy(self.config.vmd_vis_script_sh, cwd / "vis.sh")
+        (cwd / "vis.sh").chmod(0o755)
 
     def write_mol2(self, filename=None, use_left_charges=True, use_left_coords=True):
         """
-            param filename: str location where the .mol2 file should be saved.
+        param filename: str location where the .mol2 file should be saved.
         """
         if filename is None:
-            hybrid_mol2 = self.config.workdir / f'{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2'
+            hybrid_mol2 = (
+                self.config.workdir
+                / f"{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2"
+            )
         else:
             hybrid_mol2 = filename
 
@@ -572,24 +628,23 @@ class SuperimposedTopology:
         # fixme - build this molecule using the MDAnalysis builder instead of the current approach
         # however, MDAnalysis currently cannot convert pdb into mol2? ...
         # where the formatting is done manually
-        with open(hybrid_mol2, 'w') as FOUT:
+        with open(hybrid_mol2, "w") as FOUT:
             bonds = self.get_dual_topology_bonds()
 
-            FOUT.write('@<TRIPOS>MOLECULE ' + os.linesep)
+            FOUT.write("@<TRIPOS>MOLECULE " + os.linesep)
             # name of the molecule
-            FOUT.write('HYB ' + os.linesep)
+            FOUT.write("HYB " + os.linesep)
             # num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
             # fixme this is tricky
-            FOUT.write(f'{self.get_unique_atom_count():d} '
-                       f'{len(bonds):d}' + os.linesep)
+            FOUT.write(f"{self.get_unique_atom_count():d} {len(bonds):d}" + os.linesep)
             # mole type
-            FOUT.write('SMALL ' + os.linesep)
+            FOUT.write("SMALL " + os.linesep)
             # charge_type
-            FOUT.write('NO_CHARGES ' + os.linesep)
+            FOUT.write("NO_CHARGES " + os.linesep)
             FOUT.write(os.linesep)
 
             # write the atoms
-            FOUT.write('@<TRIPOS>ATOM ' + os.linesep)
+            FOUT.write("@<TRIPOS>ATOM " + os.linesep)
             # atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
             # e.g.
             #       1 O4           3.6010   -50.1310     7.2170 o          1 L39      -0.815300
@@ -605,7 +660,8 @@ class SuperimposedTopology:
             # note - we are modifying in place our atoms
             for left, right in self.matched_pairs:
                 logger.debug(
-                    f'Aligned {left.original_name} id {left.id} with {right.original_name} id {right.id}')
+                    f"Aligned {left.original_name} id {left.id} with {right.original_name} id {right.id}"
+                )
                 if not use_left_charges:
                     left.charge = right.charge
                 if not use_left_coords:
@@ -614,21 +670,25 @@ class SuperimposedTopology:
             subst_id = 1  # resid basically
             # write all the atoms that were matched first with their IDs
             # prepare all the atoms, note that we use primarily the left ligand naming
-            all_atoms = [left for left, right in self.matched_pairs] + self.get_unmatched_atoms()
+            all_atoms = [
+                left for left, right in self.matched_pairs
+            ] + self.get_unmatched_atoms()
             unmatched_atoms = self.get_unmatched_atoms()
             # reorder the list according to the ID
             all_atoms.sort(key=lambda atom: self.get_generated_atom_id(atom))
 
-            resname = 'HYB'
+            resname = "HYB"
             for atom in all_atoms:
-                FOUT.write(f'{self.get_generated_atom_id(atom)} {atom.name} '
-                           f'{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} '
-                           f'{atom.type.lower()} {subst_id} {resname} {atom.charge:.6f} {os.linesep}')
+                FOUT.write(
+                    f"{self.get_generated_atom_id(atom)} {atom.name} "
+                    f"{atom.position[0]:.4f} {atom.position[1]:.4f} {atom.position[2]:.4f} "
+                    f"{atom.type.lower()} {subst_id} {resname} {atom.charge:.6f} {os.linesep}"
+                )
 
             FOUT.write(os.linesep)
 
             # write bonds
-            FOUT.write('@<TRIPOS>BOND ' + os.linesep)
+            FOUT.write("@<TRIPOS>BOND " + os.linesep)
 
             # we have to list every bond:
             # 1) all the bonds between the paired atoms, so that part is easy
@@ -637,14 +697,18 @@ class SuperimposedTopology:
 
             bond_counter = 1
             list(bonds)
-            for bond_from_id, bond_to_id, bond_type in sorted(list(bonds), key=lambda b: b[:2]):
+            for bond_from_id, bond_to_id, bond_type in sorted(
+                list(bonds), key=lambda b: b[:2]
+            ):
                 # Bond Line Format:
                 # bond_id origin_atom_id target_atom_id bond_type [status_bits]
-                FOUT.write(f'{bond_counter} {bond_from_id} {bond_to_id} {bond_type}' + os.linesep)
+                FOUT.write(
+                    f"{bond_counter} {bond_from_id} {bond_to_id} {bond_type}"
+                    + os.linesep
+                )
                 bond_counter += 1
 
         self.mol2 = hybrid_mol2
-
 
     def _init_nonoverlapping_cycles(self):
         """
@@ -674,12 +738,16 @@ class SuperimposedTopology:
         Return: matched atoms (even if they were unmatched for any reason)
         """
         # strip the pairs of the exact information about the charge differences
-        removed_pairs_with_charge_difference = [(n1, n2) for (n1, n2), q_diff in
-                                                self._removed_pairs_with_charge_difference]
+        removed_pairs_with_charge_difference = [
+            (n1, n2) for (n1, n2), q_diff in self._removed_pairs_with_charge_difference
+        ]
 
         # fixme: this should not work with disjointed cc and others?
-        unpaired = self._removed_because_disjointed_cc + self._removed_due_to_net_charge + \
-            removed_pairs_with_charge_difference
+        unpaired = (
+            self._removed_because_disjointed_cc
+            + self._removed_due_to_net_charge
+            + removed_pairs_with_charge_difference
+        )
 
         return self.matched_pairs + unpaired
 
@@ -723,10 +791,12 @@ class SuperimposedTopology:
             if l_ring + r_ring == 1:
                 removed_h.extend(self.remove_attached_hydrogens((l, r)))
                 self.remove_node_pair((l, r))
-                ringring_removed.append((l,r))
+                ringring_removed.append((l, r))
 
         if ringring_removed:
-            logger.debug(f'(ST{self.id}) Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}')
+            logger.debug(
+                f"(ST{self.id}) Ring only matches ring filter, removed: {ringring_removed} with hydrogens {removed_h}"
+            )
         return ringring_removed, removed_h
 
     def is_or_was_matched(self, atom_name1, atom_name2):
@@ -741,11 +811,11 @@ class SuperimposedTopology:
 
         # check if it was unmatched
         unmatched_lists = [
-                            self._removed_because_disjointed_cc,
-                            # ignore the charges in this list
-                            [pair for pair, q in self._removed_due_to_net_charge],
-                            [pair for pair, q in self._removed_pairs_with_charge_difference]
-                           ]
+            self._removed_because_disjointed_cc,
+            # ignore the charges in this list
+            [pair for pair, q in self._removed_due_to_net_charge],
+            [pair for pair, q in self._removed_pairs_with_charge_difference],
+        ]
         for unmatched_list in unmatched_lists:
             for atom1, atom2 in unmatched_list:
                 if atom1.name == atom_name1 and atom2.name == atom_name2:
@@ -757,7 +827,10 @@ class SuperimposedTopology:
         for node1, node2 in self.matched_pairs:
             # this works because we're operating on the same instance from the beginning
             if node1 == atom or node2 == atom:
-                assert node1._unique_counter == atom._unique_counter or node2._unique_counter == atom._unique_counter
+                assert (
+                    node1._unique_counter == atom._unique_counter
+                    or node2._unique_counter == atom._unique_counter
+                )
                 return node1, node2
 
         return None
@@ -818,8 +891,12 @@ class SuperimposedTopology:
 
         # select the atoms for the MCS,
         # the following uses 0-based indexing
-        mcs_ligA_ids = [left.id for left, right in self.matched_pairs] + left_disjointed_cc
-        mcs_ligB_ids = [right.id for left, right in self.matched_pairs] + right_disjointed_cc
+        mcs_ligA_ids = [
+            left.id for left, right in self.matched_pairs
+        ] + left_disjointed_cc
+        mcs_ligB_ids = [
+            right.id for left, right in self.matched_pairs
+        ] + right_disjointed_cc
 
         ligA_fragment = ligA.atoms[mcs_ligA_ids]
         ligB_fragment = ligB.atoms[mcs_ligB_ids]
@@ -829,7 +906,9 @@ class SuperimposedTopology:
         ligA.atoms.translate(-ligA_mcs_centre)
         ligB.atoms.translate(-ligB_fragment.centroid())
 
-        rotation_matrix, rmsd = MDAnalysis.analysis.align.rotation_matrix(ligB_fragment.positions, ligA_fragment.positions)
+        rotation_matrix, rmsd = MDAnalysis.analysis.align.rotation_matrix(
+            ligB_fragment.positions, ligA_fragment.positions
+        )
 
         # apply the rotation to
         ligB.atoms.rotate(rotation_matrix)
@@ -894,12 +973,16 @@ class SuperimposedTopology:
 
         # shortest distances from B to any alchemical atom in A
         # B - A
-        shortest_B_to_A = MDAnalysis.lib.distances.distance_array(B_pos, A_pos).min(axis=1)
+        shortest_B_to_A = MDAnalysis.lib.distances.distance_array(B_pos, A_pos).min(
+            axis=1
+        )
         B_to_A_rmsd = np.sqrt(np.square(shortest_B_to_A).mean())
 
         # shortest distances from A to any alchemical atom in B
         # A - B
-        shortest_A_to_B = MDAnalysis.lib.distances.distance_array(A_pos, B_pos).min(axis=1)
+        shortest_A_to_B = MDAnalysis.lib.distances.distance_array(A_pos, B_pos).min(
+            axis=1
+        )
         A_to_B_rmsd = np.sqrt(np.square(shortest_A_to_B).mean())
 
         return A_to_B_rmsd, max(shortest_A_to_B), B_to_A_rmsd, max(shortest_B_to_A)
@@ -953,10 +1036,16 @@ class SuperimposedTopology:
             for bonded_pair, bond_type in bonded_pair_list:
                 if not self.ignore_bond_types:
                     if bond_type[0] != bond_type[1]:
-                        logger.error(f'ERROR: bond types do not match, even though they apply to the same atoms')
-                        logger.error(f'ERROR: left bond is "{bond_type[0]}" and right bond is "{bond_type[1]}"')
-                        logger.error(f'ERROR: the bonded atoms are {bonded_pair}')
-                        raise Exception('The bond types do not correspond to each other')
+                        logger.error(
+                            f"ERROR: bond types do not match, even though they apply to the same atoms"
+                        )
+                        logger.error(
+                            f'ERROR: left bond is "{bond_type[0]}" and right bond is "{bond_type[1]}"'
+                        )
+                        logger.error(f"ERROR: the bonded atoms are {bonded_pair}")
+                        raise Exception(
+                            "The bond types do not correspond to each other"
+                        )
                 # every bonded pair has to be in the topology
                 assert bonded_pair in self.matched_pairs
                 to_pair_id = self.get_generated_atom_id(bonded_pair)
@@ -1004,7 +1093,7 @@ class SuperimposedTopology:
         return bonds
 
     def get_heavy_atoms(self):
-        return [pair for pair in self.matched_pairs if pair[0].element != 'H']
+        return [pair for pair in self.matched_pairs if pair[0].element != "H"]
 
     def largest_cc_survives(self, verbose=True):
         """
@@ -1026,7 +1115,7 @@ class SuperimposedTopology:
                 if pair.is_pair(tuple_pair):
                     return pair
 
-            raise Exception('Did not find the AtomPair')
+            raise Exception("Did not find the AtomPair")
 
         g = nx.Graph()
         atom_pairs = []
@@ -1056,12 +1145,13 @@ class SuperimposedTopology:
                 ccs.remove(cc)
 
         # remove the cc that have a smaller number of heavy atoms
-        largest_heavy_atom_cc = max([len([p for p in cc.nodes() if p.is_heavy_atom()])
-                                                        for cc in ccs])
+        largest_heavy_atom_cc = max(
+            [len([p for p in cc.nodes() if p.is_heavy_atom()]) for cc in ccs]
+        )
         for cc in ccs[::-1]:
             if len([p for p in cc if p.is_heavy_atom()]) < largest_heavy_atom_cc:
                 if verbose:
-                    logger.debug('Found CC that had fewer heavy atoms. Removing. ')
+                    logger.debug("Found CC that had fewer heavy atoms. Removing. ")
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
@@ -1070,7 +1160,7 @@ class SuperimposedTopology:
         for cc in ccs[::-1]:
             if len(nx.cycle_basis(cc)) < largest_cycle_num:
                 if verbose:
-                    logger.debug('Found CC that had fewer cycles. Removing. ')
+                    logger.debug("Found CC that had fewer cycles. Removing. ")
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
@@ -1096,19 +1186,25 @@ class SuperimposedTopology:
 
             if heavy_atom_counter < most_heavy_atoms_in_cycles:
                 if verbose:
-                    logger.debug('Found CC that had fewer heavy atoms in cycles. Removing. ')
+                    logger.debug(
+                        "Found CC that had fewer heavy atoms in cycles. Removing. "
+                    )
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
         if len(ccs) > 1:
             # there are equally large CCs
             if verbose:
-                logger.debug("The Connected Components are equally large! Picking the first one")
+                logger.debug(
+                    "The Connected Components are equally large! Picking the first one"
+                )
             for cc in ccs[1:]:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, "At this point there should be left only one main component"
+        assert len(ccs) == 1, (
+            "At this point there should be left only one main component"
+        )
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -1213,13 +1309,15 @@ class SuperimposedTopology:
         """
         You could also remove the hydrogens when you correct charges.
         """
-        logger.error('ERROR: function used that was not verified. It can create errors. '
-              'Please verify that the code works first.')
+        logger.error(
+            "ERROR: function used that was not verified. It can create errors. "
+            "Please verify that the code works first."
+        )
         # in order to see any hydrogens that are by themselves, we check for any connection
         removed_pairs = []
         for A1, B1 in self.matched_pairs:
             # fixme - assumes hydrogens start their names with H*
-            if not A1.name.upper().startswith('H'):
+            if not A1.name.upper().startswith("H"):
                 continue
 
             # check if any of the bonded atoms can be found in this sup top
@@ -1227,7 +1325,7 @@ class SuperimposedTopology:
                 # we appear disconnected, remove us
                 pass
             for bonded_atom in A1.bonds:
-                assert not bonded_atom.name.upper().startswith('H')
+                assert not bonded_atom.name.upper().startswith("H")
                 if self.contains_node(bonded_atom):
                     continue
 
@@ -1237,7 +1335,11 @@ class SuperimposedTopology:
         return len(self.matched_pairs)
 
     def __repr__(self):
-        return str(len(self.matched_pairs)) + ":" + ', '.join([a.name + '-' + b.name for a, b in self.matched_pairs])
+        return (
+            str(len(self.matched_pairs))
+            + ":"
+            + ", ".join([a.name + "-" + b.name for a, b in self.matched_pairs])
+        )
 
     def set_tops(self, top1, top2):
         self.top1 = list(top1)
@@ -1272,15 +1374,23 @@ class SuperimposedTopology:
 
         This method is idempotent.
         """
-        nondirectionals = ({'CC', 'CD'}, {'CE', 'CF'}, {'CP', 'CQ'},
-                             {'PC', 'PD'}, {'PE', 'PF'},
-                             {'NC', 'ND'})
+        nondirectionals = (
+            {"CC", "CD"},
+            {"CE", "CF"},
+            {"CP", "CQ"},
+            {"PC", "PD"},
+            {"PE", "PF"},
+            {"NC", "ND"},
+        )
 
         for no_direction_pair in nondirectionals:
             corrected_pairs = []
             for A1, A2 in self.matched_pairs:
                 # check if it is the right combination
-                if not {A1.type, A2.type} == no_direction_pair or (A1, A2) in corrected_pairs:
+                if (
+                    not {A1.type, A2.type} == no_direction_pair
+                    or (A1, A2) in corrected_pairs
+                ):
                     continue
 
                 # ignore if they are already the same
@@ -1293,15 +1403,19 @@ class SuperimposedTopology:
                 # ie so that later CC-CC and CD-CD are compared
                 # fixme - check if .type is used when writing the final output.
                 A2.type = A1.type
-                logger.debug(f'Arbitrary atom type correction. '
-                      f'Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}). ')
+                logger.debug(
+                    f"Arbitrary atom type correction. "
+                    f"Right atom type {A2.type} (in {A2}) overwritten with left atom type {A1.type} (in {A1}). "
+                )
 
                 corrected_pairs.append((A1, A2))
 
         return 0
 
     def print_summary(self):
-        logger.info(f"Topology Pairs {len(self.matched_pairs)}, Mirror Number: {len(self.mirrors)}")
+        logger.info(
+            f"Topology Pairs {len(self.matched_pairs)}, Mirror Number: {len(self.mirrors)}"
+        )
 
         # print the match
         # for strongly_connected_component in overlays:
@@ -1310,22 +1424,28 @@ class SuperimposedTopology:
         #     print('Bound', atom_from.atomName, atom_to.atomName)
 
         # extract all the unique nodes from the pairs
-        print("VMD Superimposed topology: len %d :" % len(self.matched_pairs),
-              'name ' + ' '.join([node1.name.upper() for node1, _ in self.matched_pairs]),
-              '\nto\n',
-              'name ' + ' '.join([node2.name.upper() for _, node2 in self.matched_pairs]))
-        print("PYMOL Superimposed topology: len %d :" % len(self.matched_pairs),
-              'sel left, name ' + '+'.join([node1.name.upper() for node1, _ in self.matched_pairs]),
-              '\nto\n',
-              'sel right, name ' + '+'.join([node2.name.upper() for _, node2 in self.matched_pairs]))
-        print(', '.join([a.name + '-' + b.name for a, b in self.matched_pairs]))
+        print(
+            "VMD Superimposed topology: len %d :" % len(self.matched_pairs),
+            "name " + " ".join([node1.name.upper() for node1, _ in self.matched_pairs]),
+            "\nto\n",
+            "name " + " ".join([node2.name.upper() for _, node2 in self.matched_pairs]),
+        )
+        print(
+            "PYMOL Superimposed topology: len %d :" % len(self.matched_pairs),
+            "sel left, name "
+            + "+".join([node1.name.upper() for node1, _ in self.matched_pairs]),
+            "\nto\n",
+            "sel right, name "
+            + "+".join([node2.name.upper() for _, node2 in self.matched_pairs]),
+        )
+        print(", ".join([a.name + "-" + b.name for a, b in self.matched_pairs]))
         print("Creation Order: ", self.nodes_added_log)
         unique_nodes = []
         for pair in self.matched_pairs:
             unique_nodes.extend(list(pair))
 
         for i, si_top in enumerate(self.mirrors, start=1):
-            print('Mirror:', i)
+            print("Mirror:", i)
             # print only the mismatching pairs
             different = set(si_top.matched_pairs).difference(set(self.matched_pairs))
             print(different)
@@ -1348,8 +1468,12 @@ class SuperimposedTopology:
             # get dangling hydrogens
 
             removed_hydrogens = self.remove_attached_hydrogens((a1, a2))
-            hydrogen_text = f" and dangling {removed_hydrogens}" if removed_hydrogens else ""
-            logger.debug(f'Removing {a1}-{a2} because of types {a1.type}-{a2.type}{hydrogen_text}')
+            hydrogen_text = (
+                f" and dangling {removed_hydrogens}" if removed_hydrogens else ""
+            )
+            logger.debug(
+                f"Removing {a1}-{a2} because of types {a1.type}-{a2.type}{hydrogen_text}"
+            )
 
     def get_net_charge(self):
         """
@@ -1364,8 +1488,16 @@ class SuperimposedTopology:
         Returns a list of matched atom pairs that have a different q,
         sorted in the descending order (the first pair has the largest q diff).
         """
-        diff_q = [(n1, n2) for n1, n2 in self.matched_pairs if np.abs(n1.united_charge - n2.united_charge) > 0]
-        return sorted(diff_q, key=lambda p: abs(p[0].united_charge - p[1].united_charge), reverse=True)
+        diff_q = [
+            (n1, n2)
+            for n1, n2 in self.matched_pairs
+            if np.abs(n1.united_charge - n2.united_charge) > 0
+        ]
+        return sorted(
+            diff_q,
+            key=lambda p: abs(p[0].united_charge - p[1].united_charge),
+            reverse=True,
+        )
 
     def apply_net_charge_filter(self, net_charge_threshold):
         """
@@ -1380,7 +1512,14 @@ class SuperimposedTopology:
         Returns: a new suptop where the net_charge_threshold is enforced.
         """
 
-        approaches = ['greedy', 'terminal_alch_linked', 'terminal', 'alch_linked', 'leftovers', 'smart']
+        approaches = [
+            "greedy",
+            "terminal_alch_linked",
+            "terminal",
+            "alch_linked",
+            "leftovers",
+            "smart",
+        ]
         rm_disjoint_at_each_step = [True, False]
 
         # best configuration info
@@ -1399,8 +1538,9 @@ class SuperimposedTopology:
 
                 # try the strategy
                 while np.abs(next_approach.get_net_charge()) > net_charge_threshold:
-
-                    best_candidate_with_h = next_approach._smart_netqtol_pair_picker(approach)
+                    best_candidate_with_h = next_approach._smart_netqtol_pair_picker(
+                        approach
+                    )
                     for pair in best_candidate_with_h:
                         next_approach.remove_node_pair(pair)
 
@@ -1418,7 +1558,9 @@ class SuperimposedTopology:
                     rm_disjoint_each_step_conf = rm_disjoint_each_step
 
         # apply the best strategy to this suptop
-        logger.debug(f'Pair removal strategy (q net tol): {best_approach} with disjoint CC removed at each step: {rm_disjoint_each_step_conf}')
+        logger.debug(
+            f"Pair removal strategy (q net tol): {best_approach} with disjoint CC removed at each step: {rm_disjoint_each_step_conf}"
+        )
 
         total_diff = 0
         if rm_disjoint_each_step_conf:
@@ -1439,7 +1581,6 @@ class SuperimposedTopology:
 
         return total_diff
 
-
     def _smart_netqtol_pair_picker(self, strategy):
         """
         The appearing and disappearing alchemical region have their
@@ -1454,17 +1595,23 @@ class SuperimposedTopology:
         # get pairs with different charges
         diff_q_pairs = self.get_matched_with_diff_q()
         if len(diff_q_pairs) == 0:
-            warnings.warn('No pairs with different partial charges, '
-                          'even though the net tol is not met. '
-                          'Ignoring this transformation (workaround). ')
+            warnings.warn(
+                "No pairs with different partial charges, "
+                "even though the net tol is not met. "
+                "Ignoring this transformation (workaround). "
+            )
             # fixme - this is a simple workaround
-            return [self.matched_pairs[0], ]
+            return [
+                self.matched_pairs[0],
+            ]
 
         # sort the pairs into categories
         # use 5 pairs with the largest difference
-        diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=5)
+        diff_sorted = self._sort_pairs_into_categories_qnettol(
+            diff_q_pairs, best_cases_num=5
+        )
 
-        if strategy == 'smart':
+        if strategy == "smart":
             # get the most promising category
             for cat in diff_sorted.keys():
                 if diff_sorted[cat]:
@@ -1475,14 +1622,16 @@ class SuperimposedTopology:
             return category[0]
 
         # allow removal of pairs even if the differences are small
-        diff_sorted = self._sort_pairs_into_categories_qnettol(diff_q_pairs, best_cases_num=len(self))
+        diff_sorted = self._sort_pairs_into_categories_qnettol(
+            diff_q_pairs, best_cases_num=len(self)
+        )
 
         # for other strategies, take the key directly, but only if there is one
         if diff_sorted[strategy]:
             pairs_in_category = diff_sorted[strategy]
         else:
             # if there is no option in that category, revert to greedy
-            pairs_in_category = diff_sorted['greedy']
+            pairs_in_category = diff_sorted["greedy"]
         return pairs_in_category[0]
 
     def _sort_pairs_into_categories_qnettol(self, pairs, best_cases_num=6):
@@ -1499,12 +1648,12 @@ class SuperimposedTopology:
         """
 
         sorted_categories = OrderedDict()
-        sorted_categories['terminal_alch_linked'] = []
-        sorted_categories['terminal'] = []
-        sorted_categories['alch_linked'] = []
-        sorted_categories['greedy'] = []
-        sorted_categories['leftovers'] = []
-        sorted_categories['low_diff'] = []
+        sorted_categories["terminal_alch_linked"] = []
+        sorted_categories["terminal"] = []
+        sorted_categories["alch_linked"] = []
+        sorted_categories["greedy"] = []
+        sorted_categories["leftovers"] = []
+        sorted_categories["low_diff"] = []
 
         app_atoms = self.get_appearing_atoms()
         dis_atoms = self.get_disappearing_atoms()
@@ -1518,13 +1667,13 @@ class SuperimposedTopology:
             neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
 
             # ignore hydrogens in these connections (non-consequential)
-            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
-            heavy = [(a, b) for a, b in neighbours if a.element != 'H']
+            hydrogens = [(a, b) for a, b in neighbours if a.element == "H"]
+            heavy = [(a, b) for a, b in neighbours if a.element != "H"]
 
             # attach the hydrogens to be removed as well
             to_remove = [pair] + hydrogens
 
-            sorted_categories['greedy'].append(to_remove)
+            sorted_categories["greedy"].append(to_remove)
 
             # check if the current pair is linked to the alchemical region
             linked_to_alchemical = False
@@ -1536,23 +1685,23 @@ class SuperimposedTopology:
                     linked_to_alchemical = True
 
             if len(heavy) == 1 and linked_to_alchemical:
-                sorted_categories['terminal_alch_linked'].append(to_remove)
+                sorted_categories["terminal_alch_linked"].append(to_remove)
             if len(heavy) == 1:
-                sorted_categories['terminal'].append(to_remove)
+                sorted_categories["terminal"].append(to_remove)
             if linked_to_alchemical:
-                sorted_categories['alch_linked'].append(to_remove)
+                sorted_categories["alch_linked"].append(to_remove)
             if len(heavy) != 1 and not linked_to_alchemical:
-                sorted_categories['leftovers'].append(to_remove)
+                sorted_categories["leftovers"].append(to_remove)
 
         # carry out for the pairs that have a smaller Q diff
         for pair in pairs[best_cases_num:]:
             neighbours = [p for p, bonds in self.matched_pairs_bonds[pair]]
             # consider the attached hydrogens
-            hydrogens = [(a, b) for a, b in neighbours if a.element == 'H']
+            hydrogens = [(a, b) for a, b in neighbours if a.element == "H"]
             # attach the hydrogens to be removed as well
             to_remove = [pair] + hydrogens
 
-            sorted_categories['low_diff'].append(to_remove)
+            sorted_categories["low_diff"].append(to_remove)
 
         return sorted_categories
 
@@ -1575,7 +1724,9 @@ class SuperimposedTopology:
         for bound_pair, bond_type in bound_pairs:
             if bond_type[0] != bond_type[1]:
                 # fixme - this requires more attention
-                logger.debug(f'Removed {bound_pair} which had different bond types {bond_type}')
+                logger.debug(
+                    f"Removed {bound_pair} which had different bond types {bond_type}"
+                )
             # remove their binding to the removed pair
             bound_pair_bonds = self.matched_pairs_bonds[bound_pair]
             bound_pair_bonds.remove((node_pair, bond_type))
@@ -1600,11 +1751,11 @@ class SuperimposedTopology:
         removed_pairs = []
         for pair, bond_types in list(attached_pairs):
             # ignore non hydrogens
-            if not pair[0].element == 'H':
+            if not pair[0].element == "H":
                 continue
 
             self.remove_node_pair(pair)
-            logger.debug(f'Removed dangling hydrogen pair: {pair}')
+            logger.debug(f"Removed dangling hydrogen pair: {pair}")
             removed_pairs.append(pair)
         return removed_pairs
 
@@ -1636,7 +1787,9 @@ class SuperimposedTopology:
         :return:
         """
         # check if one topology is a subgraph of another topology
-        if len(self.matched_pairs) == len(self.top1) or len(self.matched_pairs) == len(self.top2):
+        if len(self.matched_pairs) == len(self.top1) or len(self.matched_pairs) == len(
+            self.top2
+        ):
             return True
 
         return False
@@ -1659,11 +1812,11 @@ class SuperimposedTopology:
         # set of "matched pairs"
 
         # fixme - use this function in the __init__ to initialise
-        assert node_pair not in self.matched_pairs, 'already added'
+        assert node_pair not in self.matched_pairs, "already added"
         # check if a1 or a2 was used before
         for a1, a2 in self.matched_pairs:
             if node_pair[0] is a1 and node_pair[1] is a2:
-                raise Exception('already exists')
+                raise Exception("already exists")
         self.matched_pairs.append(node_pair)
         self.matched_pairs.sort(key=lambda pair: pair[0].name)
         # update the list of unique nodes
@@ -1688,7 +1841,7 @@ class SuperimposedTopology:
         assert from_pair in self.matched_pairs_bonds
         for pair, bond_types in pairs:
             # the parent pair should have its list of pairs
-            assert pair in self.matched_pairs_bonds, f'not found pair {pair}'
+            assert pair in self.matched_pairs_bonds, f"not found pair {pair}"
 
             # link X-Y
             self.matched_pairs_bonds[from_pair].add((pair, bond_types))
@@ -1700,7 +1853,7 @@ class SuperimposedTopology:
         assert len(parent) == 2
 
         # the parent pair should have its list of pairs
-        assert pair in self.matched_pairs_bonds, f'not found pair {pair}'
+        assert pair in self.matched_pairs_bonds, f"not found pair {pair}"
         assert parent in self.matched_pairs_bonds
 
         # link X-Y
@@ -1730,11 +1883,19 @@ class SuperimposedTopology:
         new_one.alternative_mappings = copy.copy(self.alternative_mappings)
 
         # make a shallow copy of the removed lists
-        new_one._removed_because_disjointed_cc = copy.copy(self._removed_because_disjointed_cc)
-        new_one._removed_pairs_with_charge_difference = copy.copy(self._removed_pairs_with_charge_difference)
+        new_one._removed_because_disjointed_cc = copy.copy(
+            self._removed_because_disjointed_cc
+        )
+        new_one._removed_pairs_with_charge_difference = copy.copy(
+            self._removed_pairs_with_charge_difference
+        )
         new_one._removed_due_to_net_charge = copy.copy(self._removed_due_to_net_charge)
-        new_one._removed_because_unmatched_rings = copy.copy(self._removed_because_unmatched_rings)
-        new_one._removed_because_diff_bonds = copy.copy(self._removed_because_diff_bonds)
+        new_one._removed_because_unmatched_rings = copy.copy(
+            self._removed_because_unmatched_rings
+        )
+        new_one._removed_because_diff_bonds = copy.copy(
+            self._removed_because_diff_bonds
+        )
 
         # fixme - check any other lists that you keep track of
         return new_one
@@ -1830,7 +1991,7 @@ class SuperimposedTopology:
                     if BX in blacklisted_bxs:
                         continue
                     # use the distance_array because of PBC correction and speed
-                    a1_bx_dst = np.sqrt(np.sum(np.square(A1.position-BX.position)))
+                    a1_bx_dst = np.sqrt(np.sum(np.square(A1.position - BX.position)))
                     if a1_bx_dst < closest_dst:
                         closest_dst = a1_bx_dst
                         closest_bx = BX
@@ -1839,7 +2000,7 @@ class SuperimposedTopology:
             # across all the possible choices, found the best match now:
             blacklisted_bxs.append(closest_bx)
             shortest_dsts.append(closest_dst)
-            logger.debug(f'{closest_a1.name} is matching best with {closest_bx.name}')
+            logger.debug(f"{closest_a1.name} is matching best with {closest_bx.name}")
 
             # remove the old tuple and insert the new one
             self.add_node_pair((closest_a1, closest_bx))
@@ -1932,7 +2093,7 @@ class SuperimposedTopology:
                 if not self.contains_node(atom):
                     continue
 
-                left, right  = self.get_pair_with_atom(atom)
+                left, right = self.get_pair_with_atom(atom)
                 self._remove_unmatched_ring_atom(right)
                 self._remove_unmatched_ring_atom(left)
 
@@ -2076,7 +2237,10 @@ class SuperimposedTopology:
         """
         removed_hydrogen_pairs = []
         for node1, node2 in self.matched_pairs[::-1]:
-            if node1.united_eq(node2, atol=atol) or (node1, node2) in removed_hydrogen_pairs:
+            if (
+                node1.united_eq(node2, atol=atol)
+                or (node1, node2) in removed_hydrogen_pairs
+            ):
                 continue
 
             # remove this pair
@@ -2086,17 +2250,19 @@ class SuperimposedTopology:
 
             # keep track of the removed atoms due to the charge
             self._removed_pairs_with_charge_difference.append(
-                ((node1, node2), math.fabs(node2.united_charge - node1.united_charge)))
+                ((node1, node2), math.fabs(node2.united_charge - node1.united_charge))
+            )
 
             # Removed functionality: remove the dangling hydrogens
             removed_h_pairs = self.remove_attached_hydrogens((node1, node2))
             removed_hydrogen_pairs.extend(removed_h_pairs)
             for h_pair in removed_h_pairs:
-                self._removed_pairs_with_charge_difference.append(
-                    (h_pair, 'dangling'))
+                self._removed_pairs_with_charge_difference.append((h_pair, "dangling"))
 
         # sort the removed in a descending order
-        self._removed_pairs_with_charge_difference.sort(key=lambda x: x[1], reverse=True)
+        self._removed_pairs_with_charge_difference.sort(
+            key=lambda x: x[1], reverse=True
+        )
 
         return self._removed_pairs_with_charge_difference
 
@@ -2104,14 +2270,20 @@ class SuperimposedTopology:
         # check if each sup top has the same number of cycles
         # fixme - not sure?
         self_g1, self_g2 = self.get_nx_graphs()
-        self_cycles1, self_cycles2 = len(nx.cycle_basis(self_g1)), len(nx.cycle_basis(self_g2))
+        self_cycles1, self_cycles2 = (
+            len(nx.cycle_basis(self_g1)),
+            len(nx.cycle_basis(self_g2)),
+        )
         if self_cycles1 != self_cycles2:
-            raise Exception('left G has a different number of cycles than right G')
+            raise Exception("left G has a different number of cycles than right G")
 
         other_g1, other_g2 = suptop.get_nx_graphs()
-        other_cycles1, other_cycles2 = len(nx.cycle_basis(other_g1)), len(nx.cycle_basis(other_g2))
+        other_cycles1, other_cycles2 = (
+            len(nx.cycle_basis(other_g1)),
+            len(nx.cycle_basis(other_g2)),
+        )
         if other_cycles1 != other_cycles2:
-            raise Exception('left G has a different number of cycles than right G')
+            raise Exception("left G has a different number of cycles than right G")
 
         # check if merging the two is going to create issues
         # with the circle inequality
@@ -2138,7 +2310,12 @@ class SuperimposedTopology:
         # confirm that there is no mismatches, ie (A=B) in suptop1 and (A=C) in suptop2 where (C!=B)
         for st1Na, st1Nb in self.matched_pairs:
             for st2Na, st2Nb in suptop.matched_pairs:
-                if (st1Na is st2Na) and not (st1Nb is st2Nb) or (st1Nb is st2Nb) and not (st1Na is st2Na):
+                if (
+                    (st1Na is st2Na)
+                    and not (st1Nb is st2Nb)
+                    or (st1Nb is st2Nb)
+                    and not (st1Na is st2Na)
+                ):
                     return False
 
         # ensure there is at least one common pair
@@ -2171,7 +2348,7 @@ class SuperimposedTopology:
             # rename
             last_used_counter += 1
             new_atom_name = atom_name + str(last_used_counter)
-            logger.info(f'Renaming {atom.name} to {new_atom_name}')
+            logger.info(f"Renaming {atom.name} to {new_atom_name}")
             atom.name = new_atom_name
 
             # update the counter
@@ -2231,7 +2408,7 @@ class SuperimposedTopology:
         l_correct_format = SuperimposedTopology._is_correct_atom_name_format(l_nodes)
 
         if not l_names_unique or not l_correct_format:
-            logger.info('Renaming Left Molecule Atom Names (Because it is needed)')
+            logger.info("Renaming Left Molecule Atom Names (Because it is needed)")
             name_counter_l_nodes = SuperimposedTopology._rename_ligand(l_nodes)
             l_atom_names = [a.name for a in l_nodes]
         else:
@@ -2243,8 +2420,10 @@ class SuperimposedTopology:
         l_r_overlap = len(set(r_atom_names).intersection(set(l_atom_names))) > 0
 
         if not r_names_unique or not r_correct_format or l_r_overlap:
-            logger.info('Renaming Right Molecule Atom Names (Because it is needed)')
-            SuperimposedTopology._rename_ligand(r_nodes, name_counter=name_counter_l_nodes)
+            logger.info("Renaming Right Molecule Atom Names (Because it is needed)")
+            SuperimposedTopology._rename_ligand(
+                r_nodes, name_counter=name_counter_l_nodes
+            )
         # each atom name is unique, fixme - this check does not apply anymore
         # ie it is fine for a molecule to use general type
         # assert len(set(R_atom_names)) == len(R_atom_names)
@@ -2383,7 +2562,7 @@ class SuperimposedTopology:
             if not self.contains(pair):
                 n1, n2 = pair
                 if self.contains_node(n1) or self.contains_node(n2):
-                    raise Exception('already uses that node')
+                    raise Exception("already uses that node")
                 # pass the bonded pairs here
                 self.add_node_pair(pair)
                 merged_pairs.append(pair)
@@ -2409,15 +2588,22 @@ class SuperimposedTopology:
         - ensure that they are equal to the same integer
         """
         whole_left_charge = sum(a.charge for a in atom_list_l)
-        np.testing.assert_almost_equal(whole_left_charge, round(whole_left_charge), decimal=2,
-                                       err_msg=f'left charges are not integral. Expected {round(whole_left_charge)}'
-                                               f' but found {whole_left_charge}')
+        np.testing.assert_almost_equal(
+            whole_left_charge,
+            round(whole_left_charge),
+            decimal=2,
+            err_msg=f"left charges are not integral. Expected {round(whole_left_charge)}"
+            f" but found {whole_left_charge}",
+        )
 
         whole_right_charge = sum(a.charge for a in atom_list_right)
-        np.testing.assert_almost_equal(whole_right_charge, round(whole_right_charge), decimal=2,
-                                       err_msg=f'right charges are not integral. Expected {round(whole_right_charge)}'
-                                               f' but found {whole_right_charge}'
-                                       )
+        np.testing.assert_almost_equal(
+            whole_right_charge,
+            round(whole_right_charge),
+            decimal=2,
+            err_msg=f"right charges are not integral. Expected {round(whole_right_charge)}"
+            f" but found {whole_right_charge}",
+        )
         # same integer
         np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
 
@@ -2442,9 +2628,11 @@ class SuperimposedTopology:
         net_charge = round(sum(a.charge for a in self.top1))
         net_charge_test = round(sum(a.charge for a in self.top2))
         if net_charge != net_charge_test:
-            raise Exception('The internally computed net charges of the molecules are different')
+            raise Exception(
+                "The internally computed net charges of the molecules are different"
+            )
         # fixme - use the one passed by the user?
-        logger.debug(f'Internally computed net charge: {net_charge}')
+        logger.debug(f"Internally computed net charge: {net_charge}")
 
         # the total charge in the matched region before the changes
         matched_total_charge_l = sum(left.charge for left, right in self.matched_pairs)
@@ -2456,11 +2644,15 @@ class SuperimposedTopology:
 
         init_q_dis = sum(a.charge for a in l_unmatched)
         init_q_app = sum(a.charge for a in r_unmatched)
-        logger.debug(f'Initial cumulative charge of the appearing={init_q_app:.6f}, disappearing={init_q_dis:.6f} '
-              f'alchemical regions')
+        logger.debug(
+            f"Initial cumulative charge of the appearing={init_q_app:.6f}, disappearing={init_q_dis:.6f} "
+            f"alchemical regions"
+        )
 
         # average the charges between matched atoms in the joint area of the dual topology
-        total_charge_matched = 0    # represents the net charge of the joint area minus molecule charge
+        total_charge_matched = (
+            0  # represents the net charge of the joint area minus molecule charge
+        )
         for left, right in self.matched_pairs:
             avg_charge = (left.charge + right.charge) / 2.0
             # write the new charge
@@ -2468,24 +2660,40 @@ class SuperimposedTopology:
             total_charge_matched += avg_charge
         # total_partial_charge_matched e.g. -0.9 (partial charges) - -1 (net molecule charge) = 0.1
         total_partial_charge_matched = total_charge_matched - net_charge
-        logger.debug(f'Total partial charge in the joint area = {total_partial_charge_matched:.6f}')
+        logger.debug(
+            f"Total partial charge in the joint area = {total_partial_charge_matched:.6f}"
+        )
 
         # calculate what the correction should be in the alchemical regions
-        r_delta_charge_total = - (total_partial_charge_matched + init_q_app)
-        l_delta_charge_total = - (total_partial_charge_matched + init_q_dis)
-        logger.debug(f'Total charge imbalance to be distributed in '
-              f'dis={l_delta_charge_total:.6f} and app={r_delta_charge_total:.6f}')
+        r_delta_charge_total = -(total_partial_charge_matched + init_q_app)
+        l_delta_charge_total = -(total_partial_charge_matched + init_q_dis)
+        logger.debug(
+            f"Total charge imbalance to be distributed in "
+            f"dis={l_delta_charge_total:.6f} and app={r_delta_charge_total:.6f}"
+        )
 
         if len(l_unmatched) == 0 and l_delta_charge_total != 0:
-            logger.error('----------------------------------------------------------------------------------------------')
-            logger.error('ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: '
-                  'left ligand.')
-            logger.error('----------------------------------------------------------------------------------------------')
+            logger.error(
+                "----------------------------------------------------------------------------------------------"
+            )
+            logger.error(
+                "ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: "
+                "left ligand."
+            )
+            logger.error(
+                "----------------------------------------------------------------------------------------------"
+            )
         if len(r_unmatched) == 0 and r_delta_charge_total != 0:
-            logger.error('----------------------------------------------------------------------------------------------')
-            logger.error('ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: '
-                  'right ligand. ')
-            logger.error('----------------------------------------------------------------------------------------------')
+            logger.error(
+                "----------------------------------------------------------------------------------------------"
+            )
+            logger.error(
+                "ERROR? AFTER AVERAGING CHARGES, THERE ARE NO UNMATCHED ATOMS TO ASSIGN THE CHARGE TO: "
+                "right ligand. "
+            )
+            logger.error(
+                "----------------------------------------------------------------------------------------------"
+            )
 
         # distribute the charges over the alchemical regions
         if len(l_unmatched) != 0:
@@ -2499,7 +2707,9 @@ class SuperimposedTopology:
         else:
             r_delta_per_atom = 0
             # fixme - no matching atoms, so there should be no charge to redistribute
-        logger.debug(f'Charge imbalance per atom in dis={l_delta_per_atom:.6f} and app={r_delta_per_atom:.6f}')
+        logger.debug(
+            f"Charge imbalance per atom in dis={l_delta_per_atom:.6f} and app={r_delta_per_atom:.6f}"
+        )
 
         # redistribute that delta q over the atoms in the left and right molecule
         for atom in l_unmatched:
@@ -2510,11 +2720,17 @@ class SuperimposedTopology:
         # check if the appearing atoms and the disappearing atoms have the same net charge
         dis_q_sum = sum(a.charge for a in l_unmatched)
         app_q_sum = sum(a.charge for a in r_unmatched)
-        logger.debug(f'Final cumulative charge of the appearing={app_q_sum:.6f}, disappearing={dis_q_sum:.6f} '
-              f'alchemical regions')
+        logger.debug(
+            f"Final cumulative charge of the appearing={app_q_sum:.6f}, disappearing={dis_q_sum:.6f} "
+            f"alchemical regions"
+        )
         if not np.isclose(dis_q_sum, app_q_sum):
-            logger.error('The partial charges in app/dis region are not equal to each other. ')
-            raise Exception('The alchemical region in app/dis do not have equal partial charges.')
+            logger.error(
+                "The partial charges in app/dis region are not equal to each other. "
+            )
+            raise Exception(
+                "The alchemical region in app/dis do not have equal partial charges."
+            )
 
         # note that we are really modifying right now the original nodes.
         SuperimposedTopology.validate_charges(self.top1, self.top2)
@@ -2531,7 +2747,9 @@ class SuperimposedTopology:
         return number_of_common_nodes
 
     def count_common_node_pairs(self, other_suptop):
-        return len(set(self.matched_pairs).intersection(set(other_suptop.matched_pairs)))
+        return len(
+            set(self.matched_pairs).intersection(set(other_suptop.matched_pairs))
+        )
 
     def contains_any_node_from(self, other_sup_top):
         if len(self.nodes.intersection(other_sup_top.nodes)) > 0:
@@ -2567,7 +2785,6 @@ class SuperimposedTopology:
 
         return False
 
-
     def contains_right_atom_name(self, atom_name):
         for _, m in self.matched_pairs:
             if m.name == atom_name:
@@ -2581,7 +2798,6 @@ class SuperimposedTopology:
                 return True
 
         return False
-
 
     def contains_all(self, other_sup_top):
         for pair in other_sup_top.matched_pairs:
@@ -2751,44 +2967,75 @@ class SuperimposedTopology:
         return True
 
     def toJSON(self):
-        """"
-            Extract all the important information and return a json string.
+        """ "
+        Extract all the important information and return a json string.
         """
         summary = {}
 
         if self.config.unique_atom_names:
             # renamed atoms, new name : old name
-            summary['renamed_atoms'] = {
-                'start_ligand': {(a.name, a.id): a.original_name for a in self.top1},
-                'end_ligand': {(a.name, a.id): a.original_name for a in self.top2},
+            summary["renamed_atoms"] = {
+                "start_ligand": {(a.name, a.id): a.original_name for a in self.top1},
+                "end_ligand": {(a.name, a.id): a.original_name for a in self.top2},
             }
 
         # the dual topology information
-        summary['superimposition'] = {
-                'matched': {str(n1): str(n2) for n1, n2 in self.matched_pairs},
-                'matched_id': {n1.id: n2.id for n1, n2 in self.matched_pairs},
-                'appearing': list(map(str, self.get_appearing_atoms())),
-                'disappearing': [str(a) for a in self.get_disappearing_atoms()],
-                'appearing_id': [a.id for a in self.get_appearing_atoms()],
-                'disappearing_id': [a.id for a in self.get_disappearing_atoms()],
-                'removed': { # because of:
-                    # replace atoms with their names
-                    'net_charge': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_due_to_net_charge],
-                    'net_charge_id': [((a1.id, a2.id), d) for (a1, a2), d in self._removed_due_to_net_charge],
-                    'pair_q': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
-                    'pair_q_id': [((a1.id, a2.id), d) for (a1, a2), d in self._removed_pairs_with_charge_difference],
-                    'disjointed': [((a1.name, a2.name), ) for a1, a2 in self._removed_because_disjointed_cc],
-                    'disjointed_id': [((a1.id, a2.id),) for a1, a2 in self._removed_because_disjointed_cc],
-                    'bonds': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_diff_bonds],
-                    'unmatched_rings': [((a1.name, a2.name), d) for (a1, a2), d in self._removed_because_unmatched_rings],
+        summary["superimposition"] = {
+            "matched": {str(n1): str(n2) for n1, n2 in self.matched_pairs},
+            "matched_id": {n1.id: n2.id for n1, n2 in self.matched_pairs},
+            "appearing": list(map(str, self.get_appearing_atoms())),
+            "disappearing": [str(a) for a in self.get_disappearing_atoms()],
+            "appearing_id": [a.id for a in self.get_appearing_atoms()],
+            "disappearing_id": [a.id for a in self.get_disappearing_atoms()],
+            "removed": {  # because of:
+                # replace atoms with their names
+                "net_charge": [
+                    ((a1.name, a2.name), d)
+                    for (a1, a2), d in self._removed_due_to_net_charge
+                ],
+                "net_charge_id": [
+                    ((a1.id, a2.id), d)
+                    for (a1, a2), d in self._removed_due_to_net_charge
+                ],
+                "pair_q": [
+                    ((a1.name, a2.name), d)
+                    for (a1, a2), d in self._removed_pairs_with_charge_difference
+                ],
+                "pair_q_id": [
+                    ((a1.id, a2.id), d)
+                    for (a1, a2), d in self._removed_pairs_with_charge_difference
+                ],
+                "disjointed": [
+                    ((a1.name, a2.name),)
+                    for a1, a2 in self._removed_because_disjointed_cc
+                ],
+                "disjointed_id": [
+                    ((a1.id, a2.id),) for a1, a2 in self._removed_because_disjointed_cc
+                ],
+                "bonds": [
+                    ((a1.name, a2.name), d)
+                    for (a1, a2), d in self._removed_because_diff_bonds
+                ],
+                "unmatched_rings": [
+                    ((a1.name, a2.name), d)
+                    for (a1, a2), d in self._removed_because_unmatched_rings
+                ],
+            },
+            "charges_delta": {
+                "start_ligand": {
+                    a.name: a.charge - a._original_charge
+                    for a in self.top1
+                    if a._original_charge != a.charge
                 },
-                'charges_delta': {
-                    'start_ligand': {a.name: a.charge - a._original_charge for a in self.top1 if a._original_charge != a.charge},
-                    'end_ligand': {a.name: a.charge - a._original_charge for a in self.top2 if a._original_charge != a.charge}
-                }
-            }
-        summary['config'] = self.config.get_serializable()
-        summary['internal'] = 'atoms'
+                "end_ligand": {
+                    a.name: a.charge - a._original_charge
+                    for a in self.top2
+                    if a._original_charge != a.charge
+                },
+            },
+        }
+        summary["config"] = self.config.get_serializable()
+        summary["internal"] = "atoms"
 
         return summary
 
@@ -2837,6 +3084,7 @@ def long_merge(suptop1, suptop2):
     # all_solutions.remove(sol2)
     return newly_added_pairs
 
+
 def merge_compatible_suptops(suptops):
     """
     Imagine mapping of two carbons C1 and C2 to another pair of carbons C1' and C2'.
@@ -2881,7 +3129,9 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(ingredients.get(st1, set())).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = {st1, st2}.union(
+                    ingredients.get(st1, set())
+                ).union(ingredients.get(st2, set()))
                 excluded.append({st1, st2})
 
                 # break
@@ -2897,6 +3147,7 @@ def merge_compatible_suptops(suptops):
     new_suptops = [st for st in suptops if st not in all_ingredients]
     return new_suptops
 
+
 def are_consistent_topologies(suptops: List[SuperimposedTopology]):
     # each to each topology has to be check if they are all consistent
     for p1, p2 in itertools.combinations(suptops, r=2):
@@ -2904,6 +3155,7 @@ def are_consistent_topologies(suptops: List[SuperimposedTopology]):
             return False
 
     return True
+
 
 def merge_compatible_suptops_faster(pairing_suptop: Dict, min_bonds: int):
     """
@@ -3001,9 +3253,13 @@ def solve_one_combination(one_atom_species, ignore_coords):
         # generate all possible combinations
         all_combinations = list(itertools.combinations(all_pairs, longest_match))
         # filter out the ones that are impossible
-        chosen = list(filter(lambda s: len({pair[0] for pair in s}) == longest_match
-                             and len({pair[1] for pair in s}) == longest_match,
-                             all_combinations))
+        chosen = list(
+            filter(
+                lambda s: len({pair[0] for pair in s}) == longest_match
+                and len({pair[1] for pair in s}) == longest_match,
+                all_combinations,
+            )
+        )
 
         # fixme - use itertools instead?
 
@@ -3013,7 +3269,9 @@ def solve_one_combination(one_atom_species, ignore_coords):
             used_pairs = set()
             for i, pair in enumerate(all_pairs):
                 # take one item, and try to combine it with as many as possible
-                basis = [pair, ]
+                basis = [
+                    pair,
+                ]
                 # for j, pair2 in enumerate(all_pairs):
                 # if the pair does not have any common elements, combine
                 # if not any(a1 == a or a2 == b for a,b in basis):
@@ -3061,11 +3319,21 @@ def solve_one_combination(one_atom_species, ignore_coords):
         largest_candidates = get_largest(alternatives)
         return extract_best_suptop(largest_candidates, ignore_coords)
 
-    raise Exception('not implemented')
+    raise Exception("not implemented")
 
 
-def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=False, use_element_type=True,
-             exact_coords_cue=False, weights=(1, 0.01)):
+def _overlay(
+    n1,
+    n2,
+    parent_n1,
+    parent_n2,
+    bond_types,
+    suptop,
+    ignore_coords=False,
+    use_element_type=True,
+    exact_coords_cue=False,
+    weights=(1, 0.01),
+):
     """
     Jointly and recursively traverse the molecule while building up the suptop.
 
@@ -3087,7 +3355,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # make more specific, ie if "use_specific_type"
     if not use_element_type and not n1.same_type(n2):
         return None
-   
+
     # Check for cycles
     # if a new cycle is created by adding this node,
     # then the cycle should be present in both, left and right ligand
@@ -3107,7 +3375,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                 break
     if not safe:  # either only n1 forms cycle or both do but different cycles
         return None
-    
+
     # now the same for any remaining unchecked bonds in n2
     safe = True
     for b2 in n2.bonds:
@@ -3125,7 +3393,7 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
 
     # check if the cycle spans multiple cycles present in the left and right molecule,
     if suptop.cycle_spans_multiple_cycles():
-        logger.debug('Found a cycle spanning multiple cycles')
+        logger.debug("Found a cycle spanning multiple cycles")
         return None
 
     # logger.debug(f"Adding {(n1, n2)} to suptop.matched_pairs")
@@ -3162,8 +3430,15 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
                 # 2) this always has to happen, ie it is impossible to find (n1, n2)
                 # ie make it into a more sensible method,
                 # fixme: this does not link pairs?
-                suptop.link_pairs((n1, n2),
-                                  [((n1_bonded.atom, n2_bonded.atom), (n1_bonded.type, n2_bonded.type)), ])
+                suptop.link_pairs(
+                    (n1, n2),
+                    [
+                        (
+                            (n1_bonded.atom, n2_bonded.atom),
+                            (n1_bonded.type, n2_bonded.type),
+                        ),
+                    ],
+                )
 
     # fixme: sort so that heavy atoms go first
     p1_bonds = n1.bonds.without(parent_n1)
@@ -3178,13 +3453,22 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # but if CA1 and CA2 is present, and CA2 is not matched to CB2 in a predetermined manner, than CB2 should not be deleted
     # so we have to delete only the offers where CA1 = CB2 which would not be correct to pursue
     if exact_coords_cue:
-        predetermined = {a1: a2 for a1, a2 in candidate_pairings if np.array_equal(a1.atom.position, a2.atom.position)}
-        predetermined.update(zip(list(predetermined.values()), list(predetermined.keys())))
+        predetermined = {
+            a1: a2
+            for a1, a2 in candidate_pairings
+            if np.array_equal(a1.atom.position, a2.atom.position)
+        }
+        predetermined.update(
+            zip(list(predetermined.values()), list(predetermined.keys()))
+        )
 
         # skip atom pairings that have been predetermined for other atoms
         for n1_bond, n2_bond in candidate_pairings:
             if n1_bond in predetermined or n2 in predetermined:
-                if predetermined[n1_bond] != n2_bond or predetermined[n2_bond] != n1_bond:
+                if (
+                    predetermined[n1_bond] != n2_bond
+                    or predetermined[n2_bond] != n1_bond
+                ):
                     candidate_pairings.remove((n1_bond, n2_bond))
 
     # but they will be considered as a group
@@ -3197,14 +3481,18 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
 
         # create a copy of the sup_top to allow for different traversals
         # fixme: note that you could just send bonds, and that would have both parent etc with a bit of work
-        larger_suptop = _overlay(n1_bond.atom, n2_bond.atom,
-                                  parent_n1=n1, parent_n2=n2,
-                                  bond_types=(n1_bond.type, n2_bond.type),
-                                  suptop=suptop,
-                                  ignore_coords=ignore_coords,
-                                  use_element_type=use_element_type,
-                                  exact_coords_cue=exact_coords_cue,
-                                  weights=weights)
+        larger_suptop = _overlay(
+            n1_bond.atom,
+            n2_bond.atom,
+            parent_n1=n1,
+            parent_n2=n2,
+            bond_types=(n1_bond.type, n2_bond.type),
+            suptop=suptop,
+            ignore_coords=ignore_coords,
+            use_element_type=use_element_type,
+            exact_coords_cue=exact_coords_cue,
+            weights=weights,
+        )
 
         if larger_suptop is not None:
             larger_suptops.append(larger_suptop)
@@ -3221,8 +3509,10 @@ def _overlay(n1, n2, parent_n1, parent_n2, bond_types, suptop, ignore_coords=Fal
     # fixme: compare every two pairs of returned suptops, if they are compatible, join them
     # fixme - note that we are repeating this partly below
     # it also removes subgraph suptops
-    #all_solutions = merge_compatible_suptops(larger_suptops)
-    all_solutions = merge_compatible_suptops_faster(pairing_and_suptop, min(len(p1_bonds), len(p2_bonds)))
+    # all_solutions = merge_compatible_suptops(larger_suptops)
+    all_solutions = merge_compatible_suptops_faster(
+        pairing_and_suptop, min(len(p1_bonds), len(p2_bonds))
+    )
 
     # if you couldn't merge any solutions, return the largest one
     if not all_solutions:
@@ -3275,7 +3565,7 @@ def superimpose_topologies(
     """
 
     if config is not None and config.logging_breakdown:
-        file_log_handler = logging.FileHandler(config.workdir / f'{logging_key}.log')
+        file_log_handler = logging.FileHandler(config.workdir / f"{logging_key}.log")
         file_log_handler.setLevel(config.logging_level)
         file_log_handler.setFormatter(config.logging_formatter)
         logger.addHandler(file_log_handler)
@@ -3285,11 +3575,15 @@ def superimpose_topologies(
 
     # ensure that none of the atom names across the two molecules are the different
     if check_atom_names_unique:
-        same_atom_names = {a.name for a in top1_nodes}.intersection({a.name for a in top2_nodes})
+        same_atom_names = {a.name for a in top1_nodes}.intersection(
+            {a.name for a in top2_nodes}
+        )
         if len(same_atom_names) != 0:
-            logger.debug(f"The atoms across the two ligands have the same atom names. "
-                  f"This might make it harder to trace back any problems. "
-                  f"Please ensure atom names are unique across the two ligands. : {same_atom_names}")
+            logger.debug(
+                f"The atoms across the two ligands have the same atom names. "
+                f"This might make it harder to trace back any problems. "
+                f"Please ensure atom names are unique across the two ligands. : {same_atom_names}"
+            )
 
     # deal with the situation where the config is not passed
     if config is None:
@@ -3300,20 +3594,25 @@ def superimpose_topologies(
         align_add_removed_mcs = config.align_add_removed_mcs
 
     # Get the superimposed topology(/ies).
-    suptops = _superimpose_topologies(top1_nodes, top2_nodes, parmed_ligA, parmed_ligZ,
-                                      starting_node_pairs=starting_node_pairs,
-                                      ignore_coords=ignore_coords,
-                                      use_general_type=use_general_type,
-                                      starting_pairs_heuristics=starting_pairs_heuristics,
-                                      starting_pairs=starting_pair_seed,
-                                      weights=weights)
+    suptops = _superimpose_topologies(
+        top1_nodes,
+        top2_nodes,
+        parmed_ligA,
+        parmed_ligZ,
+        starting_node_pairs=starting_node_pairs,
+        ignore_coords=ignore_coords,
+        use_general_type=use_general_type,
+        starting_pairs_heuristics=starting_pairs_heuristics,
+        starting_pairs=starting_pair_seed,
+        weights=weights,
+    )
     if not suptops:
-        warnings.warn('Did not find a single superimposition state.')
+        warnings.warn("Did not find a single superimposition state.")
         return None
 
-    logger.debug(f'Phase 1: The number of SupTops found: {len(suptops)}')
+    logger.debug(f"Phase 1: The number of SupTops found: {len(suptops)}")
     for i, st in enumerate(suptops):
-        logger.debug(f'ST - {i} - len: {len(st)} - {st}')
+        logger.debug(f"ST - {i} - len: {len(st)} - {st}")
 
     # ignore bond types
     # they are ignored when creating the run file with tleap anyway
@@ -3330,10 +3629,14 @@ def superimpose_topologies(
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
     if align_molecules and not ignore_coords:
+
         def take_largest(x, y):
             return x if len(x) > len(y) else y
+
         reduce(take_largest, suptops).align_ligands_using_mcs()
-        logger.debug(f'RMSD of the best overlay: {suptops[0].align_ligands_using_mcs():.2f}')
+        logger.debug(
+            f"RMSD of the best overlay: {suptops[0].align_ligands_using_mcs():.2f}"
+        )
 
     # fixme - you might not need because we are now doing this on the way back
     # if useCoords:
@@ -3343,10 +3646,10 @@ def superimpose_topologies(
     # mismatch atoms as requested
     if force_mismatch:
         for sp in suptops:
-            for (a1, a2) in sp.matched_pairs[::-1]:
+            for a1, a2 in sp.matched_pairs[::-1]:
                 if (a1.name, a2.name) in force_mismatch:
                     sp.remove_node_pair((a1, a2))
-                    logger.debug(f'Removing the pair: {((a1, a2))}, as requested')
+                    logger.debug(f"Removing the pair: {((a1, a2))}, as requested")
 
     # ensure that ring-atoms are not matched to non-ring atoms
     for st in suptops:
@@ -3375,13 +3678,15 @@ def superimpose_topologies(
         for st in suptops:
             removed = st.removeMatchedPairsWithDifferentBonds()
             if not removed:
-                logger.debug(f'Removed bonded pairs due to different bonds: {removed}')
+                logger.debug(f"Removed bonded pairs due to different bonds: {removed}")
 
     if not partial_rings_allowed:
         # remove partial rings, note this is a cascade problem if there are double rings
         for suptop in suptops:
             suptop.enforce_no_partial_rings()
-            logger.debug(f'Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}')
+            logger.debug(
+                f"Removed pairs because partial rings are not allowed {suptop._removed_because_unmatched_rings}"
+            )
 
     # note that charges need to be checked before assigning IDs.
     # ie if charges are different, the matched pair
@@ -3394,7 +3699,7 @@ def superimpose_topologies(
             if removed:
                 logger.debug(
                     f"Removed pairs with charge incompatibility: "
-                    f'{[(s[0], f"{s[1]:.3f}") for s in sup_top._removed_pairs_with_charge_difference]}'
+                    f"{[(s[0], f'{s[1]:.3f}') for s in sup_top._removed_pairs_with_charge_difference]}"
                 )
 
     if net_charge_filter and not ignore_charges_completely:
@@ -3405,7 +3710,7 @@ def superimpose_topologies(
         # Furthermore, disjointed components has not yet been applied,
         # even though it might have an effect, fixme - should disjointed be applied first?
         # to account for this implement #251
-        logger.debug(f'Accounting for net charge limit of {net_charge_threshold:.3f}')
+        logger.debug(f"Accounting for net charge limit of {net_charge_threshold:.3f}")
         for suptop in suptops[::-1]:
             suptop.apply_net_charge_filter(net_charge_threshold)
 
@@ -3418,7 +3723,7 @@ def superimpose_topologies(
             if suptop._removed_due_to_net_charge:
                 logger.debug(
                     f"SupTop: Removed pairs due to net charge: "
-                    f'{[[p[0], f"{p[1]:.3f}"] for p in suptop._removed_due_to_net_charge]}'
+                    f"{[[p[0], f'{p[1]:.3f}'] for p in suptop._removed_due_to_net_charge]}"
                 )
 
     # remove the suptops that are empty
@@ -3427,14 +3732,16 @@ def superimpose_topologies(
             suptops.remove(st)
 
     if not disjoint_components:
-        logger.debug(f'Checking for disjoint components in the {len(suptops)} suptops')
+        logger.debug(f"Checking for disjoint components in the {len(suptops)} suptops")
         # ensure that each suptop represents one CC
         # check if the graph was divided after removing any pairs (e.g. due to charge mismatch)
         # fixme - add the log about which atoms are removed?
         [st.largest_cc_survives() for st in suptops]
 
         for st in suptops:
-            logger.debug(f'Removed disjoint components: {st._removed_because_disjointed_cc}')
+            logger.debug(
+                f"Removed disjoint components: {st._removed_because_disjointed_cc}"
+            )
 
         # fixme
         # remove the smaller suptop, or one arbitrary if they are equivalent
@@ -3453,11 +3760,13 @@ def superimpose_topologies(
     if len(suptops) == 0:
         return None
 
-    suptop = extract_best_suptop(suptops, ignore_coords, weights=weights, get_list=False)
+    suptop = extract_best_suptop(
+        suptops, ignore_coords, weights=weights, get_list=False
+    )
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
         # assume that none of the suptops are disjointed
-        logger.debug('Assuming that all suptops are separate at this point')
+        logger.debug("Assuming that all suptops are separate at this point")
         # fixme: apply distribution of q only on the first st, that's the best one anyway,
 
         # we only want to apply redistribution once on the largest piece for now
@@ -3474,10 +3783,16 @@ def superimpose_topologies(
     # resolve_sup_top_multiple_match(sup_tops_charges)
     # sup_top_correct_chirality(sup_tops_charges, sup_tops_no_charges, atol=atol)
 
-    logger.info('-------- Summary -----------')
-    logger.info(f'Matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R')
-    logger.info(f'Disappearing atoms: {(len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%')
-    logger.info(f'Appearing atoms: {(len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%')
+    logger.info("-------- Summary -----------")
+    logger.info(
+        f"Matched pairs: {len(suptop.matched_pairs)} out of {len(top1_nodes)}L/{len(top2_nodes)}R"
+    )
+    logger.info(
+        f"Disappearing atoms: {(len(top1_nodes) - len(suptop.matched_pairs)) / len(top1_nodes) * 100:.1f}%"
+    )
+    logger.info(
+        f"Appearing atoms: {(len(top2_nodes) - len(suptop.matched_pairs)) / len(top2_nodes) * 100:.1f}%"
+    )
 
     # carry out a check. Each
     if align_molecules and not ignore_coords:
@@ -3485,16 +3800,22 @@ def superimpose_topologies(
         for mirror in suptop.mirrors:
             mirror_rmsd = mirror.align_ligands_using_mcs()
             if mirror_rmsd < main_rmsd:
-                logger.debug('THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD')
-        rmsd = suptop.align_ligands_using_mcs(overwrite_original=True, use_disjointed=align_add_removed_mcs)
-        logger.info(f'Aligned Common Area RMSD: {rmsd:.2f}')
+                logger.debug("THE MIRROR RMSD IS LOWER THAN THE MAIN RMSD")
+        rmsd = suptop.align_ligands_using_mcs(
+            overwrite_original=True, use_disjointed=align_add_removed_mcs
+        )
+        logger.info(f"Aligned Common Area RMSD: {rmsd:.2f}")
 
-    A_minus_B, A_minus_B_max, B_minus_A, B_minus_A_max = suptop.alchemical_overlap_check()
-    logger.info(f"Alchemical Area Overlap:\n"
-                f"\tRMS(A-B): {A_minus_B:.2f} Angstrom\n"
-                f"\tmax(A-B): {A_minus_B_max:.2f} Angstrom\n"
-                f"\tRMS(B-A): {B_minus_A:.2f} Angstrom\n"
-                f"\tmax(B-A): {B_minus_A_max:.2f} Angstrom")
+    A_minus_B, A_minus_B_max, B_minus_A, B_minus_A_max = (
+        suptop.alchemical_overlap_check()
+    )
+    logger.info(
+        f"Alchemical Area Overlap:\n"
+        f"\tRMS(A-B): {A_minus_B:.2f} Angstrom\n"
+        f"\tmax(A-B): {A_minus_B_max:.2f} Angstrom\n"
+        f"\tRMS(B-A): {B_minus_A:.2f} Angstrom\n"
+        f"\tmax(B-A): {B_minus_A_max:.2f} Angstrom"
+    )
 
     if config is not None and config.logging_breakdown:
         logger.removeHandler(file_log_handler)
@@ -3519,6 +3840,7 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
     :param ignore_coords:
     :return:
     """
+
     # fixme - ignore coords currently does not work
     # multiple different paths to traverse the topologies were found
     # this means some kind of symmetry in the topologies
@@ -3540,13 +3862,13 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
             return suptops[0]
 
     if len(suptops) == 0:
-        warnings.warn('Cannot decide on the best mapping without any suptops...')
+        warnings.warn("Cannot decide on the best mapping without any suptops...")
         return None
 
     elif len(suptops) == 1:
         return item_or_list(suptops)
 
-    #candidates = copy.copy(suptops)
+    # candidates = copy.copy(suptops)
 
     # sort from largest to smallest
     suptops.sort(key=lambda st: len(st), reverse=True)
@@ -3559,7 +3881,9 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
     different_length_suptops = []
     for key, same_length_suptops in itertools.groupby(suptops, key=lambda st: len(st)):
         # order by RMSD
-        sorted_by_rmsd = sorted(same_length_suptops, key=lambda st: st.align_ligands_using_mcs())
+        sorted_by_rmsd = sorted(
+            same_length_suptops, key=lambda st: st.align_ligands_using_mcs()
+        )
         # these have the same lengths and the same RMSD, so they must be mirrors
         for suptop in sorted_by_rmsd[1:]:
             if suptop.is_mirror_of(sorted_by_rmsd[0]):
@@ -3602,14 +3926,14 @@ def best_rmsd_match(suptops):
     # fixme - uses coordinates to decide which mapping is better.
     #  - Improve: use dihedral angles to decide which mapping is better too
     if len(suptops) == 0:
-        raise Exception('Cannot generate the best mapping without any suptops')
+        raise Exception("Cannot generate the best mapping without any suptops")
 
     if len(suptops) == 1:
         # there is only one solution
         return suptops[0]
 
     best_suptop = None
-    best_rmsd = np.finfo('float32').max
+    best_rmsd = np.finfo("float32").max
     for suptop in suptops:
         # use the avg dst after the correction to understand which one is better,
         # and assign the worse
@@ -3652,7 +3976,11 @@ def is_mirror_of_one(candidate_suptop, suptops, ignore_coords, extract_weight_ra
         if next_suptop.is_mirror_of(candidate_suptop):
             # the suptop saved as the mirror should be the suptop
             # that is judged to be of a lower quality
-            best_suptop = extract_best_suptop([candidate_suptop, next_suptop], ignore_coords, weights=extract_weight_ratio)
+            best_suptop = extract_best_suptop(
+                [candidate_suptop, next_suptop],
+                ignore_coords,
+                weights=extract_weight_ratio,
+            )
 
             if next_suptop is best_suptop:
                 next_suptop.add_mirror_suptop(candidate_suptop)
@@ -3718,7 +4046,7 @@ def remove_candidates_subgraphs(candidate_suptop, suptops):
     removed_subgraphs = False
     for suptop in suptops[::-1]:
         if suptop.is_subgraph_of(candidate_suptop):
-            logger.debug('Removing candidate\'s subgraphs')
+            logger.debug("Removing candidate's subgraphs")
             suptops.remove(suptop)
             removed_subgraphs = True
     return removed_subgraphs
@@ -3741,27 +4069,31 @@ def generate_nxg_from_list(atoms):
     return g
 
 
-def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ring_c=True):
+def get_starting_configurations(
+    left_atoms, right_atoms, fraction=0.2, filter_ring_c=True
+):
     """
-        Minimise the number of starting configurations to optimise the process speed.
-        Use:
-         * the rarity of the specific atom types,
-         * whether the atoms are bottlenecks (so they do not suffer from symmetry).
-            The issue with symmetry is that it is impossible to find the proper
-            symmetry match if you start from the wrong symmetry.
-        @parameter fraction: ensure that the number of atoms used to start the traversal is not more
-            than the fraction value of the overall number of possible matches, counted as
-            a fraction of the maximum possible number of pairs (MIN(LEFTNODES, RIGHTNODES))
-        @parameter filter_ring_c: filter out the carbon elements in the rings to avoid any issues
-            with the symmetry. This assumes that a ring usually has one N element, etc.
+    Minimise the number of starting configurations to optimise the process speed.
+    Use:
+     * the rarity of the specific atom types,
+     * whether the atoms are bottlenecks (so they do not suffer from symmetry).
+        The issue with symmetry is that it is impossible to find the proper
+        symmetry match if you start from the wrong symmetry.
+    @parameter fraction: ensure that the number of atoms used to start the traversal is not more
+        than the fraction value of the overall number of possible matches, counted as
+        a fraction of the maximum possible number of pairs (MIN(LEFTNODES, RIGHTNODES))
+    @parameter filter_ring_c: filter out the carbon elements in the rings to avoid any issues
+        with the symmetry. This assumes that a ring usually has one N element, etc.
 
 
     """
-    logger.debug('Superimposition: optimising the search by narrowing down the starting configuration. ')
+    logger.debug(
+        "Superimposition: optimising the search by narrowing down the starting configuration. "
+    )
 
     # ignore hydrogens
-    left_atoms_noh = list(filter(lambda a: a.element != 'H', left_atoms))
-    right_atoms_noh = list(filter(lambda a: a.element != 'H', right_atoms))
+    left_atoms_noh = list(filter(lambda a: a.element != "H", left_atoms))
+    right_atoms_noh = list(filter(lambda a: a.element != "H", right_atoms))
 
     # find out which atoms types are common across the two molecules
     # fixme - consider subclassing atom from MDAnalysis class and adding functions for some of these features
@@ -3773,11 +4105,15 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
     # for each atom type, check how many maximum atoms can theoretically be matched
     per_type_max_counter = {}
     for atom_type in common_types:
-        left_count_by_type = sum([1 for left_atom in left_atoms if left_atom.type == atom_type])
-        right_count_by_type = sum([1 for right_atom in right_atoms if right_atom.type == atom_type])
+        left_count_by_type = sum(
+            [1 for left_atom in left_atoms if left_atom.type == atom_type]
+        )
+        right_count_by_type = sum(
+            [1 for right_atom in right_atoms if right_atom.type == atom_type]
+        )
         per_type_max_counter[atom_type] = min(left_count_by_type, right_count_by_type)
     max_overlap_size = sum(per_type_max_counter.values())
-    logger.debug(f'Largest MCS size: {max_overlap_size}')
+    logger.debug(f"Largest MCS size: {max_overlap_size}")
 
     left_atoms_starting = left_atoms_noh[:]
     right_atoms_starting = right_atoms_noh[:]
@@ -3788,17 +4124,29 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
         nxl = generate_nxg_from_list(left_atoms)
         for cycle in nx.cycle_basis(nxl):
             # ignore the carbons in the cycle
-            cycle_carbons = list(filter(lambda a: a.element == 'C', cycle))
-            logger.debug(f'Superimposition of left atoms: Ignoring carbons as starting configurations because '
-                  f'they are carbons in a cycle: {cycle_carbons}')
-            [left_atoms_starting.remove(a) for a in cycle_carbons if a in left_atoms_starting]
+            cycle_carbons = list(filter(lambda a: a.element == "C", cycle))
+            logger.debug(
+                f"Superimposition of left atoms: Ignoring carbons as starting configurations because "
+                f"they are carbons in a cycle: {cycle_carbons}"
+            )
+            [
+                left_atoms_starting.remove(a)
+                for a in cycle_carbons
+                if a in left_atoms_starting
+            ]
         nxr = generate_nxg_from_list(right_atoms_starting)
         for cycle in nx.cycle_basis(nxr):
             # ignore the carbons in the cycle
-            cycle_carbons = list(filter(lambda a: a.element == 'C', cycle))
-            logger.debug(f'Superimposition of right atoms: Ignoring carbons as starting configurations because '
-                  f'they are carbons in a cycle: {cycle_carbons}')
-            [right_atoms_starting.remove(a) for a in cycle_carbons if a in right_atoms_starting]
+            cycle_carbons = list(filter(lambda a: a.element == "C", cycle))
+            logger.debug(
+                f"Superimposition of right atoms: Ignoring carbons as starting configurations because "
+                f"they are carbons in a cycle: {cycle_carbons}"
+            )
+            [
+                right_atoms_starting.remove(a)
+                for a in cycle_carbons
+                if a in right_atoms_starting
+            ]
 
     # find out which atoms types are common across the two molecules
     # fixme - consider subclassing atom from MDAnalysis class and adding functions for some of these features
@@ -3815,12 +4163,16 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
         picked_right = list(filter(lambda a: a.type == atom_type, right_atoms_starting))
         paired_by_type.append([picked_left, picked_right])
         max_after_cycle_carbons += min(len(picked_left), len(picked_right))
-    logger.debug(f'Superimposition: simple max match of atoms after cycle carbons exclusion: {max_after_cycle_carbons}')
+    logger.debug(
+        f"Superimposition: simple max match of atoms after cycle carbons exclusion: {max_after_cycle_carbons}"
+    )
 
     # sort atom according to their type rarity
     # use the min across, since 1x4 mapping will give 4 options only, so we count this as one,
     # but 4x4 would give 16,
-    sorted_paired_by_type = sorted(paired_by_type, key=lambda p: min(len(p[0]), len(p[1])))
+    sorted_paired_by_type = sorted(
+        paired_by_type, key=lambda p: min(len(p[0]), len(p[1]))
+    )
 
     # find the atoms in each type and generate appropriate pairs,
     # use only a fraction of the maximum theoretical match
@@ -3830,22 +4182,31 @@ def get_starting_configurations(left_atoms, right_atoms, fraction=0.2, filter_ri
     added_counter = 0
     for rare_left_atoms, rare_right_atoms in sorted_paired_by_type:
         # starting_configurations
-        starting_configurations.extend(list(itertools.product(rare_left_atoms, rare_right_atoms)))
+        starting_configurations.extend(
+            list(itertools.product(rare_left_atoms, rare_right_atoms))
+        )
         added_counter += min(len(rare_left_atoms), len(rare_right_atoms))
         if added_counter > desired_number_of_pairs:
             break
 
-    logger.debug(f'Superimposition: initial starting pairs for the search: {starting_configurations}')
+    logger.debug(
+        f"Superimposition: initial starting pairs for the search: {starting_configurations}"
+    )
     return starting_configurations
 
 
-def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=None,
-                            starting_node_pairs=None,
-                            ignore_coords=False,
-                            use_general_type=True,
-                            starting_pairs_heuristics: float = 0,
-                            starting_pairs=None,
-                            weights=[1, 0]):
+def _superimpose_topologies(
+    top1_nodes,
+    top2_nodes,
+    mda1_nodes=None,
+    mda2_nodes=None,
+    starting_node_pairs=None,
+    ignore_coords=False,
+    use_general_type=True,
+    starting_pairs_heuristics: float = 0,
+    starting_pairs=None,
+    weights=[1, 0],
+):
     """
     Superimpose two molecules.
 
@@ -3872,24 +4233,36 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
                 right_atom = [a for a in list(top2_nodes) if a.name == app_atom][0]
                 starting_node_pairs.append((left_atom, right_atom))
         elif starting_pairs_heuristics == 0:
-            logger.debug('Heuristics is off. All pairs will be searched. ')
+            logger.debug("Heuristics is off. All pairs will be searched. ")
             starting_node_pairs = list(itertools.product(top1_nodes, top2_nodes))
         else:
-            starting_node_pairs = get_starting_configurations(top1_nodes, top2_nodes, fraction=starting_pairs_heuristics)
-            logger.debug('Using heuristics to select the initial pairs for searching the maximum overlap.'
-                  f'Could produce non-optimal results. ')
+            starting_node_pairs = get_starting_configurations(
+                top1_nodes, top2_nodes, fraction=starting_pairs_heuristics
+            )
+            logger.debug(
+                "Using heuristics to select the initial pairs for searching the maximum overlap."
+                f"Could produce non-optimal results. "
+            )
 
     logger.debug(f"Seed Pairs: {starting_node_pairs}")
 
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component
-        suptop = SuperimposedTopology(list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes)
+        suptop = SuperimposedTopology(
+            list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes
+        )
         # fixme turn into a property
-        candidate_suptop = _overlay(node1, node2, parent_n1=None, parent_n2=None, bond_types=(None, None),
-                                    suptop=suptop,
-                                    ignore_coords=ignore_coords,
-                                    use_element_type=use_general_type,
-                                    weights=weights)
+        candidate_suptop = _overlay(
+            node1,
+            node2,
+            parent_n1=None,
+            parent_n2=None,
+            bond_types=(None, None),
+            suptop=suptop,
+            ignore_coords=ignore_coords,
+            use_element_type=use_general_type,
+            weights=weights,
+        )
         if candidate_suptop is None:
             # there is no overlap, ignore this case
             continue
@@ -3928,11 +4301,13 @@ def _superimpose_topologies(top1_nodes, top2_nodes, mda1_nodes=None, mda2_nodes=
     for suptop in suptops[::-1]:
         all_hydrogens = True
         for node1, _ in suptop.matched_pairs:
-            if not node1.type == 'H':
+            if not node1.type == "H":
                 all_hydrogens = False
                 break
         if all_hydrogens:
-            logger.debug(f"Removing sup top because only hydrogens found {suptop.matched_pairs}")
+            logger.debug(
+                f"Removing sup top because only hydrogens found {suptop.matched_pairs}"
+            )
             suptops.remove(suptop)
 
     # TEST: check that each node was used only once, fixme use only on the winner
@@ -3968,7 +4343,7 @@ def resolve_sup_top_multiple_match(sup_tops):
     for i, sup_top1 in enumerate(sup_tops):
         # fixme - add special messages when 3-1 or some other combination is found!
         # fixme - is 2-2 possible?
-        for sup_top2 in sup_tops[i + 1:]:
+        for sup_top2 in sup_tops[i + 1 :]:
             if sup_top1 is sup_top2:
                 continue
 
@@ -3987,7 +4362,9 @@ def resolve_sup_top_multiple_match(sup_tops):
                         break
                 if not added_to_previous:
                     same_left_sup_tops.append([sup_top1, sup_top2])
-                logger.debug(f'found same left {sup_top1.matched_pairs} with {sup_top1.matched_pairs}')
+                logger.debug(
+                    f"found same left {sup_top1.matched_pairs} with {sup_top1.matched_pairs}"
+                )
 
             if sup_top1.has_right_nodes_same_as(sup_top2):
                 added_to_previous = False
@@ -4002,7 +4379,7 @@ def resolve_sup_top_multiple_match(sup_tops):
                         break
                 if not added_to_previous:
                     same_right_sup_tops.append([sup_top1, sup_top2])
-                logger.debug(f'found same right {sup_top1.matched_pairs}')
+                logger.debug(f"found same right {sup_top1.matched_pairs}")
 
     # first, attempt to see if you can resolve the conflict by going back to the sup_top without charges,
     for same_left_sup_top_list in same_left_sup_tops:
@@ -4027,7 +4404,7 @@ def resolve_sup_top_multiple_match(sup_tops):
     # every one should be solved
     assert all([len(left) == 0 for left in same_left_sup_tops])
 
-    assert len(same_right_sup_tops) == 0, 'not implemented yet'
+    assert len(same_right_sup_tops) == 0, "not implemented yet"
 
     return
 
@@ -4056,11 +4433,20 @@ def resolve_sup_top_multiple_match(sup_tops):
         # make sure that they all are not equal to 0
         assert all([0 != score for score in multiple_match_that_have_superset])
         # make sure that the top scoring find is not duplicated, ie that we have a clear winner
-        assert multiple_match_that_have_superset.count(max(multiple_match_that_have_superset)) == 1
+        assert (
+            multiple_match_that_have_superset.count(
+                max(multiple_match_that_have_superset)
+            )
+            == 1
+        )
 
         # choose the best scoring match based on the previous work
-        winner_index = multiple_match_that_have_superset.index(max(multiple_match_that_have_superset))
-        logger.debug(f"multiple match winner is {same_left_sup_top_list[winner_index].matched_pairs}")
+        winner_index = multiple_match_that_have_superset.index(
+            max(multiple_match_that_have_superset)
+        )
+        logger.debug(
+            f"multiple match winner is {same_left_sup_top_list[winner_index].matched_pairs}"
+        )
 
         # remove the losers
         for index, worse_match in enumerate(same_left_sup_top_list):
@@ -4126,17 +4512,31 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
                 for bond1 in list(node1.bonds):
                     # ignore the bonds that are part of the component,
                     # could build "external bonds" method in sup top
-                    if sup_top.contains_node(set([bond1, ])):
+                    if sup_top.contains_node(
+                        set(
+                            [
+                                bond1,
+                            ]
+                        )
+                    ):
                         continue
                     for bond2 in list(node2.bonds):
-                        if sup_top.contains_node(set([bond2, ])):
+                        if sup_top.contains_node(
+                            set(
+                                [
+                                    bond2,
+                                ]
+                            )
+                        ):
                             continue
 
                         if bond1.eq(bond2, atol=atol):
                             # there might be at any time any two nodes that are similar enough (eq), which means
                             # this is not a universal approach in itself, however, do we gain anything more
                             # knowing that one of the nodes is a part of another component? fixme
-                            logger.debug(f"found asymmetry {node1.name} {node2.name} due to {bond1.name} {bond2.name}")
+                            logger.debug(
+                                f"found asymmetry {node1.name} {node2.name} due to {bond1.name} {bond2.name}"
+                            )
             pass
         pass
 
@@ -4158,11 +4558,22 @@ def get_atoms_bonds_from_ac(ac_file):
 
     # extract the atoms
     # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
-    atom_lines = filter(lambda l: l.startswith('ATOM'), ac_lines)
+    atom_lines = filter(lambda l: l.startswith("ATOM"), ac_lines)
 
     atoms = []
     for line in atom_lines:
-        atom_phrase, atom_id, atom_name, res_name, res_id, x, y, z, charge, atom_colloq = line.split()
+        (
+            atom_phrase,
+            atom_id,
+            atom_name,
+            res_name,
+            res_id,
+            x,
+            y,
+            z,
+            charge,
+            atom_colloq,
+        ) = line.split()
         x, y, z = float(x), float(y), float(z)
         charge = float(charge)
         res_id = int(res_id)
@@ -4179,9 +4590,13 @@ def get_atoms_bonds_from_ac(ac_file):
     # extract the bonds, e.g.
     #     bondID atomFrom atomTo ????
     # BOND    1    1    2    7    C17  C18
-    bond_lines = filter(lambda l: l.startswith('BOND'), ac_lines)
-    bonds = [(int(bondFrom), int(bondTo)) for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in
-             [left.split() for left in bond_lines]]
+    bond_lines = filter(lambda l: l.startswith("BOND"), ac_lines)
+    bonds = [
+        (int(bondFrom), int(bondTo))
+        for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in [
+            left.split() for left in bond_lines
+        ]
+    ]
 
     return atoms, bonds
 

@@ -1,9 +1,7 @@
-
-
-
 """
 Updated OOP approach to data analysis.
 """
+
 
 class Replica:
     """
@@ -12,7 +10,9 @@ class Replica:
     So replica is defined by lambda and by its directory path.
     This representation should contain all the details necessary.
     """
+
     pass
+
 
 class Lambda:
     """
@@ -20,7 +20,9 @@ class Lambda:
     However, stores the information about the "general" lambda as well.
     This class contains at least 1 replica.
     """
+
     pass
+
 
 class Contribution:
     """
@@ -28,7 +30,9 @@ class Contribution:
     This class contains lambdas with their replicas.
     It can calculate the integral and plot different information relevant to each contribution.
     """
+
     pass
+
 
 class DGSystem:
     """
@@ -41,6 +45,7 @@ class DGSystem:
 
     pass
 
+
 class TCSystem:
     """
     Thermodynamics Cycle System.
@@ -49,4 +54,5 @@ class TCSystem:
     This way it can provide the ddG.
     Contains lots of ddG analysis and plotting.
     """
+
     pass

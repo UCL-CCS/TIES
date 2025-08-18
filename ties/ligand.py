@@ -28,6 +28,7 @@ class Ligand:
     :param save: write a file with unique atom names for further inspection
     :type save: bool
     """
+
     LIG_COUNTER = 0
 
     _USED_FILENAMES = set()
@@ -60,7 +61,9 @@ class Ligand:
 
         # ligand names have to be unique
         if self.internal_name in Ligand._USED_FILENAMES and self.config.uses_cmd:
-            raise ValueError(f'ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. ')
+            raise ValueError(
+                f"ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. "
+            )
         else:
             Ligand._USED_FILENAMES.add(self.internal_name)
 
@@ -90,38 +93,56 @@ class Ligand:
         Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
         """
 
-        if self.current.suffix.lower() not in ('.ac', '.prep'):
+        if self.current.suffix.lower() not in (".ac", ".prep"):
             return
 
-        filetype = {'.ac': 'ac', '.prep': 'prepi'}[self.current.suffix.lower()]
+        filetype = {".ac": "ac", ".prep": "prepi"}[self.current.suffix.lower()]
 
         cwd = self.config.lig_acprep_dir / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
         # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-        logger.debug(f'Antechamber: converting {filetype} to mol2')
-        new_current = cwd / (self.internal_name + '.mol2')
+        logger.debug(f"Antechamber: converting {filetype} to mol2")
+        new_current = cwd / (self.internal_name + ".mol2")
 
         log_filename = cwd / "antechamber_conversion.log"
-        with open(log_filename, 'w') as LOG:
+        with open(log_filename, "w") as LOG:
             try:
-                subprocess.run([self.config.ambertools_antechamber,
-                                '-i', self.current, '-fi', filetype,
-                                '-o', new_current, '-fo', 'mol2',
-                                '-dr', self.config.antechamber_dr],
-                               stdout=LOG, stderr=LOG,
-                               check=True, text=True,
-                               cwd=cwd, timeout=30)
+                subprocess.run(
+                    [
+                        self.config.ambertools_antechamber,
+                        "-i",
+                        self.current,
+                        "-fi",
+                        filetype,
+                        "-o",
+                        new_current,
+                        "-fo",
+                        "mol2",
+                        "-dr",
+                        self.config.antechamber_dr,
+                    ],
+                    stdout=LOG,
+                    stderr=LOG,
+                    check=True,
+                    text=True,
+                    cwd=cwd,
+                    timeout=30,
+                )
             except subprocess.CalledProcessError as E:
-                raise Exception('An error occurred during the antechamber conversion from .ac to .mol2 data type. '
-                                f'The output was saved in the directory: {cwd}'
-                                f'Please see the log file for the exact error information: {log_filename}') from E
+                raise Exception(
+                    "An error occurred during the antechamber conversion from .ac to .mol2 data type. "
+                    f"The output was saved in the directory: {cwd}"
+                    f"Please see the log file for the exact error information: {log_filename}"
+                ) from E
 
         # update
         self.original_ac = self.current
         self.current = new_current
-        logger.debug(f'Converted .ac file to .mol2. The location of the new file: {self.current}')
+        logger.debug(
+            f"Converted .ac file to .mol2. The location of the new file: {self.current}"
+        )
 
     def are_atom_names_correct(self):
         """
@@ -188,20 +209,24 @@ class Ligand:
         if self.are_atom_names_correct():
             return
 
-        logger.debug(f'Ligand {self.internal_name} will have its atom names renamed. ')
+        logger.debug(f"Ligand {self.internal_name} will have its atom names renamed. ")
 
         ligand = parmed.load_file(str(self.current), structure=True)
 
-        logger.debug(f'Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique '
-              f'or do not follow NameDigit format (e.g. C15). Renaming')
+        logger.debug(
+            f"Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique "
+            f"or do not follow NameDigit format (e.g. C15). Renaming"
+        )
         _, renaming_map = ties.helpers.get_new_atom_names(ligand.atoms)
         self._renaming_map = renaming_map
-        logger.debug(f'Rename map: {renaming_map}')
+        logger.debug(f"Rename map: {renaming_map}")
 
         # save the output here
         os.makedirs(self.config.lig_unique_atom_names_dir, exist_ok=True)
 
-        ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (self.internal_name + self.current.suffix)
+        ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (
+            self.internal_name + self.current.suffix
+        )
         if self.save:
             ligand.save(str(ligand_with_uniq_atom_names))
 
@@ -259,41 +284,58 @@ class Ligand:
         self.config.set_configs(**kwargs)
 
         if self.config.ligands_contain_q or not self.config.antechamber_charge_type:
-            logger.info(f'Antechamber: User-provided atom charges will be reused ({self.current.name})')
-        
+            logger.info(
+                f"Antechamber: User-provided atom charges will be reused ({self.current.name})"
+            )
+
         mol2_cwd = self.config.lig_dir / self.internal_name
 
         # prepare the directory
         mol2_cwd.mkdir(parents=True, exist_ok=True)
-        mol2_target = mol2_cwd / f'{self.internal_name}.mol2'
+        mol2_target = mol2_cwd / f"{self.internal_name}.mol2"
 
         # do not redo if the target file exists
         if not (mol2_target).is_file():
             log_filename = mol2_cwd / "antechamber.log"
-            with open(log_filename, 'w') as LOG:
+            with open(log_filename, "w") as LOG:
                 try:
-                    cmd = [self.config.ambertools_antechamber,
-                           '-i', self.current,
-                           '-fi', self.current.suffix[1:],
-                           '-o', mol2_target,
-                           '-fo', 'mol2',
-                           '-at', self.config.ligand_ff_name,
-                           '-nc', str(self.config.ligand_net_charge),
-                           '-dr', str(self.config.antechamber_dr)
-                           ] +  self.config.antechamber_charge_type
-                    subprocess.run(cmd,
-                                   cwd=mol2_cwd,
-                                   stdout=LOG, stderr=LOG,
-                                   check=True, text=True,
-                                   timeout=60 * 30  # 30 minutes
-                                   )
+                    cmd = [
+                        self.config.ambertools_antechamber,
+                        "-i",
+                        self.current,
+                        "-fi",
+                        self.current.suffix[1:],
+                        "-o",
+                        mol2_target,
+                        "-fo",
+                        "mol2",
+                        "-at",
+                        self.config.ligand_ff_name,
+                        "-nc",
+                        str(self.config.ligand_net_charge),
+                        "-dr",
+                        str(self.config.antechamber_dr),
+                    ] + self.config.antechamber_charge_type
+                    subprocess.run(
+                        cmd,
+                        cwd=mol2_cwd,
+                        stdout=LOG,
+                        stderr=LOG,
+                        check=True,
+                        text=True,
+                        timeout=60 * 30,  # 30 minutes
+                    )
                 except subprocess.CalledProcessError as ProcessError:
-                    raise Exception(f'Could not convert the ligand into .mol2 file with antechamber. '
-                                    f'See the log and its directory: {log_filename} . '
-                                    f'Command used: {" ".join(map(str, cmd))}') from ProcessError
-            logger.debug(f'Converted {self.original_input} into .mol2, Log: {log_filename}')
+                    raise Exception(
+                        f"Could not convert the ligand into .mol2 file with antechamber. "
+                        f"See the log and its directory: {log_filename} . "
+                        f"Command used: {' '.join(map(str, cmd))}"
+                    ) from ProcessError
+            logger.debug(
+                f"Converted {self.original_input} into .mol2, Log: {log_filename}"
+            )
         else:
-            logger.info(f'File {mol2_target} already exists. Skipping. ')
+            logger.info(f"File {mol2_target} already exists. Skipping. ")
 
         self.antechamber_mol2 = mol2_target
         self.current = mol2_target
@@ -310,16 +352,19 @@ class Ligand:
         """
         mol2 = parmed.load_file(str(self.current), structure=True)
         # check if there are any DU atoms
-        has_DU = any(a.type == 'DU' for a in mol2.atoms)
+        has_DU = any(a.type == "DU" for a in mol2.atoms)
         if not has_DU:
             return
 
         # make a backup copy before (to simplify naming)
-        shutil.move(self.current, self.current.parent / ('lig.beforeRemovingDU' + self.current.suffix))
+        shutil.move(
+            self.current,
+            self.current.parent / ("lig.beforeRemovingDU" + self.current.suffix),
+        )
 
         # remove DU type atoms and save the file
         for atom in mol2.atoms:
-            if atom.name != 'DU':
+            if atom.name != "DU":
                 continue
 
             atom.residue.delete_atom(atom)
@@ -329,42 +374,54 @@ class Ligand:
 
     def generate_frcmod(self, **kwargs):
         """
-            params
-             - parmchk2
-             - atom_type
+        params
+         - parmchk2
+         - atom_type
         """
         self.config.set_configs(**kwargs)
 
-        logger.debug(f'INFO: frcmod for {self} was computed before. Not repeating.')
-        if hasattr(self, 'frcmod'):
+        logger.debug(f"INFO: frcmod for {self} was computed before. Not repeating.")
+        if hasattr(self, "frcmod"):
             return
 
         # fixme - work on the file handles instaed of the constant stitching
-        logger.debug(f'Parmchk2: generate the .frcmod for {self.internal_name}.mol2')
+        logger.debug(f"Parmchk2: generate the .frcmod for {self.internal_name}.mol2")
 
         # prepare cwd
         cwd = self.config.lig_frcmod_dir / self.internal_name
         if not cwd.is_dir():
             cwd.mkdir(parents=True, exist_ok=True)
 
-        target_frcmod = f'{self.internal_name}.frcmod'
+        target_frcmod = f"{self.internal_name}.frcmod"
         log_filename = cwd / "parmchk2.log"
-        with open(log_filename, 'w') as LOG:
+        with open(log_filename, "w") as LOG:
             try:
-                subprocess.run([self.config.ambertools_parmchk2,
-                                '-i', self.current,
-                                '-o', target_frcmod,
-                                '-f', 'mol2',
-                                '-s', self.config.ligand_ff_name],
-                               stdout=LOG, stderr=LOG,
-                               check= True, text=True,
-                               cwd= cwd, timeout=20,  # 20 seconds
-                                )
+                subprocess.run(
+                    [
+                        self.config.ambertools_parmchk2,
+                        "-i",
+                        self.current,
+                        "-o",
+                        target_frcmod,
+                        "-f",
+                        "mol2",
+                        "-s",
+                        self.config.ligand_ff_name,
+                    ],
+                    stdout=LOG,
+                    stderr=LOG,
+                    check=True,
+                    text=True,
+                    cwd=cwd,
+                    timeout=20,  # 20 seconds
+                )
             except subprocess.CalledProcessError as E:
-                raise Exception(f"GAFF Error: Could not generate FRCMOD for file: {self.current} . "
-                                f'See more here: {log_filename}') from E
+                raise Exception(
+                    f"GAFF Error: Could not generate FRCMOD for file: {self.current} . "
+                    f"See more here: {log_filename}"
+                ) from E
 
-        logger.debug(f'Parmchk2: created frcmod: {target_frcmod}')
+        logger.debug(f"Parmchk2: created frcmod: {target_frcmod}")
         self.frcmod = cwd / target_frcmod
 
     def overwrite_coordinates_with(self, file, output_file):
@@ -384,24 +441,30 @@ class Ligand:
         by_general_atom_type = False
 
         # mol2_filename will be overwritten!
-        logger.info(f'Writing to {self.current} the coordinates from {file}. ')
+        logger.info(f"Writing to {self.current} the coordinates from {file}. ")
 
         coords_sum = np.sum(coords.atoms.positions)
 
         if by_atom_name and by_index:
-            raise ValueError('Cannot have both. They are exclusive')
+            raise ValueError("Cannot have both. They are exclusive")
         elif not by_atom_name and not by_index:
-            raise ValueError('Either option has to be selected.')
+            raise ValueError("Either option has to be selected.")
 
         if by_general_atom_type:
             for mol2_atom in template.atoms:
                 found_match = False
                 for ref_atom in coords.atoms:
-                    if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
+                    if (
+                        element_from_type[mol2_atom.type.upper()]
+                        == element_from_type[ref_atom.type.upper()]
+                    ):
                         found_match = True
                         mol2_atom.position = ref_atom.position
                         break
-                assert found_match, "Could not find the following atom in the original file: " + mol2_atom.name
+                assert found_match, (
+                    "Could not find the following atom in the original file: "
+                    + mol2_atom.name
+                )
         if by_atom_name:
             for mol2_atom in template.atoms:
                 found_match = False
@@ -410,20 +473,30 @@ class Ligand:
                         found_match = True
                         mol2_atom.position = ref_atom.position
                         break
-                assert found_match, "Could not find the following atom name across the two files: " + mol2_atom.name
+                assert found_match, (
+                    "Could not find the following atom name across the two files: "
+                    + mol2_atom.name
+                )
         elif by_index:
             for mol2_atom, ref_atom in zip(template.atoms, coords.atoms):
                 atype = element_from_type[mol2_atom.type.upper()]
                 reftype = element_from_type[ref_atom.type.upper()]
                 if atype != reftype:
                     raise Exception(
-                        f"The found general type {atype} does not equal to the reference type {reftype} ")
+                        f"The found general type {atype} does not equal to the reference type {reftype} "
+                    )
 
                 mol2_atom.position = ref_atom.position
 
-        if np.testing.assert_almost_equal(coords_sum, np.sum(mda_template.atoms.positions), decimal=2):
-            logger.debug('Different positions sums:', coords_sum, np.sum(mda_template.atoms.positions))
-            raise Exception('Copying of the coordinates did not work correctly')
+        if np.testing.assert_almost_equal(
+            coords_sum, np.sum(mda_template.atoms.positions), decimal=2
+        ):
+            logger.debug(
+                "Different positions sums:",
+                coords_sum,
+                np.sum(mda_template.atoms.positions),
+            )
+            raise Exception("Copying of the coordinates did not work correctly")
 
         # save the output file
         mda_template.atoms.write(output_file)
