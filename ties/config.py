@@ -4,14 +4,12 @@ import sys
 import pathlib
 import subprocess
 import tempfile
-from collections.abc import Iterable
 
 import csv
 
 import parmed
 import rdkit.Chem
 
-from ties.helpers import ArgparseChecker
 
 
 logger = logging.getLogger(__name__)
@@ -558,7 +556,7 @@ class Config:
             if ligand_ext in {".mol2", ".ac", ".prep"}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                logger.info(f"Existing atom charges detected (filetype .ac/.mol2)")
+                logger.info("Existing atom charges detected (filetype .ac/.mol2)")
             elif ligand_ext == ".pdb":
                 self._ligands_contain_q = False
                 logger.debug(

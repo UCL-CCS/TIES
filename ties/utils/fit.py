@@ -9,7 +9,6 @@ from rdkit import Chem
 import fegrow
 
 from ties import Pair, Config
-from ties.utils.rdmcs import get_mcs
 
 
 def write_mol(mol: Chem.Mol, filename):

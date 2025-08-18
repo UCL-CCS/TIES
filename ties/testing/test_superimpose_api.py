@@ -1,5 +1,3 @@
-import json
-from glob import glob
 import numpy as np
 
 from ties import Pair

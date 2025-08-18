@@ -10,7 +10,6 @@ TODO
 import copy
 
 import rdkit.Chem
-import pytest
 import json
 
 from ties import Ligand, Pair, Config

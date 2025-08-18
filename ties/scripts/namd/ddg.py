@@ -25,7 +25,6 @@ from scipy.stats import sem
 from scipy import interpolate
 
 # import pandas as pd
-from itertools import accumulate
 # from pymbar import timeseries
 
 

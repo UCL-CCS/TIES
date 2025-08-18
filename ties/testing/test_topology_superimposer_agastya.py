@@ -8,7 +8,6 @@ For example, if there is a linking atom C that mutates into O,
 Then we might be able to detect that this exact mutation takes place. 1
 """
 
-import pytest
 from os import path
 from pathlib import Path
 

@@ -5,12 +5,10 @@ using the results, generate the NAMD input files.
 frcmod file format: http://ambermd.org/FileFormats.php#frcmod
 """
 
-from os import path
 import MDAnalysis as mda
 from ties.topology_superimposer import (
     get_atoms_bonds_from_file,
     superimpose_topologies,
-    assign_coords_from_pdb,
 )
 import os
 import json

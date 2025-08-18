@@ -10,11 +10,8 @@ the dv/dl and creating a distribution of ddG to estimate its error
 """
 
 import os
-from pathlib import Path
 from collections import OrderedDict
 import glob
-import time
-import pickle as pkl
 
 import numpy as np
 import matplotlib
@@ -25,7 +22,6 @@ from scipy.stats import sem
 from scipy import interpolate
 
 # import pandas as pd
-from itertools import accumulate
 # from pymbar import timeseries
 
 

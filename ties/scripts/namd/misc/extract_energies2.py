@@ -3,9 +3,7 @@
 # todo - upgrade to pathlib
 """
 
-import os
 import numpy as np
-import matplotlib
 
 # matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
@@ -13,7 +11,6 @@ from pathlib import Path
 
 # from scipy.stats import sem
 # import pandas as pd
-from itertools import accumulate
 
 # from pymbar import timeseries
 from collections import OrderedDict

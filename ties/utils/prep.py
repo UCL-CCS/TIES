@@ -10,11 +10,9 @@ Room for improvement:
 """
 
 import openff
-from openff.toolkit import Molecule
 from openff.toolkit import ForceField
 from openff.units import unit
 from openff.interchange import Interchange
-from openff.toolkit.utils import RDKitToolkitWrapper, OpenEyeToolkitWrapper
 import openmm
 import openmm.unit
 from openff.units import Quantity

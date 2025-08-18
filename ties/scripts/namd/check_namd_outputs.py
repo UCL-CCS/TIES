@@ -27,7 +27,7 @@ def check(dirname):
                     print("Prod not finished: %s" % rep_dir)
                 else:
                     finished_sims.append(os.path.join(rep_dir, "prod.log"))
-            except Exception as e:
+            except Exception:
                 print("prod.log files not found: %s" % rep_dir)
 
     print("Total number of finished simulations: ", len(finished_sims))

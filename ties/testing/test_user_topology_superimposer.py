@@ -8,7 +8,6 @@ TODO
 """
 
 import copy
-import pytest
 import numpy as np
 
 from ties.topology_superimposer import superimpose_topologies, Atom

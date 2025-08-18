@@ -18,9 +18,9 @@ sys = mda.Universe("complex/morph_solv.top", "complex/morph_solv.pdb")
 print("sys", sys)
 
 # establish the binding site (within 5A of the original position)
-ligand = sys.select_atoms(f"resname ged")
+ligand = sys.select_atoms("resname ged")
 binding_site = sys.select_atoms(
-    f"not resname WAT and not resname ged and around 5 (resname ged)"
+    "not resname WAT and not resname ged and around 5 (resname ged)"
 )
 print(f"Binding site has atoms: {len(binding_site)}")
 
@@ -53,7 +53,7 @@ for lamdir in glob.glob(r"complex/lambda_[0-1].[0-9]*"):
         u = mda.Universe("complex/morph_solv.top", os.path.join(rep, "prod.dcd"))
         lig = u.select_atoms("resname ged", updating=True)
         binding_pocket = u.select_atoms(
-            f"not resname ged and around 5 resname ged", updating=True
+            "not resname ged and around 5 resname ged", updating=True
         )
 
         # gather data after the first 2 ns (EQ time)

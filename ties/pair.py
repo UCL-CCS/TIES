@@ -1,10 +1,8 @@
 import os
 import json
-import copy
 import shutil
 import subprocess
 import logging
-from pathlib import Path
 
 import parmed
 
@@ -525,7 +523,7 @@ class Pair:
                 check=True,
             )
 
-            if not "Errors = 0" in tleap_process.stdout:
+            if "Errors = 0" not in tleap_process.stdout:
                 raise Exception(
                     "ERROR: Could not generate the .top file after adding dummy angles/dihedrals"
                 )

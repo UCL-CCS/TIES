@@ -3,11 +3,7 @@ A list of functions with a clear purpose that does
 not belong specifically to any of the existing units.
 """
 
-import os
-import sys
 import argparse
-import subprocess
-import warnings
 import pathlib
 import logging
 
@@ -170,16 +166,16 @@ class ArgparseChecker:
         amber_home = pathlib.Path(path)
         if not amber_home.is_dir():
             raise argparse.ArgumentTypeError(
-                f"The path to ambertools does not point towards a directory. "
+                "The path to ambertools does not point towards a directory. "
             )
         # check if the bin directory, antechamber and antechamber
         if not (amber_home / "bin").is_dir():
             raise argparse.ArgumentTypeError(
-                f'The path to ambertools does not contain the "bin" directory. '
+                'The path to ambertools does not contain the "bin" directory. '
             )
         if not (amber_home / "bin" / "antechamber").is_dir():
             raise argparse.ArgumentTypeError(
-                f'The path to ambertools does not contain the "bin/antechamber" file. '
+                'The path to ambertools does not contain the "bin/antechamber" file. '
             )
 
         return amber_home

@@ -3,7 +3,6 @@ Walks through the typical lambda_X.XX/repX structures and copies the file there
 """
 
 import os
-import sys
 import shutil
 import glob
 

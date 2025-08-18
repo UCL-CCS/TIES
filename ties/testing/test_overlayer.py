@@ -9,7 +9,6 @@ TODO:
 
 import copy
 
-import pytest
 from ties.topology_superimposer import Atom, _overlay, SuperimposedTopology
 
 

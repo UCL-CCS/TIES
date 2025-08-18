@@ -5,7 +5,7 @@ These tests focus on the Ligand
 import parmed
 import rdkit.Chem
 
-from ties import Ligand, Pair
+from ties import Pair
 
 
 def test_atom_names_uniqe():

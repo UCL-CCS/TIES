@@ -2,7 +2,6 @@
 Find how far are the waters
 """
 
-from pathlib import Path
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
 import numpy as np
@@ -36,7 +35,7 @@ def find_waters(
     # mda_writers = [mda.Writer(f'{traj_dcd_prefix}{watNum}.dcd', n_atoms=len(lig) + len(prot) + 3*watNum)
     #                for watNum in range(0, closest_wat_number + 1)]
     out_traj = mda.Writer(
-        f"com_wat3.dcd", n_atoms=len(lig) + len(prot) + 3 * closest_wat_number
+        "com_wat3.dcd", n_atoms=len(lig) + len(prot) + 3 * closest_wat_number
     )
 
     cum_sums = np.zeros(len(water_o.residues))

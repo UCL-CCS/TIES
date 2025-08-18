@@ -3,16 +3,10 @@
 Visualise the bootstrapped replicas. We have 1, 3, 5, and some other replica lengths with their ddGs bootstrapped.
 """
 
-import os
 from pathlib import Path
 from collections import OrderedDict
-import glob
-import time
 import itertools
-import random
-import sys
 import json
-import re
 
 import numpy as np
 from numpy import genfromtxt
@@ -21,7 +15,6 @@ import matplotlib
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
-import matplotlib.transforms as trans
 
 
 def combine(transformations):

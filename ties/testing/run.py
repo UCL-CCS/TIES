@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-import pytest, tempfile, os, sys, site, shutil
+import pytest
+import tempfile
+import os
+import sys
+import site
+import shutil
 from pathlib import Path
 
 

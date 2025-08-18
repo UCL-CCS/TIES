@@ -1,6 +1,5 @@
 import logging
 
-logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
 from pathlib import Path
 
@@ -13,5 +12,9 @@ from .ligandmap import LigandMap
 from .protein import Protein
 
 from ._version import __version__
+
+
+logging.basicConfig(encoding="utf-8", level=logging.INFO)
+
 
 __all__ = [Ligand, Protein, Pair, Config, LigandMap, Protein, __version__]

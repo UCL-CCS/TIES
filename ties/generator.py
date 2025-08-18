@@ -1,20 +1,14 @@
 import os
 import re
-import json
 import copy
 import shutil
 import subprocess
-import math
 from collections import OrderedDict
-from pathlib import Path
-import warnings
 
 import numpy as np
 import parmed
 
 from ties.topology_superimposer import (
-    get_atoms_bonds_from_file,
-    superimpose_topologies,
     get_atoms_bonds_from_ac,
 )
 

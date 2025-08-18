@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import os
-import time
-import pickle as pkl
 from pathlib import Path
 
 from ties.ddg20 import extract_energies, merge_datasets, analyse

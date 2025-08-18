@@ -1,5 +1,4 @@
 # verify that the min_api.py worked fine
-import glob
 import pathlib
 
 # the default directory was created

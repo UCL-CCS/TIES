@@ -7,7 +7,6 @@ plotted as a distribution for two different simulations.
 import os
 from glob import glob
 
-import numpy as np
 import matplotlib.pyplot as plt
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array

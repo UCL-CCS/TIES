@@ -2,13 +2,11 @@
 The main module responsible for the superimposition.
 """
 
-import sys
 import os
 import hashlib
 import copy
 import itertools
 import math
-import random
 import json
 import shutil
 import logging
@@ -16,13 +14,12 @@ import subprocess
 import pathlib
 import re
 import warnings
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List
 from functools import reduce
 from collections import OrderedDict
 from ast import literal_eval
 
 import MDAnalysis
-from MDAnalysis.lib.distances import distance_array
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings(
@@ -30,7 +27,6 @@ warnings.filterwarnings(
     "The Bio.Application modules and modules relying on it have been deprecated.",
     module="Bio.Application",
 )
-from MDAnalysis.analysis.align import rotation_matrix
 import numpy as np
 import networkx as nx
 import parmed
@@ -1037,7 +1033,7 @@ class SuperimposedTopology:
                 if not self.ignore_bond_types:
                     if bond_type[0] != bond_type[1]:
                         logger.error(
-                            f"ERROR: bond types do not match, even though they apply to the same atoms"
+                            "ERROR: bond types do not match, even though they apply to the same atoms"
                         )
                         logger.error(
                             f'ERROR: left bond is "{bond_type[0]}" and right bond is "{bond_type[1]}"'
@@ -2312,9 +2308,9 @@ class SuperimposedTopology:
             for st2Na, st2Nb in suptop.matched_pairs:
                 if (
                     (st1Na is st2Na)
-                    and not (st1Nb is st2Nb)
+                    and st1Nb is not st2Nb
                     or (st1Nb is st2Nb)
-                    and not (st1Na is st2Na)
+                    and st1Na is not st2Na
                 ):
                     return False
 
@@ -4241,7 +4237,7 @@ def _superimpose_topologies(
             )
             logger.debug(
                 "Using heuristics to select the initial pairs for searching the maximum overlap."
-                f"Could produce non-optimal results. "
+                "Could produce non-optimal results. "
             )
 
     logger.debug(f"Seed Pairs: {starting_node_pairs}")
