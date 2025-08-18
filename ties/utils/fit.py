@@ -76,11 +76,7 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     # ]
     # print("rdmap", mapping_heavy)
 
-    # in order to have conformers with the MCS perfectly overlapping
-
-    # remove all but one
     rlig.RemoveAllConformers()
-    # assert rlig.GetNumConformers() == 1
 
     # generate lots of conformers to start from
     try:
