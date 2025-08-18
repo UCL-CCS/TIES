@@ -1,5 +1,6 @@
 import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO)
+
+logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
 from pathlib import Path
 
