@@ -24,11 +24,11 @@ of the pocket.
 Temporary solution used was FEgrow to recapture the
 original binding.
 """
+
 from ties import Pair
 
-pair = Pair('0.mol2', '9806.mol2')
+pair = Pair("0.mol2", "9806.mol2")
 
 hybrid = pair.superimpose(superimposition_starting_pairs="O1-O3")
 
 assert len(hybrid) == 26
-
