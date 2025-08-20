@@ -103,13 +103,13 @@ def test_atom_names_not_unique():
 
 
 # should be a test?
-def test_input_prep():
+def test_input_prep(examples):
     config = Config()
     config.ligand_net_charge = -1
 
     pair = Pair(
-        "../examples/mol2_2ligands_MCL1/l02.mol2",
-        "../examples/mol2_2ligands_MCL1/l03.mol2",
+        examples / "mol2_2ligands_MCL1/l02.mol2",
+        examples / "mol2_2ligands_MCL1/l03.mol2",
         config=config,
     )
     hybrid = pair.superimpose()

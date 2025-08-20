@@ -120,15 +120,15 @@ def test_mcl1_l12l35_crossed_double_cycle(indole_cl1, indole_cl2):
     assert len(suptop) == 11
 
 
-def test_api_hybrid_toJSON_serializable():
+def test_api_hybrid_toJSON_serializable(examples):
     # .toJSON metadata can be converted into JSON
 
     config = Config()
     config.ligand_net_charge = -1
 
     pair = Pair(
-        "../examples/mol2_2ligands_MCL1/l02.mol2",
-        "../examples/mol2_2ligands_MCL1/l03.mol2",
+        examples / "mol2_2ligands_MCL1/l02.mol2",
+        examples / "mol2_2ligands_MCL1/l03.mol2",
         config=config,
     )
     pair.make_atom_names_unique()

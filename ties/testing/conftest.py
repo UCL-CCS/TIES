@@ -1,7 +1,18 @@
 import copy
+from pathlib import Path
 
 import pytest
 from ties.topology_superimposer import Atom
+
+
+@pytest.fixture
+def data():
+    return Path(__file__).parent / "data"
+
+
+@pytest.fixture
+def examples():
+    return Path(__file__).parent.parent / "examples"
 
 
 @pytest.fixture

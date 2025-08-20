@@ -3,14 +3,14 @@ import numpy as np
 from ties import Pair
 
 
-def test_superimposition_api():
+def test_superimposition_api(data):
     """
     Use the Pair api to superimpose two molecules.
     """
 
     # load
     p = Pair(
-        "data/superimpose_api/docked-rmsd_001.pdb", "data/superimpose_api/obj01.pdb"
+        data / "superimpose_api/docked-rmsd_001.pdb", data / "superimpose_api/obj01.pdb"
     )
 
     # superimpose
@@ -25,13 +25,13 @@ def test_superimposition_api():
     assert len(suptop) == 5
 
 
-def test_rmsd_suptop():
+def test_rmsd_suptop(data):
     """
     Check the rmsd of the superimposed area.
     :return:
     """
     p = Pair(
-        "data/superimpose_api/docked-rmsd_001.pdb", "data/superimpose_api/obj01.pdb"
+        data / "superimpose_api/docked-rmsd_001.pdb", data / "superimpose_api/obj01.pdb"
     )
     suptop = p.superimpose(
         use_element_in_superimposition=True,
