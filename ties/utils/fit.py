@@ -42,7 +42,7 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     sup = pair.superimpose()
 
     # save the mapping to be used later in FEgrow [Optional]
-    cc = sup._removed_because_disjointed_cc
+    cc = sup._removed_because_disjointed_cc  #  noqa: F841
 
     matched_pairs = sup.matched_pairs
     matched_pairs += [
