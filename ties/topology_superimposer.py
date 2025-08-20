@@ -20,6 +20,7 @@ from collections import OrderedDict
 from ast import literal_eval
 
 import MDAnalysis
+import MDAnalysis.analysis.align
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings(
@@ -313,7 +314,9 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = (
+            []
+        )  # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -403,10 +406,10 @@ class SuperimposedTopology:
         with open(morph_pdb_path, "w") as FOUT:
             for atom in self.parmed_ligA.atoms:
                 """
-                There is only one forcefield which is shared across the two topologies. 
-                Basically, we need to check whether the atom is in both topologies. 
-                If that is the case, then the atom should have the same name, and therefore appear only once. 
-                However, if there is a new atom, it should be specfically be outlined 
+                There is only one forcefield which is shared across the two topologies.
+                Basically, we need to check whether the atom is in both topologies.
+                If that is the case, then the atom should have the same name, and therefore appear only once.
+                However, if there is a new atom, it should be specfically be outlined
                 that it is 1) new and 2) the right type
                 """
                 # write all the atoms if they are matched, that's the common part
@@ -1198,9 +1201,9 @@ class SuperimposedTopology:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, (
-            "At this point there should be left only one main component"
-        )
+        assert (
+            len(ccs) == 1
+        ), "At this point there should be left only one main component"
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -3125,9 +3128,11 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(
-                    ingredients.get(st1, set())
-                ).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = (
+                    {st1, st2}
+                    .union(ingredients.get(st1, set()))
+                    .union(ingredients.get(st2, set()))
+                )
                 excluded.append({st1, st2})
 
                 # break
