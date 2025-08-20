@@ -63,9 +63,9 @@ def load_problem_from_dir(liglig_path):
     return ligand1_nodes, ligand2_nodes
 
 
-def test_mcl1_l18l39():
+def test_mcl1_l18l39(data):
     # Agastya's cases
-    liglig_path = "agastya_dataset/mcl1/l18-l39"
+    liglig_path = data / "agastya_dataset/mcl1/l18-l39"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
     # we are ignoring the charges by directly calling the superimposer
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
@@ -166,9 +166,9 @@ def test_mcl1_l18l39():
     #     assert not suptop.contains_atomNamePair(atomName1, atomname2)
 
 
-def test_mcl1_l8l18():
+def test_mcl1_l8l18(data):
     # Agastya's cases
-    liglig_path = "agastya_dataset/mcl1/l8-l18"
+    liglig_path = data / "agastya_dataset/mcl1/l8-l18"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
@@ -256,9 +256,9 @@ def test_mcl1_l8l18():
     assert set(removed_non_hydrogens) == {("C7", "C29"), ("C3", "C25"), ("C2", "C24")}
 
 
-def test_mcl1_l32_l42():
+def test_mcl1_l32_l42(data):
     # Agastya's cases
-    liglig_path = "agastya_dataset/mcl1/l32-l42"
+    liglig_path = data / "agastya_dataset/mcl1/l32-l42"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     # c17 = next(filter(lambda x: x.atomName == 'C17', lig1_nodes.values()))
@@ -369,9 +369,9 @@ def test_mcl1_l32_l42():
     toGoThrough = suptop.largest_cc_survives()
 
 
-def test_tyk2_l11l14():
+def test_tyk2_l11l14(data):
     # Agastya's cases
-    liglig_path = "agastya_dataset/tyk2/l11-l14"
+    liglig_path = data / "agastya_dataset/tyk2/l11-l14"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     suptop = superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
@@ -388,8 +388,8 @@ def test_tyk2_l11l14():
         assert suptop.is_or_was_matched(atomName1, atomname2)
 
 
-def test_tyk2_l13l12():
-    liglig_path = "agastya_dataset/tyk2/l13-l12"
+def test_tyk2_l13l12(data):
+    liglig_path = data / "agastya_dataset/tyk2/l13-l12"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
 
     suptop = superimpose_topologies(
