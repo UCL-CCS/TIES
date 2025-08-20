@@ -11,7 +11,6 @@ import parmed
 import rdkit.Chem
 
 
-
 logger = logging.getLogger(__name__)
 
 
