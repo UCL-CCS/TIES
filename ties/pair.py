@@ -7,7 +7,7 @@ import logging
 import parmed
 
 import ties.helpers
-from ties.generator import get_atoms_bonds_from_file
+from ties.topology_superimposer import get_atoms_bonds_from_file
 from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
