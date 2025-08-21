@@ -3,6 +3,7 @@
 Exposes a terminal interface to TIES 20.
 """
 
+import argparse
 import time
 import itertools
 import logging
@@ -11,7 +12,7 @@ import shutil
 import sys
 
 import ties.generator
-from ties.helpers import *
+from ties.helpers import ArgparseChecker
 import ties.config
 import ties.ligand
 import ties.pair

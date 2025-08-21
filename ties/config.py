@@ -181,7 +181,7 @@ class Config:
             sys.exit(1)
 
         # check if the ligands have the same extension
-        if len({l.suffix for l in files}) != 1:
+        if len({lig.suffix for lig in files}) != 1:
             # fixme - does it actually matter? you parse it anyway?
             logger.error(
                 "ligands (-l) have different extensions. "
@@ -190,7 +190,7 @@ class Config:
             sys.exit()
 
         # files must have unique names
-        filenames = [l.stem for l in files]
+        filenames = [lig.stem for lig in files]
         if len(filenames) != len(set(filenames)):
             logger.error(
                 "Some ligand (-l) names are the same. "
@@ -504,7 +504,7 @@ class Config:
         :return:
         """
         # if all ligands are .mol2, then charges are provided
-        if all(l.suffix.lower() == ".mol2" for l in self.ligand_files):
+        if all(lig.suffix.lower() == ".mol2" for lig in self.ligand_files):
             # if all atoms have q = 0 that means they're a placeholder
             u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
             all_q_0 = all(a.charge == 0 for a in u.atoms)
@@ -538,7 +538,7 @@ class Config:
         """
 
         # does the file type contain charges?
-        ligand_ext = set(l.suffix.lower() for l in self.ligand_files).pop()
+        ligand_ext = set(lig.suffix.lower() for lig in self.ligand_files).pop()
         if self._ligands_contain_q is True:
             if ligand_ext in {".mol2", ".ac"}:
                 self._ligands_contain_q = True
@@ -591,7 +591,7 @@ class Config:
 
     @superimposition_starting_pairs.setter
     def superimposition_starting_pairs(self, value):
-        if value == None:
+        if value is None:
             self._superimposition_starting_pairs = None
             return
 
@@ -713,16 +713,16 @@ class Config:
     @md_engine.setter
     def md_engine(self, value):
         supported = ["NAMD2.13", "NAMD2.14", "NAMD3", "OpenMM"]
-        if type(value) == str and value.lower() == "namd2.14":
+        if isinstance(value, str) and value.lower() == "namd2.14":
             self._md_engine = "namd"
             self.namd_version = "2.14"
-        elif type(value) == str and value.lower() == "namd2.13":
+        elif isinstance(value, str) and value.lower() == "namd2.13":
             self._md_engine = "namd"
             self.namd_version = "2.13"
-        elif type(value) == str and value.lower() == "namd3":
+        elif isinstance(value, str) and value.lower() == "namd3":
             self._md_engine = "namd3"
             self.namd_version = "3"
-        elif type(value) == str and value.lower() == "openmm":
+        elif isinstance(value, str) and value.lower() == "openmm":
             self._md_engine = "openmm"
             self.namd_version = ""
         else:
@@ -807,7 +807,7 @@ class Config:
         if boolean:
             self._use_hybrid_single_dual_top = True
             self._complex_tleap_in = "leap_complex_sdtop.in"
-            if self._ignore_charges_completely != True:
+            if not self._ignore_charges_completely:
                 raise Exception(
                     "Charges have to be ignored completely when using hybrid single-dual topology."
                 )
@@ -939,7 +939,7 @@ class Config:
         )
         # remove the comments lines with #
         lines = filter(
-            lambda l: not l.strip().startswith("#") and not l.strip() == "",
+            lambda line: not line.strip().startswith("#") and not line.strip() == "",
             open(element_map_filename).readlines(),
         )
         # convert into a dictionary
@@ -998,7 +998,7 @@ class Config:
             # account for the ligands being pathlib objects
             if k == "ligands" and v is not None:
                 # a list of ligands, convert to strings
-                v = [str(l) for l in v]
+                v = [str(lig) for lig in v]
             if k == "_ligand_files":
                 continue
 

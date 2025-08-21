@@ -4,7 +4,6 @@ import shutil
 import logging
 from pathlib import Path
 
-import numpy as np
 import parmed
 import rdkit.Chem
 
@@ -189,7 +188,7 @@ class Ligand:
             atom_number = name[letter_count:]
             try:
                 int(atom_number)
-            except:
+            except Exception:
                 return False
 
         return True
@@ -422,80 +421,3 @@ class Ligand:
 
         logger.debug(f"Parmchk2: created frcmod: {target_frcmod}")
         self.frcmod = cwd / target_frcmod
-
-    def overwrite_coordinates_with(self, file, output_file):
-        """
-        Load coordinates from another file and overwrite the coordinates in the current file.
-        """
-
-        # load the current atoms with ParmEd
-        template = parmed.load_file(str(self.current), structure=True)
-
-        # load the file with the coordinates we want to use
-        coords = parmed.load_file(str(file), structure=True)
-
-        # fixme: use the atom names
-        by_atom_name = True
-        by_index = False
-        by_general_atom_type = False
-
-        # mol2_filename will be overwritten!
-        logger.info(f"Writing to {self.current} the coordinates from {file}. ")
-
-        coords_sum = np.sum(coords.atoms.positions)
-
-        if by_atom_name and by_index:
-            raise ValueError("Cannot have both. They are exclusive")
-        elif not by_atom_name and not by_index:
-            raise ValueError("Either option has to be selected.")
-
-        if by_general_atom_type:
-            for mol2_atom in template.atoms:
-                found_match = False
-                for ref_atom in coords.atoms:
-                    if (
-                        element_from_type[mol2_atom.type.upper()]
-                        == element_from_type[ref_atom.type.upper()]
-                    ):
-                        found_match = True
-                        mol2_atom.position = ref_atom.position
-                        break
-                assert found_match, (
-                    "Could not find the following atom in the original file: "
-                    + mol2_atom.name
-                )
-        if by_atom_name:
-            for mol2_atom in template.atoms:
-                found_match = False
-                for ref_atom in coords.atoms:
-                    if mol2_atom.name.upper() == ref_atom.name.upper():
-                        found_match = True
-                        mol2_atom.position = ref_atom.position
-                        break
-                assert found_match, (
-                    "Could not find the following atom name across the two files: "
-                    + mol2_atom.name
-                )
-        elif by_index:
-            for mol2_atom, ref_atom in zip(template.atoms, coords.atoms):
-                atype = element_from_type[mol2_atom.type.upper()]
-                reftype = element_from_type[ref_atom.type.upper()]
-                if atype != reftype:
-                    raise Exception(
-                        f"The found general type {atype} does not equal to the reference type {reftype} "
-                    )
-
-                mol2_atom.position = ref_atom.position
-
-        if np.testing.assert_almost_equal(
-            coords_sum, np.sum(mda_template.atoms.positions), decimal=2
-        ):
-            logger.debug(
-                "Different positions sums:",
-                coords_sum,
-                np.sum(mda_template.atoms.positions),
-            )
-            raise Exception("Copying of the coordinates did not work correctly")
-
-        # save the output file
-        mda_template.atoms.write(output_file)

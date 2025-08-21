@@ -74,7 +74,7 @@ def get_atom_names_counter(atoms):
 
     for atom in atoms:
         # get the first letters that is not a character
-        afterLetters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+        afterLetters = [i for i, j in enumerate(atom.name) if j.isalpha()][-1] + 1
 
         atom_name = atom.name[:afterLetters]
         atom_number = int(atom.name[afterLetters:])

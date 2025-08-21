@@ -1,17 +1,13 @@
 import logging
 
 
-from pathlib import Path
+from ties.ligand import Ligand
+from ties.pair import Pair
+from ties.config import Config
+from ties.ligandmap import LigandMap
+from ties.protein import Protein
 
-from . import cli
-
-from .ligand import Ligand
-from .pair import Pair
-from .config import Config
-from .ligandmap import LigandMap
-from .protein import Protein
-
-from ._version import __version__
+from ties._version import __version__
 
 
 logging.basicConfig(encoding="utf-8", level=logging.INFO)

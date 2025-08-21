@@ -317,18 +317,6 @@ def get_morphed_ligand_resnames(filename):
     return list(resnames)
 
 
-def get_PBC_coords(pdb_file):
-    """
-    Return [x, y, z]
-    """
-    raise Exception("This should not be called PBC coords. Revisit")
-    # u = load(pdb_file)
-    x = np.abs(max(u.atoms.positions[:, 0]) - min(u.atoms.positions[:, 0]))
-    y = np.abs(max(u.atoms.positions[:, 1]) - min(u.atoms.positions[:, 1]))
-    z = np.abs(max(u.atoms.positions[:, 2]) - min(u.atoms.positions[:, 2]))
-    return (x, y, z)
-
-
 def extract_PBC_from_tleap_log(leap_log):
     """
     http://ambermd.org/namd/namd_amber.html
@@ -344,7 +332,9 @@ def extract_PBC_from_tleap_log(leap_log):
     if "> solvateoct" in leap_log:
         leapl_log_lines = leap_log.split(os.linesep)
         line_to_extract = "Total bounding box for atom centers:"
-        line_of_interest = list(filter(lambda l: line_to_extract in l, leapl_log_lines))
+        line_of_interest = list(
+            filter(lambda line: line_to_extract in line, leapl_log_lines)
+        )
         d1, d2, d3 = line_of_interest[-1].split(line_to_extract)[1].split()
         d1, d2, d3 = float(d1), float(d2), float(d3)
         assert d1 == d2 == d3
@@ -402,7 +392,7 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
     # load the charges from the .ac file
     ac_atoms, _ = get_atoms_bonds_from_ac(ac_ref_filename)
     # load the .mol2 files with ParmEd and correct the charges
-    mol2 = load_mol2_wrapper(mol2_filename)
+    mol2 = load_mol2_wrapper(mol2_filename)  # noqa: F821
 
     for mol2_atom in mol2.atoms:
         found_match = False
@@ -415,77 +405,6 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
             "Could not find the following atom in the AC: " + mol2_atom.name
         )
 
-    # update the mol2 file
-    mol2.atoms.write(mol2_filename)
-
-
-def set_charges_from_mol2(
-    mol2_filename,
-    mol2_ref_filename,
-    by_atom_name=False,
-    by_index=False,
-    by_general_atom_type=False,
-):
-    # mol2_filename will be overwritten!
-    print(
-        f"Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file"
-    )
-    # load the ref charges
-    ref_mol2 = load_mol2_wrapper(mol2_ref_filename)
-    # load the .mol2 files with ParmEd and correct the charges
-    mol2 = load_mol2_wrapper(mol2_filename)
-
-    if by_atom_name and by_index:
-        raise ValueError("Cannot have both. They are exclusive")
-    elif not by_atom_name and not by_index:
-        raise ValueError("Either option has to be selected.")
-
-    # save the sum of charges before
-    ref_sum_q = sum(a.charge for a in ref_mol2.atoms)
-
-    if by_atom_name:
-        for mol2_atom in mol2.atoms:
-            if mol2_atom.type == "DU":
-                continue
-
-            found_match = False
-            for ref_atom in ref_mol2.atoms:
-                if ref_atom.type == "DU":
-                    continue
-
-                if mol2_atom.name.upper() == ref_atom.name.upper():
-                    if found_match == True:
-                        raise Exception("AtomNames are not unique or do not match")
-                    found_match = True
-                    mol2_atom.charge = ref_atom.charge
-            assert found_match, "Could not find the following atom: " + mol2_atom.name
-    elif by_general_atom_type:
-        for mol2_atom in mol2.atoms:
-            found_match = False
-            for ref_atom in ref_mol2.atoms:
-                if (
-                    element_from_type[mol2_atom.type.upper()]
-                    == element_from_type[ref_atom.type.upper()]
-                ):
-                    if found_match == True:
-                        raise Exception("AtomNames are not unique or do not match")
-                    found_match = True
-                    mol2_atom.charge = ref_atom.charge
-            assert found_match, (
-                "Could not find the following atom in the AC: " + mol2_atom.name
-            )
-    elif by_index:
-        for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
-            atype = element_from_type[mol2_atom.type.upper()]
-            reftype = element_from_type[ref_atom.type.upper()]
-            if atype != reftype:
-                raise Exception(
-                    f"The found general type {atype} does not equal to the reference type {reftype} "
-                )
-
-            mol2_atom.charge = ref_atom.charge
-
-    assert ref_sum_q == sum(a.charge for a in mol2.atoms)
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
 
@@ -570,104 +489,6 @@ def prepareFile(src, dst, symbolic=True):
         if os.path.isfile(dst):
             os.remove(dst)
         shutil.copy(src, dst)
-
-
-def set_coor_from_ref_by_named_pairs(
-    mol2_filename, coor_ref_filename, output_filename, left_right_pairs_filename
-):
-    """
-    Set coordinates but use atom names provided by the user.
-
-    Example of the left_right_pairs_filename content:
-    # flip the first ring
-    # move the first c and its h
-    C32 C18
-    H34 C19
-    # second pair
-    C33 C17
-    # the actual matching pair
-    C31 C16
-    H28 H11
-    # the second matching pair
-    C30 C15
-    H29 H12
-    #
-    C35 C14
-    # flip the other ring with itself
-    C39 C36
-    C36 C39
-    H33 H30
-    H30 H33
-    C37 C38
-    C38 C37
-    H31 H32
-    H32 H31
-    """
-    # fixme - check if the names are unique
-
-    # parse "left_right_pairs_filename
-    # format per line: leftatom_name right_atom_name
-    lines = open(left_right_pairs_filename).read().split(os.linesep)
-    left_right_pairs = (l.split() for l in lines if not l.strip().startswith("#"))
-
-    # load the ref coordinates
-    ref_mol2 = load_mol2_wrapper(coor_ref_filename)
-    # load the .mol2 files with ParmEd and correct the charges
-    static_mol2 = load_mol2_wrapper(mol2_filename)
-    # this is being modified
-    mod_mol2 = load_mol2_wrapper(mol2_filename)
-
-    for pair in left_right_pairs:
-        print("find pair", pair)
-        new_pos = False
-        for mol2_atom in static_mol2.atoms:
-            # check if we are assigning from another molecule
-            for ref_atom in ref_mol2.atoms:
-                if (
-                    mol2_atom.name.upper() == pair[0]
-                    and ref_atom.name.upper() == pair[1]
-                ):
-                    new_pos = ref_atom.position
-            # check if we are trying to assing coords from the same molecule
-            for another_atom in static_mol2.atoms:
-                if (
-                    mol2_atom.name.upper() == pair[0]
-                    and another_atom.name.upper() == pair[1]
-                ):
-                    new_pos = another_atom.position
-
-        if new_pos is False:
-            raise Exception("Could not find this pair: " + str(pair))
-
-        # assign the position to the right atom
-        # find pair[0]
-        found = False
-        for atom in mod_mol2.atoms:
-            if atom.name.upper() == pair[0]:
-                atom.position = new_pos
-                found = True
-                break
-        assert found
-
-    # update the mol2 file
-    mod_mol2.atoms.write(output_filename)
-
-
-def rewrite_mol2_hybrid_top(file, single_top_atom_names):
-    # in the  case of the hybrid single-dual topology in NAMD
-    # the .mol2 files have to be rewritten so that
-    # the atoms dual-topology atoms that appear/disappear
-    # are placed at the beginning of the molecule
-    # (single topology atoms have to be separted by
-    # the same distance)
-    shutil.copy(file, os.path.splitext(file)[0] + "_before_sdtop_reordering.mol2")
-    raise Exception("We abandone the hybrid top for now")
-    # select the single top area, use their original order
-    single_top_area = u.select_atoms("name " + " ".join(single_top_atom_names))
-    # all others are mutating
-    dual_top_area = u.select_atoms("not name " + " ".join(single_top_atom_names))
-    new_order_u = single_top_area + dual_top_area
-    new_order_u.atoms.write(file)
 
 
 def update_PBC_in_namd_input(
