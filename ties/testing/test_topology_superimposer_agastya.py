@@ -68,7 +68,9 @@ def test_mcl1_l18l39(data):
     liglig_path = data / "agastya_dataset/mcl1/l18-l39"
     lig1_nodes, lig2_nodes = load_problem_from_dir(liglig_path)
     # we are ignoring the charges by directly calling the superimposer
-    suptops = _superimpose_topologies(lig1_nodes.values(), lig2_nodes.values())
+    suptops = _superimpose_topologies(  # noqa: F841
+        lig1_nodes.values(), lig2_nodes.values()
+    )
     # in this case, there should be only one solution
     # assert len(suptops) == 1
 
@@ -78,7 +80,7 @@ def test_mcl1_l18l39(data):
     # check the core atoms of the superimposition for correctness
     # this ensures that the atoms which have no choice (ie they can only be superimposed in one way)
     # are superimposed that way
-    core_test_pairs = [
+    core_test_pairs = [  # noqa: F841
         ("C21", "C43"),
         ("C15", "C37"),
         ("O3", "O6"),
@@ -95,7 +97,7 @@ def test_mcl1_l18l39(data):
     # avg_dst = suptop.correct_for_coordinates()
 
     # check if the mirrors were corrected
-    corrected_symmetries = [
+    corrected_symmetries = [  # noqa: F841
         ("O2", "O5"),
         ("O1", "O4"),
         ("H7", "H25"),
@@ -161,7 +163,7 @@ def test_mcl1_l18l39(data):
     #
     #     # check if the lonely hydrogens were removed together with charges
     # fixme - for this the disconnected component survival has to be used
-    removed_lonely_hydrogens = [("H14", "H32"), ("H11", "H29")]
+    removed_lonely_hydrogens = [("H14", "H32"), ("H11", "H29")]  # noqa: F841
     # for atomName1, atomname2 in removed_lonely_hydrogens:
     #     assert not suptop.contains_atomNamePair(atomName1, atomname2)
 
@@ -366,7 +368,7 @@ def test_mcl1_l32_l42(data):
 
     # remove the dangling hydrogens by using "no disconnected components"
     # fixme requires parsing the CC survives output
-    toGoThrough = suptop.largest_cc_survives()
+    toGoThrough = suptop.largest_cc_survives()  # noqa: F841
 
 
 def test_tyk2_l11l14(data):

@@ -301,8 +301,6 @@ def test_atom_extraction_from_rdkit_mol():
     ligand = Ligand(rd_mol)
     atoms, bonds, pmd_mol = _get_atoms_bonds_using_parmed(ligand.current)
 
-    periodic_table = rdkit.Chem.GetPeriodicTable()
-
     for atom, ref_atom in zip(atoms, atoms_smiles):
         assert atom.element == ref_atom
 
