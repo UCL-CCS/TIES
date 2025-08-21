@@ -794,6 +794,8 @@
       
         
       
+        
+      
     
     
     
@@ -857,6 +859,122 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../bb/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bb
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_1_3" id="__nav_5_4_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bb
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bb/atom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> atom
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bb/bond/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bond
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1219,7 +1337,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_14" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_15" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1236,14 +1354,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_4_1_14" id="__nav_5_4_1_14_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_4_1_15" id="__nav_5_4_1_15_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_14_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_4_1_14">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_1_15">
             <span class="md-nav__icon md-icon"></span>
             <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> utils
           </label>
@@ -1682,8 +1800,7 @@
 
                   <details class="quote">
                     <summary>Source code in <code>ties/protein.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
-<span class="normal">21</span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
@@ -1705,15 +1822,24 @@
 <span class="normal">40</span>
 <span class="normal">41</span>
 <span class="normal">42</span>
-<span class="normal">43</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Protein filename is not passed and the config file is missing. &#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;Protein filename is not passed and the config file is missing. &quot;</span>
+        <span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">config</span>
 
     <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Could not find the protein in the config object. &#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Could not find the protein in the config object. &quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span>
     <span class="k">elif</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">filename</span>
@@ -1724,11 +1850,15 @@
 
     <span class="c1"># calculate the charges of the protein (using ambertools)</span>
     <span class="c1"># fixme - turn this into a method? stage2: use propka or some other tool, not this workaround</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">get_protein_net_charge</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">protein</span><span class="o">.</span><span class="n">absolute</span><span class="p">(),</span>
-                                                               <span class="n">config</span><span class="o">.</span><span class="n">ambertools_tleap</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">tleap_check_protein</span><span class="p">,</span>
-                                                               <span class="n">config</span><span class="o">.</span><span class="n">protein_ff</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span> <span class="o">=</span> <span class="n">ties</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">get_protein_net_charge</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">protein</span><span class="o">.</span><span class="n">absolute</span><span class="p">(),</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">ambertools_tleap</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">tleap_check_protein</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">protein_ff</span><span class="p">,</span>
+    <span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Protein net charge: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Protein net charge: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">protein_net_charge</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -1764,14 +1894,14 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/protein.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a path to the protein.</span>
 

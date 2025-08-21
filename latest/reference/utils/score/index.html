@@ -794,6 +794,8 @@
       
         
       
+        
+      
     
     
     
@@ -857,6 +859,122 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../bb/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bb
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_1_3" id="__nav_5_4_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bb
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bb/atom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> atom
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bb/bond/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bond
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1155,7 +1273,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_14" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_1_15" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1172,14 +1290,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_4_1_14" id="__nav_5_4_1_14_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_4_1_15" id="__nav_5_4_1_15_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_14_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_4_1_14">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_4_1_15_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_4_1_15">
             <span class="md-nav__icon md-icon"></span>
             <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> utils
           </label>
@@ -1632,7 +1750,8 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/utils/score.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">14</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">13</span>
+<span class="normal">14</span>
 <span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
@@ -1677,10 +1796,7 @@
 <span class="normal">56</span>
 <span class="normal">57</span>
 <span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_conformer</span><span class="p">(</span>
+<span class="normal">59</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_conformer</span><span class="p">(</span>
     <span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">prody_protein</span><span class="p">,</span> <span class="n">protein_pdb</span><span class="o">=</span><span class="s2">&quot;fe_rec_final.pdb&quot;</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1690,8 +1806,6 @@
 <span class="sd">    :param protein_pdb:</span>
 <span class="sd">    :return:</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-
     <span class="c1"># convert to FEgrow RMol</span>
     <span class="n">rmol</span> <span class="o">=</span> <span class="n">fegrow</span><span class="o">.</span><span class="n">RMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="n">rmol</span><span class="o">.</span><span class="n">remove_clashing_confs</span><span class="p">(</span><span class="n">prody_protein</span><span class="p">,</span> <span class="n">min_dst_allowed</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
