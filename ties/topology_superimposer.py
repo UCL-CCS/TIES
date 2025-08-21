@@ -22,12 +22,6 @@ from ast import literal_eval
 import MDAnalysis
 import MDAnalysis.analysis.align
 
-# suppress the warning coming from MDAnalysis' dependency Bio.Align
-warnings.filterwarnings(
-    "ignore",
-    "The Bio.Application modules and modules relying on it have been deprecated.",
-    module="Bio.Application",
-)
 import numpy as np
 import networkx as nx
 import parmed
@@ -35,6 +29,14 @@ import rdkit.Chem
 
 import ties.config
 import ties.generator
+
+
+# suppress the warning coming from MDAnalysis' dependency Bio.Align
+warnings.filterwarnings(
+    "ignore",
+    "The Bio.Application modules and modules relying on it have been deprecated.",
+    module="Bio.Application",
+)
 
 
 logger = logging.getLogger(__name__)
@@ -314,7 +316,9 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = (
+            []
+        )  # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -379,9 +383,6 @@ class SuperimposedTopology:
             # the NAMD hybrid single dual topology
             # rename the ligand on the left to INI
             # and the ligand on the right to END
-
-            # make a copy of the suptop here to ensure that the modifications won't affect it
-            st = copy.copy(self)
 
             # first, set all the matched pairs to -2 and 2 (single topology)
             # regardless of how they were mismatched
@@ -537,7 +538,7 @@ class SuperimposedTopology:
         log_filename = build / "generate_top.log"
         with open(log_filename, "w") as LOG:
             try:
-                output = subprocess.run(
+                subprocess.run(
                     [self.config.ambertools_tleap, "-s", "-f", "leap.in"],
                     stdout=LOG,
                     stderr=LOG,
@@ -670,7 +671,7 @@ class SuperimposedTopology:
             all_atoms = [
                 left for left, right in self.matched_pairs
             ] + self.get_unmatched_atoms()
-            unmatched_atoms = self.get_unmatched_atoms()
+
             # reorder the list according to the ID
             all_atoms.sort(key=lambda atom: self.get_generated_atom_id(atom))
 
@@ -779,16 +780,16 @@ class SuperimposedTopology:
         l_circles, r_circles = self.get_original_circles()
         removed_h = []
         ringring_removed = []
-        for l, r in self.matched_pairs[::-1]:
-            if (l, r) in removed_h:
+        for left, right in self.matched_pairs[::-1]:
+            if (left, right) in removed_h:
                 continue
 
-            l_ring = any([l in c for c in l_circles])
-            r_ring = any([r in c for c in r_circles])
+            l_ring = any([left in c for c in l_circles])
+            r_ring = any([right in c for c in r_circles])
             if l_ring + r_ring == 1:
-                removed_h.extend(self.remove_attached_hydrogens((l, r)))
-                self.remove_node_pair((l, r))
-                ringring_removed.append((l, r))
+                removed_h.extend(self.remove_attached_hydrogens((left, right)))
+                self.remove_node_pair((left, right))
+                ringring_removed.append((left, right))
 
         if ringring_removed:
             logger.debug(
@@ -883,8 +884,12 @@ class SuperimposedTopology:
         right_disjointed_cc = []
 
         if use_disjointed and self._removed_because_disjointed_cc:
-            left_disjointed_cc = [l.id for l, _ in self._removed_because_disjointed_cc]
-            right_disjointed_cc = [r.id for _, r in self._removed_because_disjointed_cc]
+            left_disjointed_cc = [
+                left.id for left, _ in self._removed_because_disjointed_cc
+            ]
+            right_disjointed_cc = [
+                right.id for _, right in self._removed_because_disjointed_cc
+            ]
 
         # select the atoms for the MCS,
         # the following uses 0-based indexing
@@ -1199,9 +1204,9 @@ class SuperimposedTopology:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, (
-            "At this point there should be left only one main component"
-        )
+        assert (
+            len(ccs) == 1
+        ), "At this point there should be left only one main component"
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -2337,7 +2342,7 @@ class SuperimposedTopology:
 
         for atom in atoms:
             # get the first letters that is not a character
-            after_letters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+            after_letters = [i for i, j in enumerate(atom.name) if j.isalpha()][-1] + 1
 
             atom_name = atom.name[:after_letters]
             last_used_counter = name_counter.get(atom_name, 0)
@@ -2364,7 +2369,7 @@ class SuperimposedTopology:
 
         for atom in atoms:
             # get the first letters that is not a character
-            after_letters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+            after_letters = [i for i, j in enumerate(atom.name) if j.isalpha()][-1] + 1
 
             atom_name = atom.name[:after_letters]
             atom_number = int(atom.name[after_letters:])
@@ -2379,7 +2384,7 @@ class SuperimposedTopology:
     def _is_correct_atom_name_format(atoms):
         # check if the atom format is C15, ie atom name followed by a number
         for atom in atoms:
-            after_letters = [i for i, l in enumerate(atom.name) if l.isalpha()][-1] + 1
+            after_letters = [i for i, j in enumerate(atom.name) if j.isalpha()][-1] + 1
 
             atom_name = atom.name[:after_letters]
             if len(atom_name) == 0:
@@ -2632,8 +2637,12 @@ class SuperimposedTopology:
         logger.debug(f"Internally computed net charge: {net_charge}")
 
         # the total charge in the matched region before the changes
-        matched_total_charge_l = sum(left.charge for left, right in self.matched_pairs)
-        matched_total_charge_r = sum(right.charge for left, right in self.matched_pairs)
+        matched_total_charge_l = sum(  # noqa: F841
+            left.charge for left, right in self.matched_pairs
+        )
+        matched_total_charge_r = sum(  # noqa: F841
+            right.charge for left, right in self.matched_pairs
+        )
 
         # get the unmatched atoms in Left and Right
         l_unmatched = self.get_disappearing_atoms()
@@ -3126,9 +3135,11 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(
-                    ingredients.get(st1, set())
-                ).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = (
+                    {st1, st2}
+                    .union(ingredients.get(st1, set()))
+                    .union(ingredients.get(st2, set()))
+                )
                 excluded.append({st1, st2})
 
                 # break
@@ -3568,7 +3579,7 @@ def superimpose_topologies(
         logger.addHandler(file_log_handler)
 
     if not ignore_charges_completely:
-        whole_charge = SuperimposedTopology.validate_charges(top1_nodes, top2_nodes)
+        SuperimposedTopology.validate_charges(top1_nodes, top2_nodes)
 
     # ensure that none of the atom names across the two molecules are the different
     if check_atom_names_unique:
@@ -3935,7 +3946,7 @@ def best_rmsd_match(suptops):
         # use the avg dst after the correction to understand which one is better,
         # and assign the worse
         # fixme - avg dst would ideally not be np.NaN
-        avg_dst = suptop.correct_for_coordinates()
+        suptop.correct_for_coordinates()
         rmsd = suptop.rmsd()
         # get a global match (RMSD)
         if rmsd < best_rmsd:
@@ -4019,7 +4030,6 @@ def solve_partial_overlaps(candidate_suptop, suptops):
                 # let us use atom coordinates to score them
                 if suptop.rmsd() < candidate_suptop.rmsd():
                     suptop.add_alternative_mapping(candidate_suptop)
-                    ignore_candidate_suptop = True
                 else:
                     candidate_suptop.add_alternative_mapping(suptop)
                     suptops.remove(suptop)
@@ -4555,7 +4565,7 @@ def get_atoms_bonds_from_ac(ac_file):
 
     # extract the atoms
     # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
-    atom_lines = filter(lambda l: l.startswith("ATOM"), ac_lines)
+    atom_lines = filter(lambda line: line.startswith("ATOM"), ac_lines)
 
     atoms = []
     for line in atom_lines:
@@ -4587,7 +4597,7 @@ def get_atoms_bonds_from_ac(ac_file):
     # extract the bonds, e.g.
     #     bondID atomFrom atomTo ????
     # BOND    1    1    2    7    C17  C18
-    bond_lines = filter(lambda l: l.startswith("BOND"), ac_lines)
+    bond_lines = filter(lambda line: line.startswith("BOND"), ac_lines)
     bonds = [
         (int(bondFrom), int(bondTo))
         for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in [
