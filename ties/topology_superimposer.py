@@ -29,6 +29,7 @@ import rdkit.Chem
 
 import ties.config
 import ties.generator
+from ties.bb.atom import Atom
 
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
@@ -40,193 +41,6 @@ warnings.filterwarnings(
 
 
 logger = logging.getLogger(__name__)
-
-
-class Bond:
-    def __init__(self, atom, type):
-        self.atom = atom
-        self.type = type
-
-    def __repr__(self):
-        return f"Bond to {self.atom}"
-
-
-class Bonds(set):
-    def without(self, atom):
-        return {bond for bond in self if bond.atom is not atom}
-
-
-class Atom:
-    counter = 1
-
-    def __init__(self, name, atom_type, charge=0, use_general_type=False):
-        self._original_name = None
-
-        self._id = None
-        self.name = name
-        self._original_name = name.upper()
-        self.type = atom_type
-
-        self._resname = None
-        self.charge = charge
-        self._original_charge = charge
-
-        self.resid = None
-        self.bonds: Bonds = Bonds()
-        self.use_general_type = use_general_type
-        self.hash_value = None
-
-        self._unique_counter = Atom.counter
-        Atom.counter += 1
-
-    @property
-    def original_name(self):
-        # This atom name remains the same. It is never modified.
-        return self._original_name
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name.upper()
-
-    @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, id):
-        self._id = id
-
-    @property
-    def resname(self):
-        return self._resname
-
-    @resname.setter
-    def resname(self, resname):
-        self._resname = resname
-
-    @property
-    def charge(self):
-        return self._charge
-
-    @charge.setter
-    def charge(self, charge):
-        self._charge = charge
-
-    @property
-    def original_charge(self):
-        return self._original_charge
-
-    @property
-    def type(self):
-        return self._type
-
-    @type.setter
-    def type(self, atom_type):
-        self._type = atom_type.upper()
-
-        # save the general type
-        # fixme - ideally it would use the config class that would use the right mapping
-        element_map = ties.config.Config.get_element_map()
-        # strip the element from the associated digits/numbers
-        no_trailing_digits = re.match("[A-Za-z]*", self.type)[0]
-        self.element = element_map[no_trailing_digits]
-
-    @property
-    def position(self):
-        return self._position
-
-    @position.setter
-    def position(self, pos):
-        # switch the type to float32 for any coordinate work with MDAnalysis
-        self._position = np.array([pos[0], pos[1], pos[2]], dtype="float32")
-
-    def is_hydrogen(self):
-        if self.element == "H":
-            return True
-
-        return False
-
-    def bound_to(self, atom):
-        for bond in self.bonds:
-            if bond.atom is atom:
-                return True
-
-        return False
-
-    @property
-    def united_charge(self):
-        """
-        United atom charge: summed charges of this atom and the bonded hydrogens.
-        """
-        return self.charge + sum(
-            bond.atom.charge for bond in self.bonds if bond.atom.is_hydrogen()
-        )
-
-    def __hash__(self):
-        # Compute the hash key once
-        if self.hash_value is not None:
-            return self.hash_value
-
-        m = hashlib.md5()
-        # fixme - ensure that each node is characterised by its chemistry,
-        # fixme - id might not be unique, so check before the input data
-        m.update(str(self.charge).encode("utf-8"))
-        # use the unique counter to distinguish between created atoms
-        m.update(str(self._unique_counter).encode("utf-8"))
-        # include the number of bonds
-        m.update(str(len(self.bonds)).encode("utf-8"))
-        self.hash_value = int(m.hexdigest(), 16)
-        return self.hash_value
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.name
-
-    def bind_to(self, other, bond_type):
-        self.bonds.add(Bond(other, bond_type))
-        other.bonds.add(Bond(self, bond_type))
-
-    def eq(self, atom, atol=0):
-        """
-        Check if the atoms are of the same type and have a charge within the given absolute tolerance.
-        """
-        if self.type == atom.type and np.isclose(self.charge, atom.charge, atol=atol):
-            return True
-
-        return False
-
-    def united_eq(self, atom, atol=0):
-        """
-        Like .eq, but treat the atoms as united atoms.
-        Check if the atoms have the same atom type, and
-        if if their charges are within the absolute tolerance.
-        If the atoms have hydrogens, add up the attached hydrogens and use a united atom representation.
-        """
-        if self.type != atom.type:
-            return False
-
-        if not np.isclose(self.united_charge, atom.united_charge, atol=atol):
-            return False
-
-        return True
-
-    def same_element(self, other):
-        # check if the atoms are the same elements
-        if self.element == other.element:
-            return True
-        return False
-
-    def same_type(self, atom):
-        if self.type == atom.type:
-            return True
-
-        return False
 
 
 class AtomPair:
@@ -316,7 +130,9 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = (
+            []
+        )  # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -1202,9 +1018,9 @@ class SuperimposedTopology:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, (
-            "At this point there should be left only one main component"
-        )
+        assert (
+            len(ccs) == 1
+        ), "At this point there should be left only one main component"
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -3133,9 +2949,11 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(
-                    ingredients.get(st1, set())
-                ).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = (
+                    {st1, st2}
+                    .union(ingredients.get(st1, set()))
+                    .union(ingredients.get(st2, set()))
+                )
                 excluded.append({st1, st2})
 
                 # break
@@ -4547,61 +4365,6 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
     # FIXME - if two superimposed components come from two different places in the global map, then something's off
     # particularly, it could help with chirality - if with respect to the global match,
     # a local sup top travels in the wrong direction, then we have a clear issue
-
-
-def get_atoms_bonds_from_ac(ac_file):
-    # returns
-    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
-    # 2) a list of bonds
-
-    ac_lines = open(ac_file).readlines()
-
-    # fixme - hide hydrogens
-    # ac_lines = filter(lambda l:not('h' in l or 'H' in l), ac_lines)
-
-    # extract the atoms
-    # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
-    atom_lines = filter(lambda line: line.startswith("ATOM"), ac_lines)
-
-    atoms = []
-    for line in atom_lines:
-        (
-            atom_phrase,
-            atom_id,
-            atom_name,
-            res_name,
-            res_id,
-            x,
-            y,
-            z,
-            charge,
-            atom_colloq,
-        ) = line.split()
-        x, y, z = float(x), float(y), float(z)
-        charge = float(charge)
-        res_id = int(res_id)
-        atom_id = int(atom_id)
-        atom = Atom(name=atom_name, atom_type=atom_colloq)
-        atom.charge = charge
-        atom.id = atom_id
-        atom.position = (x, y, z)
-        atom.resname = res_name
-        atoms.append(atom)
-
-    # fixme - add a check that all the charges come to 0 as declared in the header
-
-    # extract the bonds, e.g.
-    #     bondID atomFrom atomTo ????
-    # BOND    1    1    2    7    C17  C18
-    bond_lines = filter(lambda line: line.startswith("BOND"), ac_lines)
-    bonds = [
-        (int(bondFrom), int(bondTo))
-        for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in [
-            left.split() for left in bond_lines
-        ]
-    ]
-
-    return atoms, bonds
 
 
 def ties_pmd_from_rdmol(mol: rdkit.Chem.Mol):

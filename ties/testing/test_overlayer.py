@@ -9,7 +9,8 @@ TODO:
 
 import copy
 
-from ties.topology_superimposer import Atom, _overlay, SuperimposedTopology
+from ties.topology_superimposer import _overlay, SuperimposedTopology
+from ties.bb.atom import Atom
 
 
 def test_2diffAtoms_CN_wrongStart(CN):

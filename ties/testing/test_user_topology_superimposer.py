@@ -10,7 +10,8 @@ TODO
 import copy
 import numpy as np
 
-from ties.topology_superimposer import superimpose_topologies, Atom
+from ties.topology_superimposer import superimpose_topologies
+from ties.bb.atom import Atom
 
 
 def test_unconnected_component_removed(indole_cl1, indole_cl2):

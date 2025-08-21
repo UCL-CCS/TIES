@@ -13,8 +13,8 @@ from pathlib import Path
 
 import parmed
 
+from ties.generator import get_atoms_bonds_from_ac
 from ties.topology_superimposer import (
-    get_atoms_bonds_from_ac,
     superimpose_topologies,
     _superimpose_topologies,
     assign_coords_from_pdb,

@@ -16,9 +16,9 @@ from ties import Ligand, Pair, Config
 from ties.topology_superimposer import (
     _superimpose_topologies,
     _get_atoms_bonds_using_parmed,
-    Atom,
     get_starting_configurations,
 )
+from ties.bb.atom import Atom
 
 
 def test_2diff_atoms_cn(CN):

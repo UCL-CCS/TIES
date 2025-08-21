@@ -8,9 +8,62 @@ from collections import OrderedDict
 import numpy as np
 import parmed
 
-from ties.topology_superimposer import (
-    get_atoms_bonds_from_ac,
-)
+from ties.bb.atom import Atom
+
+
+def get_atoms_bonds_from_ac(ac_file):
+    # returns
+    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
+    # 2) a list of bonds
+
+    ac_lines = open(ac_file).readlines()
+
+    # fixme - hide hydrogens
+    # ac_lines = filter(lambda l:not('h' in l or 'H' in l), ac_lines)
+
+    # extract the atoms
+    # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
+    atom_lines = filter(lambda line: line.startswith("ATOM"), ac_lines)
+
+    atoms = []
+    for line in atom_lines:
+        (
+            atom_phrase,
+            atom_id,
+            atom_name,
+            res_name,
+            res_id,
+            x,
+            y,
+            z,
+            charge,
+            atom_colloq,
+        ) = line.split()
+        x, y, z = float(x), float(y), float(z)
+        charge = float(charge)
+        res_id = int(res_id)
+        atom_id = int(atom_id)
+        atom = Atom(name=atom_name, atom_type=atom_colloq)
+        atom.charge = charge
+        atom.id = atom_id
+        atom.position = (x, y, z)
+        atom.resname = res_name
+        atoms.append(atom)
+
+    # fixme - add a check that all the charges come to 0 as declared in the header
+
+    # extract the bonds, e.g.
+    #     bondID atomFrom atomTo ????
+    # BOND    1    1    2    7    C17  C18
+    bond_lines = filter(lambda line: line.startswith("BOND"), ac_lines)
+    bonds = [
+        (int(bondFrom), int(bondTo))
+        for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in [
+            left.split() for left in bond_lines
+        ]
+    ]
+
+    return atoms, bonds
 
 
 def _merge_frcmod_section(ref_lines, other_lines):
