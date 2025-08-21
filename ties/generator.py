@@ -1,20 +1,69 @@
 import os
 import re
-import json
 import copy
 import shutil
 import subprocess
-import math
 from collections import OrderedDict
-from pathlib import Path
-import warnings
 
 import numpy as np
 import parmed
 
-from ties.topology_superimposer import get_atoms_bonds_from_file, \
-    superimpose_topologies, get_atoms_bonds_from_ac
+from ties.bb.atom import Atom
 
+
+def get_atoms_bonds_from_ac(ac_file):
+    # returns
+    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
+    # 2) a list of bonds
+
+    ac_lines = open(ac_file).readlines()
+
+    # fixme - hide hydrogens
+    # ac_lines = filter(lambda l:not('h' in l or 'H' in l), ac_lines)
+
+    # extract the atoms
+    # ATOM      1  C17 MOL     1      -5.179  -2.213   0.426 -0.222903        ca
+    atom_lines = filter(lambda line: line.startswith("ATOM"), ac_lines)
+
+    atoms = []
+    for line in atom_lines:
+        (
+            atom_phrase,
+            atom_id,
+            atom_name,
+            res_name,
+            res_id,
+            x,
+            y,
+            z,
+            charge,
+            atom_colloq,
+        ) = line.split()
+        x, y, z = float(x), float(y), float(z)
+        charge = float(charge)
+        res_id = int(res_id)
+        atom_id = int(atom_id)
+        atom = Atom(name=atom_name, atom_type=atom_colloq)
+        atom.charge = charge
+        atom.id = atom_id
+        atom.position = (x, y, z)
+        atom.resname = res_name
+        atoms.append(atom)
+
+    # fixme - add a check that all the charges come to 0 as declared in the header
+
+    # extract the bonds, e.g.
+    #     bondID atomFrom atomTo ????
+    # BOND    1    1    2    7    C17  C18
+    bond_lines = filter(lambda line: line.startswith("BOND"), ac_lines)
+    bonds = [
+        (int(bondFrom), int(bondTo))
+        for _, bondID, bondFrom, bondTo, something, atomNameFrom, atomNameTo in [
+            left.split() for left in bond_lines
+        ]
+    ]
+
+    return atoms, bonds
 
 
 def _merge_frcmod_section(ref_lines, other_lines):
@@ -46,16 +95,19 @@ def join_frcmod_files(f1, f2, output_filepath):
         fixme is there a .frcmod reader in ambertools?
         http://ambermd.org/FileFormats.php#frcmod
         """
-        section_names = ['MASS', 'BOND', 'ANGLE', 'DIHE', 'IMPROPER', 'NONBON']
+        section_names = ["MASS", "BOND", "ANGLE", "DIHE", "IMPROPER", "NONBON"]
         assert name in rlines.pop().strip()
 
         section = []
-        while not (len(rlines) == 0 or any(rlines[-1].startswith(sname) for sname in section_names)):
+        while not (
+            len(rlines) == 0
+            or any(rlines[-1].startswith(sname) for sname in section_names)
+        ):
             nextl = rlines.pop().strip()
-            if nextl == '':
+            if nextl == "":
                 continue
             # depending on the column name, parse differently
-            if name == 'ANGLE':
+            if name == "ANGLE":
                 # e.g.
                 # c -cc-na   86.700     123.270   same as c2-cc-na, penalty score=  2.6
                 atom_types = nextl[:8]
@@ -68,7 +120,7 @@ def join_frcmod_files(f1, f2, output_filepath):
                 eq_bond_angle = float(other.pop())
                 # the overall angle
                 section.append([atom_types, harmonicForceConstant, eq_bond_angle])
-            elif name == 'DIHE':
+            elif name == "DIHE":
                 # e.g.
                 # ca-ca-cd-cc   1    0.505       180.000           2.000      same as c2-ce-ca-ca, penalty score=229.0
                 atom_types = nextl[:11]
@@ -100,7 +152,7 @@ def join_frcmod_files(f1, f2, output_filepath):
                 PHASE = float(other.pop())
                 PN = float(other.pop())
                 section.append([atom_types, IDIVF, PK, PHASE, PN])
-            elif name == 'IMPROPER':
+            elif name == "IMPROPER":
                 # e.g.
                 # cc-o -c -o          1.1          180.0         2.0          Using general improper torsional angle  X- o- c- o, penalty score=  3.0)
                 # ...  IDIVF , PK , PHASE , PN
@@ -112,7 +164,7 @@ def join_frcmod_files(f1, f2, output_filepath):
                 PHASE = float(other.pop())
                 PN = float(other.pop())
                 if PN < 0:
-                    raise Exception('Unimplemented - ordering using with negative 0')
+                    raise Exception("Unimplemented - ordering using with negative 0")
                 section.append([atom_types, PK, PHASE, PN])
             else:
                 section.append(nextl.split())
@@ -121,10 +173,10 @@ def join_frcmod_files(f1, f2, output_filepath):
     def load_frcmod(filepath):
         # remark line
         rlines = open(filepath).readlines()[::-1]
-        assert 'Remark' in rlines.pop()
+        assert "Remark" in rlines.pop()
 
         parsed = OrderedDict()
-        for section_name in ['MASS', 'BOND', 'ANGLE', 'DIHE', 'IMPROPER', 'NONBON']:
+        for section_name in ["MASS", "BOND", "ANGLE", "DIHE", "IMPROPER", "NONBON"]:
             parsed.update(get_section(section_name, rlines))
 
         return parsed
@@ -138,51 +190,51 @@ def join_frcmod_files(f1, f2, output_filepath):
 
             joined[lname] = copy.copy(litems)
 
-            if lname == 'MASS':
+            if lname == "MASS":
                 if len(litems) > 0 or len(ritems) > 0:
-                    raise Exception('Unimplemented')
-            elif lname == 'BOND':
+                    raise Exception("Unimplemented")
+            elif lname == "BOND":
                 for ritem in ritems:
                     if len(litems) > 0 or len(ritems) > 0:
                         if ritem not in joined[lname]:
-                            raise Exception('Unimplemented')
+                            raise Exception("Unimplemented")
             # ANGLE, e.g.
             # c -cc-na   86.700     123.270   same as c2-cc-na, penalty score=  2.6
-            elif lname == 'ANGLE':
+            elif lname == "ANGLE":
                 for ritem in ritems:
                     # if the item is not in the litems, add it there
                     # extra the first three terms to determine if it is present
                     # fixme - note we are ignoring the "same as" note
                     if ritem not in joined[lname]:
                         joined[lname].append(ritem)
-            elif lname == 'DIHE':
+            elif lname == "DIHE":
                 for ritem in ritems:
                     if ritem not in joined[lname]:
                         joined[lname].append(ritem)
-            elif lname == 'IMPROPER':
+            elif lname == "IMPROPER":
                 for ritem in ritems:
                     if ritem not in joined[lname]:
                         joined[lname].append(ritem)
-            elif lname == 'NONBON':
+            elif lname == "NONBON":
                 # if they're empty
                 if not litems and not ritems:
                     continue
 
-                raise Exception('Unimplemented')
+                raise Exception("Unimplemented")
             else:
-                raise Exception('Unimplemented')
+                raise Exception("Unimplemented")
         return joined
 
     def write_frcmod(frcmod, filename):
-        with open(filename, 'w') as FOUT:
-            FOUT.write('GENERATED .frcmod by joining two .frcmod files' + os.linesep)
+        with open(filename, "w") as FOUT:
+            FOUT.write("GENERATED .frcmod by joining two .frcmod files" + os.linesep)
             for sname, items in frcmod.items():
-                FOUT.write(f'{sname}' + os.linesep)
+                FOUT.write(f"{sname}" + os.linesep)
                 for item in items:
                     atom_types = item[0]
                     FOUT.write(atom_types)
-                    numbers = ' \t'.join([str(n) for n in item[1:]])
-                    FOUT.write(' \t' + numbers)
+                    numbers = " \t".join([str(n) for n in item[1:]])
+                    FOUT.write(" \t" + numbers)
                     FOUT.write(os.linesep)
                 # the ending line
                 FOUT.write(os.linesep)
@@ -193,7 +245,9 @@ def join_frcmod_files(f1, f2, output_filepath):
     write_frcmod(joined_frc, output_filepath)
 
 
-def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb_filename):
+def _correct_fep_tempfactor_single_top(
+    fep_summary, source_pdb_filename, new_pdb_filename
+):
     """
     Single topology version of function correct_fep_tempfactor.
 
@@ -201,24 +255,24 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
     And right FIN
     """
     source_sys = parmed.load_file(source_pdb_filename, structure=True)
-    if {'INI', 'FIN'} != {a.residue.name for a in source_sys.atoms}:
+    if {"INI", "FIN"} != {a.residue.name for a in source_sys.atoms}:
         raise Exception('Missing the resname "mer" in the pdb file prepared for fep')
 
     # dual-topology info
     # matched atoms are denoted -2 and 2 (morphing into each other)
-    matched_disappearing = list(fep_summary['single_top_matched'].keys())
-    matched_appearing = list( fep_summary['single_top_matched'].values())
+    matched_disappearing = list(fep_summary["single_top_matched"].keys())
+    matched_appearing = list(fep_summary["single_top_matched"].values())
     # disappearing is denoted by -1
-    disappearing_atoms = fep_summary['single_top_disappearing']
+    disappearing_atoms = fep_summary["single_top_disappearing"]
     # appearing is denoted by 1
-    appearing_atoms = fep_summary['single_top_appearing']
+    appearing_atoms = fep_summary["single_top_appearing"]
 
     # update the Temp column
     for atom in source_sys.atoms:
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.residue.name not in ['INI', 'FIN']:
+        if atom.residue.name not in ["INI", "FIN"]:
             continue
 
         # if the atom was "matched", meaning present in both ligands (left and right)
@@ -234,12 +288,16 @@ def _correct_fep_tempfactor_single_top(fep_summary, source_pdb_filename, new_pdb
             # appearing atoms should
             atom.bfactor = 1
         else:
-            raise Exception('This should never happen. It has to be one of the cases')
+            raise Exception("This should never happen. It has to be one of the cases")
 
-    source_sys.save(new_pdb_filename, use_hetatoms=False)  # , file_format='PDB') - fixme?
+    source_sys.save(
+        new_pdb_filename, use_hetatoms=False
+    )  # , file_format='PDB') - fixme?
 
 
-def correct_fep_tempfactor(suptop, source_pdb_filename, new_pdb_filename, hybrid_topology=False):
+def correct_fep_tempfactor(
+    suptop, source_pdb_filename, new_pdb_filename, hybrid_topology=False
+):
     """
     fixme - this function does not need to use the file?
     we have the json information available here.
@@ -251,7 +309,7 @@ def correct_fep_tempfactor(suptop, source_pdb_filename, new_pdb_filename, hybrid
     """
 
     pmdpdb = parmed.load_file(str(source_pdb_filename), structure=True)
-    if 'HYB' not in {a.residue.name for a in pmdpdb.atoms}:
+    if "HYB" not in {a.residue.name for a in pmdpdb.atoms}:
         raise Exception('Missing the resname "HYB" in the pdb file prepared for fep')
 
     # the IDs (0-based) in this PDB correspond to the rank in the MOL2 (1-based)
@@ -266,7 +324,7 @@ def correct_fep_tempfactor(suptop, source_pdb_filename, new_pdb_filename, hybrid
         # ignore water and ions and non-ligand resname
         # we only modify the protein, so ignore the ligand resnames
         # fixme .. why is it called mer, is it tleap?
-        if atom.residue.name != 'HYB':
+        if atom.residue.name != "HYB":
             continue
 
         # recover the atom (or pair) via the ID
@@ -283,17 +341,21 @@ def correct_fep_tempfactor(suptop, source_pdb_filename, new_pdb_filename, hybrid
         elif internal_atom in disappearing_atoms:
             atom.bfactor = -1
         else:
-            raise Exception('This should never happen. It has to be one of the cases')
+            raise Exception("This should never happen. It has to be one of the cases")
 
-    pmdpdb.save(str(new_pdb_filename), use_hetatoms=False, overwrite=True)  # , file_format='PDB') - fixme?
+    pmdpdb.save(
+        str(new_pdb_filename), use_hetatoms=False, overwrite=True
+    )  # , file_format='PDB') - fixme?
 
 
 def get_ligand_resname(filename):
     lig = parmed.load_file(filename, structure=True)
     resnames = {a.residue.name for a in lig.atoms}
     if len(resnames) != 1:
-        raise Exception(f'The ligand "{filename}" should have just one residue name. '
-                        f'Instead, it has {len(resnames)} which are {resnames}')
+        raise Exception(
+            f'The ligand "{filename}" should have just one residue name. '
+            f"Instead, it has {len(resnames)} which are {resnames}"
+        )
     return resnames.pop()
 
 
@@ -303,20 +365,9 @@ def get_morphed_ligand_resnames(filename):
     if len(resnames) != 2:
         raise Exception(
             f'The morph "{filename}" should have two residue names. '
-            f'Instead, it has {len(resnames)} which are {resnames}')
+            f"Instead, it has {len(resnames)} which are {resnames}"
+        )
     return list(resnames)
-
-
-def get_PBC_coords(pdb_file):
-    """
-    Return [x, y, z]
-    """
-    raise Exception('This should not be called PBC coords. Revisit')
-    # u = load(pdb_file)
-    x = np.abs(max(u.atoms.positions[:, 0]) - min(u.atoms.positions[:, 0]))
-    y = np.abs(max(u.atoms.positions[:, 1]) - min(u.atoms.positions[:, 1]))
-    z = np.abs(max(u.atoms.positions[:, 2]) - min(u.atoms.positions[:, 2]))
-    return (x, y, z)
 
 
 def extract_PBC_from_tleap_log(leap_log):
@@ -334,30 +385,47 @@ def extract_PBC_from_tleap_log(leap_log):
     if "> solvateoct" in leap_log:
         leapl_log_lines = leap_log.split(os.linesep)
         line_to_extract = "Total bounding box for atom centers:"
-        line_of_interest = list(filter(lambda l: line_to_extract in l, leapl_log_lines))
+        line_of_interest = list(
+            filter(lambda line: line_to_extract in line, leapl_log_lines)
+        )
         d1, d2, d3 = line_of_interest[-1].split(line_to_extract)[1].split()
         d1, d2, d3 = float(d1), float(d2), float(d3)
         assert d1 == d2 == d3
         # scale the d since after minimisation the system turns out to be much smaller?
         d = d1 * 0.8
         return {
-            'cbv1': d, 'cbv2': 0, 'cbv3': 0,
-            'cbv4': (1/3.0)*d, 'cbv5': (2/3.0)*np.sqrt(2)*d, 'cbv6': 0,
-            'cbv7': (-1/3.0)*d, 'cbv8': (1/3.0)*np.sqrt(2)*d, 'cbv9': (1/3)*np.sqrt(6)*d,
+            "cbv1": d,
+            "cbv2": 0,
+            "cbv3": 0,
+            "cbv4": (1 / 3.0) * d,
+            "cbv5": (2 / 3.0) * np.sqrt(2) * d,
+            "cbv6": 0,
+            "cbv7": (-1 / 3.0) * d,
+            "cbv8": (1 / 3.0) * np.sqrt(2) * d,
+            "cbv9": (1 / 3) * np.sqrt(6) * d,
         }
 
     # rectangular cuboid
     elif re.search(r"> solvateBox", leap_log, flags=re.RegexFlag.IGNORECASE):
-        dims_str = re.search("Total vdw box size:\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)", leap_log).groups()
+        dims_str = re.search(
+            "Total vdw box size:\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)", leap_log
+        ).groups()
         x, y, z = [float(dim) for dim in dims_str]
         return {
-            'cbv1': x, 'cbv2': 0, 'cbv3': 0,
-            'cbv4': 0, 'cbv5': y, 'cbv6': 0,
-            'cbv7': 0, 'cbv8': 0, 'cbv9': z,
+            "cbv1": x,
+            "cbv2": 0,
+            "cbv3": 0,
+            "cbv4": 0,
+            "cbv5": y,
+            "cbv6": 0,
+            "cbv7": 0,
+            "cbv8": 0,
+            "cbv9": z,
         }
     else:
-        raise NotImplementedError("Only octahedral and regular boxes are implemented atm. ")
-
+        raise NotImplementedError(
+            "Only octahedral and regular boxes are implemented atm. "
+        )
 
 
 def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
@@ -368,16 +436,16 @@ def prepare_antechamber_parmchk2(source_script, target_script, net_charge):
     # fixme - check if antechamber has a python interface?
     """
     net_charge_set = open(source_script).read().format(net_charge=net_charge)
-    open(target_script, 'w').write(net_charge_set)
+    open(target_script, "w").write(net_charge_set)
 
 
 def set_charges_from_ac(mol2_filename, ac_ref_filename):
     # ! the mol file will be overwritten
-    print('Overwriting the mol2 file with charges from the ac file')
+    print("Overwriting the mol2 file with charges from the ac file")
     # load the charges from the .ac file
     ac_atoms, _ = get_atoms_bonds_from_ac(ac_ref_filename)
     # load the .mol2 files with ParmEd and correct the charges
-    mol2 = load_mol2_wrapper(mol2_filename)
+    mol2 = load_mol2_wrapper(mol2_filename)  # noqa: F821
 
     for mol2_atom in mol2.atoms:
         found_match = False
@@ -386,76 +454,24 @@ def set_charges_from_ac(mol2_filename, ac_ref_filename):
                 found_match = True
                 mol2_atom.charge = ac_atom.charge
                 break
-        assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
+        assert found_match, (
+            "Could not find the following atom in the AC: " + mol2_atom.name
+        )
 
     # update the mol2 file
     mol2.atoms.write(mol2_filename)
 
 
-def set_charges_from_mol2(mol2_filename, mol2_ref_filename, by_atom_name=False, by_index=False, by_general_atom_type=False):
-    # mol2_filename will be overwritten!
-    print(f'Overwriting {mol2_filename} mol2 file with charges from {mol2_ref_filename} file')
-    # load the ref charges
-    ref_mol2 = load_mol2_wrapper(mol2_ref_filename)
-    # load the .mol2 files with ParmEd and correct the charges
-    mol2 = load_mol2_wrapper(mol2_filename)
-
-    if by_atom_name and by_index:
-        raise ValueError('Cannot have both. They are exclusive')
-    elif not by_atom_name and not by_index:
-        raise ValueError('Either option has to be selected.')
-
-    # save the sum of charges before
-    ref_sum_q =  sum(a.charge for a in ref_mol2.atoms)
-
-    if by_atom_name:
-        for mol2_atom in mol2.atoms:
-            if mol2_atom.type == 'DU':
-                continue
-
-            found_match = False
-            for ref_atom in ref_mol2.atoms:
-                if ref_atom.type == 'DU':
-                    continue
-
-                if mol2_atom.name.upper() == ref_atom.name.upper():
-                    if found_match == True:
-                        raise Exception('AtomNames are not unique or do not match')
-                    found_match = True
-                    mol2_atom.charge = ref_atom.charge
-            assert found_match, "Could not find the following atom: " + mol2_atom.name
-    elif by_general_atom_type:
-        for mol2_atom in mol2.atoms:
-            found_match = False
-            for ref_atom in ref_mol2.atoms:
-                if element_from_type[mol2_atom.type.upper()] == element_from_type[ref_atom.type.upper()]:
-                    if found_match == True:
-                        raise Exception('AtomNames are not unique or do not match')
-                    found_match = True
-                    mol2_atom.charge = ref_atom.charge
-            assert found_match, "Could not find the following atom in the AC: " + mol2_atom.name
-    elif by_index:
-        for mol2_atom, ref_atom in zip(mol2.atoms, ref_mol2.atoms):
-                atype = element_from_type[mol2_atom.type.upper()]
-                reftype = element_from_type[ref_atom.type.upper()]
-                if atype != reftype:
-                    raise Exception(f"The found general type {atype} does not equal to the reference type {reftype} ")
-
-                mol2_atom.charge = ref_atom.charge
-
-    assert ref_sum_q == sum(a.charge for a in mol2.atoms)
-    # update the mol2 file
-    mol2.atoms.write(mol2_filename)
-
-
-def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_input_file, prot_ff):
+def get_protein_net_charge(
+    working_dir, protein_file, ambertools_tleap, leap_input_file, prot_ff
+):
     """
     Use automatic ambertools solvation of a single component to determine what is the next charge of the system.
     This should be replaced with pka/propka or something akin.
     Note that this is unsuitable for the hybrid ligand: ambertools does not understand a hybrid ligand
     and might assign the wront net charge.
     """
-    cwd = working_dir / 'prep' / 'prep_protein_to_find_net_charge'
+    cwd = working_dir / "prep" / "prep_protein_to_find_net_charge"
     if not cwd.is_dir():
         cwd.mkdir()
 
@@ -465,36 +481,43 @@ def get_protein_net_charge(working_dir, protein_file, ambertools_tleap, leap_inp
     # use ambertools to solvate the protein: set ion numbers to 0 so that they are determined automatically
     # fixme - consider moving out of the complex
     leap_in_conf = open(leap_input_file).read()
-    ligand_ff = 'leaprc.gaff' # ignored but must be provided
-    open(cwd / 'solv_prot.in', 'w').write(leap_in_conf.format(protein_ff=prot_ff, ligand_ff=ligand_ff,
-                                                                          protein_file=protein_file))
+    ligand_ff = "leaprc.gaff"  # ignored but must be provided
+    open(cwd / "solv_prot.in", "w").write(
+        leap_in_conf.format(
+            protein_ff=prot_ff, ligand_ff=ligand_ff, protein_file=protein_file
+        )
+    )
 
     log_filename = cwd / "ties_tleap.log"
-    with open(log_filename, 'w') as LOG:
+    with open(log_filename, "w") as LOG:
         try:
-            subprocess.run([ambertools_tleap, '-s', '-f', 'solv_prot.in'],
-                           cwd = cwd,
-                           stdout=LOG, stderr=LOG,
-                           check=True, text=True,
-                           timeout=60 * 2  # 2 minutes
-                        )
+            subprocess.run(
+                [ambertools_tleap, "-s", "-f", "solv_prot.in"],
+                cwd=cwd,
+                stdout=LOG,
+                stderr=LOG,
+                check=True,
+                text=True,
+                timeout=60 * 2,  # 2 minutes
+            )
         except subprocess.CalledProcessError as E:
-            print('ERROR: tleap could generate a simple topology for the protein to check the number of ions. ')
-            print(f'ERROR: The output was saved in the directory: {cwd}')
-            print(f'ERROR: can be found in the file: {log_filename}')
+            print(
+                "ERROR: tleap could generate a simple topology for the protein to check the number of ions. "
+            )
+            print(f"ERROR: The output was saved in the directory: {cwd}")
+            print(f"ERROR: can be found in the file: {log_filename}")
             raise E
 
-
     # read the file to see how many ions were added
-    newsys = parmed.load_file(str(cwd / 'prot_solv.pdb'), structure=True)
+    newsys = parmed.load_file(str(cwd / "prot_solv.pdb"), structure=True)
     names = [a.name for a in newsys.atoms]
-    cl = names.count('Cl-')
-    na = names.count('Na+')  
-   
+    cl = names.count("Cl-")
+    na = names.count("Na+")
+
     if cl > na:
-        return cl-na
+        return cl - na
     elif cl < na:
-        return -(na-cl)
+        return -(na - cl)
 
     return 0
 
@@ -521,100 +544,9 @@ def prepareFile(src, dst, symbolic=True):
         shutil.copy(src, dst)
 
 
-
-def set_coor_from_ref_by_named_pairs(mol2_filename, coor_ref_filename, output_filename, left_right_pairs_filename):
-    """
-    Set coordinates but use atom names provided by the user.
-
-    Example of the left_right_pairs_filename content:
-    # flip the first ring
-    # move the first c and its h
-    C32 C18
-    H34 C19
-    # second pair
-    C33 C17
-    # the actual matching pair
-    C31 C16
-    H28 H11
-    # the second matching pair
-    C30 C15
-    H29 H12
-    #
-    C35 C14
-    # flip the other ring with itself
-    C39 C36
-    C36 C39
-    H33 H30
-    H30 H33
-    C37 C38
-    C38 C37
-    H31 H32
-    H32 H31
-    """
-    # fixme - check if the names are unique
-
-    # parse "left_right_pairs_filename
-    # format per line: leftatom_name right_atom_name
-    lines = open(left_right_pairs_filename).read().split(os.linesep)
-    left_right_pairs = (l.split() for l in lines if not l.strip().startswith('#'))
-
-    # load the ref coordinates
-    ref_mol2 = load_mol2_wrapper(coor_ref_filename)
-    # load the .mol2 files with ParmEd and correct the charges
-    static_mol2 = load_mol2_wrapper(mol2_filename)
-    # this is being modified
-    mod_mol2 = load_mol2_wrapper(mol2_filename)
-
-
-    for pair in left_right_pairs:
-        print('find pair', pair)
-        new_pos = False
-        for mol2_atom in static_mol2.atoms:
-            # check if we are assigning from another molecule
-            for ref_atom in ref_mol2.atoms:
-                if mol2_atom.name.upper() == pair[0] and ref_atom.name.upper() == pair[1]:
-                    new_pos = ref_atom.position
-            # check if we are trying to assing coords from the same molecule
-            for another_atom in static_mol2.atoms:
-                if mol2_atom.name.upper() == pair[0] and another_atom.name.upper() == pair[1]:
-                    new_pos = another_atom.position
-
-        if new_pos is False:
-            raise Exception("Could not find this pair: " + str(pair))
-
-        # assign the position to the right atom
-        # find pair[0]
-        found = False
-        for atom in mod_mol2.atoms:
-            if atom.name.upper() == pair[0]:
-                atom.position = new_pos
-                found = True
-                break
-        assert found
-
-
-    # update the mol2 file
-    mod_mol2.atoms.write(output_filename)
-
-
-def rewrite_mol2_hybrid_top(file, single_top_atom_names):
-    # in the  case of the hybrid single-dual topology in NAMD
-    # the .mol2 files have to be rewritten so that
-    # the atoms dual-topology atoms that appear/disappear
-    # are placed at the beginning of the molecule
-    # (single topology atoms have to be separted by
-    # the same distance)
-    shutil.copy(file, os.path.splitext(file)[0] + '_before_sdtop_reordering.mol2' )
-    raise Exception('We abandone the hybrid top for now')
-    # select the single top area, use their original order
-    single_top_area = u.select_atoms('name ' +  ' '.join(single_top_atom_names))
-    # all others are mutating
-    dual_top_area = u.select_atoms('not name ' + ' '.join(single_top_atom_names))
-    new_order_u = single_top_area + dual_top_area
-    new_order_u.atoms.write(file)
-
-
-def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, constraint_lines=''):
+def update_PBC_in_namd_input(
+    namd_filename, new_pbc_box, structure_filename, constraint_lines=""
+):
     """
     fixme - rename this file since it generates the .eq files
     These are the lines we modify:
@@ -626,30 +558,39 @@ def update_PBC_in_namd_input(namd_filename, new_pbc_box, structure_filename, con
     """
     assert len(new_pbc_box) == 3
 
-    reformatted_namd_in = open(namd_filename).read().format(
-        cell_x=new_pbc_box[0], cell_y=new_pbc_box[1], cell_z=new_pbc_box[2],
-        
-        constraints=constraint_lines, output='test_output', structure=structure_filename)
+    reformatted_namd_in = (
+        open(namd_filename)
+        .read()
+        .format(
+            cell_x=new_pbc_box[0],
+            cell_y=new_pbc_box[1],
+            cell_z=new_pbc_box[2],
+            constraints=constraint_lines,
+            output="test_output",
+            structure=structure_filename,
+        )
+    )
 
     # write to the file
-    open(namd_filename, 'w').write(reformatted_namd_in)
+    open(namd_filename, "w").write(reformatted_namd_in)
+
 
 def create_constraint_files(original_pdb, output):
-    '''
+    """
 
     :param original_pdb:
     :param output:
     :return:
-    '''
+    """
     sys = parmed.load_file(str(original_pdb), structure=True)
     # for each atom, give the B column the right value
     for atom in sys.atoms:
         # ignore water
-        if atom.residue.name in ['WAT', 'Na+', 'TIP3W', 'TIP3', 'HOH', 'SPC', 'TIP4P']:
+        if atom.residue.name in ["WAT", "Na+", "TIP3W", "TIP3", "HOH", "SPC", "TIP4P"]:
             continue
 
         # set each atom depending on whether it is a H or not
-        if atom.name.upper().startswith('H'):
+        if atom.name.upper().startswith("H"):
             atom.bfactor = 0
         else:
             # restrain the heavy atom
@@ -659,7 +600,7 @@ def create_constraint_files(original_pdb, output):
 
 
 def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, protein):
-    '''
+    """
 
     :param from_dir:
     :param to_dir:
@@ -668,7 +609,7 @@ def init_namd_file_min(from_dir, to_dir, filename, structure_name, pbc_box, prot
     :param pbc_box:
     :param protein:
     :return:
-    '''
+    """
     if protein is not None:
         cons = f"""
 constraints  on
@@ -679,28 +620,34 @@ conskfile  ../build/cons.pdb
 conskcol  B
         """
     else:
-        cons = 'constraints  off'
+        cons = "constraints  off"
 
-    min_namd_initialised = open(os.path.join(from_dir, filename)).read() \
+    min_namd_initialised = (
+        open(os.path.join(from_dir, filename))
+        .read()
         .format(structure_name=structure_name, constraints=cons, **pbc_box)
-    out_name = 'eq0.conf'
-    open(os.path.join(to_dir, out_name), 'w').write(min_namd_initialised)
+    )
+    out_name = "eq0.conf"
+    open(os.path.join(to_dir, out_name), "w").write(min_namd_initialised)
+
 
 def generate_namd_prod(namd_prod, dst_dir, structure_name):
-    '''
+    """
 
     :param namd_prod:
     :param dst_dir:
     :param structure_name:
     :return:
-    '''
+    """
     input_data = open(namd_prod).read()
-    reformatted_namd_in = input_data.format(output='sim1', structure_name=structure_name)
-    open(dst_dir, 'w').write(reformatted_namd_in)
+    reformatted_namd_in = input_data.format(
+        output="sim1", structure_name=structure_name
+    )
+    open(dst_dir, "w").write(reformatted_namd_in)
 
 
 def generate_namd_eq(namd_eq, dst_dir, structure_name, engine, protein):
-    '''
+    """
 
     :param namd_eq:
     :param dst_dir:
@@ -708,16 +655,15 @@ def generate_namd_eq(namd_eq, dst_dir, structure_name, engine, protein):
     :param engine:
     :param protein:
     :return:
-    '''
+    """
     input_data = open(namd_eq).read()
-    for i in range(1,3):
-
+    for i in range(1, 3):
         if i == 1:
             run = """
 constraintScaling 1
 run 10000
             """
-            pressure = ''
+            pressure = ""
         else:
             run = """
 # protocol - minimization
@@ -735,7 +681,7 @@ while {$n <= $nall} {
 constraintScaling 0
 run 600000
             """
-            if engine.lower() == 'namd' or engine.lower() == 'namd2':
+            if engine.lower() == "namd" or engine.lower() == "namd2":
                 pressure = """
 useGroupPressure      yes ;# needed for 2fs steps
 useFlexibleCell       no  ;# no for water box, yes for membrane
@@ -770,22 +716,26 @@ langevinPistonDecay   25.0             # oscillation decay time. smaller value c
         conskcol  B
                 """
         else:
-            cons = 'constraints  off'
+            cons = "constraints  off"
 
-        prev_output = 'eq{}'.format(i-1)
+        prev_output = "eq{}".format(i - 1)
 
         reformatted_namd_in = input_data.format(
-            constraints=cons, output='eq%d' % (i),
-            prev_output=prev_output, structure_name=structure_name, pressure=pressure, run=run)
+            constraints=cons,
+            output="eq%d" % (i),
+            prev_output=prev_output,
+            structure_name=structure_name,
+            pressure=pressure,
+            run=run,
+        )
 
         next_eq_step_filename = dst_dir / ("eq%d.conf" % (i))
-        open(next_eq_step_filename, 'w').write(reformatted_namd_in)
+        open(next_eq_step_filename, "w").write(reformatted_namd_in)
 
 
 def redistribute_charges(mda):
     """
     Calculate the original charges in the matched component.
     """
-
 
     return

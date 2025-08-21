@@ -9,7 +9,6 @@ from rdkit import Chem
 import fegrow
 
 from ties import Pair, Config
-from ties.utils.rdmcs import get_mcs
 
 
 def write_mol(mol: Chem.Mol, filename):
@@ -43,7 +42,7 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     sup = pair.superimpose()
 
     # save the mapping to be used later in FEgrow [Optional]
-    cc = sup._removed_because_disjointed_cc
+    cc = sup._removed_because_disjointed_cc  #  noqa: F841
 
     matched_pairs = sup.matched_pairs
     matched_pairs += [
@@ -76,11 +75,7 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     # ]
     # print("rdmap", mapping_heavy)
 
-    # in order to have conformers with the MCS perfectly overlapping
-
-    # remove all but one
     rlig.RemoveAllConformers()
-    # assert rlig.GetNumConformers() == 1
 
     # generate lots of conformers to start from
     try:

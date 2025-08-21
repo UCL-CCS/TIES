@@ -1,7 +1,7 @@
 from ties import Ligand
 
 
-lig = Ligand('l02_same_atom_name.mol2')
+lig = Ligand("l02_same_atom_name.mol2")
 
 lig.correct_atom_names()
 assert lig.are_atom_names_correct()
@@ -14,4 +14,4 @@ assert lig.current.exists()
 
 # Atom naming {new_name: old_name}
 print(lig.renaming_map)
-assert sum('O1' == a for a in lig.renaming_map.values()) == 3
+assert sum("O1" == a for a in lig.renaming_map.values()) == 3

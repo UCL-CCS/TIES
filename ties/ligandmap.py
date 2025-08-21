@@ -14,7 +14,8 @@ try:
 except ImportError:
     dwave = False
 
-class LigandMap():
+
+class LigandMap:
     """
     Work on a list of morphs and use their information to generate a each to each map.
     This class then uses the information for
@@ -44,7 +45,9 @@ class LigandMap():
             self.map[morph.ligA.index][morph.ligZ.index] = morph
             self.map[morph.ligZ.index][morph.ligA.index] = morph
 
-            matched_left, matched_right, disappearing_atoms, appearing_atoms = morph.overlap_fractions()
+            matched_left, matched_right, disappearing_atoms, appearing_atoms = (
+                morph.overlap_fractions()
+            )
             # use the average number of matched fractions in both ligands
             weight = 1 - (matched_left + matched_right) / 2.0
             self.map_weights[morph.ligA.index][morph.ligZ.index] = weight
@@ -59,7 +62,11 @@ class LigandMap():
         for ligand in self.ligands:
             graph.add_node(ligand)
         for morph in self.morphs:
-            graph.add_edge(morph.ligA, morph.ligZ, weight=self.map_weights[morph.ligA.index][morph.ligZ.index])
+            graph.add_edge(
+                morph.ligA,
+                morph.ligZ,
+                weight=self.map_weights[morph.ligA.index][morph.ligZ.index],
+            )
 
         self.graph = graph
 
@@ -68,38 +75,51 @@ class LigandMap():
 
     def traveling_salesmen(self):
         if not dwave:
-            raise ValueError('Please install dwave: pip install dwave_networkx')
-        print('Traveling Salesmen (QUBO approximation): ')
+            raise ValueError("Please install dwave: pip install dwave_networkx")
+        print("Traveling Salesmen (QUBO approximation): ")
         ts = dwave_networkx.traveling_salesperson(self.graph, dimod.ExactSolver())
 
-        distances = [self.map[ligA.index][ligZ.index].distance for ligA, ligZ in zip(ts, ts[1:])]
+        distances = [
+            self.map[ligA.index][ligZ.index].distance for ligA, ligZ in zip(ts, ts[1:])
+        ]
         # one extra between the first and last
         distances.append(self.map[ts[0].index][ts[-1].index].distance)
-        print(f'Sum: {sum(distances):.2f}')
-        print(f'Average: {numpy.mean(distances):.2f}')
+        print(f"Sum: {sum(distances):.2f}")
+        print(f"Average: {numpy.mean(distances):.2f}")
 
         print(ts)
         morphs = [self.map[ligA.index][ligZ.index] for ligA, ligZ in zip(ts, ts[1:])]
         return morphs
 
     def kruskal(self):
-        print('Minimum spanning trees (Kruskal): ')
+        print("Minimum spanning trees (Kruskal): ")
         mst = networkx.minimum_spanning_tree(self.graph)
 
         #
         pos = networkx.spring_layout(mst)
-        networkx.draw(mst, pos=pos, with_labels=True, font_weight='bold')
+        networkx.draw(mst, pos=pos, with_labels=True, font_weight="bold")
         # draw the weights,
-        edge_weights = {(u, v,): f"{d['weight']:.2f}" for u, v, d in mst.edges(data=True)}
+        edge_weights = {
+            (
+                u,
+                v,
+            ): f"{d['weight']:.2f}"
+            for u, v, d in mst.edges(data=True)
+        }
         networkx.draw_networkx_edge_labels(mst, pos, edge_labels=edge_weights)
-        plt.savefig(self.ligands[0].config.workdir / 'ties_map.png', dpi=300)
+        plt.savefig(self.ligands[0].config.workdir / "ties_map.png", dpi=300)
 
         # sum the distances
-        mst_dsts = [item[1]['weight'] for item in mst.edges.items()]
-        print(f'MST Average: {numpy.mean(mst_dsts):.2f}')
-        print(f'MST Max: {numpy.max(mst_dsts):.2f}')
-        print(f'Worst cases: {sorted(mst_dsts)[-10:]}')
-        print("MST Pairs: \n" + '\n'.join([f'{e1} {e2} dst {w["weight"]}' for (e1, e2), w in mst.edges.items()]))
+        mst_dsts = [item[1]["weight"] for item in mst.edges.items()]
+        print(f"MST Average: {numpy.mean(mst_dsts):.2f}")
+        print(f"MST Max: {numpy.max(mst_dsts):.2f}")
+        print(f"Worst cases: {sorted(mst_dsts)[-10:]}")
+        print(
+            "MST Pairs: \n"
+            + "\n".join(
+                [f"{e1} {e2} dst {w['weight']}" for (e1, e2), w in mst.edges.items()]
+            )
+        )
 
         # look up the selected MST morphs
         chosen_transformations = []
@@ -112,7 +132,7 @@ class LigandMap():
 
     def print_map(self):
         # combine the maps
-        print('Ligand Map')
+        print("Ligand Map")
         tabulate_map = []
         for ri, row in enumerate(self.map):
             line = []
@@ -124,10 +144,14 @@ class LigandMap():
                 continue
             tabulate_map.append(line)
         print(tabulate.tabulate(tabulate_map, tablefmt="grid"))
-        print('LOMAP weights/similarities')
+        print("LOMAP weights/similarities")
         numpy.set_printoptions(precision=2)
         print(self.map_weights)
 
         # save the map
-        print('Saving the map as a 2D array')
-        numpy.savetxt(self.ligands[0].config.workdir / 'map_weights.dat', self.map_weights, fmt='%10.5f')
+        print("Saving the map as a 2D array")
+        numpy.savetxt(
+            self.ligands[0].config.workdir / "map_weights.dat",
+            self.map_weights,
+            fmt="%10.5f",
+        )

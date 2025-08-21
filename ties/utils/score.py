@@ -3,7 +3,6 @@ Score conformers in the binding pocket using MM potential energy.
 """
 
 import os
-import time
 from ast import literal_eval
 
 from rdkit import Chem
@@ -21,8 +20,6 @@ def extract_best_conformer(
     :param protein_pdb:
     :return:
     """
-    start = time.time()
-
     # convert to FEgrow RMol
     rmol = fegrow.RMol(mol)
     rmol.remove_clashing_confs(prody_protein, min_dst_allowed=0.5)

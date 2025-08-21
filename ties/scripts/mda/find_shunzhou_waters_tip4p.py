@@ -1,33 +1,38 @@
 """
 Find how far are the waters
 """
+
 from pathlib import Path
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import distance_array
 import numpy as np
 
-root_dir = Path('/home/dresio/ucl/validation/resp_validation/mcl1/l1_l8/complex/lambda_0.00/rep1')
-u = mda.Universe(root_dir / 'morph_solv.prmtop', str(root_dir / 'prod.dcd'))
-print('Loaded', u.trajectory)
+root_dir = Path(
+    "/home/dresio/ucl/validation/resp_validation/mcl1/l1_l8/complex/lambda_0.00/rep1"
+)
+u = mda.Universe(root_dir / "morph_solv.prmtop", str(root_dir / "prod.dcd"))
+print("Loaded", u.trajectory)
 
-prot = u.select_atoms('protein')
-print('Prot: ', len(prot))
-lig = u.select_atoms('resname ged')
-print('Lig', len(lig))
-water_o = u.select_atoms('resname WAT')
-water_dummies = u.select_atoms('resname WAT and name EPW')
-print('Wat', len(water_o))
+prot = u.select_atoms("protein")
+print("Prot: ", len(prot))
+lig = u.select_atoms("resname ged")
+print("Lig", len(lig))
+water_o = u.select_atoms("resname WAT")
+water_dummies = u.select_atoms("resname WAT and name EPW")
+print("Wat", len(water_o))
 
 closest_wat_number = 10
 # create the trajectory writers, which will
-mda_writers = [mda.Writer(f'com-wat{watNum}.dcd', n_atoms=len(lig) + len(prot) + 3*watNum)
-               for watNum in range(1, closest_wat_number + 1)]
+mda_writers = [
+    mda.Writer(f"com-wat{watNum}.dcd", n_atoms=len(lig) + len(prot) + 3 * watNum)
+    for watNum in range(1, closest_wat_number + 1)
+]
 
 cum_sums = np.zeros(len(water_o.residues))
 
 every_nth_frame = 1
 number_of_frames = 2
-start_frame = 0 # 1 means the second frame
+start_frame = 0  # 1 means the second frame
 water_ids_per_frame = []
 for ts in u.trajectory[start_frame:number_of_frames:every_nth_frame]:
     print("Time", ts.time)
@@ -62,13 +67,18 @@ for ts in u.trajectory[start_frame:number_of_frames:every_nth_frame]:
         mda_writers[watNum].write(prot + lig + com_wat_no_dummies.atoms)
 
 # save the water molecules
-np.savetxt('closest_water_ids.dat', water_ids_per_frame, fmt='%d', header='Frame closest_watID1 closest_watID2 ..')
+np.savetxt(
+    "closest_water_ids.dat",
+    water_ids_per_frame,
+    fmt="%d",
+    header="Frame closest_watID1 closest_watID2 ..",
+)
 
 # bind the two fields together for sorting
 chained = [(wid, cum) for wid, cum in zip(water_o.residues.resids, cum_sums)]
 # order by the cumulative sum
-chained_ord = sorted(chained, key=lambda x:x[1])
+chained_ord = sorted(chained, key=lambda x: x[1])
 to_save = np.array(chained_ord).T
 print("Final shape", to_save.shape)
 # sort according to the cumulative time
-np.savetxt('cumulative_water_time.dat', to_save, fmt='%.1f')
+np.savetxt("cumulative_water_time.dat", to_save, fmt="%.1f")

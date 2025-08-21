@@ -8,39 +8,37 @@ paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
 Furthermore, additional energy is calculated by sampling
 the dv/dl and creating a distribution of ddG to estimate its error
 """
+
 import os
-from pathlib import Path
 from collections import OrderedDict
 import glob
-import time
-import pickle as pkl
 
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import sem
 from scipy import interpolate
+
 # import pandas as pd
-from itertools import accumulate
 # from pymbar import timeseries
 
 
 def merge_prod_files(files, output_merged_filename):
     # find the original prod.alch file first
-    orig_prod = list(filter(lambda f:f.endswith('prod.alch'), files))[0]
-    other_prods =  list(filter(lambda f:not f.endswith('prod.alch'), files))
+    orig_prod = list(filter(lambda f: f.endswith("prod.alch"), files))[0]
+    other_prods = list(filter(lambda f: not f.endswith("prod.alch"), files))
 
     # take the prod.alch as teh reference, from every other remove the comments #
     lines = open(orig_prod).readlines()
     for other_prod in other_prods:
-
         next_lines = open(other_prod).readlines()
         # remove the comments
-        data = filter(lambda l: not l.startswith('#'), next_lines)
+        data = filter(lambda line: not line.startswith("#"), next_lines)
         lines.extend(data)
     # save the results
-    open(output_merged_filename, 'w').writelines(lines)
+    open(output_merged_filename, "w").writelines(lines)
 
 
 def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
@@ -51,37 +49,40 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
     @same_lambda_added - temporary
     @data - use multiple times in order to get data from more locations
     """
-    print('Extracting energies from', work_path)
+    print("Extracting energies from", work_path)
     if choderas_cut:
-        print('Choderas cut turned on: it will be used to decide how much of the initial rep should be discarded')
+        print(
+            "Choderas cut turned on: it will be used to decide how much of the initial rep should be discarded"
+        )
     else:
-        print('Using EQ cutoff to discard this many first steps:', eq_steps)
+        print("Using EQ cutoff to discard this many first steps:", eq_steps)
 
     # take only the lambda directories
-    lambda_dirs = filter(lambda d: d.is_dir(), work_path.glob(r'lambda_[0-1].[0-9]*'))
+    lambda_dirs = filter(lambda d: d.is_dir(), work_path.glob(r"lambda_[0-1].[0-9]*"))
     # sort lambda directories in the increasing order
-    lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split('_')[1]))
+    lambda_dirs = sorted(lambda_dirs, key=lambda d: float(d.name.split("_")[1]))
 
     # different datasets, add bonded information for the future. It is not used now.
     data = {
-        'dvdw': OrderedDict(), 'dele': OrderedDict(),
-        'avdw': OrderedDict(), 'aele': OrderedDict(),
-
+        "dvdw": OrderedDict(),
+        "dele": OrderedDict(),
+        "avdw": OrderedDict(),
+        "aele": OrderedDict(),
         # this is for backward compatiblity with the previous error quantification
-        'total_average': {},
+        "total_average": {},
         # this is similar but instead of recording the entire means, it records all the data points
-        'added_series': {}
+        "added_series": {},
     }
 
     for lambda_dir in lambda_dirs:
-        dir_lambda_val = float(str(lambda_dir).rsplit('_', maxsplit=1)[1])
-        if dir_lambda_val not in data['total_average']:
-            data['total_average'][dir_lambda_val] = []
-            data['added_series'][dir_lambda_val] = []
+        dir_lambda_val = float(str(lambda_dir).rsplit("_", maxsplit=1)[1])
+        if dir_lambda_val not in data["total_average"]:
+            data["total_average"][dir_lambda_val] = []
+            data["added_series"][dir_lambda_val] = []
 
         fresh_lambda = True
         ignore_dele_lambda = False
-        for rep in sorted(lambda_dir.glob('rep[0-9]*')):
+        for rep in sorted(lambda_dir.glob("rep[0-9]*")):
             if not rep.is_dir():
                 continue
 
@@ -92,11 +93,11 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
                 print("A missing energy file: prod.alch in %s" % rep)
                 continue
             elif len(prod_files) == 1:
-                prod_alch = rep / 'prod.alch'
+                prod_alch = rep / "prod.alch"
                 assert prod_alch.is_file()
             elif len(prod_files) > 1:
                 # merge the files into a single file
-                merged_prod = rep / 'prod_merged.alch'
+                merged_prod = rep / "prod_merged.alch"
                 merge_prod_files(prod_files, merged_prod)
                 # use the merged .alch instead
                 prod_alch = merged_prod
@@ -112,7 +113,9 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
             # 10 is ELECT2
             # 12 is VDW2
             print(prod_alch)
-            energies_datapoints = np.loadtxt(prod_alch, comments='#', usecols=[2, 4, 6, 8, 10, 12])
+            energies_datapoints = np.loadtxt(
+                prod_alch, comments="#", usecols=[2, 4, 6, 8, 10, 12]
+            )
 
             # load metadata from the file
             with open(prod_alch) as myfile:
@@ -120,31 +123,31 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
                 # lines that we are parsing:
                 # PARTITION 1 SCALING: BOND 1 VDW 0.3 ELEC 0
                 # PARTITION 2 SCALING: BOND 1 VDW 0.7 ELEC 0.454545
-                assert partition1.startswith('#PARTITION 1')
-                assert partition2.startswith('#PARTITION 2')
-                app_vdw_lambda = float(partition1.split('VDW')[1].split('ELEC')[0])
-                dis_vdw_lambda = float(partition2.split('VDW')[1].split('ELEC')[0])
+                assert partition1.startswith("#PARTITION 1")
+                assert partition2.startswith("#PARTITION 2")
+                app_vdw_lambda = float(partition1.split("VDW")[1].split("ELEC")[0])
+                dis_vdw_lambda = float(partition2.split("VDW")[1].split("ELEC")[0])
 
                 # this is the default check that does not apply if you change the way lambda is created
                 # assert app_vdw_lambda == float(str(lambda_dir).split('_')[1]), lambda_dir
                 # assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
-                app_ele_lambda = float(partition1.split('ELEC')[1])
-                dis_ele_lambda = float(partition2.split('ELEC')[1])
+                app_ele_lambda = float(partition1.split("ELEC")[1])
+                dis_ele_lambda = float(partition2.split("ELEC")[1])
 
-                if app_vdw_lambda not in data['avdw']:
-                    data['avdw'][app_vdw_lambda] = []
-                if dis_vdw_lambda not in data['dvdw']:
-                    data['dvdw'][dis_vdw_lambda] = []
-                if app_ele_lambda not in data['aele']:
-                    data['aele'][app_ele_lambda] = []
-                if dis_ele_lambda not in data['dele']:
-                    data['dele'][dis_ele_lambda] = []
+                if app_vdw_lambda not in data["avdw"]:
+                    data["avdw"][app_vdw_lambda] = []
+                if dis_vdw_lambda not in data["dvdw"]:
+                    data["dvdw"][dis_vdw_lambda] = []
+                if app_ele_lambda not in data["aele"]:
+                    data["aele"][app_ele_lambda] = []
+                if dis_ele_lambda not in data["dele"]:
+                    data["dele"][dis_ele_lambda] = []
 
                 if fresh_lambda:
                     # part 1 / aele, if this lambda is 0, then discard the previous derivative, the previous lambda 0
                     # was not the real the first lambda 0
                     if app_ele_lambda == 0:
-                        data['aele'][app_ele_lambda] = []
+                        data["aele"][app_ele_lambda] = []
 
                 # fixme - this should be moved to the stage where at which the data is read
                 # fixme
@@ -161,8 +164,10 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
                     aele_dvdl = energies_datapoints[eq_steps:, 1]
                     dele_dvdl = energies_datapoints[eq_steps:, 4]
 
-                if not all([len(avdw_dvdl), len(dvdw_dvdl), len(aele_dvdl), len(dele_dvdl)]):
-                    print('Not enough points. Ignoring ', lambda_dir, ' Replica', rep)
+                if not all(
+                    [len(avdw_dvdl), len(dvdw_dvdl), len(aele_dvdl), len(dele_dvdl)]
+                ):
+                    print("Not enough points. Ignoring ", lambda_dir, " Replica", rep)
                     continue
 
                 # --------------------------------------------------------------------------
@@ -182,26 +187,28 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
                     # take only the aele value
                     this_replica_total += np.mean(aele_dvdl)
 
-                data['total_average'][dir_lambda_val].append(this_replica_total)
+                data["total_average"][dir_lambda_val].append(this_replica_total)
                 # extract the values
-                data['added_series'][dir_lambda_val].append(avdw_dvdl - dvdw_dvdl + (aele_dvdl - dele_dvdl)/0.55)
+                data["added_series"][dir_lambda_val].append(
+                    avdw_dvdl - dvdw_dvdl + (aele_dvdl - dele_dvdl) / 0.55
+                )
                 # ---------------------------------------------
 
                 # add to the right dataset
                 # add all values of VDW since they are appearing/disappearing throughout the lambda window
-                data['avdw'][app_vdw_lambda].append(avdw_dvdl)
-                data['dvdw'][dis_vdw_lambda].append(dvdw_dvdl)
+                data["avdw"][app_vdw_lambda].append(avdw_dvdl)
+                data["dvdw"][dis_vdw_lambda].append(dvdw_dvdl)
 
                 # the appearing electrostatics being to appear around midway through the simulation,
                 # we keep the very first lambda 0, not the previous states
-                data['aele'][app_ele_lambda].append(aele_dvdl)
+                data["aele"][app_ele_lambda].append(aele_dvdl)
 
                 # add part2/dele only the first time.
                 # this means that ocne dele disappears, than any changes to dV/dl later are due to something else
-                if fresh_lambda and len(data['dele'][dis_ele_lambda]) != 0:
+                if fresh_lambda and len(data["dele"][dis_ele_lambda]) != 0:
                     ignore_dele_lambda = True
                 if not ignore_dele_lambda:
-                    data['dele'][dis_ele_lambda].append(dele_dvdl)
+                    data["dele"][dis_ele_lambda].append(dele_dvdl)
 
             fresh_lambda = False
 
@@ -213,7 +220,7 @@ def extract_energies(work_path, choderas_cut=False, eq_steps=1000):
 
 def saveSeriesTotalPerLambda(data):
     # save the series for each lambda together
-    for lambda_window, reps in data['added_series'].items():
+    for lambda_window, reps in data["added_series"].items():
         # merge the replicas into one numpy array
         pass
 
@@ -223,14 +230,15 @@ def choder_get_eqpart(datapoints):
     Extracts the equilibriated part
     """
     from pymbar import timeseries
+
     [t0, g, Neff_max] = timeseries.detectEquilibration(datapoints)
     # print('Chodera: t0 is', t0)
     return datapoints[t0:]
 
 
 def autocorr(x):
-    result = np.correlate(x, x, mode='full')
-    return result[int(result.size / 2):]
+    result = np.correlate(x, x, mode="full")
+    return result[int(result.size / 2) :]
 
 
 def get_replicas_stats(dataset, sample_reps):
@@ -240,9 +248,9 @@ def get_replicas_stats(dataset, sample_reps):
     """
     meta = {
         # combined
-        'merged_mean': {},
-        'merged_sem': {},
-        'merged_std': {},
+        "merged_mean": {},
+        "merged_sem": {},
+        "merged_std": {},
         # for each replica
         # 'rep_means': [],
     }
@@ -254,12 +262,14 @@ def get_replicas_stats(dataset, sample_reps):
 
         # this should not be here, create a separate function that carries this out
         if sample_reps:
-            merged_replicas = np.random.choice(merged_replicas, size=len(merged_replicas), replace=True)
+            merged_replicas = np.random.choice(
+                merged_replicas, size=len(merged_replicas), replace=True
+            )
 
         # record the observables
-        meta['merged_mean'][lambda_val] = np.mean(merged_replicas)
-        meta['merged_sem'][lambda_val] = sem(merged_replicas)
-        meta['merged_std'][lambda_val] = np.std(merged_replicas)
+        meta["merged_mean"][lambda_val] = np.mean(merged_replicas)
+        meta["merged_sem"][lambda_val] = sem(merged_replicas)
+        meta["merged_std"][lambda_val] = np.std(merged_replicas)
         # fixme - add other errors, add bootstrapping here
     return meta
 
@@ -273,7 +283,7 @@ def get_int(xs, ys, interp=True):
         tck = interpolate.splrep(xs, ys, s=0)
         ynew = interpolate.splev(xnew, tck, der=False)
 
-        plt.plot(xs, ys, label='original')
+        plt.plot(xs, ys, label="original")
         # plt.plot(xnew, ynew, label='spline der0')
         # plt.legend()
         # plt.show()
@@ -281,6 +291,7 @@ def get_int(xs, ys, interp=True):
 
     # the xs (or lambdas) should be in a growing order
     return np.trapz(ys, x=xs)
+
 
 def bootstrap_replica_averages_err2017(data):
     """
@@ -295,12 +306,14 @@ def bootstrap_replica_averages_err2017(data):
     So we end up with the bootstrapped SD of means of means.
     """
     bootstrapped_sem = OrderedDict()
-    for lambda_val, tot_mean in data['total_average'].items():
+    for lambda_val, tot_mean in data["total_average"].items():
         # for each lambda value, sample the means
         means = []
         # create 10 thousand of means (of means)
         for i in range(10 * 1000):
-            means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
+            means.append(
+                np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True))
+            )
         bootstrapped_sem[lambda_val] = np.std(means)
 
     # multiply by each
@@ -308,10 +321,10 @@ def bootstrap_replica_averages_err2017(data):
     sigma_sum = 0
     for lambda_from, lambda_to, boot_point in zip(k, k[1:], bootstrapped_sem.values()):
         assert lambda_from < lambda_to
-        sigma_sum += (lambda_to - lambda_from) ** 2 * boot_point ** 2
+        sigma_sum += (lambda_to - lambda_from) ** 2 * boot_point**2
 
     # note that for some reason, at the end sqrt was taken of the value
-    data['sigma_2017'] = np.sqrt(sigma_sum)
+    data["sigma_2017"] = np.sqrt(sigma_sum)
 
 
 def bootstrap_replica_averages_improved(data):
@@ -323,23 +336,31 @@ def bootstrap_replica_averages_improved(data):
     Paper: https://pubs.acs.org/doi/10.1021/acs.jctc.6b00979
     """
     bootstrapped_sem = OrderedDict()
-    for lambda_val, tot_mean in data['total_average'].items():
+    for lambda_val, tot_mean in data["total_average"].items():
         # for each lambda value, sample the means
         means = []
         # create 10 thousand of means (of means)
         for i in range(10 * 1000):
-            means.append(np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True)))
+            means.append(
+                np.mean(np.random.choice(tot_mean, size=len(tot_mean), replace=True))
+            )
         bootstrapped_sem[lambda_val] = np.var(means)
 
     # integrate the error with trapz
-    sigma_int = np.trapz(y=list(bootstrapped_sem.values()), x=list(bootstrapped_sem.keys()))
-    data['sigma_int'] = sigma_int
+    sigma_int = np.trapz(
+        y=list(bootstrapped_sem.values()), x=list(bootstrapped_sem.keys())
+    )
+    data["sigma_int"] = sigma_int
 
 
-def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=True, plot=True):
+def analyse(
+    data, system_conf, calc_aga_err=False, sample_reps=False, verbose=True, plot=True
+):
     """
     Process the timeseries from each replica
     """
+
+    analysis_dir = "analysis"
 
     if calc_aga_err:
         bootstrap_replica_averages_err2017(data)
@@ -347,38 +368,68 @@ def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=Tr
     # apply to each dataset
     stats = {}
     for interaction_type, dataset in data.items():
-        if interaction_type in ['avdw', 'dvdw', 'aele', 'dele']:
-            stats[interaction_type] = get_replicas_stats(dataset, sample_reps=sample_reps)
+        if interaction_type in ["avdw", "dvdw", "aele", "dele"]:
+            stats[interaction_type] = get_replicas_stats(
+                dataset, sample_reps=sample_reps
+            )
 
     # plot the average of the entire datasets now
     # sort all lambdas from 0 to 1
 
-    avdw_before_sort = list(stats['avdw']['merged_mean'].items())
+    avdw_before_sort = list(stats["avdw"]["merged_mean"].items())
     avdw_means = np.array(sorted(avdw_before_sort, key=lambda x: x[0])).T
 
-    dvdw_before_sort = list(stats['dvdw']['merged_mean'].items())
+    dvdw_before_sort = list(stats["dvdw"]["merged_mean"].items())
     dvdw_means = np.array(sorted(dvdw_before_sort, key=lambda x: x[0])).T
 
-    aele_before_sort = list(stats['aele']['merged_mean'].items())
+    aele_before_sort = list(stats["aele"]["merged_mean"].items())
     aele_means = np.array(sorted(aele_before_sort, key=lambda x: x[0])).T
 
-    dele_before_sort = list(stats['dele']['merged_mean'].items())
+    dele_before_sort = list(stats["dele"]["merged_mean"].items())
     dele_means = np.array(sorted(dele_before_sort, key=lambda x: x[0])).T
 
     if plot:
         # This is the main summary graph that merges all the replicas
         # Plot the lines that are integrated, together with their overall standard deviation
-        plt.figure(figsize=(10, 8) ) #, dpi=80) facecolor='w', edgecolor='k')
-        plt.axhline(color='grey', linestyle='dotted')
+        plt.figure(figsize=(10, 8))  # , dpi=80) facecolor='w', edgecolor='k')
+        plt.axhline(color="grey", linestyle="dotted")
         # todo draw standard deviation instead
-        plt.plot(avdw_means[0], avdw_means[1], label='Appearing VdW means', linestyle='-', alpha=0.7, color='blue')
-        plt.plot(dvdw_means[0][::-1], dvdw_means[1], label='Disappearing VdW', linestyle='--', alpha=0.7, color='blue')
-        plt.plot(aele_means[0], aele_means[1], label='Appearing q', linestyle='-', alpha=0.7, color='red')
-        plt.plot(dele_means[0][::-1], dele_means[1], label='Disappearing q', linestyle='--', alpha=0.7, color='red')
+        plt.plot(
+            avdw_means[0],
+            avdw_means[1],
+            label="Appearing VdW means",
+            linestyle="-",
+            alpha=0.7,
+            color="blue",
+        )
+        plt.plot(
+            dvdw_means[0][::-1],
+            dvdw_means[1],
+            label="Disappearing VdW",
+            linestyle="--",
+            alpha=0.7,
+            color="blue",
+        )
+        plt.plot(
+            aele_means[0],
+            aele_means[1],
+            label="Appearing q",
+            linestyle="-",
+            alpha=0.7,
+            color="red",
+        )
+        plt.plot(
+            dele_means[0][::-1],
+            dele_means[1],
+            label="Disappearing q",
+            linestyle="--",
+            alpha=0.7,
+            color="red",
+        )
         plt.title(system_conf)
         plt.legend()
         # plt.show()
-        plt.savefig(os.path.join(analysis_dir, system_conf + '_dvdl.png'))
+        plt.savefig(os.path.join(analysis_dir, system_conf + "_dvdl.png"))
         plt.cla()
 
         # In this part we create more detailed plots for energy contribution
@@ -390,27 +441,33 @@ def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=Tr
             Shows the error bars for each replica.
             """
             plt.figure(figsize=(8, 10))  # , dpi=80) facecolor='w', edgecolor='k')
-            plt.rcParams.update({'font.size': 15})
+            plt.rcParams.update({"font.size": 15})
 
-            if system_conf == 'lig':
-                plt.title('Ligand')
-            elif system_conf == 'complex':
-                plt.title('Complex')
+            if system_conf == "lig":
+                plt.title("Ligand")
+            elif system_conf == "complex":
+                plt.title("Complex")
 
             for lam, reps in data.items():
                 # plot the dv/dl boxplots
                 # stagger lambdas so that replicas do not overlap
-                staggered_lambdas = np.linspace(lam-0.025, lam+0.025, len(reps))
+                staggered_lambdas = np.linspace(lam - 0.025, lam + 0.025, len(reps))
                 for new_lambda, rep in zip(staggered_lambdas, reps):
-                    plt.boxplot(rep, positions=[new_lambda, ],
-                                widths=staggered_lambdas[1] - staggered_lambdas[0],
-                                sym='.', showfliers=False) # showfliers=False
+                    plt.boxplot(
+                        rep,
+                        positions=[
+                            new_lambda,
+                        ],
+                        widths=staggered_lambdas[1] - staggered_lambdas[0],
+                        sym=".",
+                        showfliers=False,
+                    )  # showfliers=False
 
             # plot the global mean values
-            plt.plot(means[0], means[1], label=label, linestyle='-', alpha=1)
+            plt.plot(means[0], means[1], label=label, linestyle="-", alpha=1)
 
-            plt.ylabel('$\\rm \\left\\langle \\frac{dU}{d\\lambda} \\right\\rangle $')
-            plt.xlabel('$\\rm \\lambda$')
+            plt.ylabel("$\\rm \\left\\langle \\frac{dU}{d\\lambda} \\right\\rangle $")
+            plt.xlabel("$\\rm \\lambda$")
             plt.xticks(means[0], [f"{m:.2f}" for m in means[0]], rotation=45)
             plt.xlim([-0.05, 1.05])
             plt.legend()
@@ -419,11 +476,18 @@ def analyse(data, system_conf, calc_aga_err=False, sample_reps=False, verbose=Tr
             plt.savefig(os.path.join(analysis_dir, system_conf + file_suffix))
             plt.cla()
 
-        plot_single_component(avdw_means, data['avdw'], 'Appearing VdW means', '_avdw_dvdl.png')
-        plot_single_component(dvdw_means, data['dvdw'], 'Disappearing VdW means', '_dvdw_dvdl.png')
-        plot_single_component(aele_means, data['aele'], 'Appearing q means', '_aele_dvdl.png')
-        plot_single_component(dele_means, data['dele'], 'Disappearing q', '_dele_dvdl.png')
-
+        plot_single_component(
+            avdw_means, data["avdw"], "Appearing VdW means", "_avdw_dvdl.png"
+        )
+        plot_single_component(
+            dvdw_means, data["dvdw"], "Disappearing VdW means", "_dvdw_dvdl.png"
+        )
+        plot_single_component(
+            aele_means, data["aele"], "Appearing q means", "_aele_dvdl.png"
+        )
+        plot_single_component(
+            dele_means, data["dele"], "Disappearing q", "_dele_dvdl.png"
+        )
 
     # integrate over the means from each replica
     avdw_int = get_int(avdw_means[0], avdw_means[1])
@@ -446,39 +510,12 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
     return aele_int, avdw_int, dvdw_int, dele_int, data
 
 
-def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
-    """
-    Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
-    Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
-    we sample the different dV/dL. Then we recreate the means.
-    """
-    # do bootstrapping to find out error for each component
-    # we want to know where the difference comes from
-    # fixme - try bootstrapping to understand the error in aele, dele etc
-    bootstrapped_ddGs = []
-    for i in range(bootstrap_size_k * 1000):  # fixme
-        laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(lig_all, 'lig', calc_aga_err=False,
-                                                                       verbose=False, sample_reps=True,
-                                                                       plot=False)
-        lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
-        caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(complex_all, 'complex',
-                                                                           calc_aga_err=False,
-                                                                           verbose=False, sample_reps=True,
-                                                                           plot=False)
-        complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
-
-        bootstrapped_ddGs.append(complex_delta - lig_delta)
-
-    # return the standard error
-    return bootstrapped_ddGs
-
-
 def merge_datasets(data_list):
     # Merge all datasets with the first one
 
     merged = data_list[0]
     for data in data_list[1:]:
-        for key in ['dvdw', 'dele', 'avdw', 'aele', 'total_average']:
+        for key in ["dvdw", "dele", "avdw", "aele", "total_average"]:
             for lambda_val, reps in data[key].items():
                 merged[key][lambda_val].extend(reps)
 

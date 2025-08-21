@@ -1,15 +1,13 @@
 import os
 import json
-import copy
 import shutil
 import subprocess
 import logging
-from pathlib import Path
 
 import parmed
 
 import ties.helpers
-from ties.generator import get_atoms_bonds_from_file
+from ties.topology_superimposer import get_atoms_bonds_from_file
 from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
@@ -18,7 +16,7 @@ import ties.ligand
 logger = logging.getLogger(__name__)
 
 
-class Pair():
+class Pair:
     """
     Facilitates the creation of morphs.
     It offers functionality related to a pair of ligands (a transformation).
@@ -66,7 +64,7 @@ class Pair():
         self.current_ligA = self.ligA.current
         self.current_ligZ = self.ligZ.current
 
-        self.internal_name = f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+        self.internal_name = f"{self.ligA.internal_name}_{self.ligZ.internal_name}"
         self.mol2 = None
         self.pdb = None
         self.summary = None
@@ -79,7 +77,7 @@ class Pair():
         if self.distance is None:
             return self.internal_name
 
-        return f'{self.internal_name} ({self.distance:.2f})'
+        return f"{self.internal_name} ({self.distance:.2f})"
 
     def set_distance(self, value):
         self.distance = value
@@ -102,9 +100,18 @@ class Pair():
         # use ParmEd to load the files
         # fixme - move this to the Morph class instead of this place,
         # fixme - should not squash all messsages. For example, wrong type file should not be squashed
-        leftlig_atoms, leftlig_bonds, rightlig_atoms, rightlig_bonds, parmed_ligA, parmed_ligZ = \
-            get_atoms_bonds_from_file(self.current_ligA, self.current_ligZ,
-                                      use_general_type=self.config.use_element_in_superimposition)
+        (
+            leftlig_atoms,
+            leftlig_bonds,
+            rightlig_atoms,
+            rightlig_bonds,
+            parmed_ligA,
+            parmed_ligZ,
+        ) = get_atoms_bonds_from_file(
+            self.current_ligA,
+            self.current_ligZ,
+            use_general_type=self.config.use_element_in_superimposition,
+        )
         # fixme - manual match should be improved here and allow for a sensible format.
 
         # in case the atoms were renamed, pass the names via the map renaming map
@@ -113,7 +120,9 @@ class Pair():
         new_mismatch_names = []
         for a, z in self.config.manually_mismatched_pairs:
             new_names = (self.ligA.rev_renaming_map[a], self.ligZ.rev_renaming_map[z])
-            logger.debug(f'Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}')
+            logger.debug(
+                f"Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}"
+            )
             new_mismatch_names.append(new_names)
 
         # assign
@@ -135,7 +144,11 @@ class Pair():
 
         # fixme - this should be moved out of here,
         #  ideally there would be a function in the main interface for this
-        manual_match = [] if self.config.manually_matched_atom_pairs is None else self.config.manually_matched_atom_pairs
+        manual_match = (
+            []
+            if self.config.manually_matched_atom_pairs is None
+            else self.config.manually_matched_atom_pairs
+        )
         starting_node_pairs = []
         for l_aname, r_aname in manual_match:
             # find the starting node pairs, ie the manually matched pair(s)
@@ -144,45 +157,53 @@ class Pair():
                 if l_aname == ln.name:
                     found_left_node = ln
             if found_left_node is None:
-                raise ValueError(f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule')
+                raise ValueError(
+                    f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule'
+                )
 
             found_right_node = None
             for id, ln in ligand2_nodes.items():
                 if r_aname == ln.name:
                     found_right_node = ln
             if found_right_node is None:
-                raise ValueError(f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule')
+                raise ValueError(
+                    f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule'
+                )
 
             starting_node_pairs.append([found_left_node, found_right_node])
 
         if starting_node_pairs:
-            logger.debug(f'Starting nodes will be used: {starting_node_pairs}')
+            logger.debug(f"Starting nodes will be used: {starting_node_pairs}")
 
         logging_key = str(self)
 
         # fixme - simplify to only take the ParmEd as input
-        suptop = superimpose_topologies(ligand1_nodes.values(), ligand2_nodes.values(),
-                                        disjoint_components=self.config.allow_disjoint_components,
-                                        net_charge_filter=True,
-                                        pair_charge_atol=self.config.atom_pair_q_atol,
-                                        net_charge_threshold=self.config.net_charge_threshold,
-                                        redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
-                                        ignore_charges_completely=self.config.ignore_charges_completely,
-                                        ignore_bond_types=True,
-                                        ignore_coords=False,
-                                        partial_rings_allowed=self.config.partial_ring_allowed,
-                                        align_molecules=self.config.align_molecules_using_mcs,
-                                        use_general_type=self.config.use_element_in_superimposition,
-                                        # fixme - not the same ... use_element_in_superimposition,
-                                        use_only_element=False,
-                                        check_atom_names_unique=True,  # fixme - remove?
-                                        starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
-                                        force_mismatch=new_mismatch_names,
-                                        starting_node_pairs=starting_node_pairs,
-                                        parmed_ligA=parmed_ligA, parmed_ligZ=parmed_ligZ,
-                                        starting_pair_seed=self.config.superimposition_starting_pairs,
-                                        logging_key=logging_key,
-                                        config=self.config)
+        suptop = superimpose_topologies(
+            ligand1_nodes.values(),
+            ligand2_nodes.values(),
+            disjoint_components=self.config.allow_disjoint_components,
+            net_charge_filter=True,
+            pair_charge_atol=self.config.atom_pair_q_atol,
+            net_charge_threshold=self.config.net_charge_threshold,
+            redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
+            ignore_charges_completely=self.config.ignore_charges_completely,
+            ignore_bond_types=True,
+            ignore_coords=False,
+            partial_rings_allowed=self.config.partial_ring_allowed,
+            align_molecules=self.config.align_molecules_using_mcs,
+            use_general_type=self.config.use_element_in_superimposition,
+            # fixme - not the same ... use_element_in_superimposition,
+            use_only_element=False,
+            check_atom_names_unique=True,  # fixme - remove?
+            starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
+            force_mismatch=new_mismatch_names,
+            starting_node_pairs=starting_node_pairs,
+            parmed_ligA=parmed_ligA,
+            parmed_ligZ=parmed_ligZ,
+            starting_pair_seed=self.config.superimposition_starting_pairs,
+            logging_key=logging_key,
+            config=self.config,
+        )
 
         self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
         # attach the used config to the suptop
@@ -206,7 +227,9 @@ class Pair():
         self.parmed_ligA = parmed_ligA
         self.parmed_ligZ = parmed_ligZ
 
-    def make_atom_names_unique(self, out_ligA_filename=None, out_ligZ_filename=None, save=True):
+    def make_atom_names_unique(
+        self, out_ligA_filename=None, out_ligZ_filename=None, save=True
+    ):
         """
         Ensure that each that atoms across the two ligands have unique names.
 
@@ -232,22 +255,28 @@ class Pair():
         left = parmed.load_file(str(self.ligA.current), structure=True)
         right = parmed.load_file(str(self.ligZ.current), structure=True)
 
-        common_atom_names = {a.name for a in right.atoms}.intersection({a.name for a in left.atoms})
+        common_atom_names = {a.name for a in right.atoms}.intersection(
+            {a.name for a in left.atoms}
+        )
         atom_names_overlap = len(common_atom_names) > 0
 
         if atom_names_overlap or not self.ligZ.are_atom_names_correct():
-            logger.debug(f'Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. ')
+            logger.debug(
+                f"Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. "
+            )
             if atom_names_overlap:
-                logger.debug(f'Common atom names: {common_atom_names}')
+                logger.debug(f"Common atom names: {common_atom_names}")
             name_counter_L_nodes = ties.helpers.get_atom_names_counter(left.atoms)
-            _, renaming_map = ties.helpers.get_new_atom_names(right.atoms, name_counter=name_counter_L_nodes)
+            _, renaming_map = ties.helpers.get_new_atom_names(
+                right.atoms, name_counter=name_counter_L_nodes
+            )
             self.ligZ.renaming_map = renaming_map
 
         # rename the residue names to INI and FIN
         for atom in left.atoms:
-            atom.residue = 'INI'
+            atom.residue = "INI"
         for atom in right.atoms:
-            atom.residue = 'FIN'
+            atom.residue = "FIN"
 
         # fixme - instead of using the save parameter, have a method pair.save(filename1, filename2) and
         #  call it when necessary.
@@ -256,11 +285,14 @@ class Pair():
             return
 
         if out_ligA_filename is None:
-            cwd = self.config.pair_unique_atom_names_dir / f'{self.ligA.internal_name}_{self.ligZ.internal_name}'
+            cwd = (
+                self.config.pair_unique_atom_names_dir
+                / f"{self.ligA.internal_name}_{self.ligZ.internal_name}"
+            )
             cwd.mkdir(parents=True, exist_ok=True)
 
-            self.current_ligA = cwd / (self.ligA.internal_name + '.mol2')
-            self.current_ligZ = cwd / (self.ligZ.internal_name + '.mol2')
+            self.current_ligA = cwd / (self.ligA.internal_name + ".mol2")
+            self.current_ligZ = cwd / (self.ligZ.internal_name + ".mol2")
         else:
             self.current_ligA = out_ligA_filename
             self.current_ligZ = out_ligZ_filename
@@ -278,11 +310,14 @@ class Pair():
             gets one of the matched atoms.
         :rtype: [(ligA_atom, ligZ_atom)]
         """
-        matching_json = self.config.workdir / f'fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json'
+        matching_json = (
+            self.config.workdir
+            / f"fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json"
+        )
         if not matching_json.is_file():
             return None
 
-        return [list(json.load(matching_json.open())['matched'].items())[0]]
+        return [list(json.load(matching_json.open())["matched"].items())[0]]
 
     def merge_frcmod_files(self, ligcom=None):
         """
@@ -314,23 +349,33 @@ class Pair():
         # fixme: use the provided cwd here, otherwise this will not work if the wrong cwd is used
         # have some conf module instead of this
         if ligcom:
-            morph_frcmod = cwd / f'ties-{self.ligA.internal_name}-{self.ligZ.internal_name}' / ligcom / 'build' / 'hybrid.frcmod'
+            morph_frcmod = (
+                cwd
+                / f"ties-{self.ligA.internal_name}-{self.ligZ.internal_name}"
+                / ligcom
+                / "build"
+                / "hybrid.frcmod"
+            )
         else:
             # fixme - clean up
-            morph_frcmod = cwd / f'ties-{self.ligA.internal_name}-{self.ligZ.internal_name}' / 'build' / 'hybrid.frcmod'
+            morph_frcmod = (
+                cwd
+                / f"ties-{self.ligA.internal_name}-{self.ligZ.internal_name}"
+                / "build"
+                / "hybrid.frcmod"
+            )
         morph_frcmod.parent.mkdir(parents=True, exist_ok=True)
-        with open(morph_frcmod, 'w') as FOUT:
-            FOUT.write('merged frcmod\n')
+        with open(morph_frcmod, "w") as FOUT:
+            FOUT.write("merged frcmod\n")
 
-            for section in ['MASS', 'BOND', 'ANGLE',
-                            'DIHE', 'IMPROPER', 'NONBON']:
+            for section in ["MASS", "BOND", "ANGLE", "DIHE", "IMPROPER", "NONBON"]:
                 section_lines = frcmod_info1[section] + frcmod_info2[section]
-                FOUT.write('{0:s}\n'.format(section))
+                FOUT.write("{0:s}\n".format(section))
                 for line in section_lines:
-                    FOUT.write('{0:s}'.format(line))
-                FOUT.write('\n')
+                    FOUT.write("{0:s}".format(line))
+                FOUT.write("\n")
 
-            FOUT.write('\n\n')
+            FOUT.write("\n\n")
 
         # this is our current frcmod file
         self.frcmod = morph_frcmod
@@ -339,14 +384,18 @@ class Pair():
         # insert dummy angles/dihedrals if a morph .frcmod requires
         # new terms between the appearing/disappearing atoms
         # this is a trick to make sure tleap has everything it needs to generate the .top file
-        correction_introduced = self._check_hybrid_frcmod(ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff)
+        correction_introduced = self._check_hybrid_frcmod(
+            ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff
+        )
         if correction_introduced:
             # move the .frcmod which turned out to be insufficient according to the test
-            shutil.move(morph_frcmod, str(self.frcmod) + '.uncorrected' )
+            shutil.move(morph_frcmod, str(self.frcmod) + ".uncorrected")
             # now copy in place the corrected version
             shutil.copy(self.frcmod, morph_frcmod)
 
-    def _check_hybrid_frcmod(self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff):
+    def _check_hybrid_frcmod(
+        self, ambertools_tleap, ambertools_script_dir, protein_ff, ligand_ff
+    ):
         """
         Check that the output library can be used to create a valid amber topology.
         Add missing terms with no force to pass the topology creation.
@@ -358,38 +407,50 @@ class Pair():
             cwd.mkdir(parents=True, exist_ok=True)
 
         if protein_ff is None:
-            protein_ff = '# no protein ff needed'
+            protein_ff = "# no protein ff needed"
         else:
-            protein_ff = 'source ' + protein_ff
+            protein_ff = "source " + protein_ff
 
         # prepare the superimposed .mol2 file if needed
-        if not hasattr(self.suptop, 'mol2'):
+        if not hasattr(self.suptop, "mol2"):
             self.suptop.write_mol2()
 
         # prepare tleap input
-        leap_in_test = 'leap_test_morph.in'
+        leap_in_test = "leap_test_morph.in"
         leap_in_conf = open(ambertools_script_dir / leap_in_test).read()
-        open(cwd / leap_in_test, 'w').write(leap_in_conf.format(
-                                mol2=os.path.relpath(self.suptop.mol2, cwd),
-                                frcmod=os.path.relpath(self.frcmod, cwd),
-                                protein_ff=protein_ff, ligand_ff=ligand_ff))
+        open(cwd / leap_in_test, "w").write(
+            leap_in_conf.format(
+                mol2=os.path.relpath(self.suptop.mol2, cwd),
+                frcmod=os.path.relpath(self.frcmod, cwd),
+                protein_ff=protein_ff,
+                ligand_ff=ligand_ff,
+            )
+        )
 
         # attempt generating the .top
-        logger.debug('Create amber7 topology .top')
+        logger.debug("Create amber7 topology .top")
         try:
-            tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test],
-                                           cwd=cwd, text=True, timeout=20,
-                                           capture_output=True, check=True)
+            tleap_process = subprocess.run(
+                [ambertools_tleap, "-s", "-f", leap_in_test],
+                cwd=cwd,
+                text=True,
+                timeout=20,
+                capture_output=True,
+                check=True,
+            )
         except subprocess.CalledProcessError as err:
             raise Exception(
-                f'ERROR: Testing the topology with tleap broke. Return code: {err.returncode} '
-                f'ERROR: Ambertools output: {err.stdout}') from err
+                f"ERROR: Testing the topology with tleap broke. Return code: {err.returncode} "
+                f"ERROR: Ambertools output: {err.stdout}"
+            ) from err
 
         # save stdout and stderr
-        open(cwd / 'tleap_scan_check.log', 'w').write(tleap_process.stdout + tleap_process.stderr)
+        open(cwd / "tleap_scan_check.log", "w").write(
+            tleap_process.stdout + tleap_process.stderr
+        )
 
-        if 'Errors = 0' in tleap_process.stdout:
-            logger.debug('Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.')
+        if "Errors = 0" in tleap_process.stdout:
+            logger.debug("Test hybrid .frcmod: OK, no dummy angle/dihedrals inserted.")
             return False
 
         # extract the missing angles/dihedrals
@@ -398,11 +459,13 @@ class Pair():
         missing_dihedrals = []
         for line in tleap_process.stdout.splitlines():
             if "Could not find bond parameter for:" in line:
-                bond = line.split(':')[-1].strip()
+                bond = line.split(":")[-1].strip()
                 missing_bonds.add(bond)
-            elif "Could not find angle parameter:" in line or \
-                    "Could not find angle parameter for atom types:" in line:
-                cols = line.split(':')
+            elif (
+                "Could not find angle parameter:" in line
+                or "Could not find angle parameter for atom types:" in line
+            ):
+                cols = line.split(":")
                 angle = cols[-1].strip()
                 if angle not in missing_angles:
                     missing_angles.append(angle)
@@ -412,47 +475,60 @@ class Pair():
                 if torsion not in missing_dihedrals:
                     missing_dihedrals.append(torsion)
 
-        modified_hybrid_frcmod = cwd / f'{self.internal_name}_corrected.frcmod'
+        modified_hybrid_frcmod = cwd / f"{self.internal_name}_corrected.frcmod"
         if missing_angles or missing_dihedrals:
-            logger.debug('Adding dummy bonds+angles+dihedrals to frcmod to generate .top')
+            logger.debug(
+                "Adding dummy bonds+angles+dihedrals to frcmod to generate .top"
+            )
             # read the original frcmod
             frcmod_lines = open(self.frcmod).readlines()
             # overwriting the .frcmod with dummy angles/dihedrals
-            with open(modified_hybrid_frcmod, 'w') as NEW_FRCMOD:
+            with open(modified_hybrid_frcmod, "w") as NEW_FRCMOD:
                 for line in frcmod_lines:
                     NEW_FRCMOD.write(line)
-                    if 'BOND' in line:
-                        for bond  in missing_bonds:
-                            dummy_bond = f'{bond:<14}0  180  \t\t# Dummy bond\n'
+                    if "BOND" in line:
+                        for bond in missing_bonds:
+                            dummy_bond = f"{bond:<14}0  180  \t\t# Dummy bond\n"
                             NEW_FRCMOD.write(dummy_bond)
                             logger.debug(f'Added dummy bond: "{dummy_bond}"')
-                    if 'ANGLE' in line:
+                    if "ANGLE" in line:
                         for angle in missing_angles:
-                            dummy_angle = f'{angle:<14}0  120.010  \t\t# Dummy angle\n'
+                            dummy_angle = f"{angle:<14}0  120.010  \t\t# Dummy angle\n"
                             NEW_FRCMOD.write(dummy_angle)
                             logger.debug(f'Added dummy angle: "{dummy_angle}"')
-                    if 'DIHE' in line:
+                    if "DIHE" in line:
                         for dihedral in missing_dihedrals:
-                            dummy_dihedral = f'{dihedral:<14}1  0.00  180.000  2.000   \t\t# Dummy dihedrals\n'
+                            dummy_dihedral = f"{dihedral:<14}1  0.00  180.000  2.000   \t\t# Dummy dihedrals\n"
                             NEW_FRCMOD.write(dummy_dihedral)
                             logger.debug(f'Added dummy dihedral: "{dummy_dihedral}"')
 
             # update our tleap input test to use the corrected file
-            leap_in_test_corrected = cwd / 'leap_test_morph_corrected.in'
-            open(leap_in_test_corrected, 'w').write(leap_in_conf.format(
-                                mol2=os.path.relpath(self.suptop.mol2, cwd),
-                                frcmod=os.path.relpath(modified_hybrid_frcmod, cwd),
-                                protein_ff=protein_ff, ligand_ff=ligand_ff))
+            leap_in_test_corrected = cwd / "leap_test_morph_corrected.in"
+            open(leap_in_test_corrected, "w").write(
+                leap_in_conf.format(
+                    mol2=os.path.relpath(self.suptop.mol2, cwd),
+                    frcmod=os.path.relpath(modified_hybrid_frcmod, cwd),
+                    protein_ff=protein_ff,
+                    ligand_ff=ligand_ff,
+                )
+            )
 
             # verify that adding the dummy angles/dihedrals worked
-            tleap_process = subprocess.run([ambertools_tleap, '-s', '-f', leap_in_test_corrected],
-                                           cwd=cwd, text=True, timeout=60 * 10, capture_output=True, check=True)
+            tleap_process = subprocess.run(
+                [ambertools_tleap, "-s", "-f", leap_in_test_corrected],
+                cwd=cwd,
+                text=True,
+                timeout=60 * 10,
+                capture_output=True,
+                check=True,
+            )
 
-            if not "Errors = 0" in tleap_process.stdout:
-                raise Exception('ERROR: Could not generate the .top file after adding dummy angles/dihedrals')
+            if "Errors = 0" not in tleap_process.stdout:
+                raise Exception(
+                    "ERROR: Could not generate the .top file after adding dummy angles/dihedrals"
+                )
 
-
-        logger.debug('Morph .frcmod after the insertion of dummy angle/dihedrals: OK')
+        logger.debug("Morph .frcmod after the insertion of dummy angle/dihedrals: OK")
         # set this .frcmod as the correct one now,
         self.frcmod_before_correction = self.frcmod
         self.frcmod = modified_hybrid_frcmod
@@ -470,15 +546,22 @@ class Pair():
         """
 
         if self.suptop is None:
-            return 0, 0, float('inf'), float('inf')
+            return 0, 0, float("inf"), float("inf")
         else:
             mcs_size = len(self.suptop.matched_pairs)
 
         matched_fraction_left = mcs_size / float(len(self.suptop.top1))
         matched_fraction_right = mcs_size / float(len(self.suptop.top2))
-        disappearing_atoms_fraction = (len(self.suptop.top1) - mcs_size) \
-                                   / float(len(self.suptop.top1)) * 100
-        appearing_atoms_fraction = (len(self.suptop.top2) - mcs_size) \
-                                   / float(len(self.suptop.top2)) * 100
+        disappearing_atoms_fraction = (
+            (len(self.suptop.top1) - mcs_size) / float(len(self.suptop.top1)) * 100
+        )
+        appearing_atoms_fraction = (
+            (len(self.suptop.top2) - mcs_size) / float(len(self.suptop.top2)) * 100
+        )
 
-        return matched_fraction_left, matched_fraction_right, disappearing_atoms_fraction, appearing_atoms_fraction
+        return (
+            matched_fraction_left,
+            matched_fraction_right,
+            disappearing_atoms_fraction,
+            appearing_atoms_fraction,
+        )
