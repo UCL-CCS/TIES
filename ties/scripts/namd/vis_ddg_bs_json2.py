@@ -62,11 +62,10 @@ def combine(transformations):
     # plot the information in improvement as a function of an increase in the number of replicas
     # ie for each case, calculate how much "range" is removed when increasing the replica
     sd_improvements = {}
-    sd_improvement_range = []
     for system, data in trans_dgs.items():
         sds = []
         for rep_no, dgs in data.items():
-            interval95 = st.t.interval(
+            interval95 = st.t.interval(  # noqa: F841
                 0.95, len(dgs) - 1, loc=np.mean(dgs), scale=st.sem(dgs)
             )
             sd = np.std(dgs)
@@ -311,7 +310,7 @@ def ties_ddgs_dists(ddgs):
     # plot for each protein separately the progress
     # show the progress what happens if you use 5 replicas sampling or 1 replica,
     # and how that affects the distributions
-    fig = plt.figure(figsize=(7, 5))
+    plt.figure(figsize=(7, 5))
     # fig, ax = plt.subplots(figsize=(7, 5))
     # https://www.delftstack.com/howto/matplotlib/how-to-set-the-figure-title-and-axes-labels-font-size-in-matplotlib/
     plt.rcParams.update({"xtick.labelsize": 5, "axes.labelsize": 7})
@@ -469,7 +468,7 @@ def ties_ddgs_overall_dist_shape(ddgs):
             kurtosis = st.kurtosis(ddg_bs[1])
             kurts.append(kurtosis)
 
-    fig = plt.figure(figsize=(7, 5))
+    plt.figure(figsize=(7, 5))
     # https://www.delftstack.com/howto/matplotlib/how-to-set-the-figure-title-and-axes-labels-font-size-in-matplotlib/
     # plt.rcParams.update({'xtick.labelsize': 5, 'axes.labelsize': 7})
 

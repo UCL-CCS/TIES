@@ -31,7 +31,7 @@ for lambda_dir in os.listdir("."):
 
                 next_lines = open(other_prod).readlines()
                 # remove the comments
-                data = filter(lambda l: not l.startswith("#"), next_lines)
+                data = filter(lambda line: not line.startswith("#"), next_lines)
                 lines.extend(data)
             # save the results
             open(os.path.join(lambda_dir, rep, "prod_merged.alch"), "w").writelines(

@@ -35,7 +35,7 @@ def merge_prod_files(files, output_merged_filename):
     for other_prod in other_prods:
         next_lines = open(other_prod).readlines()
         # remove the comments
-        data = filter(lambda l: not l.startswith("#"), next_lines)
+        data = filter(lambda line: not line.startswith("#"), next_lines)
         lines.extend(data)
     # save the results
     open(output_merged_filename, "w").writelines(lines)
@@ -360,6 +360,8 @@ def analyse(
     Process the timeseries from each replica
     """
 
+    analysis_dir = "analysis"
+
     if calc_aga_err:
         bootstrap_replica_averages_err2017(data)
 
@@ -506,42 +508,6 @@ Subtotal        {aele_int - dele_int:7.4f}  |  {avdw_int - dvdw_int:7.4f}  | {ae
 
     # return the final Delta G. Note that the sign in each delta G depends on the atoms contribution.
     return aele_int, avdw_int, dvdw_int, dele_int, data
-
-
-def bootstrapped_ddG(ligand_data, complex_data, bootstrap_size_k=1):
-    """
-    Use bootstrapped data to estimate the DDG. This requries access to both, the ligand and the complex data.
-    Each time we resample our dataset. This means that for ligand/complex, for each lambda window,
-    we sample the different dV/dL. Then we recreate the means.
-    """
-    # do bootstrapping to find out error for each component
-    # we want to know where the difference comes from
-    # fixme - try bootstrapping to understand the error in aele, dele etc
-    bootstrapped_ddGs = []
-    for i in range(bootstrap_size_k * 1000):  # fixme
-        laele_int, lavdw_int, ldvdw_int, ldele_int, lig_data = analyse(
-            lig_all,
-            "lig",
-            calc_aga_err=False,
-            verbose=False,
-            sample_reps=True,
-            plot=False,
-        )
-        lig_delta = laele_int + lavdw_int - ldvdw_int - ldele_int
-        caele_int, cavdw_int, cdvdw_int, cdele_int, complex_data = analyse(
-            complex_all,
-            "complex",
-            calc_aga_err=False,
-            verbose=False,
-            sample_reps=True,
-            plot=False,
-        )
-        complex_delta = caele_int + cavdw_int - cdvdw_int - cdele_int
-
-        bootstrapped_ddGs.append(complex_delta - lig_delta)
-
-    # return the standard error
-    return bootstrapped_ddGs
 
 
 def merge_datasets(data_list):

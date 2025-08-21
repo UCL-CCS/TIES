@@ -6,7 +6,6 @@ import os
 
 
 def check(dirname):
-    finished_sims = []
     for lambda_dir in os.listdir(dirname):
         if not lambda_dir.startswith("lambda_"):
             continue

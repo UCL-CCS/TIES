@@ -38,7 +38,7 @@ def merge_prod_files(files, output_merged_filename):
     for other_prod in other_prods:
         next_lines = open(other_prod).readlines()
         # remove the comments
-        data = filter(lambda l: not l.startswith("#"), next_lines)
+        data = filter(lambda line: not line.startswith("#"), next_lines)
         lines.extend(data)
     # save the results
     open(output_merged_filename, "w").writelines(lines)

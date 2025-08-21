@@ -43,7 +43,7 @@ def merge_prod_files(files, output_merged_filename):
     for other_prod in other_prods:
         next_lines = open(other_prod).readlines()
         # remove the comments
-        data = filter(lambda l: not l.startswith("#"), next_lines)
+        data = filter(lambda line: not line.startswith("#"), next_lines)
         lines.extend(data)
     # save the results
     open(output_merged_filename, "w").writelines(lines)
@@ -131,9 +131,9 @@ def extract_energies(location, choderas_cut=False, eq_steps=1000):
                 assert partition1.startswith("#PARTITION 1")
                 assert partition2.startswith("#PARTITION 2")
                 app_vdw_lambda = float(partition1.split("VDW")[1].split("ELEC")[0])
-                assert app_vdw_lambda == float(str(lambda_dir).split("_")[1]), (
-                    lambda_dir
-                )
+                assert app_vdw_lambda == float(
+                    str(lambda_dir).split("_")[1]
+                ), lambda_dir
                 dis_vdw_lambda = float(partition2.split("VDW")[1].split("ELEC")[0])
                 assert np.isclose(app_vdw_lambda, 1 - dis_vdw_lambda)
                 app_ele_lambda = float(partition1.split("ELEC")[1])

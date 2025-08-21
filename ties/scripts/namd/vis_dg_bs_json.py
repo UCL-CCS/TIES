@@ -6,7 +6,6 @@ Show as a functin of a number of bootstrapped replicas how the values change
 
 from pathlib import Path
 from collections import OrderedDict
-import time
 import itertools
 import json
 
@@ -64,13 +63,10 @@ def combine(transformations):
     # plot the information in improvement as a function of an increase in the number of replicas
     # ie for each case, calculate how much "range" is removed when increasing the replica
     sd_improvements = OrderedDict()
-    sd_improvement_range = []
     for system, data in trans_dgs.items():
         sds = []
         for rep_no, dgs in data.items():
-            interval95 = st.t.interval(
-                0.95, len(dgs) - 1, loc=np.mean(dgs), scale=st.sem(dgs)
-            )
+            st.t.interval(0.95, len(dgs) - 1, loc=np.mean(dgs), scale=st.sem(dgs))
             sd = np.std(dgs)
             # print(f'{system} with {rep_no}, sd {sd}')
             # print(f'{system} with {rep_no}, interval range {np.abs(interval95[0]-interval95[1])}')
@@ -91,9 +87,6 @@ def plot_dgs(trans_dgs, sd_improvements, work_dir, filename, yrange=0.5, plots=[
         plt.xlim([0.5, 20 + 0.5])
         plt.title(tran.rsplit("/")[-1])
 
-        # give files their own specific name
-        tseed = str(time.time()).split(".")[1]
-
         for number_of_reps, dGs in data.items():
             plt.boxplot(
                 dGs,
@@ -107,7 +100,7 @@ def plot_dgs(trans_dgs, sd_improvements, work_dir, filename, yrange=0.5, plots=[
         plt.xticks(range(0, 20 + 1, 2), range(0, 20 + 1, 2))
 
         reps_largest = data[max(data.keys())]
-        reps_largest_mean = np.mean(reps_largest)
+        reps_largest_mean = np.mean(reps_largest)  # noqa: F841
         # plt.ylim(reps_largest_mean - yrange, reps_largest_mean + yrange)
 
         counter += 1

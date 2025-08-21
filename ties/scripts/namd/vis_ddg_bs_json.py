@@ -62,13 +62,10 @@ def combine(transformations):
     # plot the information in improvement as a function of an increase in the number of replicas
     # ie for each case, calculate how much "range" is removed when increasing the replica
     sd_improvements = {}
-    sd_improvement_range = []
     for system, data in trans_dgs.items():
         sds = []
         for rep_no, dgs in data.items():
-            interval95 = st.t.interval(
-                0.95, len(dgs) - 1, loc=np.mean(dgs), scale=st.sem(dgs)
-            )
+            st.t.interval(0.95, len(dgs) - 1, loc=np.mean(dgs), scale=st.sem(dgs))
             sd = np.std(dgs)
             # print(f'{system} with {rep_no}, sd {sd}')
             # print(f'{system} with {rep_no}, interval range {np.abs(interval95[0]-interval95[1])}')
