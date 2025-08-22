@@ -71,7 +71,7 @@ class Config:
         self._complex_tleap_in = None
 
         self._superimposition_starting_pairs = None
-        self._superimposition_starting_heuristic = 0
+        self._superimposition_starting_heuristic = 0.6
 
         self._protein_ff = None
         self._ligand_ff = "leaprc.gaff"
