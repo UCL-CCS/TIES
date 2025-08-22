@@ -44,7 +44,7 @@ def test_rdkit_mols_atom_types():
     ccco.SetProp("BCCAtomTypes", "['c', 'c2', 'c3', 'o']")
 
     pair = Pair(cco, ccco)
-    suptop = pair.superimpose()
+    suptop = pair.superimpose(superimposition_starting_heuristic=1.0)
     assert len(suptop) == 2
 
 
