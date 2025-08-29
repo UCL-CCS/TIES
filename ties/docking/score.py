@@ -43,7 +43,7 @@ def extract_best_conformer(
         relative_permittivity=4,
         water_model=None,
         platform_name="CPU",  # or e.g. 'CUDA'
-        ligand_freeze=ligand_atoms_to_freeze,
+        ligand_indices_to_freeze=ligand_atoms_to_freeze,
     )
 
     # save the lowest energy conformer
