@@ -2,6 +2,7 @@ import itertools
 import logging
 import warnings
 import ast
+from pathlib import Path
 
 import parmed
 import rdkit
@@ -76,7 +77,7 @@ def get_atoms_bonds_and_parmed_structure(filename, use_general_type=True):
     """
 
     # load if .sdf
-    if filename.suffix.lower() == ".sdf":
+    if Path(filename).suffix.lower() == ".sdf":
         warnings.warn(
             f"Reading .sdf ({filename}) via RDKit - using only the first conformer. "
         )
@@ -131,7 +132,6 @@ def get_atoms_bonds_from_pmd_structure(parmed_structure: parmed.Structure):
     bonds = [(b.atom1.idx, b.atom2.idx, b.order) for b in parmed_structure.bonds]
 
     for from_idx, to_idx, bond_type in bonds:
-        print("bonds", from_idx, to_idx, bond_type)
         atoms[from_idx].bind_to(atoms[to_idx], bond_type)
 
     # verify: the ids and the order in the list is the same
