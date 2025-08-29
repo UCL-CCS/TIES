@@ -1,10 +1,11 @@
-import itertools
 import logging
 import warnings
 import ast
 from pathlib import Path
+from io import StringIO
 
 import parmed
+from parmed.formats.pdb import PDBFile
 import rdkit
 import rdkit.Chem
 
@@ -15,26 +16,29 @@ logger = logging.getLogger(__name__)
 periodic_table = rdkit.Chem.GetPeriodicTable()
 
 
-def pmd_structure_from_rdmol(mol: rdkit.Chem.Mol):
+def pmd_structure_from_rdmol(rd_mol: rdkit.Chem.Mol):
     """
     Generate a parmed structure from an RDKit Mol.
 
     The atom types and charges are extracted from the properties.
 
-    :param mol:
+    :param rd_mol:
     :return:
     """
-    parmed_structure = parmed.load_rdkit(mol)
+
+    # use directly PDB since that is what parmed is always using
+    fh = StringIO(rdkit.Chem.MolToPDBBlock(rd_mol))
+    parmed_structure = PDBFile.parse(fh, skip_bonds=True)
 
     # verify that they are the same structures
-    for rd_a, pmd_a in zip(mol.GetAtoms(), parmed_structure.atoms):
+    for rd_a, pmd_a in zip(rd_mol.GetAtoms(), parmed_structure.atoms):
         assert rd_a.GetAtomicNum() == pmd_a.atomic_number
 
     # extract the charges and the atom types
     pq_prop_openff = "atom.dprop.PartialCharge"
-    if mol.HasProp(pq_prop_openff):
-        pqs = list(map(float, mol.GetProp(pq_prop_openff).split()))
-        assert len(pqs) == mol.GetNumAtoms()
+    if rd_mol.HasProp(pq_prop_openff):
+        pqs = list(map(float, rd_mol.GetProp(pq_prop_openff).split()))
+        assert len(pqs) == rd_mol.GetNumAtoms()
         for atom, pq in zip(parmed_structure.atoms, pqs):
             atom.charge = pq
     else:
@@ -43,27 +47,44 @@ def pmd_structure_from_rdmol(mol: rdkit.Chem.Mol):
         )
 
     at_prop = "BCCAtomTypes"
-    if mol.HasProp("%s" % at_prop):
-        ats = ast.literal_eval(mol.GetProp("%s" % at_prop))
-        assert len(ats) == mol.GetNumAtoms()
+    if rd_mol.HasProp("%s" % at_prop):
+        ats = ast.literal_eval(rd_mol.GetProp("%s" % at_prop))
+        assert len(ats) == rd_mol.GetNumAtoms()
         for atom, pq in zip(parmed_structure.atoms, ats):
             atom.type = pq
     else:
         warnings.warn(f"Missing atom types property ({at_prop}) in the RDKit molecule")
 
-    # remove extra bonds in parmed (conversion issues)
-    for rd_bond, pmd_bond in list(
-        itertools.zip_longest(mol.GetBonds(), parmed_structure.bonds, fillvalue=None)
-    )[::-1]:
-        if rd_bond is None:
-            parmed_structure.bonds.remove(pmd_bond)
-            continue
+    # check if every bond from the RDKit molecule is in the parmed structure
+    for rd_bond in rd_mol.GetBonds():
+        found = False
+        for pmd_bond in parmed_structure.bonds:
+            if (
+                rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
+                and rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+            ):
+                found = True
 
-        # sanity
-        assert rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
-        assert rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+        if not found:
+            raise Exception(
+                "Missing a bond in parmed structure after a conversion from an rdkit molecule"
+            )
 
-    assert mol.GetNumBonds() == len(parmed_structure.bonds)
+    # check the opposite, are there any extra bonds?
+    for pmd_bond in parmed_structure.bonds:
+        found = False
+        for rd_bond in rd_mol.GetBonds():
+            if (
+                rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
+                and rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+            ):
+                found = True
+                break
+
+        if not found:
+            raise Exception(
+                "The new parmed structure contains a bond that could not be found in the original rdkit molecule"
+            )
 
     return parmed_structure
 
