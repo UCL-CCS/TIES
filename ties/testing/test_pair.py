@@ -16,7 +16,7 @@ def test_atom_names_uniqe(data):
 
     # it's convoluted, but we have to open separately the newly created file
     ligA = parmed.load_file(str(pair.current_ligA))
-    ligZ = parmed.load_file(str(pair.current_ligZ))
+    ligZ = parmed.load_file(str(pair.current_ligB))
 
     common_atom_names = {a.name for a in ligA.atoms}.intersection(
         {a.name for a in ligZ.atoms}
@@ -44,7 +44,7 @@ def test_rdkit_mols_atom_types():
     ccco.SetProp("BCCAtomTypes", "['c', 'c2', 'c3', 'o']")
 
     pair = Pair(cco, ccco)
-    suptop = pair.superimpose(superimposition_starting_heuristic=1.0)
+    suptop = pair.superimpose(use_element_in_superimposition=False)
     assert len(suptop) == 2
 
 
@@ -60,5 +60,5 @@ def test_rdkit_mols_partial_charges():
     ccco.SetProp("atom.dprop.PartialCharge", "0 0 -0.1 0.1")
 
     pair = Pair(cco, ccco)
-    suptop = pair.superimpose()
+    suptop = pair.superimpose(use_element_in_superimposition=False)
     assert len(suptop) == 2

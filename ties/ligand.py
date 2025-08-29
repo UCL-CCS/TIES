@@ -2,13 +2,15 @@ import os
 import subprocess
 import shutil
 import logging
+import uuid
 from pathlib import Path
 
 import parmed
 import rdkit.Chem
 
-import ties.helpers
 from ties.config import Config
+from ties.helpers import get_new_atom_names
+from ties import parsing
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +21,7 @@ class Ligand:
     The ligand helper class. Helps to load and manage the different copies of the ligand file.
     Specifically, it tracks the different copies of the original input files as it is transformed (e.g. charge assignment).
 
-    :param ligand: ligand filepath
+    :param ligand: ligand filepath or RDKit molecule
     :type ligand: string
     :param config: Optional configuration from which the relevant ligand settings can be used
     :type config: :class:`Config`
@@ -27,28 +29,34 @@ class Ligand:
     :type save: bool
     """
 
-    LIG_COUNTER = 0
-
-    _USED_FILENAMES = set()
-
-    def __init__(self, ligand, config=None, save=True):
+    def __init__(self, ligand, config=None, save=True, use_general_type=True):
         """Constructor method"""
 
         self.save = save
         # save workplace root
         self.config = Config() if config is None else config
 
-        if issubclass(type(ligand), rdkit.Chem.Mol):
-            import uuid
+        if isinstance(ligand, rdkit.Chem.Mol):
+            pmd_structure = parsing.pmd_structure_from_rdmol(ligand)
+            atoms, bonds = parsing.get_atoms_bonds_from_pmd_structure(pmd_structure)
 
+            # at the moment we rely on paths as well
+            # make this molecule available as a file
             short_uuid = str(uuid.uuid4())[:8]
-
             lig_path = self.config.workdir / f"{short_uuid}.sdf"
             with rdkit.Chem.SDWriter(lig_path) as SD:
                 SD.write(ligand)
 
-            # provide the path of the jsut saved molecule
             ligand = lig_path
+        else:
+            # fixme - move use_general_type parameter to config for later
+            atoms, bonds, pmd_structure = parsing.get_atoms_bonds_and_parmed_structure(
+                ligand, use_general_type=use_general_type
+            )
+
+        self.pmd_structure = pmd_structure
+        self.atoms = atoms
+        self.bonds = bonds
 
         self.config.ligand_files = ligand
 
@@ -57,210 +65,19 @@ class Ligand:
         # internal name without an extension
         self.internal_name = self.original_input.stem
 
-        # ligand names have to be unique
-        if self.internal_name in Ligand._USED_FILENAMES and self.config.uses_cmd:
-            raise ValueError(
-                f"ERROR: the ligand filename {self.internal_name} is not unique in the list of ligands. "
-            )
-        else:
-            Ligand._USED_FILENAMES.add(self.internal_name)
-
         # last used representative Path file
         self.current = self.original_input
 
-        # internal index
-        # TODO - move to config
-        self.index = Ligand.LIG_COUNTER
-        Ligand.LIG_COUNTER += 1
-
         self._renaming_map = None
         self.ligand_with_uniq_atom_names = None
-
-        # If .ac format (ambertools, similar to .pdb), convert it to .mol2 using antechamber
-        self.convert_acprep_to_mol2()
 
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
 
-    def convert_acprep_to_mol2(self):
-        """
-        If the file is not a prep/ac file, this function does not do anything.
-        Antechamber is called to convert the .prepi/.prep/.ac file into a .mol2 file.
-
-        Returns: the name of the original file, or of it was .prepi, a new filename with .mol2
-        """
-
-        if self.current.suffix.lower() not in (".ac", ".prep"):
-            return
-
-        filetype = {".ac": "ac", ".prep": "prepi"}[self.current.suffix.lower()]
-
-        cwd = self.config.lig_acprep_dir / self.internal_name
-        if not cwd.is_dir():
-            cwd.mkdir(parents=True, exist_ok=True)
-
-        # prepare the .mol2 files with antechamber (ambertools), assign BCC charges if necessary
-        logger.debug(f"Antechamber: converting {filetype} to mol2")
-        new_current = cwd / (self.internal_name + ".mol2")
-
-        log_filename = cwd / "antechamber_conversion.log"
-        with open(log_filename, "w") as LOG:
-            try:
-                subprocess.run(
-                    [
-                        self.config.ambertools_antechamber,
-                        "-i",
-                        self.current,
-                        "-fi",
-                        filetype,
-                        "-o",
-                        new_current,
-                        "-fo",
-                        "mol2",
-                        "-dr",
-                        self.config.antechamber_dr,
-                    ],
-                    stdout=LOG,
-                    stderr=LOG,
-                    check=True,
-                    text=True,
-                    cwd=cwd,
-                    timeout=30,
-                )
-            except subprocess.CalledProcessError as E:
-                raise Exception(
-                    "An error occurred during the antechamber conversion from .ac to .mol2 data type. "
-                    f"The output was saved in the directory: {cwd}"
-                    f"Please see the log file for the exact error information: {log_filename}"
-                ) from E
-
-        # update
-        self.original_ac = self.current
-        self.current = new_current
-        logger.debug(
-            f"Converted .ac file to .mol2. The location of the new file: {self.current}"
-        )
-
-    def are_atom_names_correct(self):
-        """
-        Checks if atom names:
-         - are unique
-         - have a correct format "LettersNumbers" e.g. C17
-        """
-        ligand = parmed.load_file(str(self.current), structure=True)
-        atom_names = [a.name for a in ligand.atoms]
-
-        are_uniqe = len(set(atom_names)) == len(atom_names)
-
-        return are_uniqe
-
-    @staticmethod
-    def _do_atom_names_have_correct_format(names):
-        """
-        Check if the atom name is followed by a number, e.g. "C15"
-        Note that the full atom name cannot be more than 4 characters.
-        This is because the PDB format does not allow for more
-        characters which can lead to inconsistencies.
-
-        :param names: a list of atom names
-        :type names: list[str]
-        :return True if they all follow the correct format.
-        """
-        for name in names:
-            # cannot exceed 4 characters
-            if len(name) > 4:
-                return False
-
-            # count letters before any digit
-            letter_count = 0
-            for letter in name:
-                if not letter.isalpha():
-                    break
-
-                letter_count += 1
-
-            # at least one character
-            if letter_count == 0:
-                return False
-
-            # extrac the number suffix
-            atom_number = name[letter_count:]
-            try:
-                int(atom_number)
-            except Exception:
-                return False
-
-        return True
-
-    def correct_atom_names(self):
-        """
-        Ensure that each atom name:
-         - is unique
-         - has letter followed by digits
-         - has max 4 characters
-        E.g. C17, NX23
-
-        :param self.save: if the path is provided, the updated file
-            will be saved with the unique names and a handle to the new file (ParmEd) will be returned.
-        """
-        if self.are_atom_names_correct():
-            return
-
-        logger.debug(f"Ligand {self.internal_name} will have its atom names renamed. ")
-
-        ligand = parmed.load_file(str(self.current), structure=True)
-
-        logger.debug(
-            f"Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique "
-            f"or do not follow NameDigit format (e.g. C15). Renaming"
-        )
-        _, renaming_map = ties.helpers.get_new_atom_names(ligand.atoms)
-        self._renaming_map = renaming_map
-        logger.debug(f"Rename map: {renaming_map}")
-
-        # save the output here
-        os.makedirs(self.config.lig_unique_atom_names_dir, exist_ok=True)
-
-        ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (
-            self.internal_name + self.current.suffix
-        )
-        if self.save:
-            ligand.save(str(ligand_with_uniq_atom_names))
-
-        self.ligand_with_uniq_atom_names = ligand_with_uniq_atom_names
-        self.parmed = ligand
-        # this object is now represented by the updated ligand
-        self.current = ligand_with_uniq_atom_names
-
-    @property
-    def renaming_map(self):
-        """
-        Otherwise, key: newName, value: oldName.
-
-        If None, means no renaming took place.
-        """
-        return self._renaming_map
-
-    @property
-    def rev_renaming_map(self):
-        return {b: c for c, b in self._renaming_map.items()}
-
-    @renaming_map.setter
-    def renaming_map(self, dict):
-        if self._renaming_map is None:
-            self._renaming_map = dict
-        else:
-            # this ligand was already renamed before.
-            # so B -> A, where A is the original value,
-            # and B is the new value (guarantted to be unique, therefore the key)
-            # Now B is renamed to C, so we need to have C -> A
-            # For each renamed B value here, we have to find the A value
-            # fixme: this works only if Bs are unique
-
-            # dict: C -> B. We know that C and B are unique. Therefore, reverse for convenience
-            rev_dict = {b: c for c, b in dict.items()}
-            self._renaming_map = {rev_dict[b]: a for b, a in self._renaming_map.items()}
+    def use_element(self, value):
+        for atom in self.atoms:
+            atom.use_general_type = value
 
     # make this into a python property
     def suffix(self):
@@ -339,9 +156,9 @@ class Ligand:
         self.current = mol2_target
 
         # remove any DUMMY DU atoms in the .mol2 atoms
-        self.removeDU_atoms()
+        self._removeDU_atoms()
 
-    def removeDU_atoms(self):
+    def _removeDU_atoms(self):
         """
         Ambertools antechamber creates sometimes DU dummy atoms.
         These are not created when BCC charges are computed from scratch.
@@ -421,3 +238,56 @@ class Ligand:
 
         logger.debug(f"Parmchk2: created frcmod: {target_frcmod}")
         self.frcmod = cwd / target_frcmod
+
+    def correct_atom_names(self):
+        """
+        Ensure that each atom name:
+         - is unique
+         - has letter followed by digits
+         - has max 4 characters
+        E.g. C17, NX23
+
+        :param self.save: if the path is provided, the updated file
+            will be saved with the unique names and a handle to the new file (ParmEd) will be returned.
+        """
+        if self.are_atom_names_correct():
+            return
+
+        logger.debug(f"Ligand {self.internal_name} will have its atom names renamed. ")
+
+        ligand = parmed.load_file(str(self.current), structure=True)
+
+        logger.debug(
+            f"Atom names in the molecule ({self.original_input}/{self.internal_name}) are either not unique "
+            f"or do not follow NameDigit format (e.g. C15). Renaming"
+        )
+        _, renaming_map = get_new_atom_names(ligand.atoms)
+        self._renaming_map = renaming_map
+        logger.debug(f"Rename map: {renaming_map}")
+
+        # save the output here
+        os.makedirs(self.config.lig_unique_atom_names_dir, exist_ok=True)
+
+        ligand_with_uniq_atom_names = self.config.lig_unique_atom_names_dir / (
+            self.internal_name + self.current.suffix
+        )
+        if self.save:
+            ligand.save(str(ligand_with_uniq_atom_names))
+
+        self.ligand_with_uniq_atom_names = ligand_with_uniq_atom_names
+        self.parmed = ligand
+        # this object is now represented by the updated ligand
+        self.current = ligand_with_uniq_atom_names
+
+    def are_atom_names_correct(self):
+        """
+        Checks if atom names:
+         - are unique
+         - have a correct format "LettersNumbers" e.g. C17
+        """
+        ligand = parmed.load_file(str(self.current), structure=True)
+        atom_names = [a.name for a in ligand.atoms]
+
+        are_uniqe = len(set(atom_names)) == len(atom_names)
+
+        return are_uniqe

@@ -42,16 +42,16 @@ class LigandMap:
         # weights based on the size of the superimposed topology
         self.map_weights = numpy.zeros([len(self.ligands), len(self.ligands)])
         for morph in self.morphs:
-            self.map[morph.ligA.index][morph.ligZ.index] = morph
-            self.map[morph.ligZ.index][morph.ligA.index] = morph
+            self.map[morph.ligA.index][morph.ligB.index] = morph
+            self.map[morph.ligB.index][morph.ligA.index] = morph
 
             matched_left, matched_right, disappearing_atoms, appearing_atoms = (
                 morph.overlap_fractions()
             )
             # use the average number of matched fractions in both ligands
             weight = 1 - (matched_left + matched_right) / 2.0
-            self.map_weights[morph.ligA.index][morph.ligZ.index] = weight
-            self.map_weights[morph.ligZ.index][morph.ligA.index] = weight
+            self.map_weights[morph.ligA.index][morph.ligB.index] = weight
+            self.map_weights[morph.ligB.index][morph.ligA.index] = weight
 
             # update also the morph
             morph.set_distance(weight)
@@ -64,8 +64,8 @@ class LigandMap:
         for morph in self.morphs:
             graph.add_edge(
                 morph.ligA,
-                morph.ligZ,
-                weight=self.map_weights[morph.ligA.index][morph.ligZ.index],
+                morph.ligB,
+                weight=self.map_weights[morph.ligA.index][morph.ligB.index],
             )
 
         self.graph = graph
@@ -125,7 +125,7 @@ class LigandMap:
         chosen_transformations = []
         for (ligA, ligZ), _ in mst.edges.items():
             for morph in self.morphs:
-                if morph.ligA == ligA and morph.ligZ == ligZ:
+                if morph.ligA == ligA and morph.ligB == ligZ:
                     chosen_transformations.append(morph)
                     break
         return chosen_transformations
