@@ -10,6 +10,7 @@ import rdkit
 import rdkit.Chem
 
 from ties.bb.atom import Atom
+from ties.bb.gaff_atom_types import gaff_element_map
 
 
 logger = logging.getLogger(__name__)
@@ -105,11 +106,44 @@ def get_atoms_bonds_and_parmed_structure(filename, use_general_type=True):
         mol = rdkit.Chem.SDMolSupplier(filename, removeHs=False)[0]
         parmed_structure = pmd_structure_from_rdmol(mol)
     else:
-        parmed_structure = parmed.load_file(str(filename), structure=True)
+        parmed_structure: parmed.Structure = parmed.load_file(
+            str(filename), structure=True
+        )
+        correct_mol2_gaff_atoms(parmed_structure)
 
     atoms, bonds = get_atoms_bonds_from_pmd_structure(parmed_structure)
 
     return atoms, bonds, parmed_structure
+
+
+def is_gaff_atoms(parmed_structure: parmed.Structure) -> bool:
+    gaff_atom_types = set(gaff_element_map.keys())
+    for atom in parmed_structure.atoms:
+        if atom.type not in gaff_atom_types:
+            return False
+
+    return True
+
+
+def correct_mol2_gaff_atoms(parmed_structure: parmed.Structure):
+    """
+    The mol2 gaff atom types are not understood by Parmed.
+
+    e.g. "cl" are not read as chlorine, but as carbon
+
+    This functions corrects them by modifying the input structure.
+    """
+
+    if not is_gaff_atoms(parmed_structure):
+        return
+
+    for atom in parmed_structure.atoms:
+        element = periodic_table.GetAtomicNumber(gaff_element_map[atom.type.upper()])
+        if element != atom.element:
+            # correct the atomic number
+            atom.element = element
+            # check that it updated the element name
+            assert atom.element_name == gaff_element_map[atom.type.upper()]
 
 
 def get_atoms_bonds_from_pmd_structure(parmed_structure: parmed.Structure):
