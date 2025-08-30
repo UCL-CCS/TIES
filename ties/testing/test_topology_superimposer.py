@@ -15,7 +15,7 @@ import json
 from ties import Ligand, Pair, Config
 from ties.topology_superimposer import (
     _superimpose_topologies,
-    _get_atoms_bonds_using_parmed,
+    get_atoms_bonds_and_parmed_structure,
     get_starting_configurations,
 )
 from ties.bb.atom import Atom
@@ -299,7 +299,7 @@ def test_atom_extraction_from_rdkit_mol():
     rd_mol = rdkit.Chem.MolFromSmiles(atoms_smiles)
 
     ligand = Ligand(rd_mol)
-    atoms, bonds, pmd_mol = _get_atoms_bonds_using_parmed(ligand.current)
+    atoms, bonds, pmd_mol = get_atoms_bonds_and_parmed_structure(ligand.current)
 
     for atom, ref_atom in zip(atoms, atoms_smiles):
         assert atom.element == ref_atom

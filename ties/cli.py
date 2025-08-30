@@ -335,7 +335,7 @@ def command_line_script():
         "-elements",
         "--compare-elements",
         metavar="boolean",
-        dest="use_element",
+        dest="use_element_in_superimposition",
         type=ArgparseChecker.str2bool,
         required=False,
         default=False,

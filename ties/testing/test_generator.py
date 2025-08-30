@@ -12,6 +12,7 @@ import ties.generator
 from ties.ligand import Ligand
 from ties import Pair
 from ties import Config
+from ties.parsing import do_atom_names_have_simple_format
 
 
 def test_no_same_atom_names(indole_cl1):
@@ -27,8 +28,8 @@ def test_no_same_atom_names(indole_cl1):
     assert len(intersection) == 0
 
 
-def test_ligand_rename_atom_names_unique():
-    lig = Ligand("data/p38_ligands_01.pdb", save=False)
+def test_ligand_rename_atom_names_unique(data):
+    lig = Ligand(data / "p38_ligands_01.pdb", save=False)
     lig.correct_atom_names()
     assert len({a.name for a in lig.parmed.atoms}) == len(
         [a.name for a in lig.parmed.atoms]
@@ -44,43 +45,35 @@ def test_are_correct_names():
     lig.add_atom(parmed.Atom(name="O1"), "resname", 1)
     lig.add_atom(parmed.Atom(name="H1"), "resname", 1)
 
-    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+    assert do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_name_empty():
     lig = parmed.Structure()
     lig.add_atom(parmed.Atom(name=""), "resname", 1)
 
-    assert not ties.Ligand._do_atom_names_have_correct_format(
-        [a.name for a in lig.atoms]
-    )
+    assert not do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_name_missing_digit():
     lig = parmed.Structure()
     lig.add_atom(parmed.Atom(name="C"), "resname", 1)
 
-    assert not ties.Ligand._do_atom_names_have_correct_format(
-        [a.name for a in lig.atoms]
-    )
+    assert not do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_name_missing_letters():
     lig = parmed.Structure()
     lig.add_atom(parmed.Atom(name="17"), "resname", 1)
 
-    assert not ties.Ligand._do_atom_names_have_correct_format(
-        [a.name for a in lig.atoms]
-    )
+    assert not do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_name_4_char_limit():
     lig = parmed.Structure()
     lig.add_atom(parmed.Atom(name="OOOO1"), "resname", 1)
 
-    assert not ties.Ligand._do_atom_names_have_correct_format(
-        [a.name for a in lig.atoms]
-    )
+    assert not do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_name_corner_case():
@@ -89,7 +82,7 @@ def test_atom_name_corner_case():
     lig.add_atom(parmed.Atom(name="ABC1"), "resname", 1)
     lig.add_atom(parmed.Atom(name="C999"), "resname", 1)
 
-    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+    assert do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 def test_atom_names_not_unique():
@@ -99,7 +92,7 @@ def test_atom_names_not_unique():
     lig.add_atom(parmed.Atom(name="H1"), "resname", 1)
     lig.add_atom(parmed.Atom(name="O1"), "resname", 1)
 
-    assert ties.Ligand._do_atom_names_have_correct_format([a.name for a in lig.atoms])
+    assert do_atom_names_have_simple_format([a.name for a in lig.atoms])
 
 
 # should be a test?

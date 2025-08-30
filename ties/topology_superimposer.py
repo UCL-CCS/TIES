@@ -16,20 +16,16 @@ import warnings
 from typing import Dict, List
 from functools import reduce
 from collections import OrderedDict
-from ast import literal_eval
 
 import MDAnalysis
 import MDAnalysis.analysis.align
 
 import numpy as np
 import networkx as nx
-import parmed
-import rdkit.Chem
 
 import ties.config
 import ties.generator
-from ties.bb.atom import Atom
-
+from ties.parsing import get_atoms_bonds_and_parmed_structure
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings(
@@ -168,7 +164,7 @@ class SuperimposedTopology:
         if filename is None:
             matching_json = (
                 self.config.workdir
-                / f"meta_{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}.json"
+                / f"meta_{self.morph.ligA.internal_name}_{self.morph.ligB.internal_name}.json"
             )
         else:
             matching_json = pathlib.Path(filename)
@@ -184,7 +180,7 @@ class SuperimposedTopology:
         if filename is None:
             morph_pdb_path = (
                 self.config.workdir
-                / f"{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.pdb"
+                / f"{self.morph.ligA.internal_name}_{self.morph.ligB.internal_name}_morph.pdb"
             )
         else:
             morph_pdb_path = filename
@@ -268,7 +264,7 @@ class SuperimposedTopology:
     def prepare_inputs(self, protein=None):
         logger.debug("Ambertools parmchk2 generating frcmod files for ligands")
         self.morph.ligA.generate_frcmod()
-        self.morph.ligZ.generate_frcmod()
+        self.morph.ligB.generate_frcmod()
 
         # select the right tleap input file and directory
         if protein is None:
@@ -283,7 +279,7 @@ class SuperimposedTopology:
 
         cwd = (
             self.config.workdir
-            / f"ties-{self.morph.ligA.internal_name}-{self.morph.ligZ.internal_name}"
+            / f"ties-{self.morph.ligA.internal_name}-{self.morph.ligB.internal_name}"
             / dir_ligcom
         )
         cwd.mkdir(parents=True, exist_ok=True)
@@ -426,7 +422,7 @@ class SuperimposedTopology:
         if filename is None:
             hybrid_mol2 = (
                 self.config.workdir
-                / f"{self.morph.ligA.internal_name}_{self.morph.ligZ.internal_name}_morph.mol2"
+                / f"{self.morph.ligA.internal_name}_{self.morph.ligB.internal_name}_morph.mol2"
             )
         else:
             hybrid_mol2 = filename
@@ -3360,7 +3356,7 @@ def superimpose_topologies(
     net_charge_threshold=0.1,
     redistribute_charges_over_unmatched=True,
     parmed_ligA=None,
-    parmed_ligZ=None,
+    parmed_ligB=None,
     align_molecules=True,
     partial_rings_allowed=False,
     ignore_charges_completely=False,
@@ -3368,7 +3364,6 @@ def superimpose_topologies(
     ignore_coords=False,
     use_general_type=True,
     use_only_element=False,
-    check_atom_names_unique=True,
     starting_pairs_heuristics=0.2,
     starting_pair_seed=None,
     logging_key=None,
@@ -3390,18 +3385,6 @@ def superimpose_topologies(
     if not ignore_charges_completely:
         SuperimposedTopology.validate_charges(top1_nodes, top2_nodes)
 
-    # ensure that none of the atom names across the two molecules are the different
-    if check_atom_names_unique:
-        same_atom_names = {a.name for a in top1_nodes}.intersection(
-            {a.name for a in top2_nodes}
-        )
-        if len(same_atom_names) != 0:
-            logger.debug(
-                f"The atoms across the two ligands have the same atom names. "
-                f"This might make it harder to trace back any problems. "
-                f"Please ensure atom names are unique across the two ligands. : {same_atom_names}"
-            )
-
     # deal with the situation where the config is not passed
     if config is None:
         weights = [1, 1]
@@ -3415,7 +3398,7 @@ def superimpose_topologies(
         top1_nodes,
         top2_nodes,
         parmed_ligA,
-        parmed_ligZ,
+        parmed_ligB,
         starting_node_pairs=starting_node_pairs,
         ignore_coords=ignore_coords,
         use_general_type=use_general_type,
@@ -3441,7 +3424,7 @@ def superimpose_topologies(
     for suptop in suptops:
         # fixme - transition to config
         suptop.set_tops(top1_nodes, top2_nodes)
-        suptop.set_parmeds(parmed_ligA, parmed_ligZ)
+        suptop.set_parmeds(parmed_ligA, parmed_ligB)
 
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
@@ -4362,116 +4345,6 @@ def sup_top_correct_chirality(sup_tops, sup_tops_no_charge, atol):
     # a local sup top travels in the wrong direction, then we have a clear issue
 
 
-def ties_pmd_from_rdmol(mol: rdkit.Chem.Mol):
-    """
-    Generate a parmed structure from an RDKit Mol.
-
-    The atom types and charges are extracted from the properties.
-
-    :param mol:
-    :return:
-    """
-    parmed_structure = parmed.load_rdkit(mol)
-
-    # verify that they are the same structures
-    for rd_a, pmd_a in zip(mol.GetAtoms(), parmed_structure.atoms):
-        assert rd_a.GetAtomicNum() == pmd_a.atomic_number
-
-    # extract the charges and the atom types
-    pq_prop_openff = "atom.dprop.PartialCharge"
-    if mol.HasProp(pq_prop_openff):
-        pqs = list(map(float, mol.GetProp(pq_prop_openff).split()))
-        assert len(pqs) == mol.GetNumAtoms()
-        for atom, pq in zip(parmed_structure.atoms, pqs):
-            atom.charge = pq
-    else:
-        warnings.warn(
-            f"Missing partial charges property ({pq_prop_openff}) from the RDKit Mol"
-        )
-
-    at_prop = "BCCAtomTypes"
-    if mol.HasProp("%s" % at_prop):
-        ats = literal_eval(mol.GetProp("%s" % at_prop))
-        assert len(ats) == mol.GetNumAtoms()
-        for atom, pq in zip(parmed_structure.atoms, ats):
-            atom.type = pq
-    else:
-        warnings.warn(f"Missing atom types property ({at_prop}) in the RDKit molecule")
-
-    return parmed_structure
-
-
-def _get_atoms_bonds_using_parmed(filename, use_general_type=True):
-    """
-    Use Parmed to load the files.
-
-    # returns
-    # 1) a dictionary with charges, e.g. Item: "C17" : -0.222903
-    # 2) a list of bonds
-    """
-    # manually load the file if it's .sdf
-    if filename.suffix.lower() == ".sdf":
-        warnings.warn(
-            f"Reading .sdf ({filename}) via RDKit - using only the first conformer. "
-        )
-        mol = rdkit.Chem.SDMolSupplier(filename, removeHs=False)[0]
-        parmed_structure = ties_pmd_from_rdmol(mol)
-    else:
-        parmed_structure = parmed.load_file(str(filename), structure=True)
-
-    periodic_table = rdkit.Chem.GetPeriodicTable()
-
-    def create_atoms(parmed_atoms):
-        """
-        # convert the Parmed atoms into Atom objects.
-        """
-        atoms = []
-        for parmed_atom in parmed_atoms:
-            atom_type = parmed_atom.type
-
-            if not atom_type:
-                # extract the element symbol from the atomic number
-                atom_type = periodic_table.GetElementSymbol(parmed_atom.atomic_number)
-
-            # atom type might be empty if
-            if not atom_type:
-                # use the atom name as the atom type, e.g. C7
-                atom_type = parmed_atom.name
-
-            try:
-                atom = Atom(
-                    name=parmed_atom.name,
-                    atom_type=atom_type,
-                    charge=parmed_atom.charge,
-                    use_general_type=use_general_type,
-                )
-            except AttributeError:
-                # most likely the charges were missing, manually set the charges to 0
-                atom = Atom(
-                    name=parmed_atom.name,
-                    atom_type=atom_type,
-                    charge=0.0,
-                    use_general_type=use_general_type,
-                )
-                logger.warning(
-                    "One of the input files is missing charges. Setting the charge to 0"
-                )
-            atom.id = parmed_atom.idx
-            atom.position = [parmed_atom.xx, parmed_atom.xy, parmed_atom.xz]
-            atom.resname = parmed_atom.residue.name
-            atoms.append(atom)
-        return atoms
-
-    universe_atoms = create_atoms(parmed_structure.atoms)
-
-    # fixme - add a check that all the charges come to 0 as declared in the header
-    universe_bonds = [
-        (b.atom1.idx, b.atom2.idx, b.order) for b in parmed_structure.bonds
-    ]
-
-    return universe_atoms, universe_bonds, parmed_structure
-
-
 def get_atoms_bonds_from_file(ref_filename, mob_filename, use_general_type=True):
     """
     Use Parmed to load the files.
@@ -4481,11 +4354,13 @@ def get_atoms_bonds_from_file(ref_filename, mob_filename, use_general_type=True)
     # 2) a list of bonds
     """
 
-    universe_ref_atoms, universe_ref_bonds, ref = _get_atoms_bonds_using_parmed(
+    universe_ref_atoms, universe_ref_bonds, ref = get_atoms_bonds_and_parmed_structure(
         ref_filename, use_general_type=use_general_type
     )
-    universe_mob_atoms, universe_mob_bonds, mobile = _get_atoms_bonds_using_parmed(
-        mob_filename, use_general_type=use_general_type
+    universe_mob_atoms, universe_mob_bonds, mobile = (
+        get_atoms_bonds_and_parmed_structure(
+            mob_filename, use_general_type=use_general_type
+        )
     )
 
     return (

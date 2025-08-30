@@ -49,7 +49,7 @@ class Config:
         self._redistribute_q_over_unmatched = True
         self._allow_disjoint_components = False
         # use only the element in the superimposition rather than the specific atom type
-        self._use_element = False
+        self._use_rdkit_mcs = True
         self._use_element_in_superimposition = True
         self._partial_ring_allowed = False
         self.starting_pairs_heuristics = True
@@ -438,6 +438,14 @@ class Config:
     def allow_disjoint_components(self, boolean):
         self._allow_disjoint_components = boolean
         logger.debug(f"Allowing disjoint components: {self._allow_disjoint_components}")
+
+    @property
+    def use_rdkit_mcs(self):
+        return self._use_rdkit_mcs
+
+    @use_rdkit_mcs.setter
+    def use_rdkit_mcs(self, val):
+        self._use_rdkit_mcs = val
 
     @property
     def use_element_in_superimposition(self):

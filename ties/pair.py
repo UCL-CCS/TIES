@@ -7,7 +7,6 @@ import logging
 import parmed
 
 import ties.helpers
-from ties.topology_superimposer import get_atoms_bonds_from_file
 from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
@@ -23,13 +22,13 @@ class Pair:
 
     :param ligA: The ligand to be used as the starting state for the transformation.
     :type ligA: :class:`Ligand` or string
-    :param ligZ: The ligand to be used as the ending point of the transformation.
-    :type ligZ: :class:`Ligand` or string
+    :param ligB: The ligand to be used as the ending point of the transformation.
+    :type ligB: :class:`Ligand` or string
     :param config: The configuration object holding all settings.
     :type config: :class:`Config`
     """
 
-    def __init__(self, ligA, ligZ, config=None, **kwargs):
+    def __init__(self, ligA, ligB, config=None, **kwargs):
         """
         Please use the Config class for the documentation of the possible kwargs.
         Each kwarg is passed to the config class.
@@ -47,7 +46,7 @@ class Pair:
 
         # tell Config about the ligands if necessary
         if self.config.ligands is None:
-            self.config.ligands = [ligA, ligZ]
+            self.config.ligands = [ligA, ligB]
 
         # create ligands if they're just paths
         if isinstance(ligA, ties.ligand.Ligand):
@@ -55,16 +54,16 @@ class Pair:
         else:
             self.ligA = ties.ligand.Ligand(ligA, self.config)
 
-        if isinstance(ligZ, ties.ligand.Ligand):
-            self.ligZ = ligZ
+        if isinstance(ligB, ties.ligand.Ligand):
+            self.ligB = ligB
         else:
-            self.ligZ = ties.ligand.Ligand(ligZ, self.config)
+            self.ligB = ties.ligand.Ligand(ligB, self.config)
 
-        # initialise the handles to the molecules that morph
+        # initialise the filepaths to the molecules that morph
         self.current_ligA = self.ligA.current
-        self.current_ligZ = self.ligZ.current
+        self.current_ligB = self.ligB.current
 
-        self.internal_name = f"{self.ligA.internal_name}_{self.ligZ.internal_name}"
+        self.internal_name = f"{self.ligA.internal_name}_{self.ligB.internal_name}"
         self.mol2 = None
         self.pdb = None
         self.summary = None
@@ -88,59 +87,28 @@ class Pair:
         object passed in the constructor.
 
         fixme - list all relevant kwargs here
-
-        :param use_element_in_superimposition: bool whether the superimposition should rely on the element initially,
-            before refining the results with a more specific check of the atom type.
-        :param manually_matched_atom_pairs:
-        :param manually_mismatched_pairs:
-        :param redistribute_q_over_unmatched:
         """
         self.config.set_configs(**kwargs)
 
-        # use ParmEd to load the files
-        # fixme - move this to the Morph class instead of this place,
-        # fixme - should not squash all messsages. For example, wrong type file should not be squashed
-        (
-            leftlig_atoms,
-            leftlig_bonds,
-            rightlig_atoms,
-            rightlig_bonds,
-            parmed_ligA,
-            parmed_ligZ,
-        ) = get_atoms_bonds_from_file(
-            self.current_ligA,
-            self.current_ligZ,
-            use_general_type=self.config.use_element_in_superimposition,
-        )
-        # fixme - manual match should be improved here and allow for a sensible format.
+        self.ligA.use_element(self.config._use_element_in_superimposition)
+        self.ligB.use_element(self.config._use_element_in_superimposition)
 
-        # in case the atoms were renamed, pass the names via the map renaming map
-        # TODO
-        # ligZ_old_new_atomname_map
+        # extract data from the ligands
+        ligA_atoms = self.ligA.atoms
+        ligA_pmd_structure = self.ligA.pmd_structure
+
+        ligB_atoms = self.ligB.atoms
+        ligB_pmd_structure = self.ligB.pmd_structure
+
+        # TODO - check that these atoms exist, use indices instead of names, ideally C:7 (Element:Idx)
         new_mismatch_names = []
         for a, z in self.config.manually_mismatched_pairs:
-            new_names = (self.ligA.rev_renaming_map[a], self.ligZ.rev_renaming_map[z])
+            raise NotImplementedError("renamed not needed")
+            new_names = (self.ligA.rev_renaming_map[a], self.ligB.rev_renaming_map[z])
             logger.debug(
                 f"Selecting mismatching atoms. The mismatch {(a, z)}) was renamed to {new_names}"
             )
             new_mismatch_names.append(new_names)
-
-        # assign
-        # fixme - Ideally I would reuse the ParmEd data for this,
-        # ParmEd can use bonds if they are present - fixme
-        # map atom IDs to their objects
-        ligand1_nodes = {}
-        for atomNode in leftlig_atoms:
-            ligand1_nodes[atomNode.id] = atomNode
-        # link them together
-        for nfrom, nto, btype in leftlig_bonds:
-            ligand1_nodes[nfrom].bind_to(ligand1_nodes[nto], btype)
-
-        ligand2_nodes = {}
-        for atomNode in rightlig_atoms:
-            ligand2_nodes[atomNode.id] = atomNode
-        for nfrom, nto, btype in rightlig_bonds:
-            ligand2_nodes[nfrom].bind_to(ligand2_nodes[nto], btype)
 
         # fixme - this should be moved out of here,
         #  ideally there would be a function in the main interface for this
@@ -153,18 +121,18 @@ class Pair:
         for l_aname, r_aname in manual_match:
             # find the starting node pairs, ie the manually matched pair(s)
             found_left_node = None
-            for id, ln in ligand1_nodes.items():
-                if l_aname == ln.name:
-                    found_left_node = ln
+            for atom in ligA_atoms:
+                if l_aname == atom.name:
+                    found_left_node = atom
             if found_left_node is None:
                 raise ValueError(
                     f'Manual Matching: could not find an atom name: "{l_aname}" in the left molecule'
                 )
 
             found_right_node = None
-            for id, ln in ligand2_nodes.items():
-                if r_aname == ln.name:
-                    found_right_node = ln
+            for atom in ligB_atoms:
+                if r_aname == atom.name:
+                    found_right_node = atom
             if found_right_node is None:
                 raise ValueError(
                     f'Manual Matching: could not find an atom name: "{r_aname}" in the right molecule'
@@ -179,8 +147,8 @@ class Pair:
 
         # fixme - simplify to only take the ParmEd as input
         suptop = superimpose_topologies(
-            ligand1_nodes.values(),
-            ligand2_nodes.values(),
+            ligA_atoms,
+            ligB_atoms,
             disjoint_components=self.config.allow_disjoint_components,
             net_charge_filter=True,
             pair_charge_atol=self.config.atom_pair_q_atol,
@@ -194,18 +162,17 @@ class Pair:
             use_general_type=self.config.use_element_in_superimposition,
             # fixme - not the same ... use_element_in_superimposition,
             use_only_element=False,
-            check_atom_names_unique=True,  # fixme - remove?
             starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
             force_mismatch=new_mismatch_names,
             starting_node_pairs=starting_node_pairs,
-            parmed_ligA=parmed_ligA,
-            parmed_ligZ=parmed_ligZ,
+            parmed_ligA=ligA_pmd_structure,
+            parmed_ligB=ligB_pmd_structure,
             starting_pair_seed=self.config.superimposition_starting_pairs,
             logging_key=logging_key,
             config=self.config,
         )
 
-        self.set_suptop(suptop, parmed_ligA, parmed_ligZ)
+        self.set_suptop(suptop, ligA_pmd_structure, ligB_pmd_structure)
         # attach the used config to the suptop
 
         if suptop is not None:
@@ -253,16 +220,16 @@ class Pair:
 
         # load both ligands
         left = parmed.load_file(str(self.ligA.current), structure=True)
-        right = parmed.load_file(str(self.ligZ.current), structure=True)
+        right = parmed.load_file(str(self.ligB.current), structure=True)
 
         common_atom_names = {a.name for a in right.atoms}.intersection(
             {a.name for a in left.atoms}
         )
         atom_names_overlap = len(common_atom_names) > 0
 
-        if atom_names_overlap or not self.ligZ.are_atom_names_correct():
+        if atom_names_overlap or not self.ligB.are_atom_names_correct():
             logger.debug(
-                f"Renaming ({self.ligA.internal_name}) molecule ({self.ligZ.internal_name}) atom names are either reused or do not follow the correct format. "
+                f"Renaming ({self.ligA.internal_name}) molecule ({self.ligB.internal_name}) atom names are either reused or do not follow the correct format. "
             )
             if atom_names_overlap:
                 logger.debug(f"Common atom names: {common_atom_names}")
@@ -270,7 +237,7 @@ class Pair:
             _, renaming_map = ties.helpers.get_new_atom_names(
                 right.atoms, name_counter=name_counter_L_nodes
             )
-            self.ligZ.renaming_map = renaming_map
+            self.ligB.renaming_map = renaming_map
 
         # rename the residue names to INI and FIN
         for atom in left.atoms:
@@ -287,19 +254,19 @@ class Pair:
         if out_ligA_filename is None:
             cwd = (
                 self.config.pair_unique_atom_names_dir
-                / f"{self.ligA.internal_name}_{self.ligZ.internal_name}"
+                / f"{self.ligA.internal_name}_{self.ligB.internal_name}"
             )
             cwd.mkdir(parents=True, exist_ok=True)
 
             self.current_ligA = cwd / (self.ligA.internal_name + ".mol2")
-            self.current_ligZ = cwd / (self.ligZ.internal_name + ".mol2")
+            self.current_ligB = cwd / (self.ligB.internal_name + ".mol2")
         else:
             self.current_ligA = out_ligA_filename
-            self.current_ligZ = out_ligZ_filename
+            self.current_ligB = out_ligZ_filename
 
         # save the updated atom names
         left.save(str(self.current_ligA))
-        right.save(str(self.current_ligZ))
+        right.save(str(self.current_ligB))
 
     def check_json_file(self):
         """
@@ -312,7 +279,7 @@ class Pair:
         """
         matching_json = (
             self.config.workdir
-            / f"fep_{self.ligA.internal_name}_{self.ligZ.internal_name}.json"
+            / f"fep_{self.ligA.internal_name}_{self.ligB.internal_name}.json"
         )
         if not matching_json.is_file():
             return None
@@ -342,7 +309,7 @@ class Pair:
         ligand_ff = self.config.ligand_ff
 
         frcmod_info1 = ties.helpers.parse_frcmod_sections(self.ligA.frcmod)
-        frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligZ.frcmod)
+        frcmod_info2 = ties.helpers.parse_frcmod_sections(self.ligB.frcmod)
 
         cwd = self.config.workdir
 
@@ -351,7 +318,7 @@ class Pair:
         if ligcom:
             morph_frcmod = (
                 cwd
-                / f"ties-{self.ligA.internal_name}-{self.ligZ.internal_name}"
+                / f"ties-{self.ligA.internal_name}-{self.ligB.internal_name}"
                 / ligcom
                 / "build"
                 / "hybrid.frcmod"
@@ -360,7 +327,7 @@ class Pair:
             # fixme - clean up
             morph_frcmod = (
                 cwd
-                / f"ties-{self.ligA.internal_name}-{self.ligZ.internal_name}"
+                / f"ties-{self.ligA.internal_name}-{self.ligB.internal_name}"
                 / "build"
                 / "hybrid.frcmod"
             )

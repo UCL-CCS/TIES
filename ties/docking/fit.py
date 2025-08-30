@@ -55,6 +55,7 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
 
     mapping = [(a.id, b.id) for a, b in matched_pairs if a.element != "H"]
 
+    # calculate the score
     top1_noh = [a for a in sup.top1 if a.element != "H"]
     top2_noh = [a for a in sup.top2 if a.element != "H"]
     score = len(mapping) * 2 / (len(top1_noh) + len(top2_noh))
