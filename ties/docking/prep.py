@@ -9,6 +9,8 @@ Room for improvement:
  - protein binding pocket aware protonation
 """
 
+import pathlib
+
 import openff
 from openff.toolkit import ForceField
 from openff.units import unit
@@ -88,8 +90,35 @@ def param_general_conf(mol: openff.toolkit.Molecule, max_min_iterations=10_000):
     # establish that the order is the same
     assert all([a.attrs["name"] == off_a.name for a, off_a in zip(atoms, mol.atoms)])
     # get the types
-    bcc_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
+    gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
 
-    mol.properties["BCCAtomTypes"] = str(bcc_types)
+    mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
 
     return mol
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-sdf",
+        metavar="str",
+        dest="sdf",
+        type=pathlib.Path,
+        required=False,
+        default=False,
+        help="An SDF file with molecules",
+    )
+    args = parser.parse_args()
+
+    if args.sdf:
+        mols = openff.toolkit.Molecule.from_file(args.sdf)
+        for mol in mols:
+            param_mol = param_general_conf(mol)
+            out_sdf = pathlib.Path(param_mol.name + ".sdf")
+            if out_sdf.exists():
+                print("file exists already: ", out_sdf)
+                continue
+
+            param_mol.to_file(out_sdf, file_format="sdf")
