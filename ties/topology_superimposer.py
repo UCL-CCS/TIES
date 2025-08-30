@@ -13,7 +13,6 @@ import logging
 import subprocess
 import pathlib
 import warnings
-from typing import Dict, List
 from functools import reduce
 from collections import OrderedDict
 

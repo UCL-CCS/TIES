@@ -354,7 +354,7 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
     return item_or_list(different_length_suptops)
 
 
-def are_consistent_topologies(suptops: list["SuperimposedTopology"]):
+def are_consistent_topologies(suptops: list["SuperimposedTopology"]):  # noqa: F821
     # each to each topology has to be check if they are all consistent
     for p1, p2 in itertools.combinations(suptops, r=2):
         if not p1.is_consistent_with(p2):
