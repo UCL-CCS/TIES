@@ -4,7 +4,7 @@ import re
 import numpy as np
 
 from ties.bb.bond import Bond, Bonds
-from ties.config import Config
+from ties.bb.gaff_atom_types import gaff_element_map
 
 
 class Atom:
@@ -81,10 +81,9 @@ class Atom:
 
         # save the general type
         # fixme - ideally it would use the config class that would use the right mapping
-        element_map = Config.get_element_map()
         # strip the element from the associated digits/numbers
         no_trailing_digits = re.match("[A-Za-z]*", self.type)[0]
-        self.element = element_map[no_trailing_digits]
+        self.element = gaff_element_map[no_trailing_digits]
 
     @property
     def position(self):

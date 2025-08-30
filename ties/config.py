@@ -932,35 +932,6 @@ class Config:
         """
         return self.workdir / "mol2"
 
-    @staticmethod
-    def get_element_map():
-        """
-
-
-        :return:
-        """
-        # Get the mapping of atom types to elements
-        element_map_filename = (
-            pathlib.Path(os.path.dirname(__file__))
-            / "data"
-            / "element_atom_type_map.txt"
-        )
-        # remove the comments lines with #
-        lines = filter(
-            lambda line: not line.strip().startswith("#") and not line.strip() == "",
-            open(element_map_filename).readlines(),
-        )
-        # convert into a dictionary
-
-        element_map = {}
-        for line in lines:
-            element, atom_types = line.split("=")
-
-            for atom_type in atom_types.split():
-                element_map[atom_type.strip()] = element.strip()
-
-        return element_map
-
     # fixme - this should be determined at the location where it is relevant rather than here in the conf
     # antechamber parameters, by default compute AM1-BCC charges
     antechamber_charge_type = ["-c", "bcc"]
