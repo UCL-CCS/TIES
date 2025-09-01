@@ -40,8 +40,8 @@ def test_rdkit_mols_atom_types():
     ccco = rdkit.Chem.MolFromSmiles("CCCO")
 
     # only the first two atom types match
-    cco.SetProp("BCCAtomTypes", "['c', 'c2', 'o']")
-    ccco.SetProp("BCCAtomTypes", "['c', 'c2', 'c3', 'o']")
+    cco.SetProp("atom.dprop.GAFFAtomType", "c c2 o")
+    ccco.SetProp("atom.dprop.GAFFAtomType", "c c2 c3 o")
 
     pair = Pair(cco, ccco)
     suptop = pair.superimpose(use_element_in_superimposition=False)
