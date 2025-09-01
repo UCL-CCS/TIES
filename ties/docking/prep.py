@@ -9,7 +9,7 @@ Room for improvement:
  - protein binding pocket aware protonation
 """
 
-import pathlib
+from pathlib import Path
 
 import openff
 from openff.toolkit import ForceField
@@ -100,23 +100,64 @@ def param_general_conf(mol: openff.toolkit.Molecule, max_min_iterations=10_000):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "-sdf",
         metavar="str",
         dest="sdf",
-        type=pathlib.Path,
+        type=Path,
         required=False,
         default=False,
         help="An SDF file with molecules",
     )
+    parser.add_argument(
+        "-smiid",
+        metavar="str",
+        dest="smiid",
+        type=Path,
+        required=False,
+        default=False,
+        help="A files with smiles and ID/name in the second column. ",
+    )
+    parser.add_argument(
+        "-dir",
+        metavar="str",
+        dest="out_dir",
+        type=Path,
+        required=False,
+        default=Path("mols"),
+        help="Directory to which the output should be saved",
+    )
     args = parser.parse_args()
+
+    out_dir: Path = args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.sdf:
         mols = openff.toolkit.Molecule.from_file(args.sdf)
         for mol in mols:
             param_mol = param_general_conf(mol)
-            out_sdf = pathlib.Path(param_mol.name + ".sdf")
+
+            out_sdf = out_dir / Path(param_mol.name + ".sdf")
+            if out_sdf.exists():
+                print("file exists already: ", out_sdf)
+                continue
+
+            param_mol.to_file(out_sdf, file_format="sdf")
+
+    if args.smiid:
+        for line in open(args.smiid).readlines():
+            print("Next Smiles", line)
+
+            smi, mol_id = line.strip().rsplit("\t", maxsplit=1)
+            mol = openff.toolkit.Molecule.from_smiles(smi, allow_undefined_stereo=True)
+            mol.name = mol_id
+
+            param_mol = param_general_conf(mol)
+
+            out_sdf = out_dir / Path(param_mol.name + ".sdf")
             if out_sdf.exists():
                 print("file exists already: ", out_sdf)
                 continue
