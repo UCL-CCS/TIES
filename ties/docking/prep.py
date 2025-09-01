@@ -21,6 +21,7 @@ from openff.units import Quantity
 from openmmforcefields.generators import GAFFTemplateGenerator
 from bs4 import BeautifulSoup
 
+from ties.helpers import ArgparseChecker
 from ties.docking.utils import paths_from_glob
 
 forcefield = ForceField("openff-2.2.1.offxml")
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-sdfs",
-        metavar="str",
+        metavar="glob or file",
         dest="sdfs",
         type=paths_from_glob,
         required=False,
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-smiid",
-        metavar="str",
+        metavar="filename",
         dest="smiid",
         type=Path,
         required=False,
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-dir",
-        metavar="str",
+        metavar="dirname",
         dest="out_dir",
         type=Path,
         required=False,
@@ -139,17 +140,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-confs",
-        metavar="str",
-        dest="generate_new_conformers",
-        type=Path,
+        metavar="bool",
+        dest="modify_conformers",
+        type=ArgparseChecker.str2bool,
         required=False,
         default=True,
-        help="Generate new conformers (ignore existing ones)",
+        help="Generate and optimise conformers (ignore existing ones)",
     )
     args = parser.parse_args()
 
     out_dir: Path = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    print("Generating and optimising conformers: ", args.modify_conformers)
 
     if args.sdfs:
         # assume one molecule per SDF
@@ -158,7 +161,7 @@ if __name__ == "__main__":
 
             mol = openff.toolkit.Molecule.from_file(sdf, allow_undefined_stereo=True)
 
-            param_mol = param_general_conf(mol)
+            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
 
             out_sdf = out_dir / Path(param_mol.name + ".sdf")
             if out_sdf.exists():
@@ -175,7 +178,7 @@ if __name__ == "__main__":
             mol = openff.toolkit.Molecule.from_smiles(smi, allow_undefined_stereo=True)
             mol.name = mol_id
 
-            param_mol = param_general_conf(mol)
+            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
 
             out_sdf = out_dir / Path(param_mol.name + ".sdf")
             if out_sdf.exists():
