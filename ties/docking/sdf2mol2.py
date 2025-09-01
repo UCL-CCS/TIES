@@ -19,7 +19,7 @@ def sdf_to_mol2(filename: Path, resname="MOL"):
     rd_mol = Chem.SDMolSupplier(str(filename), removeHs=False)[0]
 
     # extract the props
-    bcc_types = literal_eval(rd_mol.GetProp("BCCAtomTypes"))
+    bcc_types = rd_mol.GetProp("atom.dprop.GAFFAtomType").split()
     partial_charges = map(float, rd_mol.GetProp("atom.dprop.PartialCharge").split())
 
     pmd_mol = pmd.load_rdkit(rd_mol)

@@ -60,7 +60,7 @@ def mol2_to_sdf(filename: Path, resname="MOL"):
             raise NotImplementedError("Missing bonds?")
 
     # extract the props
-    rdmol.SetProp("BCCAtomTypes", str([a.type for a in mol2.atoms]))
+    rdmol.SetProp("atom.dprop.GAFFAtomType", str([a.type for a in mol2.atoms]))
     rdmol.SetProp(
         "atom.dprop.PartialCharge", " ".join(str(a.charge) for a in mol2.atoms)
     )
