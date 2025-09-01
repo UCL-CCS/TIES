@@ -1,6 +1,5 @@
 import logging
 import warnings
-import ast
 from pathlib import Path
 from io import StringIO
 
@@ -47,12 +46,20 @@ def pmd_structure_from_rdmol(rd_mol: rdkit.Chem.Mol):
             f"Missing partial charges property ({pq_prop_openff}) from the RDKit Mol"
         )
 
-    at_prop = "BCCAtomTypes"
+    # fast fail - avoid using wrong files
+    # fixme - temporary, remove after a few weeks
+    if rd_mol.HasProp("BCCAtomTypes"):
+        raise Exception(
+            "Please update your SDF. The property BCCAtomTypes is not allowed anymore. "
+            "Use the standardised atom.dprop.GAFFAtomType"
+        )
+
+    at_prop = "atom.dprop.GAFFAtomType"
     if rd_mol.HasProp("%s" % at_prop):
-        ats = ast.literal_eval(rd_mol.GetProp("%s" % at_prop))
+        ats = list(rd_mol.GetProp(at_prop).split())
         assert len(ats) == rd_mol.GetNumAtoms()
-        for atom, pq in zip(parmed_structure.atoms, ats):
-            atom.type = pq
+        for atom, at in zip(parmed_structure.atoms, ats):
+            atom.type = at
     else:
         warnings.warn(f"Missing atom types property ({at_prop}) in the RDKit molecule")
 

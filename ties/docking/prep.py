@@ -9,6 +9,8 @@ Room for improvement:
  - protein binding pocket aware protonation
 """
 
+from pathlib import Path
+
 import openff
 from openff.toolkit import ForceField
 from openff.units import unit
@@ -19,19 +21,43 @@ from openff.units import Quantity
 from openmmforcefields.generators import GAFFTemplateGenerator
 from bs4 import BeautifulSoup
 
+from ties.helpers import ArgparseChecker
+from ties.docking.utils import paths_from_glob
 
 forcefield = ForceField("openff-2.2.1.offxml")
 
 
-def param_general_conf(mol: openff.toolkit.Molecule, max_min_iterations=10_000):
+def param_general_conf(
+    mol: openff.toolkit.Molecule,
+    modify_conformer=True,
+    max_min_iterations=10_000,
+):
     # Generate multiple conformers and use the lowest energy one
     mol.assign_partial_charges(
         partial_charge_method="am1bccelf10",
     )
 
-    # Generate initial conformers
-    mol.clear_conformers()
+    ## add GAFF BCC atom types
+    original_conformer = mol.conformers[0]
+    gaff = GAFFTemplateGenerator(molecules=mol)
+    bcc_mol = gaff.generate_residue_template(mol)
 
+    soup = BeautifulSoup(bcc_mol, "xml")
+    atoms = list(soup.find("Residue").children)
+    # establish that the order is the same
+    assert all([a.attrs["name"] == off_a.name for a, off_a in zip(atoms, mol.atoms)])
+    # get the types
+    gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
+
+    mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
+    mol.conformers[0] = original_conformer
+
+    if not modify_conformer:
+        # do not change the existing conformer
+        return mol
+
+    ## Generate initial conformers
+    mol.clear_conformers()
     mol.generate_conformers(n_conformers=200, rms_cutoff=0.1 * unit.angstrom)
 
     interchange = Interchange.from_smirnoff(
@@ -79,17 +105,86 @@ def param_general_conf(mol: openff.toolkit.Molecule, max_min_iterations=10_000):
     mol.add_conformer(best_conf)
     mol.properties["best_conf_ene"] = best_energy
 
-    ## add GAFF BCC atom types
-    gaff = GAFFTemplateGenerator(molecules=mol)
-    bcc_mol = gaff.generate_residue_template(mol)
-
-    soup = BeautifulSoup(bcc_mol, "xml")
-    atoms = list(soup.find("Residue").children)
-    # establish that the order is the same
-    assert all([a.attrs["name"] == off_a.name for a, off_a in zip(atoms, mol.atoms)])
-    # get the types
-    bcc_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
-
-    mol.properties["BCCAtomTypes"] = str(bcc_types)
-
     return mol
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "-sdfs",
+        metavar="glob or file",
+        dest="sdfs",
+        type=paths_from_glob,
+        required=False,
+        help="An SDF file with molecules",
+    )
+    parser.add_argument(
+        "-smiid",
+        metavar="filename",
+        dest="smiid",
+        type=Path,
+        required=False,
+        default=False,
+        help="A files with smiles and ID/name in the second column. ",
+    )
+    parser.add_argument(
+        "-dir",
+        metavar="dirname",
+        dest="out_dir",
+        type=Path,
+        required=False,
+        default=Path("mols"),
+        help="Directory to which the output should be saved",
+    )
+    parser.add_argument(
+        "-confs",
+        metavar="bool",
+        dest="modify_conformers",
+        type=ArgparseChecker.str2bool,
+        required=False,
+        default=True,
+        help="Generate and optimise conformers (ignore existing ones)",
+    )
+    args = parser.parse_args()
+
+    out_dir: Path = args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print("Generating and optimising conformers: ", args.modify_conformers)
+
+    if args.sdfs:
+        # assume one molecule per SDF
+        for sdf in args.sdfs:
+            print(sdf)
+
+            mol = openff.toolkit.Molecule.from_file(sdf, allow_undefined_stereo=True)
+
+            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
+
+            out_sdf = out_dir / Path(param_mol.name + ".sdf")
+            if out_sdf.exists():
+                print("file exists already: ", out_sdf)
+                continue
+
+            param_mol.to_file(out_sdf, file_format="sdf")
+
+    if args.smiid:
+        for line in open(args.smiid).readlines():
+            print("Next Smiles", line)
+
+            smi, mol_id = line.strip().rsplit("\t", maxsplit=1)
+            mol = openff.toolkit.Molecule.from_smiles(smi, allow_undefined_stereo=True)
+            mol.name = mol_id
+
+            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
+
+            out_sdf = out_dir / Path(param_mol.name + ".sdf")
+            if out_sdf.exists():
+                print("file exists already: ", out_sdf)
+                continue
+
+            param_mol.to_file(out_sdf, file_format="sdf")

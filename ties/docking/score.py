@@ -2,12 +2,17 @@
 Score conformers in the binding pocket using MM potential energy.
 """
 
+import argparse
 import os
 from ast import literal_eval
+from pathlib import Path
 
 from rdkit import Chem
 import prody
 import fegrow
+from openff.toolkit import Molecule
+
+from ties.docking.utils import paths_from_glob, load_conformers
 
 
 def extract_best_conformer(
@@ -78,9 +83,59 @@ def prepare_protein(name, parsed_pdb="fe_rec_final.pdb"):
     protein = prody.parsePDB(parsed_pdb)
     return protein, parsed_pdb
 
-
-if __name__ == "__main__":
+    # if __name__ == "__main__":
     # minimise the energies for each conformer
     # and save the most energetically favourable
-    prody_protein, parsed_pdb = prepare_protein("protein.pdb")
-    extract_best_conformer("mols/74.mol2", prody_protein, parsed_pdb)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "-sdfs",
+        metavar="str",
+        dest="filenames",
+        type=paths_from_glob,
+        required=False,
+        default="fitted/*.sdf",
+        help="An SDF file with molecules",
+    )
+    parser.add_argument(
+        "-prot",
+        metavar="str",
+        dest="protein",
+        type=Path,
+        required=True,
+        help="The protein for scoring with FEgrow (see FEgrow on how to prepare the PDB)",
+    )
+    parser.add_argument(
+        "-dir",
+        metavar="str",
+        dest="out_dir",
+        type=Path,
+        required=False,
+        default=Path("results"),
+        help="Directory to which the output should be saved",
+    )
+    args = parser.parse_args()
+
+    out_dir = args.out_dir
+    out_dir.mkdir(exist_ok=True)
+
+    prody_protein, parsed_pdb = prepare_protein(args.protein)
+
+    for filename in args.filenames:
+        print("Next", filename)
+
+        fitconfs = load_conformers(filename)
+
+        filename_result = out_dir / f"{filename.stem}.sdf"
+        if filename_result.exists():
+            continue
+
+        try:
+            bestconf = extract_best_conformer(fitconfs, prody_protein, parsed_pdb)
+            Molecule.from_rdkit(bestconf).to_file(filename_result, file_format="sdf")
+        except Exception as E:
+            print("failed", filename, E)

@@ -2,33 +2,17 @@
 Use FEgrow for MCS docking, with TIES for the MCS.
 """
 
+import argparse
+from pathlib import Path
 import warnings
 import time
 
 from rdkit import Chem
 import fegrow
+from openff.toolkit import Molecule
 
 from ties import Pair, Config
-
-
-def write_mol(mol: Chem.Mol, filename):
-    with Chem.SDWriter(filename) as SD:
-        for conf in mol.GetConformers():
-            SD.write(mol, confId=conf.GetId())
-
-
-def load_conformers(sdf) -> Chem.Mol:
-    """
-    Load the SDF as one mol with many conformers
-    """
-    mol = None
-    for conf in Chem.SDMolSupplier(sdf, removeHs=False):
-        if mol is None:
-            mol = conf
-
-        mol.AddConformer(conf.GetConformer(), assignId=True)
-
-    return mol
+from ties.docking.utils import paths_from_glob, write_mol
 
 
 def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
@@ -98,3 +82,47 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     rlig.SetProp("MCS(ref,lig)", str(mapping))
 
     return rlig
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "-sdfs",
+        metavar="str",
+        dest="filenames",
+        type=paths_from_glob,
+        required=False,
+        default="mols/*.sdf",
+        help="An SDF file with molecules",
+    )
+    parser.add_argument(
+        "-ref",
+        metavar="str",
+        dest="reference",
+        type=Path,
+        required=True,
+        help="A SDF reference molecule file for fitting",
+    )
+    parser.add_argument(
+        "-dir",
+        metavar="str",
+        dest="out_dir",
+        type=Path,
+        required=False,
+        default=Path("fitted"),
+        help="Directory to which the output should be saved",
+    )
+    args = parser.parse_args()
+
+    out_dir = args.out_dir
+    out_dir.mkdir(exist_ok=True)
+
+    ref = Molecule.from_file(args.reference, allow_undefined_stereo=True)
+
+    for filename in args.filenames:
+        print(filename)
+        mol = Molecule.from_file(filename, allow_undefined_stereo=True)
+        confs = mcs_fit(ref.to_rdkit(), mol.to_rdkit())
+        write_mol(confs, out_dir / f"{mol.name}.sdf")
