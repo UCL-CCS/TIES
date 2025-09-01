@@ -103,8 +103,7 @@ if __name__ == "__main__":
         dest="reference",
         type=Path,
         required=True,
-        default="ref_crystal.sdf",
-        help="A SDF reference molecule for fitting",
+        help="A SDF reference molecule file for fitting",
     )
     parser.add_argument(
         "-dir",
