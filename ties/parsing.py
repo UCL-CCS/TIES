@@ -46,6 +46,14 @@ def pmd_structure_from_rdmol(rd_mol: rdkit.Chem.Mol):
             f"Missing partial charges property ({pq_prop_openff}) from the RDKit Mol"
         )
 
+    # fast fail - avoid using wrong files
+    # fixme - temporary, remove after a few weeks
+    if rd_mol.HasProp("BCCAtomTypes"):
+        raise Exception(
+            "Please update your SDF. The property BCCAtomTypes is not allowed anymore. "
+            "Use the standardised atom.dprop.GAFFAtomType"
+        )
+
     at_prop = "atom.dprop.GAFFAtomType"
     if rd_mol.HasProp("%s" % at_prop):
         ats = list(rd_mol.GetProp(at_prop).split())
