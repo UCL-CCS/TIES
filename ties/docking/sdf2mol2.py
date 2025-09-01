@@ -11,7 +11,7 @@ import argparse
 from ties import Ligand
 
 
-def sdf_to_mol2(filename: Path, resname="MOL"):
+def sdf_to_mol2(filename: Path):
     warnings.warn("Reading only 1 frame from the SDF")
     ligand = Ligand(filename)
     ligand.pmd_structure.save(str(filename.parent / f"{filename.stem}.mol2"))
