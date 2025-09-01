@@ -37,8 +37,11 @@ def param_general_conf(
         partial_charge_method="am1bccelf10",
     )
 
+    # store the original conformer to be restored
+    if not modify_conformer:
+        original_conformer = mol.conformers[0]
+
     ## add GAFF BCC atom types
-    original_conformer = mol.conformers[0]
     gaff = GAFFTemplateGenerator(molecules=mol)
     bcc_mol = gaff.generate_residue_template(mol)
 
@@ -50,10 +53,10 @@ def param_general_conf(
     gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
 
     mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
-    mol.conformers[0] = original_conformer
 
     if not modify_conformer:
         # do not change the existing conformer
+        mol.conformers[0] = original_conformer
         return mol
 
     ## Generate initial conformers
