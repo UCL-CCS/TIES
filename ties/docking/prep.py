@@ -38,6 +38,7 @@ def param_general_conf(
     )
 
     ## add GAFF BCC atom types
+    original_conformer = mol.conformers[0]
     gaff = GAFFTemplateGenerator(molecules=mol)
     bcc_mol = gaff.generate_residue_template(mol)
 
@@ -49,6 +50,7 @@ def param_general_conf(
     gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
 
     mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
+    mol.conformers[0] = original_conformer
 
     if not modify_conformer:
         # do not change the existing conformer
