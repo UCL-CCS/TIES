@@ -21,20 +21,25 @@ from openff.units import Quantity
 from openmmforcefields.generators import GAFFTemplateGenerator
 from bs4 import BeautifulSoup
 
+from ties.docking.utils import paths_from_glob
 
 forcefield = ForceField("openff-2.2.1.offxml")
 
 
-def param_general_conf(mol: openff.toolkit.Molecule, max_min_iterations=10_000):
+def param_general_conf(
+    mol: openff.toolkit.Molecule,
+    generate_new_conformers=True,
+    max_min_iterations=10_000,
+):
     # Generate multiple conformers and use the lowest energy one
     mol.assign_partial_charges(
         partial_charge_method="am1bccelf10",
     )
 
     # Generate initial conformers
-    mol.clear_conformers()
-
-    mol.generate_conformers(n_conformers=200, rms_cutoff=0.1 * unit.angstrom)
+    if generate_new_conformers:
+        mol.clear_conformers()
+        mol.generate_conformers(n_conformers=200, rms_cutoff=0.1 * unit.angstrom)
 
     interchange = Interchange.from_smirnoff(
         force_field=forcefield, topology=mol.to_topology()
@@ -104,12 +109,11 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "-sdf",
+        "-sdfs",
         metavar="str",
-        dest="sdf",
-        type=Path,
+        dest="sdfs",
+        type=paths_from_glob,
         required=False,
-        default=False,
         help="An SDF file with molecules",
     )
     parser.add_argument(
@@ -130,14 +134,27 @@ if __name__ == "__main__":
         default=Path("mols"),
         help="Directory to which the output should be saved",
     )
+    parser.add_argument(
+        "-confs",
+        metavar="str",
+        dest="generate_new_conformers",
+        type=Path,
+        required=False,
+        default=True,
+        help="Generate new conformers (ignore existing ones)",
+    )
     args = parser.parse_args()
 
     out_dir: Path = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.sdf:
-        mols = openff.toolkit.Molecule.from_file(args.sdf, allow_undefined_stereo=True)
-        for mol in mols:
+    if args.sdfs:
+        # assume one molecule per SDF
+        for sdf in args.sdfs:
+            print(sdf)
+
+            mol = openff.toolkit.Molecule.from_file(sdf, allow_undefined_stereo=True)
+
             param_mol = param_general_conf(mol)
 
             out_sdf = out_dir / Path(param_mol.name + ".sdf")
