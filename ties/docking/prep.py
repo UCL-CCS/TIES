@@ -136,7 +136,7 @@ if __name__ == "__main__":
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.sdf:
-        mols = openff.toolkit.Molecule.from_file(args.sdf)
+        mols = openff.toolkit.Molecule.from_file(args.sdf, allow_undefined_stereo=True)
         for mol in mols:
             param_mol = param_general_conf(mol)
 
