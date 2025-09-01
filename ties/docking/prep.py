@@ -28,7 +28,7 @@ forcefield = ForceField("openff-2.2.1.offxml")
 
 def param_general_conf(
     mol: openff.toolkit.Molecule,
-    generate_new_conformers=True,
+    modify_conformer=True,
     max_min_iterations=10_000,
 ):
     # Generate multiple conformers and use the lowest energy one
@@ -36,10 +36,26 @@ def param_general_conf(
         partial_charge_method="am1bccelf10",
     )
 
-    # Generate initial conformers
-    if generate_new_conformers:
-        mol.clear_conformers()
-        mol.generate_conformers(n_conformers=200, rms_cutoff=0.1 * unit.angstrom)
+    ## add GAFF BCC atom types
+    gaff = GAFFTemplateGenerator(molecules=mol)
+    bcc_mol = gaff.generate_residue_template(mol)
+
+    soup = BeautifulSoup(bcc_mol, "xml")
+    atoms = list(soup.find("Residue").children)
+    # establish that the order is the same
+    assert all([a.attrs["name"] == off_a.name for a, off_a in zip(atoms, mol.atoms)])
+    # get the types
+    gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
+
+    mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
+
+    if not modify_conformer:
+        # do not change the existing conformer
+        return mol
+
+    ## Generate initial conformers
+    mol.clear_conformers()
+    mol.generate_conformers(n_conformers=200, rms_cutoff=0.1 * unit.angstrom)
 
     interchange = Interchange.from_smirnoff(
         force_field=forcefield, topology=mol.to_topology()
@@ -85,19 +101,6 @@ def param_general_conf(
     mol.clear_conformers()
     mol.add_conformer(best_conf)
     mol.properties["best_conf_ene"] = best_energy
-
-    ## add GAFF BCC atom types
-    gaff = GAFFTemplateGenerator(molecules=mol)
-    bcc_mol = gaff.generate_residue_template(mol)
-
-    soup = BeautifulSoup(bcc_mol, "xml")
-    atoms = list(soup.find("Residue").children)
-    # establish that the order is the same
-    assert all([a.attrs["name"] == off_a.name for a, off_a in zip(atoms, mol.atoms)])
-    # get the types
-    gaff_types = [a.attrs["type"] for a in atoms if a.name == "Atom"]
-
-    mol.properties["atom.dprop.GAFFAtomType"] = " ".join(gaff_types)
 
     return mol
 
