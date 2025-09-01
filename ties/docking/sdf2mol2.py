@@ -7,7 +7,6 @@ Extract the charges and the atom types from the properties.
 from pathlib import Path
 import sys
 import warnings
-from ast import literal_eval
 
 from rdkit import Chem
 import parmed as pmd
