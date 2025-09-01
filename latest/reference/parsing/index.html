@@ -1078,6 +1078,8 @@
       
         
       
+        
+      
     
     
     
@@ -1251,6 +1253,29 @@
   
   <span class="md-ellipsis">
     <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> sdf2mol2
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docking/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> utils
     
   </span>
   
@@ -1947,7 +1972,8 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
+<span class="normal">20</span>
 <span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
@@ -2017,7 +2043,14 @@
 <span class="normal">87</span>
 <span class="normal">88</span>
 <span class="normal">89</span>
-<span class="normal">90</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pmd_structure_from_rdmol</span><span class="p">(</span><span class="n">rd_mol</span><span class="p">:</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">):</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pmd_structure_from_rdmol</span><span class="p">(</span><span class="n">rd_mol</span><span class="p">:</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a parmed structure from an RDKit Mol.</span>
 
@@ -2047,12 +2080,20 @@
             <span class="sa">f</span><span class="s2">&quot;Missing partial charges property (</span><span class="si">{</span><span class="n">pq_prop_openff</span><span class="si">}</span><span class="s2">) from the RDKit Mol&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">at_prop</span> <span class="o">=</span> <span class="s2">&quot;BCCAtomTypes&quot;</span>
+    <span class="c1"># fast fail - avoid using wrong files</span>
+    <span class="c1"># fixme - temporary, remove after a few weeks</span>
+    <span class="k">if</span> <span class="n">rd_mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">&quot;BCCAtomTypes&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s2">&quot;Please update your SDF. The property BCCAtomTypes is not allowed anymore. &quot;</span>
+            <span class="s2">&quot;Use the standardised atom.dprop.GAFFAtomType&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">at_prop</span> <span class="o">=</span> <span class="s2">&quot;atom.dprop.GAFFAtomType&quot;</span>
     <span class="k">if</span> <span class="n">rd_mol</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">at_prop</span><span class="p">):</span>
-        <span class="n">ats</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">rd_mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">at_prop</span><span class="p">))</span>
+        <span class="n">ats</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rd_mol</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="n">at_prop</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ats</span><span class="p">)</span> <span class="o">==</span> <span class="n">rd_mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">atom</span><span class="p">,</span> <span class="n">pq</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">parmed_structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">ats</span><span class="p">):</span>
-            <span class="n">atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">pq</span>
+        <span class="k">for</span> <span class="n">atom</span><span class="p">,</span> <span class="n">at</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">parmed_structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">ats</span><span class="p">):</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">at</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing atom types property (</span><span class="si">{</span><span class="n">at_prop</span><span class="si">}</span><span class="s2">) in the RDKit molecule&quot;</span><span class="p">)</span>
 
@@ -2114,14 +2155,7 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
 <span class="normal">103</span>
@@ -2137,7 +2171,14 @@
 <span class="normal">113</span>
 <span class="normal">114</span>
 <span class="normal">115</span>
-<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    :param filename:</span>
@@ -2187,14 +2228,7 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">135</span>
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
@@ -2205,7 +2239,14 @@
 <span class="normal">143</span>
 <span class="normal">144</span>
 <span class="normal">145</span>
-<span class="normal">146</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_mol2_gaff_atoms</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_mol2_gaff_atoms</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The mol2 gaff atom types are not understood by Parmed.</span>
 
@@ -2248,14 +2289,7 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">156</span>
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span>
@@ -2295,7 +2329,14 @@
 <span class="normal">193</span>
 <span class="normal">194</span>
 <span class="normal">195</span>
-<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_pmd_structure</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_pmd_structure</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    # convert the Parmed atoms into Atom objects.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2373,14 +2414,7 @@ characters which can lead to inconsistencies.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
 <span class="normal">209</span>
@@ -2408,7 +2442,14 @@ characters which can lead to inconsistencies.</p>
 <span class="normal">231</span>
 <span class="normal">232</span>
 <span class="normal">233</span>
-<span class="normal">234</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">do_atom_names_have_simple_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">do_atom_names_have_simple_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check if the atom name is followed by a number, e.g. &quot;C15&quot;</span>
 <span class="sd">    Note that the full atom name cannot be more than 4 characters.</span>
