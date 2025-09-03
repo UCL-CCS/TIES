@@ -3116,9 +3116,12 @@ def superimpose_topologies(
     if config is None:
         weights = [1, 1]
         align_add_removed_mcs = False
+        use_rdkit_mcs = False
     else:
+        # tmp solution
         weights = config.weights_ratio
         align_add_removed_mcs = config.align_add_removed_mcs
+        use_rdkit_mcs = config.use_rdkit_mcs
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(
@@ -3132,7 +3135,7 @@ def superimpose_topologies(
         starting_pairs_heuristics=starting_pairs_heuristics,
         starting_pairs=starting_pair_seed,
         weights=weights,
-        rdkit_mcs=config.use_rdkit_mcs,
+        use_rdkit_mcs=use_rdkit_mcs,
     )
     if not suptops:
         warnings.warn("Did not find a single superimposition state.")
@@ -3655,7 +3658,7 @@ def _superimpose_topologies(
     starting_pairs_heuristics: float = 0,
     starting_pairs=None,
     weights=[1, 0],
-    rdkit_mcs=False,
+    use_rdkit_mcs=False,
 ):
     """
     Superimpose two molecules.
