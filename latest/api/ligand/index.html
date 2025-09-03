@@ -724,6 +724,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ties.Ligand.to_rdkit" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_rdkit
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1785,6 +1794,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ties.Ligand.to_rdkit" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_rdkit
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1869,6 +1887,13 @@ Specifically, it tracks the different copies of the original input files as it i
               <p>Checks if atom names:</p>
             </div>
           </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;to_rdkit&lt;/span&gt; (&lt;code&gt;ties.Ligand.to_rdkit&lt;/code&gt;)" href="#ties.Ligand.to_rdkit">to_rdkit</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Convert specifically the parmed object into a RDKit molecule</p>
+            </div>
+          </li>
     </ul>
 
 
@@ -1937,7 +1962,7 @@ Specifically, it tracks the different copies of the original input files as it i
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># fixme - move use_general_type parameter to config for later</span>
         <span class="n">atoms</span><span class="p">,</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">pmd_structure</span> <span class="o">=</span> <span class="n">parsing</span><span class="o">.</span><span class="n">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span>
-            <span class="n">ligand</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="n">use_general_type</span>
+            <span class="n">ligand</span>
         <span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span> <span class="o">=</span> <span class="n">pmd_structure</span>
@@ -2437,6 +2462,115 @@ Any DU atoms created in the antechamber call are removed.</p>
     <span class="n">are_uniqe</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">atom_names</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_names</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">are_uniqe</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="ties.Ligand.to_rdkit" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">to_rdkit</span>
+
+
+</h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">to_rdkit</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="rdkit.Chem.Mol">Mol</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Convert specifically the parmed object into a RDKit molecule</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>ties/ligand.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_rdkit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert specifically the parmed object into a RDKit molecule</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># convert</span>
+    <span class="n">rd_mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">rdkit_mol</span>
+
+    <span class="c1"># validate: check if the atoms are in the same order</span>
+    <span class="k">for</span> <span class="n">rdatom</span><span class="p">,</span> <span class="n">pmdatom</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rd_mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">rdatom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="n">pmdatom</span><span class="o">.</span><span class="n">atomic_number</span>
+
+    <span class="c1"># copy pmd bond order to rdmol</span>
+    <span class="k">for</span> <span class="n">rd_bond</span><span class="p">,</span> <span class="n">pmd_bond</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">rd_mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">bonds</span><span class="p">):</span>
+        <span class="c1"># verify the bonds are the same</span>
+        <span class="k">assert</span> <span class="n">rd_bond</span><span class="o">.</span><span class="n">GetBeginAtomIdx</span><span class="p">()</span> <span class="o">==</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">atom1</span><span class="o">.</span><span class="n">idx</span>
+        <span class="k">assert</span> <span class="n">rd_bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">()</span> <span class="o">==</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">atom2</span><span class="o">.</span><span class="n">idx</span>
+
+        <span class="c1"># see https://parmed.github.io/ParmEd/html/topobj/parmed.topologyobjects.Bond.html</span>
+        <span class="k">if</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">rd_bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">order</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">rd_bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">order</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">rd_bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">TRIPLE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pmd_bond</span><span class="o">.</span><span class="n">order</span> <span class="o">==</span> <span class="mf">1.5</span><span class="p">:</span>
+            <span class="n">rd_bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Missing bonds?&quot;</span><span class="p">)</span>
+
+    <span class="c1"># extract the props</span>
+    <span class="n">rd_mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span>
+        <span class="s2">&quot;atom.dprop.GAFFAtomType&quot;</span><span class="p">,</span>
+        <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">rd_mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span>
+        <span class="s2">&quot;atom.dprop.PartialCharge&quot;</span><span class="p">,</span>
+        <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">charge</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">rd_mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s2">&quot;_Name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rd_mol</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

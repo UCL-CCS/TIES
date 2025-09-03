@@ -8950,7 +8950,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">superimpose_topologies</span><span class="p">(</span><span class="n">top1_nodes</span><span class="p">,</span> <span class="n">top2_nodes</span><span class="p">,</span> <span class="n">pair_charge_atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">use_charges</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_coords</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">starting_node_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_mismatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">disjoint_components</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">net_charge_filter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">net_charge_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">redistribute_charges_over_unmatched</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parmed_ligA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parmed_ligB</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">align_molecules</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">partial_rings_allowed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ignore_charges_completely</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ignore_bond_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_only_element</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">starting_pairs_heuristics</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">starting_pair_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logging_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">superimpose_topologies</span><span class="p">(</span><span class="n">top1_nodes</span><span class="p">,</span> <span class="n">top2_nodes</span><span class="p">,</span> <span class="n">pair_charge_atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">use_charges</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_coords</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">starting_node_pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_mismatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">disjoint_components</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">net_charge_filter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">net_charge_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">redistribute_charges_over_unmatched</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ligA_pmd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ligB_pmd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">align_molecules</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">partial_rings_allowed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ignore_charges_completely</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ignore_bond_types</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_only_element</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">starting_pairs_heuristics</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">starting_pair_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logging_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9239,7 +9239,11 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">3347</span>
 <span class="normal">3348</span>
 <span class="normal">3349</span>
-<span class="normal">3350</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose_topologies</span><span class="p">(</span>
+<span class="normal">3350</span>
+<span class="normal">3351</span>
+<span class="normal">3352</span>
+<span class="normal">3353</span>
+<span class="normal">3354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">superimpose_topologies</span><span class="p">(</span>
     <span class="n">top1_nodes</span><span class="p">,</span>
     <span class="n">top2_nodes</span><span class="p">,</span>
     <span class="n">pair_charge_atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
@@ -9251,8 +9255,8 @@ You could keep a list of "combinations" in a queue, and each time you make a new
     <span class="n">net_charge_filter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">net_charge_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
     <span class="n">redistribute_charges_over_unmatched</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">parmed_ligA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">parmed_ligB</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligA_pmd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligB_pmd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">align_molecules</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">partial_rings_allowed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">ignore_charges_completely</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -9285,22 +9289,26 @@ You could keep a list of "combinations" in a queue, and each time you make a new
     <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">align_add_removed_mcs</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">use_rdkit_mcs</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># tmp solution</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">weights_ratio</span>
         <span class="n">align_add_removed_mcs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">align_add_removed_mcs</span>
+        <span class="n">use_rdkit_mcs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">use_rdkit_mcs</span>
 
     <span class="c1"># Get the superimposed topology(/ies).</span>
     <span class="n">suptops</span> <span class="o">=</span> <span class="n">_superimpose_topologies</span><span class="p">(</span>
         <span class="n">top1_nodes</span><span class="p">,</span>
         <span class="n">top2_nodes</span><span class="p">,</span>
-        <span class="n">parmed_ligA</span><span class="p">,</span>
-        <span class="n">parmed_ligB</span><span class="p">,</span>
+        <span class="n">ligA_pmd</span><span class="p">,</span>
+        <span class="n">ligB_pmd</span><span class="p">,</span>
         <span class="n">starting_node_pairs</span><span class="o">=</span><span class="n">starting_node_pairs</span><span class="p">,</span>
         <span class="n">ignore_coords</span><span class="o">=</span><span class="n">ignore_coords</span><span class="p">,</span>
         <span class="n">use_general_type</span><span class="o">=</span><span class="n">use_general_type</span><span class="p">,</span>
         <span class="n">starting_pairs_heuristics</span><span class="o">=</span><span class="n">starting_pairs_heuristics</span><span class="p">,</span>
         <span class="n">starting_pairs</span><span class="o">=</span><span class="n">starting_pair_seed</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="n">use_rdkit_mcs</span><span class="o">=</span><span class="n">use_rdkit_mcs</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">suptops</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Did not find a single superimposition state.&quot;</span><span class="p">)</span>
@@ -9320,7 +9328,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
     <span class="k">for</span> <span class="n">suptop</span> <span class="ow">in</span> <span class="n">suptops</span><span class="p">:</span>
         <span class="c1"># fixme - transition to config</span>
         <span class="n">suptop</span><span class="o">.</span><span class="n">set_tops</span><span class="p">(</span><span class="n">top1_nodes</span><span class="p">,</span> <span class="n">top2_nodes</span><span class="p">)</span>
-        <span class="n">suptop</span><span class="o">.</span><span class="n">set_parmeds</span><span class="p">(</span><span class="n">parmed_ligA</span><span class="p">,</span> <span class="n">parmed_ligB</span><span class="p">)</span>
+        <span class="n">suptop</span><span class="o">.</span><span class="n">set_parmeds</span><span class="p">(</span><span class="n">ligA_pmd</span><span class="p">,</span> <span class="n">ligB_pmd</span><span class="p">)</span>
 
     <span class="c1"># align the 3D coordinates before applying further changes</span>
     <span class="c1"># use the largest suptop to align the molecules</span>
@@ -9543,11 +9551,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3414</span>
-<span class="normal">3415</span>
-<span class="normal">3416</span>
-<span class="normal">3417</span>
-<span class="normal">3418</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3418</span>
 <span class="normal">3419</span>
 <span class="normal">3420</span>
 <span class="normal">3421</span>
@@ -9569,7 +9573,11 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">3437</span>
 <span class="normal">3438</span>
 <span class="normal">3439</span>
-<span class="normal">3440</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of_one</span><span class="p">(</span><span class="n">candidate_suptop</span><span class="p">,</span> <span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">extract_weight_ratio</span><span class="p">):</span>
+<span class="normal">3440</span>
+<span class="normal">3441</span>
+<span class="normal">3442</span>
+<span class="normal">3443</span>
+<span class="normal">3444</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mirror_of_one</span><span class="p">(</span><span class="n">candidate_suptop</span><span class="p">,</span> <span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">extract_weight_ratio</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    &quot;Mirror&quot; in the sense that it is an alternative topological way to traverse the molecule.</span>
 
@@ -9621,11 +9629,7 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3501</span>
-<span class="normal">3502</span>
-<span class="normal">3503</span>
-<span class="normal">3504</span>
-<span class="normal">3505</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3505</span>
 <span class="normal">3506</span>
 <span class="normal">3507</span>
 <span class="normal">3508</span>
@@ -9635,7 +9639,11 @@ You could keep a list of "combinations" in a queue, and each time you make a new
 <span class="normal">3512</span>
 <span class="normal">3513</span>
 <span class="normal">3514</span>
-<span class="normal">3515</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_nxg_from_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">):</span>
+<span class="normal">3515</span>
+<span class="normal">3516</span>
+<span class="normal">3517</span>
+<span class="normal">3518</span>
+<span class="normal">3519</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_nxg_from_list</span><span class="p">(</span><span class="n">atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Helper function. Generates a graph from a list of atoms</span>
 <span class="sd">    @parameter atoms: follow the internal format for atoms</span>
@@ -9684,11 +9692,7 @@ Use:
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3518</span>
-<span class="normal">3519</span>
-<span class="normal">3520</span>
-<span class="normal">3521</span>
-<span class="normal">3522</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3522</span>
 <span class="normal">3523</span>
 <span class="normal">3524</span>
 <span class="normal">3525</span>
@@ -9807,7 +9811,11 @@ Use:
 <span class="normal">3638</span>
 <span class="normal">3639</span>
 <span class="normal">3640</span>
-<span class="normal">3641</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_starting_configurations</span><span class="p">(</span>
+<span class="normal">3641</span>
+<span class="normal">3642</span>
+<span class="normal">3643</span>
+<span class="normal">3644</span>
+<span class="normal">3645</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_starting_configurations</span><span class="p">(</span>
     <span class="n">left_atoms</span><span class="p">,</span> <span class="n">right_atoms</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">filter_ring_c</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -9958,17 +9966,7 @@ Use:
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">3995</span>
-<span class="normal">3996</span>
-<span class="normal">3997</span>
-<span class="normal">3998</span>
-<span class="normal">3999</span>
-<span class="normal">4000</span>
-<span class="normal">4001</span>
-<span class="normal">4002</span>
-<span class="normal">4003</span>
-<span class="normal">4004</span>
-<span class="normal">4005</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4005</span>
 <span class="normal">4006</span>
 <span class="normal">4007</span>
 <span class="normal">4008</span>
@@ -9983,7 +9981,17 @@ Use:
 <span class="normal">4017</span>
 <span class="normal">4018</span>
 <span class="normal">4019</span>
-<span class="normal">4020</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_file</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">4020</span>
+<span class="normal">4021</span>
+<span class="normal">4022</span>
+<span class="normal">4023</span>
+<span class="normal">4024</span>
+<span class="normal">4025</span>
+<span class="normal">4026</span>
+<span class="normal">4027</span>
+<span class="normal">4028</span>
+<span class="normal">4029</span>
+<span class="normal">4030</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_file</span><span class="p">(</span><span class="n">ref_filename</span><span class="p">,</span> <span class="n">mob_filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use Parmed to load the files.</span>
 
@@ -10037,17 +10045,7 @@ and overwrite the coordinates from ParmEd.
 
             <details class="quote">
               <summary>Source code in <code>ties/topology_superimposer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4023</span>
-<span class="normal">4024</span>
-<span class="normal">4025</span>
-<span class="normal">4026</span>
-<span class="normal">4027</span>
-<span class="normal">4028</span>
-<span class="normal">4029</span>
-<span class="normal">4030</span>
-<span class="normal">4031</span>
-<span class="normal">4032</span>
-<span class="normal">4033</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">4033</span>
 <span class="normal">4034</span>
 <span class="normal">4035</span>
 <span class="normal">4036</span>
@@ -10057,7 +10055,17 @@ and overwrite the coordinates from ParmEd.
 <span class="normal">4040</span>
 <span class="normal">4041</span>
 <span class="normal">4042</span>
-<span class="normal">4043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
+<span class="normal">4043</span>
+<span class="normal">4044</span>
+<span class="normal">4045</span>
+<span class="normal">4046</span>
+<span class="normal">4047</span>
+<span class="normal">4048</span>
+<span class="normal">4049</span>
+<span class="normal">4050</span>
+<span class="normal">4051</span>
+<span class="normal">4052</span>
+<span class="normal">4053</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_coords_from_pdb</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">pdb_atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Match the atoms from the ParmEd object based on a .pdb file</span>
 <span class="sd">    and overwrite the coordinates from ParmEd.</span>

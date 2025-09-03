@@ -2143,13 +2143,12 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>:param filename:
-:param use_general_type:
 :return: (atoms, bonds, parmed_structure)</p>
 
 
@@ -2177,12 +2176,10 @@
 <span class="normal">119</span>
 <span class="normal">120</span>
 <span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">use_general_type</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_and_parmed_structure</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    :param filename:</span>
-<span class="sd">    :param use_general_type:</span>
 <span class="sd">    :return: (atoms, bonds, parmed_structure)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -2228,7 +2225,8 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">135</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">134</span>
+<span class="normal">135</span>
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
@@ -2245,8 +2243,7 @@
 <span class="normal">149</span>
 <span class="normal">150</span>
 <span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_mol2_gaff_atoms</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="normal">152</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_mol2_gaff_atoms</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The mol2 gaff atom types are not understood by Parmed.</span>
 
@@ -2289,7 +2286,8 @@
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">156</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">155</span>
+<span class="normal">156</span>
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span>
@@ -2335,8 +2333,7 @@
 <span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_pmd_structure</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="normal">202</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_atoms_bonds_from_pmd_structure</span><span class="p">(</span><span class="n">parmed_structure</span><span class="p">:</span> <span class="n">parmed</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    # convert the Parmed atoms into Atom objects.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2414,7 +2411,8 @@ characters which can lead to inconsistencies.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/parsing.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">206</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">205</span>
+<span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
 <span class="normal">209</span>
@@ -2448,8 +2446,7 @@ characters which can lead to inconsistencies.</p>
 <span class="normal">237</span>
 <span class="normal">238</span>
 <span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">do_atom_names_have_simple_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">do_atom_names_have_simple_format</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check if the atom name is followed by a number, e.g. &quot;C15&quot;</span>
 <span class="sd">    Note that the full atom name cannot be more than 4 characters.</span>

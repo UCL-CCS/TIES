@@ -2163,10 +2163,10 @@ object passed in the constructor.</p>
 
     <span class="c1"># extract data from the ligands</span>
     <span class="n">ligA_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">atoms</span>
-    <span class="n">ligA_pmd_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">pmd_structure</span>
+    <span class="n">ligA_pmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligA</span><span class="o">.</span><span class="n">pmd_structure</span>
 
     <span class="n">ligB_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligB</span><span class="o">.</span><span class="n">atoms</span>
-    <span class="n">ligB_pmd_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligB</span><span class="o">.</span><span class="n">pmd_structure</span>
+    <span class="n">ligB_pmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ligB</span><span class="o">.</span><span class="n">pmd_structure</span>
 
     <span class="c1"># TODO - check that these atoms exist, use indices instead of names, ideally C:7 (Element:Idx)</span>
     <span class="n">new_mismatch_names</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2233,14 +2233,14 @@ object passed in the constructor.</p>
         <span class="n">starting_pairs_heuristics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">superimposition_starting_heuristic</span><span class="p">,</span>  <span class="c1"># fixme - add to config</span>
         <span class="n">force_mismatch</span><span class="o">=</span><span class="n">new_mismatch_names</span><span class="p">,</span>
         <span class="n">starting_node_pairs</span><span class="o">=</span><span class="n">starting_node_pairs</span><span class="p">,</span>
-        <span class="n">parmed_ligA</span><span class="o">=</span><span class="n">ligA_pmd_structure</span><span class="p">,</span>
-        <span class="n">parmed_ligB</span><span class="o">=</span><span class="n">ligB_pmd_structure</span><span class="p">,</span>
+        <span class="n">ligA_pmd</span><span class="o">=</span><span class="n">ligA_pmd</span><span class="p">,</span>
+        <span class="n">ligB_pmd</span><span class="o">=</span><span class="n">ligB_pmd</span><span class="p">,</span>
         <span class="n">starting_pair_seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">superimposition_starting_pairs</span><span class="p">,</span>
         <span class="n">logging_key</span><span class="o">=</span><span class="n">logging_key</span><span class="p">,</span>
         <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">set_suptop</span><span class="p">(</span><span class="n">suptop</span><span class="p">,</span> <span class="n">ligA_pmd_structure</span><span class="p">,</span> <span class="n">ligB_pmd_structure</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_suptop</span><span class="p">(</span><span class="n">suptop</span><span class="p">,</span> <span class="n">ligA_pmd</span><span class="p">,</span> <span class="n">ligB_pmd</span><span class="p">)</span>
     <span class="c1"># attach the used config to the suptop</span>
 
     <span class="k">if</span> <span class="n">suptop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
