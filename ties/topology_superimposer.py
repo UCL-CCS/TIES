@@ -3082,8 +3082,8 @@ def superimpose_topologies(
     net_charge_filter=True,
     net_charge_threshold=0.1,
     redistribute_charges_over_unmatched=True,
-    parmed_ligA=None,
-    parmed_ligB=None,
+    ligA_pmd=None,
+    ligB_pmd=None,
     align_molecules=True,
     partial_rings_allowed=False,
     ignore_charges_completely=False,
@@ -3116,22 +3116,26 @@ def superimpose_topologies(
     if config is None:
         weights = [1, 1]
         align_add_removed_mcs = False
+        use_rdkit_mcs = False
     else:
+        # tmp solution
         weights = config.weights_ratio
         align_add_removed_mcs = config.align_add_removed_mcs
+        use_rdkit_mcs = config.use_rdkit_mcs
 
     # Get the superimposed topology(/ies).
     suptops = _superimpose_topologies(
         top1_nodes,
         top2_nodes,
-        parmed_ligA,
-        parmed_ligB,
+        ligA_pmd,
+        ligB_pmd,
         starting_node_pairs=starting_node_pairs,
         ignore_coords=ignore_coords,
         use_general_type=use_general_type,
         starting_pairs_heuristics=starting_pairs_heuristics,
         starting_pairs=starting_pair_seed,
         weights=weights,
+        use_rdkit_mcs=use_rdkit_mcs,
     )
     if not suptops:
         warnings.warn("Did not find a single superimposition state.")
@@ -3151,7 +3155,7 @@ def superimpose_topologies(
     for suptop in suptops:
         # fixme - transition to config
         suptop.set_tops(top1_nodes, top2_nodes)
-        suptop.set_parmeds(parmed_ligA, parmed_ligB)
+        suptop.set_parmeds(ligA_pmd, ligB_pmd)
 
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
@@ -3644,14 +3648,17 @@ def get_starting_configurations(
 def _superimpose_topologies(
     top1_nodes,
     top2_nodes,
-    mda1_nodes=None,
-    mda2_nodes=None,
+    parmed_structure_ligA=None,
+    parmed_structure_ligB=None,
+    rd_ligA=None,
+    rd_ligB=None,
     starting_node_pairs=None,
     ignore_coords=False,
     use_general_type=True,
     starting_pairs_heuristics: float = 0,
     starting_pairs=None,
     weights=[1, 0],
+    use_rdkit_mcs=False,
 ):
     """
     Superimpose two molecules.
@@ -3695,7 +3702,10 @@ def _superimpose_topologies(
     for node1, node2 in starting_node_pairs:
         # with the given starting two nodes, generate the maximum common component
         suptop = SuperimposedTopology(
-            list(top1_nodes), list(top2_nodes), mda1_nodes, mda2_nodes
+            list(top1_nodes),
+            list(top2_nodes),
+            parmed_structure_ligA,
+            parmed_structure_ligB,
         )
         # fixme turn into a property
         candidate_suptop = _overlay(
