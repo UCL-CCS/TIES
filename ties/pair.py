@@ -95,10 +95,10 @@ class Pair:
 
         # extract data from the ligands
         ligA_atoms = self.ligA.atoms
-        ligA_pmd_structure = self.ligA.pmd_structure
+        ligA_pmd = self.ligA.pmd_structure
 
         ligB_atoms = self.ligB.atoms
-        ligB_pmd_structure = self.ligB.pmd_structure
+        ligB_pmd = self.ligB.pmd_structure
 
         # TODO - check that these atoms exist, use indices instead of names, ideally C:7 (Element:Idx)
         new_mismatch_names = []
@@ -165,14 +165,14 @@ class Pair:
             starting_pairs_heuristics=self.config.superimposition_starting_heuristic,  # fixme - add to config
             force_mismatch=new_mismatch_names,
             starting_node_pairs=starting_node_pairs,
-            parmed_ligA=ligA_pmd_structure,
-            parmed_ligB=ligB_pmd_structure,
+            ligA_pmd=ligA_pmd,
+            ligB_pmd=ligB_pmd,
             starting_pair_seed=self.config.superimposition_starting_pairs,
             logging_key=logging_key,
             config=self.config,
         )
 
-        self.set_suptop(suptop, ligA_pmd_structure, ligB_pmd_structure)
+        self.set_suptop(suptop, ligA_pmd, ligB_pmd)
         # attach the used config to the suptop
 
         if suptop is not None:

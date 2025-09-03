@@ -49,7 +49,7 @@ class Config:
         self._redistribute_q_over_unmatched = True
         self._allow_disjoint_components = False
         # use only the element in the superimposition rather than the specific atom type
-        self._use_rdkit_mcs = True
+        self._use_rdkit_mcs = False
         self._use_element_in_superimposition = True
         self._partial_ring_allowed = False
         self.starting_pairs_heuristics = True

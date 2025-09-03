@@ -51,7 +51,7 @@ class Ligand:
         else:
             # fixme - move use_general_type parameter to config for later
             atoms, bonds, pmd_structure = parsing.get_atoms_bonds_and_parmed_structure(
-                ligand, use_general_type=use_general_type
+                ligand
             )
 
         self.pmd_structure = pmd_structure
@@ -291,3 +291,47 @@ class Ligand:
         are_uniqe = len(set(atom_names)) == len(atom_names)
 
         return are_uniqe
+
+    def to_rdkit(self) -> rdkit.Chem.Mol:
+        """
+        Convert specifically the parmed object into a RDKit molecule
+        """
+
+        # convert
+        rd_mol = self.pmd_structure.rdkit_mol
+
+        # validate: check if the atoms are in the same order
+        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
+            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+
+        # copy pmd bond order to rdmol
+        for rd_bond, pmd_bond in zip(rd_mol.GetBonds(), self.pmd_structure.bonds):
+            # verify the bonds are the same
+            assert rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
+            assert rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+
+            # see https://parmed.github.io/ParmEd/html/topobj/parmed.topologyobjects.Bond.html
+            if pmd_bond.order == 1:
+                rd_bond.SetBondType(rdkit.Chem.BondType.SINGLE)
+            elif pmd_bond.order == 2:
+                rd_bond.SetBondType(rdkit.Chem.BondType.DOUBLE)
+            elif pmd_bond.order == 3:
+                rd_bond.SetBondType(rdkit.Chem.BondType.TRIPLE)
+            elif pmd_bond.order == 1.5:
+                rd_bond.SetBondType(rdkit.Chem.BondType.AROMATIC)
+            else:
+                raise NotImplementedError("Missing bonds?")
+
+        # extract the props
+        rd_mol.SetProp(
+            "atom.dprop.GAFFAtomType",
+            " ".join(a.type for a in self.pmd_structure.atoms),
+        )
+        rd_mol.SetProp(
+            "atom.dprop.PartialCharge",
+            " ".join(str(a.charge) for a in self.pmd_structure.atoms),
+        )
+
+        rd_mol.SetProp("_Name", self.internal_name)
+
+        return rd_mol

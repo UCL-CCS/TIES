@@ -97,11 +97,10 @@ def pmd_structure_from_rdmol(rd_mol: rdkit.Chem.Mol):
     return parmed_structure
 
 
-def get_atoms_bonds_and_parmed_structure(filename, use_general_type=True):
+def get_atoms_bonds_and_parmed_structure(filename):
     """
 
     :param filename:
-    :param use_general_type:
     :return: (atoms, bonds, parmed_structure)
     """
 
