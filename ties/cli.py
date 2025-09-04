@@ -278,7 +278,7 @@ def command_line_script():
         dest="ligand_ff_name",
         type=str,
         required=False,
-        default="gaff",
+        default="gaff2",
         help='Either "gaff" or "gaff2"',
     )
     parser.add_argument(
