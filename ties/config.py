@@ -74,8 +74,8 @@ class Config:
         self._superimposition_starting_heuristic = 0.6
 
         self._protein_ff = None
-        self._ligand_ff = "leaprc.gaff"
-        self._ligand_ff_name = "gaff"
+        self._ligand_ff = "leaprc.gaff2"
+        self._ligand_ff_name = "gaff2"
 
         # MD/NAMD production input file
         self._md_engine = "namd"
