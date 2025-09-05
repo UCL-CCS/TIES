@@ -15,7 +15,9 @@ from ties import Pair, Config
 from ties.docking.utils import paths_from_glob, write_mol
 
 
-def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
+def mcs_fit(
+    ref: Chem.Mol, lig: Chem.Mol, connected_component_mcs=True, conformers=1000
+) -> Chem.Mol:
     start = time.time()
 
     rlig = fegrow.RMol(lig)
@@ -36,6 +38,9 @@ def mcs_fit(ref: Chem.Mol, lig: Chem.Mol, conformers=1000) -> Chem.Mol:
     matched_pairs += [
         a for a, _ in sup._removed_pairs_with_charge_difference
     ]  # charges
+
+    if connected_component_mcs:
+        matched_pairs += cc
 
     mapping = [(a.id, b.id) for a, b in matched_pairs if a.element != "H"]
 
@@ -114,6 +119,15 @@ if __name__ == "__main__":
         default=Path("fitted"),
         help="Directory to which the output should be saved",
     )
+    parser.add_argument(
+        "-cc",
+        metavar="bool",
+        dest="connected_component_mcs",
+        type=bool,
+        required=False,
+        default=True,
+        help="Whether to include a connected component that was removed. ",
+    )
     args = parser.parse_args()
 
     out_dir = args.out_dir
@@ -124,5 +138,9 @@ if __name__ == "__main__":
     for filename in args.filenames:
         print(filename)
         mol = Molecule.from_file(filename, allow_undefined_stereo=True)
-        confs = mcs_fit(ref.to_rdkit(), mol.to_rdkit())
+        confs = mcs_fit(
+            ref.to_rdkit(),
+            mol.to_rdkit(),
+            connected_component_mcs=args.connected_component_mcs,
+        )
         write_mol(confs, out_dir / f"{mol.name}.sdf")
