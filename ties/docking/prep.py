@@ -9,6 +9,7 @@ Room for improvement:
  - protein binding pocket aware protonation
 """
 
+import argparse
 from pathlib import Path
 
 import openff
@@ -112,8 +113,6 @@ def param_general_conf(
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
