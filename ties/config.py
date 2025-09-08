@@ -10,6 +10,8 @@ import csv
 import parmed
 import rdkit.Chem
 
+from ties.parsing import get_atoms_bonds_and_parmed_structure
+
 
 logger = logging.getLogger(__name__)
 
@@ -511,17 +513,24 @@ class Config:
         Checks if the first .mol2 file contains charges.
         :return:
         """
-        # if all ligands are .mol2, then charges are provided
-        if all(lig.suffix.lower() == ".mol2" for lig in self.ligand_files):
+
+        # either .mol2 or .sdf files can have partial charges
+        if not all(
+            lig.suffix.lower() in {".mol2", ".sdf"} for lig in self.ligand_files
+        ):
+            return False
+
+        # attempt to check all the charges
+        # ideally this would be moved out of here
+        for lig_name in self.ligand_files:
             # if all atoms have q = 0 that means they're a placeholder
-            u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
-            all_q_0 = all(a.charge == 0 for a in u.atoms)
+            atoms, _, _ = get_atoms_bonds_and_parmed_structure(lig_name)
+
+            all_q_0 = all(a.charge == 0 for a in atoms)
             if all_q_0:
                 return False
 
-            return True
-
-        return False
+        return True
 
     def _get_first_ligand_net_q(self):
         """
@@ -529,9 +538,19 @@ class Config:
         """
 
         # if all atoms have q = 0 that means they're a placeholder
-        u = parmed.load_file(str(list(self.ligand_files)[0]), structure=True)
-        net_q = sum(a.charge == 0 for a in u.atoms)
-        return net_q
+        # Improve: also use the preloaded ligands rather than reading from hard drive
+        net_qs = set()
+        for lig_filename in self.ligand_files:
+            atoms, _, _ = get_atoms_bonds_and_parmed_structure(lig_filename)
+            next_net_q = sum(a.charge == 0 for a in atoms)
+            net_qs.add(next_net_q)
+
+        if len(net_qs) > 1:
+            raise NotImplementedError(
+                f"Different net charges detected: {net_qs}. Not Supported ATM. "
+            )
+
+        return net_qs.pop()
 
     @property
     def ligands_contain_q(self):
@@ -548,7 +567,7 @@ class Config:
         # does the file type contain charges?
         ligand_ext = set(lig.suffix.lower() for lig in self.ligand_files).pop()
         if self._ligands_contain_q is True:
-            if ligand_ext in {".mol2", ".ac"}:
+            if ligand_ext in {".mol2", ".ac", ".sdf"}:
                 self._ligands_contain_q = True
             else:
                 logger.error(
@@ -556,14 +575,12 @@ class Config:
                     "the filetypes .mol2 or .ac have to be used."
                 )
                 sys.exit(1)
-        elif self._ligands_contain_q is False:
-            self._ligands_contain_q = False
         elif self._ligands_contain_q is None:
             # determine whether charges are provided using the file extensions
-            if ligand_ext in {".mol2", ".ac", ".prep"}:
+            if ligand_ext in {".mol2", ".ac", ".prep", ".sdf"}:
                 # if all charges are 0, then recompute
                 self._ligands_contain_q = self._guess_ligands_contain_q()
-                logger.info("Existing atom charges detected (filetype .ac/.mol2)")
+                logger.info("Existing atom charges detected (filetype .ac|.mol2|.sdf)")
             elif ligand_ext == ".pdb":
                 self._ligands_contain_q = False
                 logger.debug(

@@ -98,59 +98,60 @@ class Ligand:
         """
         self.config.set_configs(**kwargs)
 
-        if self.config.ligands_contain_q or not self.config.antechamber_charge_type:
-            logger.info(
-                f"Antechamber: User-provided atom charges will be reused ({self.current.name})"
-            )
-
         mol2_cwd = self.config.lig_dir / self.internal_name
 
         # prepare the directory
         mol2_cwd.mkdir(parents=True, exist_ok=True)
         mol2_target = mol2_cwd / f"{self.internal_name}.mol2"
 
-        # do not redo if the target file exists
-        if not (mol2_target).is_file():
-            log_filename = mol2_cwd / "antechamber.log"
-            with open(log_filename, "w") as LOG:
-                try:
-                    cmd = [
-                        self.config.ambertools_antechamber,
-                        "-i",
-                        self.current,
-                        "-fi",
-                        self.current.suffix[1:],
-                        "-o",
-                        mol2_target,
-                        "-fo",
-                        "mol2",
-                        "-at",
-                        self.config.ligand_ff_name,
-                        "-nc",
-                        str(self.config.ligand_net_charge),
-                        "-dr",
-                        str(self.config.antechamber_dr),
-                    ] + self.config.antechamber_charge_type
-                    subprocess.run(
-                        cmd,
-                        cwd=mol2_cwd,
-                        stdout=LOG,
-                        stderr=LOG,
-                        check=True,
-                        text=True,
-                        timeout=60 * 30,  # 30 minutes
-                    )
-                except subprocess.CalledProcessError as ProcessError:
-                    raise Exception(
-                        f"Could not convert the ligand into .mol2 file with antechamber. "
-                        f"See the log and its directory: {log_filename} . "
-                        f"Command used: {' '.join(map(str, cmd))}"
-                    ) from ProcessError
-            logger.debug(
-                f"Converted {self.original_input} into .mol2, Log: {log_filename}"
+        if self.config.ligands_contain_q or not self.config.antechamber_charge_type:
+            logger.info(
+                f"Antechamber: User-provided atom charges will be reused ({self.current.name})"
             )
+            self.pmd_structure.save(str(mol2_target))
         else:
-            logger.info(f"File {mol2_target} already exists. Skipping. ")
+            # do not redo if the target file exists
+            if not (mol2_target).is_file():
+                log_filename = mol2_cwd / "antechamber.log"
+                with open(log_filename, "w") as LOG:
+                    try:
+                        cmd = [
+                            self.config.ambertools_antechamber,
+                            "-i",
+                            self.current,
+                            "-fi",
+                            self.current.suffix[1:],
+                            "-o",
+                            mol2_target,
+                            "-fo",
+                            "mol2",
+                            "-at",
+                            self.config.ligand_ff_name,
+                            "-nc",
+                            str(self.config.ligand_net_charge),
+                            "-dr",
+                            str(self.config.antechamber_dr),
+                        ] + self.config.antechamber_charge_type
+                        subprocess.run(
+                            cmd,
+                            cwd=mol2_cwd,
+                            stdout=LOG,
+                            stderr=LOG,
+                            check=True,
+                            text=True,
+                            timeout=60 * 30,  # 30 minutes
+                        )
+                    except subprocess.CalledProcessError as ProcessError:
+                        raise Exception(
+                            f"Could not convert the ligand into .mol2 file with antechamber. "
+                            f"See the log and its directory: {log_filename} . "
+                            f"Command used: {' '.join(map(str, cmd))}"
+                        ) from ProcessError
+                logger.debug(
+                    f"Converted {self.original_input} into .mol2, Log: {log_filename}"
+                )
+            else:
+                logger.info(f"File {mol2_target} already exists. Skipping. ")
 
         self.antechamber_mol2 = mol2_target
         self.current = mol2_target
