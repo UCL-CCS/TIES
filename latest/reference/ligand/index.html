@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../images/favicon-32x32.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.18">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.19">
     
     
       
@@ -2177,7 +2177,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">156</span>
 <span class="normal">157</span>
 <span class="normal">158</span>
-<span class="normal">159</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">antechamber_prepare_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">159</span>
+<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">antechamber_prepare_mol2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts the ligand into a .mol2 format.</span>
 
@@ -2192,59 +2193,60 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set_configs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligands_contain_q</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_charge_type</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Antechamber: User-provided atom charges will be reused (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span>
-        <span class="p">)</span>
-
     <span class="n">mol2_cwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">lig_dir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span>
 
     <span class="c1"># prepare the directory</span>
     <span class="n">mol2_cwd</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">mol2_target</span> <span class="o">=</span> <span class="n">mol2_cwd</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_name</span><span class="si">}</span><span class="s2">.mol2&quot;</span>
 
-    <span class="c1"># do not redo if the target file exists</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">mol2_target</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-        <span class="n">log_filename</span> <span class="o">=</span> <span class="n">mol2_cwd</span> <span class="o">/</span> <span class="s2">&quot;antechamber.log&quot;</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">LOG</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ambertools_antechamber</span><span class="p">,</span>
-                    <span class="s2">&quot;-i&quot;</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span>
-                    <span class="s2">&quot;-fi&quot;</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">suffix</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
-                    <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
-                    <span class="n">mol2_target</span><span class="p">,</span>
-                    <span class="s2">&quot;-fo&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;mol2&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;-at&quot;</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligand_ff_name</span><span class="p">,</span>
-                    <span class="s2">&quot;-nc&quot;</span><span class="p">,</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligand_net_charge</span><span class="p">),</span>
-                    <span class="s2">&quot;-dr&quot;</span><span class="p">,</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_dr</span><span class="p">),</span>
-                <span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_charge_type</span>
-                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-                    <span class="n">cmd</span><span class="p">,</span>
-                    <span class="n">cwd</span><span class="o">=</span><span class="n">mol2_cwd</span><span class="p">,</span>
-                    <span class="n">stdout</span><span class="o">=</span><span class="n">LOG</span><span class="p">,</span>
-                    <span class="n">stderr</span><span class="o">=</span><span class="n">LOG</span><span class="p">,</span>
-                    <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">30</span><span class="p">,</span>  <span class="c1"># 30 minutes</span>
-                <span class="p">)</span>
-            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">ProcessError</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Could not convert the ligand into .mol2 file with antechamber. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;See the log and its directory: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s2"> . &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;Command used: </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ProcessError</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Converted </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s2"> into .mol2, Log: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligands_contain_q</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_charge_type</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Antechamber: User-provided atom charges will be reused (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pmd_structure</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">mol2_target</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">mol2_target</span><span class="si">}</span><span class="s2"> already exists. Skipping. &quot;</span><span class="p">)</span>
+        <span class="c1"># do not redo if the target file exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">mol2_target</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">log_filename</span> <span class="o">=</span> <span class="n">mol2_cwd</span> <span class="o">/</span> <span class="s2">&quot;antechamber.log&quot;</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">LOG</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ambertools_antechamber</span><span class="p">,</span>
+                        <span class="s2">&quot;-i&quot;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span>
+                        <span class="s2">&quot;-fi&quot;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">suffix</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                        <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+                        <span class="n">mol2_target</span><span class="p">,</span>
+                        <span class="s2">&quot;-fo&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;mol2&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;-at&quot;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligand_ff_name</span><span class="p">,</span>
+                        <span class="s2">&quot;-nc&quot;</span><span class="p">,</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ligand_net_charge</span><span class="p">),</span>
+                        <span class="s2">&quot;-dr&quot;</span><span class="p">,</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_dr</span><span class="p">),</span>
+                    <span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">antechamber_charge_type</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                        <span class="n">cmd</span><span class="p">,</span>
+                        <span class="n">cwd</span><span class="o">=</span><span class="n">mol2_cwd</span><span class="p">,</span>
+                        <span class="n">stdout</span><span class="o">=</span><span class="n">LOG</span><span class="p">,</span>
+                        <span class="n">stderr</span><span class="o">=</span><span class="n">LOG</span><span class="p">,</span>
+                        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">30</span><span class="p">,</span>  <span class="c1"># 30 minutes</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">ProcessError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Could not convert the ligand into .mol2 file with antechamber. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;See the log and its directory: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s2"> . &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Command used: </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">cmd</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ProcessError</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Converted </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">original_input</span><span class="si">}</span><span class="s2"> into .mol2, Log: </span><span class="si">{</span><span class="n">log_filename</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">mol2_target</span><span class="si">}</span><span class="s2"> already exists. Skipping. &quot;</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">antechamber_mol2</span> <span class="o">=</span> <span class="n">mol2_target</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">mol2_target</span>
@@ -2277,8 +2279,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
-<span class="normal">191</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
 <span class="normal">194</span>
@@ -2327,7 +2328,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">237</span>
 <span class="normal">238</span>
 <span class="normal">239</span>
-<span class="normal">240</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">240</span>
+<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_frcmod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    params</span>
 <span class="sd">     - parmchk2</span>
@@ -2413,8 +2415,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">242</span>
-<span class="normal">243</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
@@ -2451,7 +2452,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">277</span>
 <span class="normal">278</span>
 <span class="normal">279</span>
-<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_atom_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">280</span>
+<span class="normal">281</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">correct_atom_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ensure that each atom name:</span>
 <span class="sd">     - is unique</span>
@@ -2521,8 +2523,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">282</span>
-<span class="normal">283</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">283</span>
 <span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
@@ -2532,7 +2533,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">290</span>
 <span class="normal">291</span>
 <span class="normal">292</span>
-<span class="normal">293</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">are_atom_names_correct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">293</span>
+<span class="normal">294</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">are_atom_names_correct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if atom names:</span>
 <span class="sd">     - are unique</span>
@@ -2568,8 +2570,7 @@ Any DU atoms created in the antechamber call are removed.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/ligand.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">295</span>
-<span class="normal">296</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">296</span>
 <span class="normal">297</span>
 <span class="normal">298</span>
 <span class="normal">299</span>
@@ -2610,7 +2611,8 @@ Any DU atoms created in the antechamber call are removed.</p>
 <span class="normal">334</span>
 <span class="normal">335</span>
 <span class="normal">336</span>
-<span class="normal">337</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_rdkit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
+<span class="normal">337</span>
+<span class="normal">338</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_rdkit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">rdkit</span><span class="o">.</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert specifically the parmed object into a RDKit molecule</span>
 <span class="sd">    &quot;&quot;&quot;</span>
