@@ -274,28 +274,21 @@ def merge_compatible_suptops_faster(pairing_suptop: dict, min_bonds: int):
     return built_topologies
 
 
-def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
+def extract_best_suptop(
+    suptops, ignore_coords, weights, use_combined_score=False, get_list=False
+):
     """
     Assumes that any merging possible already took place.
     We now have a set of solutions and have to select the best ones.
 
     :param suptops:
-    :param ignore_coords:
+    :param ignore_coords: Do not use coordinates at all. This means a very simple selection
+        based purely on the MCS size.
+    :param use_combined_score: Whether to use a combined score (MCS size with RMSD) for an
+        automated selection. Note this feature was causing tricky issues.
     :return:
     """
 
-    # fixme - ignore coords currently does not work
-    # multiple different paths to traverse the topologies were found
-    # this means some kind of symmetry in the topologies
-    # For example, in the below drawn case (starting from C1-C11) there are two
-    # solutions: (O1-O11, O2-O12) and (O1-O12, O2-O11).
-    #     LIGAND 1        LIGAND 2
-    #        C1              C11
-    #        \                \
-    #        N1              N11
-    #        /\              / \
-    #     O1    O2        O11   O12
-    # Here we decide which of the mappings is better.
     # fixme - uses coordinates to decide which mapping is better.
     #  - Improve: use dihedral angles to decide which mapping is better too
     def item_or_list(suptops):
@@ -349,7 +342,8 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
 
         return (mcs_score + rmsd_score) / len(weights)
 
-    different_length_suptops.sort(key=score)
+    if use_combined_score:
+        different_length_suptops.sort(key=score)
     # if they have a different length, there must be a reason why it is better.
     # todo
 
