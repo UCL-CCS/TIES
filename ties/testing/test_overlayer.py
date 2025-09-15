@@ -117,14 +117,20 @@ def test_SimpleMultipleSolutions_rightStart(CNO_O):
     assert len(suptop.mirrors) == 1
     worse_st = suptop.mirrors[0]
 
-    # check if both representations were found
-    # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
-    assert suptop.contains_atom_name_pair(
-        "O1", "O1"
-    ) and suptop.contains_atom_name_pair("O2", "O2")
-    assert worse_st.contains_atom_name_pair(
-        "O1", "O2"
-    ) and worse_st.contains_atom_name_pair("O2", "O1")
+    case_1_found = False
+    case_2_found = False
+    for st in (suptop, worse_st):
+        # check if both representations were found
+        # The ester allows for mapping (O1-O11, O2-O12) and (O1-O12, O2-O11)
+        case_1_found = worse_st.contains_atom_name_pair(
+            "O1", "O1"
+        ) and worse_st.contains_atom_name_pair("O2", "O2")
+        case_2_found = suptop.contains_atom_name_pair(
+            "O1", "O2"
+        ) and suptop.contains_atom_name_pair("O2", "O1")
+
+    assert case_1_found
+    assert case_2_found
 
     assert suptop.contains_atom_name_pair("C1", "C1")
     assert suptop.contains_atom_name_pair("N1", "N1")
