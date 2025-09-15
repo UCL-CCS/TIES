@@ -67,25 +67,25 @@ def pmd_structure_from_rdmol(rd_mol: rdkit.Chem.Mol):
     for rd_bond in rd_mol.GetBonds():
         found = False
         for pmd_bond in parmed_structure.bonds:
-            if (
-                rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
-                and rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
-            ):
+            if {pmd_bond.atom1.idx, pmd_bond.atom2.idx} == {
+                rd_bond.GetBeginAtomIdx(),
+                rd_bond.GetEndAtomIdx(),
+            }:
                 found = True
 
         if not found:
             raise Exception(
-                "Missing a bond in parmed structure after a conversion from an rdkit molecule"
+                f"Missing a bond (idx: {rd_bond.GetBeginAtomIdx()}, {rd_bond.GetEndAtomIdx()}) from the parmed structure after a conversion from an rdkit molecule (name: {rd_mol.GetProp('_Name')})"
             )
 
     # check the opposite, are there any extra bonds?
     for pmd_bond in parmed_structure.bonds:
         found = False
         for rd_bond in rd_mol.GetBonds():
-            if (
-                rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
-                and rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
-            ):
+            if {pmd_bond.atom1.idx, pmd_bond.atom2.idx} == {
+                rd_bond.GetBeginAtomIdx(),
+                rd_bond.GetEndAtomIdx(),
+            }:
                 found = True
                 break
 
