@@ -54,6 +54,7 @@ class Config:
         self._use_rdkit_mcs = False
         self._use_element_in_superimposition = True
         self._partial_ring_allowed = False
+        self._ignore_coords = False
         self.starting_pairs_heuristics = True
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
         self.weights_ratio = [1, 0]
@@ -472,6 +473,10 @@ class Config:
     @property
     def partial_ring_allowed(self):
         return self._partial_ring_allowed
+
+    @property
+    def ignore_coords(self):
+        return self._ignore_coords
 
     @property
     def align_molecules_using_mcs(self):

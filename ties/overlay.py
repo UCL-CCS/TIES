@@ -325,7 +325,9 @@ def extract_best_suptop(suptops, ignore_coords, weights, get_list=False):
     for key, same_length_suptops in itertools.groupby(suptops, key=lambda st: len(st)):
         # order by RMSD
         sorted_by_rmsd = sorted(
-            same_length_suptops, key=lambda st: st.align_ligands_using_mcs()
+            same_length_suptops,
+            key=lambda st: st.align_ligands_using_mcs(),
+            reverse=True,
         )
         # these have the same lengths and the same RMSD, so they must be mirrors
         for suptop in sorted_by_rmsd[1:]:

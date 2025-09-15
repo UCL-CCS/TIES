@@ -156,7 +156,7 @@ class Pair:
             redistribute_charges_over_unmatched=self.config.redistribute_q_over_unmatched,
             ignore_charges_completely=self.config.ignore_charges_completely,
             ignore_bond_types=True,
-            ignore_coords=False,
+            ignore_coords=self.config.ignore_coords,
             partial_rings_allowed=self.config.partial_ring_allowed,
             align_molecules=self.config.align_molecules_using_mcs,
             use_general_type=self.config.use_element_in_superimposition,
