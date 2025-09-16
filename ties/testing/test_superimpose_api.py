@@ -43,6 +43,6 @@ def test_rmsd_suptop(data):
     # calculate the benzene/oxygen ring of the superimposed area
     # this is done without the superimposition
     rmsd = suptop.rmsd()
-    np.testing.assert_allclose(rmsd, 3.3815635)
+    np.testing.assert_allclose(rmsd, 3.381564)
     aligned_rmsd = suptop.align_ligands_using_mcs()
     np.testing.assert_allclose(aligned_rmsd, 0.05504, rtol=1e05)

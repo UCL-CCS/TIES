@@ -370,7 +370,6 @@ def test_3C_circle(CCC):
         parent_n2=None,
         bond_types=(None, None),
         suptop=SuperimposedTopology(CCC, CCC2),
-        ignore_coords=False,
     )
     # there is one symmetrical way to traverse it
     assert len(suptop.mirrors) == 1

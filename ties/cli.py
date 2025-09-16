@@ -350,7 +350,7 @@ def command_line_script():
         dest="weights_ratio",
         type=ArgparseChecker.ratio,
         required=False,
-        default="1:0.00",
+        default=None,
         help="The weights for the weighted sum of 1) MCS overlap size to 2) RMSD "
         "when coordinates are used for selection of the best structure. "
         'Default it is "1:0" for "MCS:RMSD".  '

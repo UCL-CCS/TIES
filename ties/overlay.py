@@ -17,10 +17,10 @@ def _overlay(
     parent_n2,
     bond_types,
     suptop,
-    ignore_coords=False,
+    use_rmsd=True,
     use_element_type=True,
     exact_coords_cue=False,
-    weights=(1, 0.01),
+    weights=None,
 ):
     """
     Jointly and recursively traverse the molecule while building up the suptop.
@@ -176,7 +176,7 @@ def _overlay(
             parent_n2=n2,
             bond_types=(n1_bond.type, n2_bond.type),
             suptop=suptop,
-            ignore_coords=ignore_coords,
+            use_rmsd=use_rmsd,
             use_element_type=use_element_type,
             exact_coords_cue=exact_coords_cue,
             weights=weights,
@@ -214,7 +214,7 @@ def _overlay(
             if sol2 in all_solutions:
                 all_solutions.remove(sol2)
 
-    best_suptop = extract_best_suptop(all_solutions, ignore_coords, weights=weights)
+    best_suptop = extract_best_suptop(all_solutions, use_rmsd, weights=weights)
     return best_suptop
 
 
@@ -274,18 +274,17 @@ def merge_compatible_suptops_faster(pairing_suptop: dict, min_bonds: int):
     return built_topologies
 
 
-def extract_best_suptop(
-    suptops, ignore_coords, weights, use_combined_score=False, get_list=False
-):
+def extract_best_suptop(suptops, use_rmsd=True, weights=None, get_list=False):
     """
     Assumes that any merging possible already took place.
     We now have a set of solutions and have to select the best ones.
 
     :param suptops:
-    :param ignore_coords: Do not use coordinates at all. This means a very simple selection
-        based purely on the MCS size.
-    :param use_combined_score: Whether to use a combined score (MCS size with RMSD) for an
+    :param use_rmsd: use RMSD to decide which SupTop is better when they are the same length.
+        Ie use the MCS size only.
+    :param weights: Weights (tuple[]) in a combined score (MCS size with RMSD) for an
         automated selection. Note this feature was causing tricky issues.
+        None means it is not used
     :return:
     """
 
@@ -309,27 +308,30 @@ def extract_best_suptop(
     # sort from largest to smallest
     suptops.sort(key=lambda st: len(st), reverse=True)
 
-    if ignore_coords:
+    if not use_rmsd:
         return item_or_list(suptops)
 
     # when length is the same, take the smaller RMSD
     # most likely this is about hydrogens
-    different_length_suptops = []
+    length_rmsd_sorted_suptops = []
     for key, same_length_suptops in itertools.groupby(suptops, key=lambda st: len(st)):
         # order by RMSD
         sorted_by_rmsd = sorted(
-            same_length_suptops,
-            key=lambda st: st.align_ligands_using_mcs(),
-            reverse=True,
+            same_length_suptops, key=lambda st: st.align_ligands_using_mcs()
         )
-        # these have the same lengths and the same RMSD, so they must be mirrors
-        for suptop in sorted_by_rmsd[1:]:
-            if suptop.is_mirror_of(sorted_by_rmsd[0]):
-                sorted_by_rmsd[0].add_mirror_suptop(suptop)
+
+        best_rmsd_suptop = sorted_by_rmsd[0]
+
+        # add the best RMSD solution first
+        length_rmsd_sorted_suptops.append(best_rmsd_suptop)
+
+        # compare the best RMSD suptop with others
+        for next_suptop in sorted_by_rmsd[1:]:
+            if next_suptop.is_mirror_of(best_rmsd_suptop):
+                best_rmsd_suptop.add_mirror_suptop(next_suptop)
             else:
-                # add it as a different solution
-                different_length_suptops.append(suptop)
-        different_length_suptops.append(sorted_by_rmsd[0])
+                # alternative solution
+                length_rmsd_sorted_suptops.append(next_suptop)
 
     # sort using weights
     # score = mcs_score * weight - rmsd * weight ;
@@ -342,12 +344,10 @@ def extract_best_suptop(
 
         return (mcs_score + rmsd_score) / len(weights)
 
-    if use_combined_score:
-        different_length_suptops.sort(key=score)
-    # if they have a different length, there must be a reason why it is better.
-    # todo
+    if weights:
+        length_rmsd_sorted_suptops.sort(key=score)
 
-    return item_or_list(different_length_suptops)
+    return item_or_list(length_rmsd_sorted_suptops)
 
 
 def are_consistent_topologies(suptops: list["SuperimposedTopology"]):  # noqa: F821
