@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 def command_line_script():
-    parser = argparse.ArgumentParser(description="TIES 20")
+    parser = argparse.ArgumentParser(
+        description="TIES 20", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "-action",
         "--action",
