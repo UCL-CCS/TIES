@@ -1970,7 +1970,7 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">use_rmsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1978,7 +1978,11 @@
         <p>Assumes that any merging possible already took place.
 We now have a set of solutions and have to select the best ones.</p>
 <p>:param suptops:
-:param ignore_coords:
+:param use_rmsd: use RMSD to decide which SupTop is better when they are the same length.
+    Ie use the MCS size only.
+:param weights: Weights (tuple[]) in a combined score (MCS size with RMSD) for an
+    automated selection. Note this feature was causing tricky issues.
+    None means it is not used
 :return:</p>
 
 
@@ -2057,32 +2061,20 @@ We now have a set of solutions and have to select the best ones.</p>
 <span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">ignore_coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="normal">350</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_best_suptop</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">use_rmsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">get_list</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Assumes that any merging possible already took place.</span>
 <span class="sd">    We now have a set of solutions and have to select the best ones.</span>
 
 <span class="sd">    :param suptops:</span>
-<span class="sd">    :param ignore_coords:</span>
+<span class="sd">    :param use_rmsd: use RMSD to decide which SupTop is better when they are the same length.</span>
+<span class="sd">        Ie use the MCS size only.</span>
+<span class="sd">    :param weights: Weights (tuple[]) in a combined score (MCS size with RMSD) for an</span>
+<span class="sd">        automated selection. Note this feature was causing tricky issues.</span>
+<span class="sd">        None means it is not used</span>
 <span class="sd">    :return:</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># fixme - ignore coords currently does not work</span>
-    <span class="c1"># multiple different paths to traverse the topologies were found</span>
-    <span class="c1"># this means some kind of symmetry in the topologies</span>
-    <span class="c1"># For example, in the below drawn case (starting from C1-C11) there are two</span>
-    <span class="c1"># solutions: (O1-O11, O2-O12) and (O1-O12, O2-O11).</span>
-    <span class="c1">#     LIGAND 1        LIGAND 2</span>
-    <span class="c1">#        C1              C11</span>
-    <span class="c1">#        \                \</span>
-    <span class="c1">#        N1              N11</span>
-    <span class="c1">#        /\              / \</span>
-    <span class="c1">#     O1    O2        O11   O12</span>
-    <span class="c1"># Here we decide which of the mappings is better.</span>
     <span class="c1"># fixme - uses coordinates to decide which mapping is better.</span>
     <span class="c1">#  - Improve: use dihedral angles to decide which mapping is better too</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">item_or_list</span><span class="p">(</span><span class="n">suptops</span><span class="p">):</span>
@@ -2103,25 +2095,30 @@ We now have a set of solutions and have to select the best ones.</p>
     <span class="c1"># sort from largest to smallest</span>
     <span class="n">suptops</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">st</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">ignore_coords</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_rmsd</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">item_or_list</span><span class="p">(</span><span class="n">suptops</span><span class="p">)</span>
 
     <span class="c1"># when length is the same, take the smaller RMSD</span>
     <span class="c1"># most likely this is about hydrogens</span>
-    <span class="n">different_length_suptops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">length_rmsd_sorted_suptops</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">same_length_suptops</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">suptops</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">st</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)):</span>
         <span class="c1"># order by RMSD</span>
         <span class="n">sorted_by_rmsd</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
             <span class="n">same_length_suptops</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">st</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">align_ligands_using_mcs</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="c1"># these have the same lengths and the same RMSD, so they must be mirrors</span>
-        <span class="k">for</span> <span class="n">suptop</span> <span class="ow">in</span> <span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-            <span class="k">if</span> <span class="n">suptop</span><span class="o">.</span><span class="n">is_mirror_of</span><span class="p">(</span><span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-                <span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">add_mirror_suptop</span><span class="p">(</span><span class="n">suptop</span><span class="p">)</span>
+
+        <span class="n">best_rmsd_suptop</span> <span class="o">=</span> <span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># add the best RMSD solution first</span>
+        <span class="n">length_rmsd_sorted_suptops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">best_rmsd_suptop</span><span class="p">)</span>
+
+        <span class="c1"># compare the best RMSD suptop with others</span>
+        <span class="k">for</span> <span class="n">next_suptop</span> <span class="ow">in</span> <span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">if</span> <span class="n">next_suptop</span><span class="o">.</span><span class="n">is_mirror_of</span><span class="p">(</span><span class="n">best_rmsd_suptop</span><span class="p">):</span>
+                <span class="n">best_rmsd_suptop</span><span class="o">.</span><span class="n">add_mirror_suptop</span><span class="p">(</span><span class="n">next_suptop</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># add it as a different solution</span>
-                <span class="n">different_length_suptops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">suptop</span><span class="p">)</span>
-        <span class="n">different_length_suptops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sorted_by_rmsd</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="c1"># alternative solution</span>
+                <span class="n">length_rmsd_sorted_suptops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">next_suptop</span><span class="p">)</span>
 
     <span class="c1"># sort using weights</span>
     <span class="c1"># score = mcs_score * weight - rmsd * weight ;</span>
@@ -2134,11 +2131,10 @@ We now have a set of solutions and have to select the best ones.</p>
 
         <span class="k">return</span> <span class="p">(</span><span class="n">mcs_score</span> <span class="o">+</span> <span class="n">rmsd_score</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
 
-    <span class="n">different_length_suptops</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">score</span><span class="p">)</span>
-    <span class="c1"># if they have a different length, there must be a reason why it is better.</span>
-    <span class="c1"># todo</span>
+    <span class="k">if</span> <span class="n">weights</span><span class="p">:</span>
+        <span class="n">length_rmsd_sorted_suptops</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">score</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">item_or_list</span><span class="p">(</span><span class="n">different_length_suptops</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">item_or_list</span><span class="p">(</span><span class="n">length_rmsd_sorted_suptops</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -1232,6 +1232,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ties.config.Config.use_rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_rmsd
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ties.config.Config.align_molecules_using_mcs" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;align_molecules_using_mcs
@@ -2220,6 +2229,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ties.config.Config.use_rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_rmsd
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ties.config.Config.align_molecules_using_mcs" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;align_molecules_using_mcs
@@ -2737,6 +2755,18 @@ The settings can be overridden later in the actual classes.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;use_rmsd&lt;/span&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-property&quot;&gt;&lt;code&gt;property&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;ties.config.Config.use_rmsd&lt;/code&gt;)" href="#ties.config.Config.use_rmsd">use_rmsd</a></code></b>
+          –
+          <div class="doc-md-description">
+            <p>Whether to use the RMSD to decide which solution is better.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
           <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;align_molecules_using_mcs&lt;/span&gt;
 
 
@@ -3093,7 +3123,8 @@ The settings can be overridden later in the actual classes.</p>
 <span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
-<span class="normal">105</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="c1"># set the path to the scripts</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">code_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
@@ -3123,9 +3154,10 @@ The settings can be overridden later in the actual classes.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_use_rdkit_mcs</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_use_element_in_superimposition</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_partial_ring_allowed</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_use_rmsd</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">starting_pairs_heuristics</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="c1"># weights in choosing the best MCS, the weighted sum of &quot;(1 - MCS fraction) and RMSD&quot;.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">weights_ratio</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">weights_ratio</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># [1, 0]</span>
 
     <span class="c1"># coordinates</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_align_molecules_using_mcs</span> <span class="o">=</span> <span class="kc">False</span>
@@ -3583,6 +3615,32 @@ separated by alchemical region.</p>
 during the joint-traversal of the two molecules.</p>
 <p>:return: default (False)
 :rtype: bool</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ties.config.Config.use_rmsd" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">use_rmsd</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">use_rmsd</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Whether to use the RMSD to decide which solution is better.
+If two solutions are of the same length, the RMSD will be the decider.</p>
+<p>The RMSD is calculated only for the joint part.</p>
 
     </div>
 
@@ -4191,18 +4249,7 @@ specific information such as the charge changes etc.</p>
 
             <details class="quote">
               <summary>Source code in <code>ties/config.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 956</span>
-<span class="normal"> 957</span>
-<span class="normal"> 958</span>
-<span class="normal"> 959</span>
-<span class="normal"> 960</span>
-<span class="normal"> 961</span>
-<span class="normal"> 962</span>
-<span class="normal"> 963</span>
-<span class="normal"> 964</span>
-<span class="normal"> 965</span>
-<span class="normal"> 966</span>
-<span class="normal"> 967</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 967</span>
 <span class="normal"> 968</span>
 <span class="normal"> 969</span>
 <span class="normal"> 970</span>
@@ -4238,7 +4285,18 @@ specific information such as the charge changes etc.</p>
 <span class="normal">1000</span>
 <span class="normal">1001</span>
 <span class="normal">1002</span>
-<span class="normal">1003</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1003</span>
+<span class="normal">1004</span>
+<span class="normal">1005</span>
+<span class="normal">1006</span>
+<span class="normal">1007</span>
+<span class="normal">1008</span>
+<span class="normal">1009</span>
+<span class="normal">1010</span>
+<span class="normal">1011</span>
+<span class="normal">1012</span>
+<span class="normal">1013</span>
+<span class="normal">1014</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a JSON serializable structure of the config.</span>
 
