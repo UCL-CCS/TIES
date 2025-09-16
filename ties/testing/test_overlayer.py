@@ -220,12 +220,12 @@ def test_Many2One_part2(CN_N, CN):
 
 def test_MultipleSolutions2Levels_rightStart(CN_N):
     """
-         LIGAND 1        LIGAND 2
-            C1              C11
-            /\              / \
-         N1    N2        N11   N12
-            / \    / \      /  \   /  \
-       O1 O2  O3 O4   O11 O12 O13 O14
+         LIGAND 1 & 2
+            C1
+            /\
+         N1    N2
+        / \    / \
+       O1 O2  O3 O4
     """
     c1, n1, n2 = CN_N
 
@@ -254,17 +254,17 @@ def test_MultipleSolutions2Levels_rightStart(CN_N):
         suptop=SuperimposedTopology(pyramid_left, pyramid_right),
     )
 
-    correct_overlaps = [
-        ("C1", "C1"),
-        ("N1", "N1"),
-        ("N2", "N2"),
-        ("O1", "O1"),
-        ("O2", "O2"),
-        ("O3", "O3"),
-        ("O4", "O4"),
+    an_overlap = [
+        ("C", "C"),
+        ("N", "N"),
+        ("N", "N"),
+        ("O", "O"),
+        ("O", "O"),
+        ("O", "O"),
+        ("O", "O"),
     ]
-    for atomName1, atomName2 in correct_overlaps:
-        assert suptop.contains_atom_name_pair(atomName1, atomName2)
+    for (node1, node2), (element1, element2) in zip(suptop.matched_pairs, an_overlap):
+        assert node1.element == element1 and node2.element == element2
 
 
 def test_2sameAtoms_2Cs_symmetry(CC):

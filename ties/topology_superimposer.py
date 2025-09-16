@@ -3088,7 +3088,7 @@ def superimpose_topologies(
     partial_rings_allowed=False,
     ignore_charges_completely=False,
     ignore_bond_types=True,
-    ignore_coords=False,
+    use_rmsd=True,
     use_general_type=True,
     use_only_element=False,
     starting_pairs_heuristics=0.2,
@@ -3114,7 +3114,7 @@ def superimpose_topologies(
 
     # deal with the situation where the config is not passed
     if config is None:
-        weights = [1, 1]
+        weights = None
         align_add_removed_mcs = False
         use_rdkit_mcs = False
     else:
@@ -3130,7 +3130,7 @@ def superimpose_topologies(
         ligA_pmd,
         ligB_pmd,
         starting_node_pairs=starting_node_pairs,
-        ignore_coords=ignore_coords,
+        use_rmsd=use_rmsd,
         use_general_type=use_general_type,
         starting_pairs_heuristics=starting_pairs_heuristics,
         starting_pairs=starting_pair_seed,
@@ -3159,7 +3159,7 @@ def superimpose_topologies(
 
     # align the 3D coordinates before applying further changes
     # use the largest suptop to align the molecules
-    if align_molecules and not ignore_coords:
+    if align_molecules and use_rmsd:
 
         def take_largest(x, y):
             return x if len(x) > len(y) else y
@@ -3291,9 +3291,7 @@ def superimpose_topologies(
     if len(suptops) == 0:
         return None
 
-    suptop = extract_best_suptop(
-        suptops, ignore_coords, weights=weights, get_list=False
-    )
+    suptop = extract_best_suptop(suptops, use_rmsd, weights=weights, get_list=False)
 
     if redistribute_charges_over_unmatched and not ignore_charges_completely:
         # assume that none of the suptops are disjointed
@@ -3326,7 +3324,7 @@ def superimpose_topologies(
     )
 
     # carry out a check. Each
-    if align_molecules and not ignore_coords:
+    if align_molecules and not use_rmsd:
         main_rmsd = suptop.align_ligands_using_mcs()
         for mirror in suptop.mirrors:
             mirror_rmsd = mirror.align_ligands_using_mcs()
@@ -3653,11 +3651,11 @@ def _superimpose_topologies(
     rd_ligA=None,
     rd_ligB=None,
     starting_node_pairs=None,
-    ignore_coords=False,
+    use_rmsd=True,
     use_general_type=True,
     starting_pairs_heuristics: float = 0,
     starting_pairs=None,
-    weights=[1, 0],
+    weights=None,
     use_rdkit_mcs=False,
 ):
     """
@@ -3715,7 +3713,7 @@ def _superimpose_topologies(
             parent_n2=None,
             bond_types=(None, None),
             suptop=suptop,
-            ignore_coords=ignore_coords,
+            use_rmsd=use_rmsd,
             use_element_type=use_general_type,
             weights=weights,
         )
@@ -3737,7 +3735,7 @@ def _superimpose_topologies(
         # check if this superimposed topology is a mirror of one that already exists
         # fixme the order matters in this place
         # fixme - what if the mirror has a lower rmsd match? in that case, pick that mirror here
-        if is_mirror_of_one(candidate_suptop, suptops, ignore_coords, weights):
+        if is_mirror_of_one(candidate_suptop, suptops, use_rmsd, weights):
             continue
 
         #
@@ -3784,7 +3782,7 @@ def _superimpose_topologies(
     logger.debug(f"Found overlays: {len(suptops)}")
 
     # finally, once again, order the suptops and return the best one
-    suptops = extract_best_suptop(suptops, ignore_coords, weights, get_list=True)
+    suptops = extract_best_suptop(suptops, use_rmsd, weights, get_list=True)
 
     # fixme - return other info
     return suptops

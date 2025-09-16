@@ -610,8 +610,7 @@ def test_filter_net_charge_too_large():
     Therefore, remove the pair that has the highest
     charge difference, which is N1-N11
 
-    Ligand 1
-
+    Ligand 1:
          C1 - C2 (+0.07e)
          /      \
     Cl1-C3      C4
@@ -623,9 +622,7 @@ def test_filter_net_charge_too_large():
              C8 (-0.03e)
              |
              C9
-
-
-    Ligand 2
+    Ligand 2:
                  Cl11
                 /
          C11 - C12 (-0.07e)
@@ -722,7 +719,11 @@ def test_filter_net_charge_too_large():
 
     # we have to discriminate against this case somehow
     suptop = superimpose_topologies(
-        top1_list, top2_list, align_molecules=False, partial_rings_allowed=True
+        top1_list,
+        top2_list,
+        align_molecules=False,
+        partial_rings_allowed=True,
+        starting_pair_seed=[("C2", "C12")],
     )
     # removed because the charge difference was too large
     assert not suptop.contains_atom_name_pair("C2", "C12")
