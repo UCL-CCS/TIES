@@ -10,6 +10,7 @@ Room for improvement:
 """
 
 import argparse
+import traceback
 from pathlib import Path
 
 import openff
@@ -163,30 +164,46 @@ if __name__ == "__main__":
         for sdf in args.sdfs:
             print(sdf)
 
-            mol = openff.toolkit.Molecule.from_file(sdf, allow_undefined_stereo=True)
+            try:
+                mol = openff.toolkit.Molecule.from_file(
+                    sdf, allow_undefined_stereo=True
+                )
 
-            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
+                param_mol = param_general_conf(
+                    mol, modify_conformer=args.modify_conformers
+                )
 
-            out_sdf = out_dir / Path(param_mol.name + ".sdf")
-            if out_sdf.exists():
-                print("file exists already: ", out_sdf)
-                continue
+                out_sdf = out_dir / Path(param_mol.name + ".sdf")
+                if out_sdf.exists():
+                    print("file exists already: ", out_sdf)
+                    continue
 
-            param_mol.to_file(out_sdf, file_format="sdf")
+                param_mol.to_file(out_sdf, file_format="sdf")
+            except Exception:
+                print(f"Failed {sdf} with the exception below: ")
+                print(traceback.format_exc())
 
     if args.smiid:
         for line in open(args.smiid).readlines():
             print("Next Smiles", line)
 
-            smi, mol_id = line.strip().rsplit("\t", maxsplit=1)
-            mol = openff.toolkit.Molecule.from_smiles(smi, allow_undefined_stereo=True)
-            mol.name = mol_id
+            try:
+                smi, mol_id = line.strip().rsplit("\t", maxsplit=1)
+                mol = openff.toolkit.Molecule.from_smiles(
+                    smi, allow_undefined_stereo=True
+                )
+                mol.name = mol_id
 
-            param_mol = param_general_conf(mol, modify_conformer=args.modify_conformers)
+                param_mol = param_general_conf(
+                    mol, modify_conformer=args.modify_conformers
+                )
 
-            out_sdf = out_dir / Path(param_mol.name + ".sdf")
-            if out_sdf.exists():
-                print("file exists already: ", out_sdf)
-                continue
+                out_sdf = out_dir / Path(param_mol.name + ".sdf")
+                if out_sdf.exists():
+                    print("file exists already: ", out_sdf)
+                    continue
 
-            param_mol.to_file(out_sdf, file_format="sdf")
+                param_mol.to_file(out_sdf, file_format="sdf")
+            except Exception:
+                print(f"Failed {line} with the exception below: ")
+                print(traceback.format_exc())
