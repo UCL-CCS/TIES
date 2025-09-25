@@ -24,6 +24,7 @@ def get_mcs(mol1: Chem.Mol, mol2: Chem.Mol):
         atomCompare=rdFMCS.AtomCompare.CompareElements,
         # atomCompare=rdFMCS.AtomCompare.CompareAny,
         bondCompare=rdFMCS.BondCompare.CompareAny,
+        timeout=60,  # seconds
     )
     match = Chem.MolFromSmarts(res.smartsString)
 
@@ -47,7 +48,11 @@ def get_mcs(mol1: Chem.Mol, mol2: Chem.Mol):
 
 
 def arg_parser(args):
-    return get_mcs(*args)
+    try:
+        return get_mcs(*args)
+    except Exception as E:
+        print("Error", args, E)
+        return None
 
 
 def compute_mcs_parallel(files):
@@ -58,7 +63,7 @@ def compute_mcs_parallel(files):
     assert all(f.stem == m.GetProp("_Name") for f, m in zip(files, mols))
 
     # compare all pairs
-    with ProcessPoolExecutor(max_workers=12) as executor:
+    with ProcessPoolExecutor(max_workers=2, max_tasks_per_child=1_000) as executor:
         results = list(executor.map(arg_parser, combinations(mols, r=2)))
 
     return results
