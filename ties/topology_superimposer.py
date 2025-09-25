@@ -3680,9 +3680,19 @@ def _superimpose_topologies(
         if starting_pairs:
             starting_node_pairs = []
             for dis_atom, app_atom in starting_pairs:
-                left_atom = [a for a in list(top1_nodes) if a.name == dis_atom][0]
-                right_atom = [a for a in list(top2_nodes) if a.name == app_atom][0]
-                starting_node_pairs.append((left_atom, right_atom))
+                if dis_atom.isdigit() and app_atom.isdigit():
+                    left_atom = [a for a in list(top1_nodes) if a.id == int(dis_atom)]
+                    right_atom = [a for a in list(top2_nodes) if a.id == int(app_atom)]
+                    starting_node_pairs.append((left_atom[0], right_atom[0]))
+                else:
+                    try:
+                        left_atom = [a for a in list(top1_nodes) if a.name == dis_atom]
+                        right_atom = [a for a in list(top2_nodes) if a.name == app_atom]
+                        starting_node_pairs.append((left_atom[0], right_atom[0]))
+                    except IndexError as IE:
+                        raise Exception(
+                            f"Failed at finding the seed {dis_atom}/{left_atom} matched to {app_atom}/{right_atom} "
+                        ) from IE
         elif starting_pairs_heuristics == 0:
             logger.debug("Heuristics is off. All pairs will be searched. ")
             starting_node_pairs = list(itertools.product(top1_nodes, top2_nodes))
