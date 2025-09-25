@@ -3,6 +3,7 @@ Use FEgrow for MCS docking, with TIES for the MCS.
 """
 
 import argparse
+import traceback
 from pathlib import Path
 import warnings
 import time
@@ -137,10 +138,15 @@ if __name__ == "__main__":
 
     for filename in args.filenames:
         print(filename)
-        mol = Molecule.from_file(filename, allow_undefined_stereo=True)
-        confs = mcs_fit(
-            ref.to_rdkit(),
-            mol.to_rdkit(),
-            connected_component_mcs=args.connected_component_mcs,
-        )
-        write_mol(confs, out_dir / f"{mol.name}.sdf")
+
+        try:
+            mol = Molecule.from_file(filename, allow_undefined_stereo=True)
+            confs = mcs_fit(
+                ref.to_rdkit(),
+                mol.to_rdkit(),
+                connected_component_mcs=args.connected_component_mcs,
+            )
+            write_mol(confs, out_dir / f"{mol.name}.sdf")
+        except Exception:
+            print(f"Failed {filename} with the exception below: ")
+            print(traceback.format_exc())
