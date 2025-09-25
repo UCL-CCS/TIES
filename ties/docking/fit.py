@@ -17,7 +17,11 @@ from ties.docking.utils import paths_from_glob, write_mol
 
 
 def mcs_fit(
-    ref: Chem.Mol, lig: Chem.Mol, connected_component_mcs=True, conformers=1000
+    ref: Chem.Mol,
+    lig: Chem.Mol,
+    connected_component_mcs=True,
+    conformers=1000,
+    score_threshold_mcsheavy=0.4,
 ) -> Chem.Mol:
     start = time.time()
 
@@ -50,7 +54,7 @@ def mcs_fit(
     top2_noh = [a for a in sup.top2 if a.element != "H"]
     score = len(mapping) * 2 / (len(top1_noh) + len(top2_noh))
 
-    if score < 0.4:
+    if score < score_threshold_mcsheavy:
         warnings.warn(
             f"Low MCS score {score}, ditching {lig.GetProp('_Name')} to {ref.GetProp('_Name')}"
         )
@@ -129,6 +133,15 @@ if __name__ == "__main__":
         default=True,
         help="Whether to include a connected component that was removed. ",
     )
+    parser.add_argument(
+        "-minmcs",
+        metavar="threshold",
+        dest="score_threshold_mcsheavy",
+        type=float,
+        required=False,
+        default=0.4,
+        help="MCS score threshold below which the fitting will be ignored.  ",
+    )
     args = parser.parse_args()
 
     out_dir = args.out_dir
@@ -145,6 +158,7 @@ if __name__ == "__main__":
                 ref.to_rdkit(),
                 mol.to_rdkit(),
                 connected_component_mcs=args.connected_component_mcs,
+                score_threshold_mcsheavy=args.score_threshold_mcsheavy,
             )
             write_mol(confs, out_dir / f"{mol.name}.sdf")
         except Exception:
