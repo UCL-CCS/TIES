@@ -3,13 +3,13 @@ Use RDKit to find the MCS score.
 """
 
 import argparse
-import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from rdkit.Chem import rdFMCS
 from rdkit import Chem
 from itertools import combinations
+import networkx as nx
 
 from ties.modules.utils.utils import paths_from_glob
 
@@ -69,6 +69,21 @@ def compute_mcs_parallel(files):
     return results
 
 
+def mcs_results_to_networkx_G(mcs_results):
+    # Convert the JSON raw data into a networkx datafile.
+    G = nx.Graph()
+    for mcs in mcs_results:
+        dst = 1 - mcs["score"]
+
+        # convert the mcs into a string because
+        # networkx cannot hold a list as a property
+        mcs["mcs"] = str(mcs["mcs"])
+
+        G.add_edge(mcs["m1"], mcs["m2"], weight=dst, **mcs)
+
+    return G
+
+
 parser = argparse.ArgumentParser(
     description="Generate similarity matrix based on the MCS. "
     "This matrix can be used to construct the perturbation network. ",
@@ -86,21 +101,23 @@ parser.add_argument(
 parser.add_argument(
     "-out",
     metavar="filename",
-    dest="out_json",
+    dest="out_nxG",
     type=Path,
     required=False,
-    default="mcs_data.json",
+    default="mcs_data.graphml",
     help="Output to store all to all MCS data as computed with RDKit. ",
 )
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    if args.out_json.exists():
-        raise FileExistsError(f"File exists: {args.out_json}")
+    if args.out_nxG.exists():
+        raise FileExistsError(f"File exists: {args.out_nxG}")
 
     # list files
     results = compute_mcs_parallel(args.sdfs)
 
-    with open(args.out_json, "w") as F:
-        json.dump(results, F, indent=4)
+    result_G = mcs_results_to_networkx_G(results)
+
+    # save results
+    nx.write_graphml(result_G, args.out_nxG)
