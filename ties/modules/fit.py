@@ -13,7 +13,7 @@ import fegrow
 from openff.toolkit import Molecule
 
 from ties import Pair, Config
-from ties.docking.utils import paths_from_glob, write_mol
+from ties.modules.utils.utils import paths_from_glob, write_mol
 
 
 def mcs_fit(
@@ -94,54 +94,58 @@ def mcs_fit(
     return rlig
 
 
+parser = argparse.ArgumentParser(
+    description="Generate candidate conformers for relative perturbation calculations, "
+    "where each conformer is fitted to the reference structure and"
+    " to the binding pocket of the protein. ",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "-sdfs",
+    metavar="str",
+    dest="filenames",
+    type=paths_from_glob,
+    required=False,
+    default="mols/*.sdf",
+    help="An SDF file with molecules",
+)
+parser.add_argument(
+    "-ref",
+    metavar="str",
+    dest="reference",
+    type=Path,
+    required=True,
+    help="A SDF reference molecule file for fitting",
+)
+parser.add_argument(
+    "-dir",
+    metavar="str",
+    dest="out_dir",
+    type=Path,
+    required=False,
+    default=Path("fitted"),
+    help="Directory to which the output should be saved",
+)
+parser.add_argument(
+    "-cc",
+    metavar="bool",
+    dest="connected_component_mcs",
+    type=bool,
+    required=False,
+    default=True,
+    help="Whether to include a connected component that was removed. ",
+)
+parser.add_argument(
+    "-minmcs",
+    metavar="threshold",
+    dest="score_threshold_mcsheavy",
+    type=float,
+    required=False,
+    default=0.4,
+    help="MCS score threshold below which the fitting will be ignored.  ",
+)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-        "-sdfs",
-        metavar="str",
-        dest="filenames",
-        type=paths_from_glob,
-        required=False,
-        default="mols/*.sdf",
-        help="An SDF file with molecules",
-    )
-    parser.add_argument(
-        "-ref",
-        metavar="str",
-        dest="reference",
-        type=Path,
-        required=True,
-        help="A SDF reference molecule file for fitting",
-    )
-    parser.add_argument(
-        "-dir",
-        metavar="str",
-        dest="out_dir",
-        type=Path,
-        required=False,
-        default=Path("fitted"),
-        help="Directory to which the output should be saved",
-    )
-    parser.add_argument(
-        "-cc",
-        metavar="bool",
-        dest="connected_component_mcs",
-        type=bool,
-        required=False,
-        default=True,
-        help="Whether to include a connected component that was removed. ",
-    )
-    parser.add_argument(
-        "-minmcs",
-        metavar="threshold",
-        dest="score_threshold_mcsheavy",
-        type=float,
-        required=False,
-        default=0.4,
-        help="MCS score threshold below which the fitting will be ignored.  ",
-    )
     args = parser.parse_args()
 
     out_dir = args.out_dir

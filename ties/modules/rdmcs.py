@@ -11,7 +11,7 @@ from rdkit.Chem import rdFMCS
 from rdkit import Chem
 from itertools import combinations
 
-from ties.docking.utils import paths_from_glob
+from ties.modules.utils.utils import paths_from_glob
 
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
@@ -69,29 +69,31 @@ def compute_mcs_parallel(files):
     return results
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-        "-sdfs",
-        metavar="glob or file",
-        dest="sdfs",
-        type=paths_from_glob,
-        required=False,
-        default="mols/*sdf",
-        help="An SDF file with molecules",
-    )
-    parser.add_argument(
-        "-out",
-        metavar="filename",
-        dest="out_json",
-        type=Path,
-        required=False,
-        default="mcs_data.json",
-        help="Output to store all to all MCS data as computed with RDKit. ",
-    )
+parser = argparse.ArgumentParser(
+    description="Generate similarity matrix based on the MCS. "
+    "This matrix can be used to construct the perturbation network. ",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "-sdfs",
+    metavar="glob or file",
+    dest="sdfs",
+    type=paths_from_glob,
+    required=False,
+    default="mols/*sdf",
+    help="An SDF file with molecules",
+)
+parser.add_argument(
+    "-out",
+    metavar="filename",
+    dest="out_json",
+    type=Path,
+    required=False,
+    default="mcs_data.json",
+    help="Output to store all to all MCS data as computed with RDKit. ",
+)
 
+if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.out_json.exists():

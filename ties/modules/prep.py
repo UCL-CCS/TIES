@@ -24,7 +24,7 @@ from openmmforcefields.generators import GAFFTemplateGenerator
 from bs4 import BeautifulSoup
 
 from ties.helpers import ArgparseChecker
-from ties.docking.utils import paths_from_glob
+from ties.modules.utils.utils import paths_from_glob
 
 forcefield = ForceField("openff-2.2.1.offxml")
 
@@ -113,45 +113,50 @@ def param_general_conf(
     return mol
 
 
+parser = argparse.ArgumentParser(
+    description="Prepare a generally low energy conformer "
+    "in the SDF format with the partial charges "
+    "(AM1-BCC-ELF10) and the GAFF atom types "
+    "for the TIES calculations. ",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "-sdfs",
+    metavar="glob or file",
+    dest="sdfs",
+    type=paths_from_glob,
+    required=False,
+    help="An SDF file with molecules",
+)
+parser.add_argument(
+    "-smiid",
+    metavar="filename",
+    dest="smiid",
+    type=Path,
+    required=False,
+    default=False,
+    help="A files with smiles and ID/name in the second column. ",
+)
+parser.add_argument(
+    "-dir",
+    metavar="dirname",
+    dest="out_dir",
+    type=Path,
+    required=False,
+    default=Path("mols"),
+    help="Directory to which the output should be saved",
+)
+parser.add_argument(
+    "-confs",
+    metavar="bool",
+    dest="modify_conformers",
+    type=ArgparseChecker.str2bool,
+    required=False,
+    default=True,
+    help="Generate and optimise conformers (ignore existing ones)",
+)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-        "-sdfs",
-        metavar="glob or file",
-        dest="sdfs",
-        type=paths_from_glob,
-        required=False,
-        help="An SDF file with molecules",
-    )
-    parser.add_argument(
-        "-smiid",
-        metavar="filename",
-        dest="smiid",
-        type=Path,
-        required=False,
-        default=False,
-        help="A files with smiles and ID/name in the second column. ",
-    )
-    parser.add_argument(
-        "-dir",
-        metavar="dirname",
-        dest="out_dir",
-        type=Path,
-        required=False,
-        default=Path("mols"),
-        help="Directory to which the output should be saved",
-    )
-    parser.add_argument(
-        "-confs",
-        metavar="bool",
-        dest="modify_conformers",
-        type=ArgparseChecker.str2bool,
-        required=False,
-        default=True,
-        help="Generate and optimise conformers (ignore existing ones)",
-    )
     args = parser.parse_args()
 
     out_dir: Path = args.out_dir
