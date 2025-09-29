@@ -108,7 +108,10 @@ class Ligand:
             logger.info(
                 f"Antechamber: User-provided atom charges will be reused ({self.current.name})"
             )
-            self.pmd_structure.save(str(mol2_target))
+            if mol2_target.exists():
+                logger.info("The .mol2 file already exists. Reusing it.")
+            else:
+                self.pmd_structure.save(str(mol2_target))
         else:
             # do not redo if the target file exists
             if not (mol2_target).is_file():
