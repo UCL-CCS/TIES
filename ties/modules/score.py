@@ -12,7 +12,7 @@ import prody
 import fegrow
 from openff.toolkit import Molecule
 
-from ties.docking.utils import paths_from_glob, load_conformers
+from ties.modules.utils.utils import paths_from_glob, load_conformers
 
 
 def extract_best_conformer(
@@ -88,36 +88,40 @@ def prepare_protein(name, parsed_pdb="fe_rec_final.pdb"):
     # and save the most energetically favourable
 
 
+parser = argparse.ArgumentParser(
+    description="Extract the best conformer for the FEP calculations. "
+    "Minimise the energy of all conformers, and extract the "
+    "lowest energy conformer. ",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "-sdfs",
+    metavar="str",
+    dest="filenames",
+    type=paths_from_glob,
+    required=False,
+    default="fitted/*.sdf",
+    help="An SDF file with molecules",
+)
+parser.add_argument(
+    "-prot",
+    metavar="str",
+    dest="protein",
+    type=Path,
+    required=True,
+    help="The protein for scoring with FEgrow (see FEgrow on how to prepare the PDB)",
+)
+parser.add_argument(
+    "-dir",
+    metavar="str",
+    dest="out_dir",
+    type=Path,
+    required=False,
+    default=Path("results"),
+    help="Directory to which the output should be saved",
+)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-        "-sdfs",
-        metavar="str",
-        dest="filenames",
-        type=paths_from_glob,
-        required=False,
-        default="fitted/*.sdf",
-        help="An SDF file with molecules",
-    )
-    parser.add_argument(
-        "-prot",
-        metavar="str",
-        dest="protein",
-        type=Path,
-        required=True,
-        help="The protein for scoring with FEgrow (see FEgrow on how to prepare the PDB)",
-    )
-    parser.add_argument(
-        "-dir",
-        metavar="str",
-        dest="out_dir",
-        type=Path,
-        required=False,
-        default=Path("results"),
-        help="Directory to which the output should be saved",
-    )
     args = parser.parse_args()
 
     out_dir = args.out_dir
