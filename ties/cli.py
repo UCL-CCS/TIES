@@ -9,7 +9,6 @@ import itertools
 import logging
 import pathlib
 import shutil
-import sys
 
 import ties.generator
 from ties.helpers import ArgparseChecker
