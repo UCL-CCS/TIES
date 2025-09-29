@@ -307,7 +307,7 @@ def command_line_script():
         logger.info(f"Next ligand pair: {pair.internal_name}")
 
         # rename the atom names to ensure they are unique across the two molecules
-        if args.unique_atom_names:
+        if config.unique_atom_names:
             pair.make_atom_names_unique()
 
         hybrid = pair.superimpose()
