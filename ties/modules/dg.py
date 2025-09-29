@@ -21,6 +21,24 @@ the original mu centres.
 kcal_mol = unit.kilocalorie_per_mole
 
 
+def apply_correction(df, exp_value, exp_label):
+    # cinnabar applied a shift (to 0 apparently)
+    # see #111
+
+    # use the MLE value of your experimental point to calculate the shift
+    exp_val_mle = df[(df["label"] == exp_label) & (df["source"] == "MLE")][
+        "DG (kcal/mol)"
+    ].values[0]
+
+    # calculate the shift
+    shift = exp_value - exp_val_mle
+
+    # apply shift to all MLE points
+    df.loc[df["source"] == "MLE", "DG (kcal/mol)"] += shift
+
+    return df
+
+
 def new_interface():
     exp_value = -6  # kcal_mol
     exp_label = "0"
@@ -57,21 +75,7 @@ def new_interface():
 
     fe.generate_absolute_values()
     df = fe.get_absolute_dataframe()
-
-    # cinnabar applied a shift (to 0 apparently)
-    # see #111
-
-    # use the MLE value of your experimental point to calculate the shift
-    exp_val_mle = df[(df["label"] == exp_label) & (df["source"] == "MLE")][
-        "DG (kcal/mol)"
-    ].values[0]
-
-    # calculate the shift
-    shift = exp_value - exp_val_mle
-
-    # apply shift to all MLE points
-    df.loc[df["source"] == "MLE", "DG (kcal/mol)"] += shift
-
+    df = apply_correction(df, exp_value, exp_label)
     print(df)
 
 
