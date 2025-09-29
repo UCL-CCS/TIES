@@ -2,154 +2,162 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/installation/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/publications/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/superimposition/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/theory/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/webties/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/api/config/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/api/ligand/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/api/pair/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/SUMMARY/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/analysis/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/cli/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/config/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/generator/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/helpers/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/ligand/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/ligandmap/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/md/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/overlay/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/pair/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/parsing/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/protein/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/topology_superimposer/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/bb/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/bb/atom/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/bb/bond/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/reference/bb/gaff_atom_types/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/fit/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/fit/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/mol2sdf/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/mcs/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/prep/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/mol2sdf/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/rdmcs/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/network/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/score/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/prep/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/sdf2mol2/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/score/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
-         <loc>https://github.com/UCL-CCS/TIES/latest/reference/docking/utils/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/sdf2mol2/</loc>
+         <lastmod>2025-09-29</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/utils/</loc>
+         <lastmod>2025-09-29</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/UCL-CCS/TIES/latest/reference/modules/utils/utils/</loc>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/usage/api/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
     <url>
          <loc>https://github.com/UCL-CCS/TIES/latest/usage/cli/</loc>
-         <lastmod>2025-09-26</lastmod>
+         <lastmod>2025-09-29</lastmod>
     </url>
 </urlset>
