@@ -1,18 +1,16 @@
 import argparse
 import copy
-from argparse import ArgumentParser
 from collections import OrderedDict, defaultdict
 from itertools import islice
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: F401
 import networkx as nx
 import numpy as np
 from networkx.exception import NetworkXNoPath
 
 
 class Mapper:
-
     dst_prop = "weight"
     active = "0"
 
@@ -31,7 +29,6 @@ class Mapper:
 
     # extract plausible shortest paths
     def get_shortest_paths(self, num_shortest_paths=10, edges_threshold=0.4):
-
         G = mapper.remove_edges(mapper.full_G, threshold=edges_threshold)
 
         sols = defaultdict(list)
@@ -256,7 +253,6 @@ class Mapper:
         # start with 0
         original_G = copy.deepcopy(G)
         for source, node in nx.bfs_edges(original_G, self.active):
-
             # ignore if not a hub
             hub_size = original_G.out_degree[node]
             # the original (best) distance
