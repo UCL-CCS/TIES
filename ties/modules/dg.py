@@ -21,7 +21,15 @@ the original mu centres.
 kcal_mol = unit.kilocalorie_per_mole
 
 
-def apply_correction(df, exp_value, exp_label):
+def apply_correction(df, exp_value=None, exp_label=None):
+    if exp_value is None:
+        exp_rows = df[df["computational"] == False]
+        assert len(exp_rows) == 1
+
+        # grab the original value
+        exp_value = exp_rows["DG (kcal/mol)"].values[0]
+        exp_label = exp_rows["label"].values[0]
+
     # cinnabar applied a shift (to 0 apparently)
     # see #111
 
@@ -80,11 +88,12 @@ def new_interface():
 
 
 def from_csv_ref():
-    fe = FEMap.from_csv("ref.csv")
+    fe = FEMap.from_csv("rbfe.csv")
     fe.generate_absolute_values()
-    assert fe.check_weakly_connected()
     df = fe.get_absolute_dataframe()
+
+    df = apply_correction(df)
     print(df.to_string())
 
 
-new_interface()
+from_csv_ref()
