@@ -482,6 +482,8 @@
       
         
       
+        
+      
     
     
     
@@ -565,6 +567,29 @@
   
   <span class="md-ellipsis">
     API
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Ecosystem
     
   </span>
   
@@ -1828,15 +1853,22 @@
 <p>TIES can be access via both command line and python interface.</p>
 <p>In the smallest example one can carry out a superimposition 
 employing only two ligands
-<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>--ligands<span class="w"> </span>l03.mol2<span class="w"> </span>l02.mol2
+<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>--ligands<span class="w"> </span>l03.sdf<span class="w"> </span>l02.sdf
 </code></pre></div></p>
-<p>Ideally these .mol2 files already have a 
+<p>The SDF format holds charges and the GAFF atom types in the properties. 
+Specifically, charges use the property <code>atom.dprop.PartialCharge</code> 
+in line with OpenForceField. Whereas the GAFF atom types use the 
+property <code>atom.dprop.GAFFAtomType</code>.</p>
+<p>ps. To create valid SDF files you can use <code>python -m ties.prep</code> 
+(see the ecosystem functionalities)</p>
+<p>We also support .mol2 files. Mol2 files can already hold 
 pre-assigned charges in the last column for each atom. 
 See for example <a href="https://github.com/UCL-CCS/TIES/blob/master/ties/examples/mol2_2ligands_MCL1/l02.mol2">MCL1 case</a>.</p>
 <p>In the case of this example, we are working on molecules 
 that are negatively charges (-1e), and we need to specify it:
-<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>--ligands<span class="w"> </span>l03.mol2<span class="w"> </span>l02.mol2<span class="w"> </span>--ligand-net-charge<span class="w"> </span>-1
+<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>--ligands<span class="w"> </span>l03.sdf<span class="w"> </span>l02.sdf<span class="w"> </span>--ligand-net-charge<span class="w"> </span>-1
 </code></pre></div></p>
+<p>However, the net charge should be automatically detected.</p>
 <p>The order the of the ligands matters and more ligands can be passed. 
 This command creates by default a <code>ties-input</code> directory with all output 
 files. These include <code>meta_*_*.json</code> files which contain the 
@@ -1862,7 +1894,7 @@ will look like this:</p>
 and can be investigated.</p>
 <p>The full RBFE requires also the protein, as well 
 as the net charge of the ligands used in the transformation:
-<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>-l<span class="w"> </span>l02.mol2<span class="w"> </span>l03.mol2<span class="w"> </span>-nc<span class="w"> </span>-1<span class="w"> </span>--protein<span class="w"> </span>protein.pdb
+<div class="highlight"><pre><span></span><code>ties<span class="w"> </span>-l<span class="w"> </span>l02.sdf<span class="w"> </span>l03.sdf<span class="w"> </span>-nc<span class="w"> </span>-1<span class="w"> </span>--protein<span class="w"> </span>protein.pdb
 </code></pre></div></p>
 <p>Check all the options with
 <div class="highlight"><pre><span></span><code>ties<span class="w"> </span>-h
