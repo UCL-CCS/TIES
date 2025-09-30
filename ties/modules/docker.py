@@ -4,7 +4,7 @@ from pathlib import Path
 from openff.toolkit import Molecule
 
 from ties.modules import fit, score
-from ties.modules.utils.utils import load_conformers, write_mol, paths_from_glob
+from ties.modules.utils.utils import write_mol, paths_from_glob
 
 
 def docker(
@@ -15,14 +15,12 @@ def docker(
     confs_dir: Path = Path("confs"),
     results_dir: Path = Path("results"),
 ):
-
     # set the reference structure
     fitted = {crystal_structure_label: mols[crystal_structure_label]}
 
     prody_protein, parsed_pdb = score.prepare_protein(protein_filename)
 
     for node_ref, node, dst in pairs:
-
         if node in fitted:
             warnings.warn("node already in fitted")
             continue
@@ -112,7 +110,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # get the pairs and the distances
-    pairs = [l.split() for l in open(args.pairs_filename).readlines()]
+    pairs = [line.split() for line in open(args.pairs_filename).readlines()]
 
     mols = [
         Molecule.from_file(f, allow_undefined_stereo=True) for f in args.mols_filenames
