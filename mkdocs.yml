@@ -25,6 +25,7 @@ nav:
 - Usage:
   - CLI: usage/cli.md
   - API: usage/api.md
+  - Ecosystem: ecosystem.md
 - API reference:
   - Ligand: api/ligand.md
   - Pair: api/pair.md
