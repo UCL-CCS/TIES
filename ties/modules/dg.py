@@ -2,6 +2,10 @@
 Calculate the dG from ddG using cinnabar
 """
 
+import argparse
+import warnings
+from pathlib import Path
+
 from openff.units import unit
 from cinnabar.measurements import Measurement, ReferenceState
 from cinnabar import FEMap
@@ -23,12 +27,24 @@ kcal_mol = unit.kilocalorie_per_mole
 
 def apply_correction(df, exp_value=None, exp_label=None):
     if exp_value is None:
-        exp_rows = df[df["computational"] == False]
-        assert len(exp_rows) == 1
+        exp_rows = df[not df["computational"]]
+        if len(exp_rows) == 0:
+            if len(df[df["label"] == "0"]) == 1:
+                warnings.warn(
+                    "No experimental point found. Found label '0'. "
+                    "Using the shift to the label '0' to have the value 0"
+                )
+                exp_value = 0
+                exp_label = "0"
+            else:
+                warnings.warn("No experimental point found. Returning only MLE")
+                return df
+        else:
+            assert len(exp_rows) == 1
 
-        # grab the original value
-        exp_value = exp_rows["DG (kcal/mol)"].values[0]
-        exp_label = exp_rows["label"].values[0]
+            # grab the original value
+            exp_value = exp_rows["DG (kcal/mol)"].values[0]
+            exp_label = exp_rows["label"].values[0]
 
     # cinnabar applied a shift (to 0 apparently)
     # see #111
@@ -87,13 +103,37 @@ def new_interface():
     print(df)
 
 
-def from_csv_ref():
-    fe = FEMap.from_csv("rbfe.csv")
+def from_csv_ref(csv):
+    fe = FEMap.from_csv(csv)
     fe.generate_absolute_values()
     df = fe.get_absolute_dataframe()
 
     df = apply_correction(df)
     print(df.to_string())
+    return df
 
 
-from_csv_ref()
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-csv",
+    metavar="str",
+    dest="csv",
+    type=Path,
+    required=True,
+    help="A CSV file with energies",
+)
+parser.add_argument(
+    "-out",
+    metavar="str",
+    dest="corrected_csv_name",
+    type=Path,
+    required=False,
+    default="dG.csv",
+    help="A CSV file with energies",
+)
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    df = from_csv_ref(args.csv)
+    df.to_csv(args.corrected_csv_name)
