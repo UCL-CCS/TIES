@@ -32,6 +32,10 @@ class LigandMap:
         self.map_weights = None
         self.graph = None
 
+        # assign indices to the ligands
+        for i, lig in enumerate(self.ligands):
+            lig.index = i
+
     def generate_map(self):
         """
         Use the underlying morphs to extract the each to each cases.

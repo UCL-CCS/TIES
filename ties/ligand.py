@@ -71,6 +71,11 @@ class Ligand:
         self._renaming_map = None
         self.ligand_with_uniq_atom_names = None
 
+        self.index: int | None = None
+
+    def set_index(self, index: int):
+        self.index = index
+
     def __repr__(self):
         # return self.original_input.stem
         return self.internal_name
