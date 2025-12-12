@@ -8,6 +8,8 @@ from pathlib import Path
 import parmed
 import rdkit.Chem
 
+from ties.bb.atom import Atom
+from ties.bb.bond import Bond
 from ties.config import Config
 from ties.helpers import get_new_atom_names
 from ties import parsing
@@ -37,6 +39,9 @@ class Ligand:
         self.config = Config() if config is None else config
 
         if isinstance(ligand, rdkit.Chem.Mol):
+            # save the original Molecules
+            self.original_rdmol = ligand
+
             pmd_structure = parsing.pmd_structure_from_rdmol(ligand)
             atoms, bonds = parsing.get_atoms_bonds_from_pmd_structure(pmd_structure)
 
@@ -55,8 +60,8 @@ class Ligand:
             )
 
         self.pmd_structure = pmd_structure
-        self.atoms = atoms
-        self.bonds = bonds
+        self.atoms: list[Atom] = atoms
+        self.bonds: list[Bond] = bonds
 
         self.config.ligand_files = ligand
 
@@ -305,19 +310,26 @@ class Ligand:
         """
         Convert specifically the parmed object into a RDKit molecule
         """
+        if hasattr(self, "original_rdmol"):
+            rd_mol = self.original_rdmol
+        else:
+            logger.warning(
+                "Converting the molecule to RDKit mol with ParmEd. This looses chirality. "
+            )
+            rd_mol = self.pmd_structure.rdkit_mol
 
-        # convert
-        rd_mol = self.pmd_structure.rdkit_mol
-
-        # validate: check if the atoms are in the same order
-        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
-            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+        self._assert_same_atom_order(rd_mol)
+        self._populate_data(rd_mol)
 
         # copy pmd bond order to rdmol
-        for rd_bond, pmd_bond in zip(rd_mol.GetBonds(), self.pmd_structure.bonds):
-            # verify the bonds are the same
-            assert rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
-            assert rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+        for rd_bond in rd_mol.GetBonds():
+            # fetch the corresponding bond in pmd_structure
+            pmd_bond = [
+                b
+                for b in self.pmd_structure.bonds
+                if b.atom1.idx == rd_bond.GetBeginAtomIdx()
+                and b.atom2.idx == rd_bond.GetEndAtomIdx()
+            ].pop()
 
             # see https://parmed.github.io/ParmEd/html/topobj/parmed.topologyobjects.Bond.html
             if pmd_bond.order == 1:
@@ -331,7 +343,33 @@ class Ligand:
             else:
                 raise NotImplementedError("Missing bonds?")
 
-        # extract the props
+        rdkit.Chem.SanitizeMol(rd_mol)
+
+        return rd_mol
+
+    def _assert_same_atom_order(self, rd_mol: rdkit.Chem.Mol):
+        """
+        Sanity check that the atom order in the RDKit molecule is the same as in the pmd_structure.
+        """
+
+        # check that the atoms are in the same order
+        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
+            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+
+    def _populate_data(self, rd_mol: rdkit.Chem.Mol):
+        """
+        Add the charges and the atom types from the pmd_structure
+        Args:
+            rd_mol:
+
+        Returns:
+
+        """
+
+        # check that the atoms are in the same order
+        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
+            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+
         rd_mol.SetProp(
             "atom.dprop.GAFFAtomType",
             " ".join(a.type for a in self.pmd_structure.atoms),
@@ -342,5 +380,3 @@ class Ligand:
         )
 
         rd_mol.SetProp("_Name", self.internal_name)
-
-        return rd_mol

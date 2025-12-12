@@ -165,6 +165,13 @@ def command_line_script():
         '(the one that contains "bin" directory which contains "antechamber" file)',
     )
     parser.add_argument(
+        "-rdmcs",
+        dest="use_rdkit_mcs",
+        type=ArgparseChecker.str2bool,
+        required=False,
+        help="Use RDKit's MCS algorithm instead of TIES.",
+    )
+    parser.add_argument(
         "-heuristic",
         "--superimposition-starting-heuristic",
         metavar="number",

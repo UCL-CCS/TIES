@@ -16,16 +16,25 @@ from ties.modules.utils.utils import paths_from_glob
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 
-def get_mcs(mol1: Chem.Mol, mol2: Chem.Mol):
-    res = rdFMCS.FindMCS(
-        [mol1, mol2],
-        completeRingsOnly=True,
-        ringMatchesRingOnly=True,
-        atomCompare=rdFMCS.AtomCompare.CompareElements,
+def get_mcs(
+    mol1: Chem.Mol,
+    mol2: Chem.Mol,
+    rd_FindMCS_kwargs=None,
+):
+    FindMCS_options = {
+        "ringMatchesRingOnly": True,
+        "completeRingsOnly": True,
+        "atomCompare": rdFMCS.AtomCompare.CompareElements,
         # atomCompare=rdFMCS.AtomCompare.CompareAny,
-        bondCompare=rdFMCS.BondCompare.CompareAny,
-        timeout=60,  # seconds
-    )
+        "bondCompare": rdFMCS.BondCompare.CompareAny,
+        "timeout": 60,  # seconds
+        "matchChiralTag": False,
+    }
+
+    if rd_FindMCS_kwargs is not None:
+        FindMCS_options.update(rd_FindMCS_kwargs)
+
+    res = rdFMCS.FindMCS([mol1, mol2], **FindMCS_options)
     match = Chem.MolFromSmarts(res.smartsString)
 
     # get the matching atoms

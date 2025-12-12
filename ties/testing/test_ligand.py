@@ -4,6 +4,7 @@ These tests focus on the Ligand
 
 import rdkit.Chem
 
+from fegrow.testing.library_gen import smiles
 from ties.ligand import Ligand
 
 
@@ -40,3 +41,28 @@ def test_ligand_from_to_rdkit():
     # check if the atoms are in the same order
     for ref_atom, recreated_atom in zip(rd_mol.GetAtoms(), rd_mol_back.GetAtoms()):
         assert ref_atom.GetAtomicNum() == recreated_atom.GetAtomicNum()
+
+
+def test_rdkit_losing_chiral_data_parmed_conversion():
+    """
+    When using ParmEd to convert a molecule to RDKit, the chiral information is lost.
+
+    We force ParmEd conversion by removing the original RDKit molecule.
+    """
+    smiles_with_chiral_centre = "F[C@](Cl)(Br)I"
+    m1 = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)  # one enantiomer
+    l1 = Ligand(m1)
+    del l1.original_rdmol
+    m1_recovered = rdkit.Chem.MolToSmiles(l1.to_rdkit())
+    assert smiles_with_chiral_centre != m1_recovered
+
+
+def test_rdkit_keeps_chiral_data_via_original_rdkit_ligand():
+    """
+    The Ligand by default keeps the original RDKit molecule.
+    """
+    smiles_with_chiral_centre = "F[C@](Cl)(Br)I"
+    m1 = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)  # one enantiomer
+    l1 = Ligand(m1)
+    m1_recovered = rdkit.Chem.MolToSmiles(l1.to_rdkit())
+    assert smiles_with_chiral_centre == m1_recovered

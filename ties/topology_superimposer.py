@@ -24,8 +24,10 @@ import networkx as nx
 
 import ties.config
 import ties.generator
+from ties import Ligand
 from ties.overlay import extract_best_suptop, _overlay
 from ties.parsing import get_atoms_bonds_and_parmed_structure
+from ties.modules.mcs import get_mcs
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings(
@@ -125,7 +127,9 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = (
+            []
+        )  # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -137,6 +141,51 @@ class SuperimposedTopology:
 
         self.id = SuperimposedTopology.COUNTER
         SuperimposedTopology.COUNTER += 1
+
+    @staticmethod
+    def from_rdkit_mcs(ligA, ligB, matchChiralTag=True):
+        print("Using MCS from rdkit")
+
+        rdA = ligA.to_rdkit()
+        rdB = ligB.to_rdkit()
+
+        mcs_results = get_mcs(
+            rdA, rdB, rd_FindMCS_kwargs={"matchChiralTag": matchChiralTag}
+        )
+
+        st = SuperimposedTopology(
+            ligA.atoms,
+            ligB.atoms,
+            parmed_ligA=ligA.pmd_structure,
+            parmed_ligZ=ligB.pmd_structure,
+        )
+
+        # we can group the atoms together since the indices correspond to the original indices in the ligand
+        for rdA_idx, rdB_idx in mcs_results["mcs"]:
+            st.add_node_pair((ligA.atoms[rdA_idx], ligB.atoms[rdB_idx]))
+
+        # add all appropriate bonds
+        # we could in theory add all bonds available in the first instance
+        # right now this is handled during suptop creation TODO compare
+
+        for rdA_idx, rdB_idx in mcs_results["mcs"]:
+            n1, n2 = ligA.atoms[rdA_idx], ligB.atoms[rdB_idx]
+
+            for n1_bonded, n2_bonded in itertools.product(n1.bonds, n2.bonds):
+                if not st.contains((n1_bonded.atom, n2_bonded.atom)):
+                    continue
+
+                st.link_pairs(
+                    (n1, n2),
+                    [
+                        (
+                            (n1_bonded.atom, n2_bonded.atom),
+                            (n1_bonded.type, n2_bonded.type),
+                        ),
+                    ],
+                )
+
+        return st
 
     def mcs_score(self):
         """
@@ -1011,9 +1060,9 @@ class SuperimposedTopology:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, (
-            "At this point there should be left only one main component"
-        )
+        assert (
+            len(ccs) == 1
+        ), "At this point there should be left only one main component"
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -2942,9 +2991,11 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(
-                    ingredients.get(st1, set())
-                ).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = (
+                    {st1, st2}
+                    .union(ingredients.get(st1, set()))
+                    .union(ingredients.get(st2, set()))
+                )
                 excluded.append({st1, st2})
 
                 # break
@@ -3084,6 +3135,8 @@ def superimpose_topologies(
     redistribute_charges_over_unmatched=True,
     ligA_pmd=None,
     ligB_pmd=None,
+    ligA: Ligand | None = None,
+    ligB: Ligand | None = None,
     align_molecules=True,
     partial_rings_allowed=False,
     ignore_charges_completely=False,
@@ -3095,6 +3148,7 @@ def superimpose_topologies(
     starting_pair_seed=None,
     logging_key=None,
     config=None,
+    use_rdkit_mcs=False,
 ):
     """
     The main function that manages the entire process.
@@ -3123,20 +3177,29 @@ def superimpose_topologies(
         align_add_removed_mcs = config.align_add_removed_mcs
         use_rdkit_mcs = config.use_rdkit_mcs
 
-    # Get the superimposed topology(/ies).
-    suptops = _superimpose_topologies(
-        top1_nodes,
-        top2_nodes,
-        ligA_pmd,
-        ligB_pmd,
-        starting_node_pairs=starting_node_pairs,
-        use_rmsd=use_rmsd,
-        use_general_type=use_general_type,
-        starting_pairs_heuristics=starting_pairs_heuristics,
-        starting_pairs=starting_pair_seed,
-        weights=weights,
-        use_rdkit_mcs=use_rdkit_mcs,
-    )
+    if use_rdkit_mcs:
+        if ligA is None or ligB is None:
+            raise ValueError(
+                "Ligands (ties.Ligand) must be provided for RDKit MCS, as opposed to atoms"
+            )
+
+        suptops = [SuperimposedTopology.from_rdkit_mcs(ligA, ligB)]
+    else:
+        # Get the superimposed topology(/ies).
+        suptops = _superimpose_topologies(
+            top1_nodes,
+            top2_nodes,
+            ligA_pmd,
+            ligB_pmd,
+            starting_node_pairs=starting_node_pairs,
+            use_rmsd=use_rmsd,
+            use_general_type=use_general_type,
+            starting_pairs_heuristics=starting_pairs_heuristics,
+            starting_pairs=starting_pair_seed,
+            weights=weights,
+            use_rdkit_mcs=use_rdkit_mcs,
+        )
+
     if not suptops:
         warnings.warn("Did not find a single superimposition state.")
         return None
