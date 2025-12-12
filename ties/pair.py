@@ -7,7 +7,7 @@ import logging
 import parmed
 
 import ties.helpers
-from ties.topology_superimposer import superimpose_topologies, SuperimposedTopology
+from ties.topology_superimposer import superimpose_topologies
 import ties.config
 import ties.ligand
 

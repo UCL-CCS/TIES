@@ -4,7 +4,6 @@ These tests focus on the Ligand
 
 import rdkit.Chem
 
-from fegrow.testing.library_gen import smiles
 from ties.ligand import Ligand
 
 
