@@ -2,7 +2,6 @@
 These tests focus on the Ligand
 """
 
-import parmed
 import rdkit.Chem
 
 from ties import Pair
