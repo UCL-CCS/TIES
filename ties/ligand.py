@@ -1,3 +1,4 @@
+import copy
 import os
 import subprocess
 import shutil
@@ -39,8 +40,7 @@ class Ligand:
         self.config = Config() if config is None else config
 
         if isinstance(ligand, rdkit.Chem.Mol):
-            # save the original Molecules
-            self.original_rdmol = ligand
+            rd_mol = ligand
 
             pmd_structure = parsing.pmd_structure_from_rdmol(ligand)
             atoms, bonds = parsing.get_atoms_bonds_from_pmd_structure(pmd_structure)
@@ -53,11 +53,17 @@ class Ligand:
                 SD.write(ligand)
 
             ligand = lig_path
+
         else:
             # fixme - move use_general_type parameter to config for later
             atoms, bonds, pmd_structure = parsing.get_atoms_bonds_and_parmed_structure(
                 ligand
             )
+
+            logger.warning(
+                "Converting the molecule to RDKit mol with ParmEd. This looses chirality. "
+            )
+            rd_mol = pmd_structure.rdkit_mol
 
         self.pmd_structure = pmd_structure
         self.atoms: list[Atom] = atoms
@@ -77,6 +83,8 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         self.index: int | None = None
+
+        self.initialise_rdmol(rd_mol=rd_mol)
 
     def set_index(self, index: int):
         self.index = index
@@ -307,16 +315,14 @@ class Ligand:
         return are_uniqe
 
     def to_rdkit(self) -> rdkit.Chem.Mol:
+        return self._rd_mol
+
+    def initialise_rdmol(self, rd_mol: rdkit.Chem.Mol) -> None:
         """
-        Convert specifically the parmed object into a RDKit molecule
+        Save an RDKit molecule.
         """
-        if hasattr(self, "original_rdmol"):
-            rd_mol = self.original_rdmol
-        else:
-            logger.warning(
-                "Converting the molecule to RDKit mol with ParmEd. This looses chirality. "
-            )
-            rd_mol = self.pmd_structure.rdkit_mol
+
+        rd_mol = copy.copy(rd_mol)
 
         self._assert_same_atom_order(rd_mol)
         self._populate_data(rd_mol)
@@ -345,7 +351,7 @@ class Ligand:
 
         rdkit.Chem.SanitizeMol(rd_mol)
 
-        return rd_mol
+        self._rd_mol = rd_mol
 
     def _assert_same_atom_order(self, rd_mol: rdkit.Chem.Mol):
         """

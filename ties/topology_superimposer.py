@@ -127,7 +127,9 @@ class SuperimposedTopology:
 
         # removed because
         # fixme - make this into a list
-        self._removed_pairs_with_charge_difference = []  # atom-atom charge decided by qtol
+        self._removed_pairs_with_charge_difference = (
+            []
+        )  # atom-atom charge decided by qtol
         self._removed_because_disjointed_cc = []  # disjointed segment
         self._removed_due_to_net_charge = []
         self._removed_because_unmatched_rings = []
@@ -147,8 +149,17 @@ class SuperimposedTopology:
         rdA = ligA.to_rdkit()
         rdB = ligB.to_rdkit()
 
+        from rdkit import Chem
+
+        Chem.AssignStereochemistryFrom3D(rdA)
+        Chem.AssignStereochemistryFrom3D(rdB)
+
         mcs_results = get_mcs(
             rdA, rdB, rd_FindMCS_kwargs={"matchChiralTag": matchChiralTag}
+        )
+
+        logger.info(
+            f"Original RDKit results are {mcs_results} for rdA {Chem.MolToSmiles(rdA)} and rdB {Chem.MolToSmiles(rdB)}"
         )
 
         st = SuperimposedTopology(
@@ -1058,9 +1069,9 @@ class SuperimposedTopology:
                 remove_ccs.append(cc)
                 ccs.remove(cc)
 
-        assert len(ccs) == 1, (
-            "At this point there should be left only one main component"
-        )
+        assert (
+            len(ccs) == 1
+        ), "At this point there should be left only one main component"
 
         # remove the worse cc
         for cc in remove_ccs:
@@ -2989,9 +3000,11 @@ def merge_compatible_suptops(suptops):
                 large_suptop.merge(st2)
                 suptops.append(large_suptop)
 
-                ingredients[large_suptop] = {st1, st2}.union(
-                    ingredients.get(st1, set())
-                ).union(ingredients.get(st2, set()))
+                ingredients[large_suptop] = (
+                    {st1, st2}
+                    .union(ingredients.get(st1, set()))
+                    .union(ingredients.get(st2, set()))
+                )
                 excluded.append({st1, st2})
 
                 # break
@@ -3166,7 +3179,7 @@ def superimpose_topologies(
     if config is None:
         weights = None
         align_add_removed_mcs = False
-        use_rdkit_mcs = False
+        use_rdkit_mcs = use_rdkit_mcs
     else:
         # tmp solution
         weights = config.weights_ratio

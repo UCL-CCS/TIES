@@ -27,6 +27,8 @@ class Atom:
         self.use_general_type = use_general_type
         self.hash_value = None
 
+        self.chiral = False
+
         self._unique_counter = Atom.counter
         Atom.counter += 1
 

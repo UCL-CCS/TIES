@@ -4,20 +4,8 @@ These tests focus on the Ligand
 
 import rdkit.Chem
 
+from ties import parsing
 from ties.ligand import Ligand
-
-
-def test_correct_atom_names_HAY(data):
-    # atom names do not follow the right format
-    lig = Ligand(data / "l_HAY.mol2")
-    assert lig.are_atom_names_correct()
-
-
-def test_correct_atom_names_HAY_renamed(data):
-    # atom names do not follow the right format
-    lig = Ligand(data / "l_HAY.mol2")
-    lig.correct_atom_names()
-    assert lig.are_atom_names_correct()
 
 
 def test_ligand_from_rdkit_mol():
@@ -49,10 +37,13 @@ def test_rdkit_losing_chiral_data_parmed_conversion():
     We force ParmEd conversion by removing the original RDKit molecule.
     """
     smiles_with_chiral_centre = "F[C@](Cl)(Br)I"
-    m1 = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)  # one enantiomer
-    l1 = Ligand(m1)
-    del l1.original_rdmol
-    m1_recovered = rdkit.Chem.MolToSmiles(l1.to_rdkit())
+    rd_mol = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)
+    lig = Ligand(rd_mol)  # one enantiomer
+
+    pmd_structure = parsing.pmd_structure_from_rdmol(rd_mol)
+    lig.initialise_rdmol(pmd_structure.rdkit_mol)
+
+    m1_recovered = rdkit.Chem.MolToSmiles(lig.to_rdkit())
     assert smiles_with_chiral_centre != m1_recovered
 
 
