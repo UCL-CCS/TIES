@@ -37,7 +37,11 @@ class Ligand:
 
         self.save = save
         # save workplace root
-        self.config = Config() if config is None else config
+        self.config = config
+
+        if self.config is None:
+            logger.info("No config provided. Using defaults.")
+            self.config = Config()
 
         if isinstance(ligand, rdkit.Chem.Mol):
             rd_mol = ligand
@@ -326,6 +330,8 @@ class Ligand:
 
         self._assert_same_atom_order(rd_mol)
         self._populate_data(rd_mol)
+        if self.config.assign_chiral_tags is not None:
+            self._assign_rd_chiral_tags(rd_mol)
 
         # copy pmd bond order to rdmol
         for rd_bond in rd_mol.GetBonds():
@@ -386,3 +392,13 @@ class Ligand:
         )
 
         rd_mol.SetProp("_Name", self.internal_name)
+
+    def _assign_rd_chiral_tags(self, rd_mol):
+        rdkit.Chem.AssignStereochemistryFrom3D(rd_mol)
+        for atom in rd_mol.GetAtoms():
+
+            tag = atom.GetChiralTag()
+            if tag == rdkit.Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
+                continue
+
+            self.atoms[atom.GetIdx()].chiral = tag

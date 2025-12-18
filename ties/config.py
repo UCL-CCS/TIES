@@ -59,6 +59,8 @@ class Config:
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
         self.weights_ratio = None  # [1, 0]
 
+        self.assign_chiral_tags = True
+
         # coordinates
         self._align_molecules_using_mcs = False
         self.align_add_removed_mcs = False

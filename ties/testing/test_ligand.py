@@ -47,6 +47,17 @@ def test_rdkit_losing_chiral_data_parmed_conversion():
     assert smiles_with_chiral_centre != m1_recovered
 
 
+def test_rdkit_chiral_tag():
+    """ """
+    smiles_with_chiral_centre = "F[C@](Cl)(Br)I"
+    rd_mol = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)
+    lig = Ligand(rd_mol)  # one enantiomer
+
+    chiral_atom = [a for a in lig.atoms if a.chiral != False][0]
+
+    assert chiral_atom.type == "C"
+
+
 def test_rdkit_keeps_chiral_data_via_original_rdkit_ligand():
     """
     The Ligand by default keeps the original RDKit molecule.
