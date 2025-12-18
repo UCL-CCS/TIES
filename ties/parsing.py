@@ -109,17 +109,22 @@ def get_atoms_bonds_and_parmed_structure(filename):
         warnings.warn(
             f"Reading .sdf ({filename}) via RDKit - using only the first conformer. "
         )
-        mol = rdkit.Chem.SDMolSupplier(filename, removeHs=False)[0]
-        parmed_structure = pmd_structure_from_rdmol(mol)
+        rd_mol = rdkit.Chem.SDMolSupplier(filename, removeHs=False)[0]
+        parmed_structure = pmd_structure_from_rdmol(rd_mol)
     else:
         parmed_structure: parmed.Structure = parmed.load_file(
             str(filename), structure=True
         )
         correct_mol2_gaff_atoms(parmed_structure)
 
+        logger.warning(
+            "Converting the molecule to RDKit mol with ParmEd. This looses chirality. "
+        )
+        rd_mol = parmed_structure.rdkit_mol
+
     atoms, bonds = get_atoms_bonds_from_pmd_structure(parmed_structure)
 
-    return atoms, bonds, parmed_structure
+    return atoms, bonds, parmed_structure, rd_mol
 
 
 def is_gaff_atoms(parmed_structure: parmed.Structure) -> bool:

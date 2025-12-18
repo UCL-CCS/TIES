@@ -85,7 +85,8 @@ class SuperimposedTopology:
     COUNTER = 0
 
     def __init__(
-        self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None
+        self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None,
+            ligA: Ligand | None = None, ligB: Ligand | None = None,
     ):
         self.set_parmeds(parmed_ligA, parmed_ligZ)
 
@@ -107,6 +108,8 @@ class SuperimposedTopology:
         self.matched_pairs = matched_pairs
         self.top1 = topology1
         self.top2 = topology2
+        self.ligA = ligA
+        self.ligB = ligB
         # create graph representation for both in networkx library, initially to track the number of cycles
         # fixme
 
@@ -3196,6 +3199,8 @@ def superimpose_topologies(
             top2_nodes,
             ligA_pmd,
             ligB_pmd,
+            ligA,
+            ligB,
             starting_node_pairs=starting_node_pairs,
             use_rmsd=use_rmsd,
             use_general_type=use_general_type,
@@ -3716,6 +3721,8 @@ def _superimpose_topologies(
     top2_nodes,
     parmed_structure_ligA=None,
     parmed_structure_ligB=None,
+    ligA: Ligand=None,
+    ligB: Ligand=None,
     rd_ligA=None,
     rd_ligB=None,
     starting_node_pairs=None,
@@ -3782,6 +3789,8 @@ def _superimpose_topologies(
             list(top2_nodes),
             parmed_structure_ligA,
             parmed_structure_ligB,
+            ligA=ligA,
+            ligB=ligB,
         )
         # fixme turn into a property
         candidate_suptop = _overlay(

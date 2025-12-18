@@ -60,14 +60,9 @@ class Ligand:
 
         else:
             # fixme - move use_general_type parameter to config for later
-            atoms, bonds, pmd_structure = parsing.get_atoms_bonds_and_parmed_structure(
+            atoms, bonds, pmd_structure, rd_mol = parsing.get_atoms_bonds_and_parmed_structure(
                 ligand
             )
-
-            logger.warning(
-                "Converting the molecule to RDKit mol with ParmEd. This looses chirality. "
-            )
-            rd_mol = pmd_structure.rdkit_mol
 
         self.pmd_structure = pmd_structure
         self.atoms: list[Atom] = atoms
