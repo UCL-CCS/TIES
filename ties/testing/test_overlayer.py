@@ -263,8 +263,10 @@ def test_MultipleSolutions2Levels_rightStart(CN_N):
         ("O", "O"),
         ("O", "O"),
     ]
-    for (node1, node2), (element1, element2) in zip(suptop.matched_pairs, an_overlap):
-        assert node1.element == element1 and node2.element == element2
+    for node1, node2 in suptop.matched_pairs:
+        an_overlap.remove((node1.element, node2.element))
+
+    assert len(an_overlap) == 0
 
 
 def test_2sameAtoms_2Cs_symmetry(CC):

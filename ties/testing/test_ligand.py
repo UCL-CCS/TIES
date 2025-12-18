@@ -53,7 +53,7 @@ def test_rdkit_chiral_tag():
     rd_mol = rdkit.Chem.MolFromSmiles(smiles_with_chiral_centre)
     lig = Ligand(rd_mol)  # one enantiomer
 
-    chiral_atom = [a for a in lig.atoms if a.chiral != False][0]
+    chiral_atom = [a for a in lig.atoms if a.chiral][0]
 
     assert chiral_atom.type == "C"
 

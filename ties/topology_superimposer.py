@@ -85,8 +85,13 @@ class SuperimposedTopology:
     COUNTER = 0
 
     def __init__(
-        self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None,
-            ligA: Ligand | None = None, ligB: Ligand | None = None,
+        self,
+        topology1=None,
+        topology2=None,
+        parmed_ligA=None,
+        parmed_ligZ=None,
+        ligA: Ligand | None = None,
+        ligB: Ligand | None = None,
     ):
         self.set_parmeds(parmed_ligA, parmed_ligZ)
 
@@ -1686,7 +1691,6 @@ class SuperimposedTopology:
             if node_pair[0] is a1 and node_pair[1] is a2:
                 raise Exception("already exists")
         self.matched_pairs.append(node_pair)
-        self.matched_pairs.sort(key=lambda pair: pair[0].name)
         # update the list of unique nodes
         n1, n2 = node_pair
         assert n1 not in self.nodes and n2 not in self.nodes, (n1, n2)
@@ -3179,11 +3183,13 @@ def superimpose_topologies(
         weights = None
         align_add_removed_mcs = False
         use_rdkit_mcs = use_rdkit_mcs
+        dihedral_check_on_chiral_atoms = False
     else:
         # tmp solution
         weights = config.weights_ratio
         align_add_removed_mcs = config.align_add_removed_mcs
         use_rdkit_mcs = config.use_rdkit_mcs
+        dihedral_check_on_chiral_atoms = config.dihedral_check_on_chiral_atoms
 
     if use_rdkit_mcs:
         if ligA is None or ligB is None:
@@ -3208,6 +3214,7 @@ def superimpose_topologies(
             starting_pairs=starting_pair_seed,
             weights=weights,
             use_rdkit_mcs=use_rdkit_mcs,
+            check_dihedral_on_chiral=dihedral_check_on_chiral_atoms,
         )
 
     if not suptops:
@@ -3721,8 +3728,8 @@ def _superimpose_topologies(
     top2_nodes,
     parmed_structure_ligA=None,
     parmed_structure_ligB=None,
-    ligA: Ligand=None,
-    ligB: Ligand=None,
+    ligA: Ligand = None,
+    ligB: Ligand = None,
     rd_ligA=None,
     rd_ligB=None,
     starting_node_pairs=None,
@@ -3732,6 +3739,7 @@ def _superimpose_topologies(
     starting_pairs=None,
     weights=None,
     use_rdkit_mcs=False,
+    check_dihedral_on_chiral=False,
 ):
     """
     Superimpose two molecules.
@@ -3803,6 +3811,7 @@ def _superimpose_topologies(
             use_rmsd=use_rmsd,
             use_element_type=use_general_type,
             weights=weights,
+            stereochemistry=check_dihedral_on_chiral,
         )
         if candidate_suptop is None:
             # there is no overlap, ignore this case

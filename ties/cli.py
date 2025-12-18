@@ -165,6 +165,13 @@ def command_line_script():
         '(the one that contains "bin" directory which contains "antechamber" file)',
     )
     parser.add_argument(
+        "-dihedrals",
+        dest="dihedral_check_on_chiral_atoms",
+        type=ArgparseChecker.str2bool,
+        required=False,
+        help="Check the dihedral angles on chiral atoms to improve the treatment of stereochemistry.",
+    )
+    parser.add_argument(
         "-rdmcs",
         dest="use_rdkit_mcs",
         type=ArgparseChecker.str2bool,

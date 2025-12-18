@@ -60,6 +60,7 @@ class Config:
         self.weights_ratio = None  # [1, 0]
 
         self.assign_chiral_tags = True
+        self.dihedral_check_on_chiral_atoms = True
 
         # coordinates
         self._align_molecules_using_mcs = False

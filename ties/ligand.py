@@ -60,8 +60,8 @@ class Ligand:
 
         else:
             # fixme - move use_general_type parameter to config for later
-            atoms, bonds, pmd_structure, rd_mol = parsing.get_atoms_bonds_and_parmed_structure(
-                ligand
+            atoms, bonds, pmd_structure, rd_mol = (
+                parsing.get_atoms_bonds_and_parmed_structure(ligand)
             )
 
         self.pmd_structure = pmd_structure
@@ -391,7 +391,6 @@ class Ligand:
     def _assign_rd_chiral_tags(self, rd_mol):
         rdkit.Chem.AssignStereochemistryFrom3D(rd_mol)
         for atom in rd_mol.GetAtoms():
-
             tag = atom.GetChiralTag()
             if tag == rdkit.Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
                 continue

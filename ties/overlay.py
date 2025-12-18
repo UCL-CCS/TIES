@@ -21,6 +21,7 @@ def _overlay(
     use_element_type=True,
     exact_coords_cue=False,
     weights=None,
+    stereochemistry=False,
 ):
     """
     Jointly and recursively traverse the molecule while building up the suptop.
@@ -88,6 +89,41 @@ def _overlay(
 
     # all looks good, create a new copy for this suptop
     suptop = copy.copy(suptop)
+
+    # todo - trim down the candidate if stereochemistry is switched on
+    # check if stereochemistry should always be switched on?
+    # do they both have to be chiral? i imagine it's at least one,
+    if (
+        stereochemistry
+        and len(suptop.get_heavy_atoms()) >= 3
+        and (parent_n1.chiral or parent_n2.chiral)
+    ):
+        last3 = suptop.get_heavy_atoms()[-3:]
+        n1_ijkl = [a.id for a, _ in last3] + [n1.id]
+        n2_ijk = [a.id for _, a in last3] + [n2.id]
+
+        from rdkit.Chem import rdMolTransforms
+
+        angle_n1 = rdMolTransforms.GetDihedralDeg(
+            suptop.ligA.to_rdkit().GetConformer(), *n1_ijkl
+        )
+        angle_n2 = rdMolTransforms.GetDihedralDeg(
+            suptop.ligB.to_rdkit().GetConformer(), *n2_ijk
+        )
+
+        diff = angle_n1 - angle_n2
+        if diff < -360:
+            diff += 360
+        if diff > 360:
+            diff -= 360
+
+        # check if there are 4 bonds
+        if abs(diff) > 90:
+            # cancel this one
+            logger.debug(
+                f"Stereochemistry mismatch: {diff:.2f} degrees between {n1} and {n2}."
+            )
+            return None
 
     # append both nodes as a pair to ensure that we keep track of the mapping
     # having both nodes appended also ensure that we do not revisit/read neither n1 and n2
@@ -180,6 +216,7 @@ def _overlay(
             use_element_type=use_element_type,
             exact_coords_cue=exact_coords_cue,
             weights=weights,
+            stereochemistry=stereochemistry,
         )
 
         if larger_suptop is not None:
