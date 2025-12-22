@@ -95,9 +95,13 @@ def _overlay(
     # do they both have to be chiral? i imagine it's at least one,
     if (
         stereochemistry
-        and len(suptop.get_heavy_atoms()) >= 3
+        and parent_n1 is not None
         and (parent_n1.chiral or parent_n2.chiral)
     ):
+        # check there are enough atoms to for the dihedral
+        if len(suptop.get_heavy_atoms()) < 3:
+            return None
+
         last3 = suptop.get_heavy_atoms()[-3:]
         n1_ijkl = [a.id for a, _ in last3] + [n1.id]
         n2_ijk = [a.id for _, a in last3] + [n2.id]
