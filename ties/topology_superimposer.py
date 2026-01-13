@@ -24,8 +24,10 @@ import networkx as nx
 
 import ties.config
 import ties.generator
+from ties import Ligand
 from ties.overlay import extract_best_suptop, _overlay
 from ties.parsing import get_atoms_bonds_and_parmed_structure
+from ties.modules.mcs import get_mcs
 
 # suppress the warning coming from MDAnalysis' dependency Bio.Align
 warnings.filterwarnings(
@@ -83,7 +85,13 @@ class SuperimposedTopology:
     COUNTER = 0
 
     def __init__(
-        self, topology1=None, topology2=None, parmed_ligA=None, parmed_ligZ=None
+        self,
+        topology1=None,
+        topology2=None,
+        parmed_ligA=None,
+        parmed_ligZ=None,
+        ligA: Ligand | None = None,
+        ligB: Ligand | None = None,
     ):
         self.set_parmeds(parmed_ligA, parmed_ligZ)
 
@@ -105,6 +113,8 @@ class SuperimposedTopology:
         self.matched_pairs = matched_pairs
         self.top1 = topology1
         self.top2 = topology2
+        self.ligA = ligA
+        self.ligB = ligB
         # create graph representation for both in networkx library, initially to track the number of cycles
         # fixme
 
@@ -137,6 +147,60 @@ class SuperimposedTopology:
 
         self.id = SuperimposedTopology.COUNTER
         SuperimposedTopology.COUNTER += 1
+
+    @staticmethod
+    def from_rdkit_mcs(ligA, ligB, matchChiralTag=True):
+        print("Using MCS from rdkit")
+
+        rdA = ligA.to_rdkit()
+        rdB = ligB.to_rdkit()
+
+        from rdkit import Chem
+
+        Chem.AssignStereochemistryFrom3D(rdA)
+        Chem.AssignStereochemistryFrom3D(rdB)
+
+        mcs_results = get_mcs(
+            rdA, rdB, rd_FindMCS_kwargs={"matchChiralTag": matchChiralTag}
+        )
+
+        logger.info(
+            f"Original RDKit results are {mcs_results} for rdA {Chem.MolToSmiles(rdA)} and rdB {Chem.MolToSmiles(rdB)}"
+        )
+
+        st = SuperimposedTopology(
+            ligA.atoms,
+            ligB.atoms,
+            parmed_ligA=ligA.pmd_structure,
+            parmed_ligZ=ligB.pmd_structure,
+        )
+
+        # we can group the atoms together since the indices correspond to the original indices in the ligand
+        for rdA_idx, rdB_idx in mcs_results["mcs"]:
+            st.add_node_pair((ligA.atoms[rdA_idx], ligB.atoms[rdB_idx]))
+
+        # add all appropriate bonds
+        # we could in theory add all bonds available in the first instance
+        # right now this is handled during suptop creation TODO compare
+
+        for rdA_idx, rdB_idx in mcs_results["mcs"]:
+            n1, n2 = ligA.atoms[rdA_idx], ligB.atoms[rdB_idx]
+
+            for n1_bonded, n2_bonded in itertools.product(n1.bonds, n2.bonds):
+                if not st.contains((n1_bonded.atom, n2_bonded.atom)):
+                    continue
+
+                st.link_pairs(
+                    (n1, n2),
+                    [
+                        (
+                            (n1_bonded.atom, n2_bonded.atom),
+                            (n1_bonded.type, n2_bonded.type),
+                        ),
+                    ],
+                )
+
+        return st
 
     def mcs_score(self):
         """
@@ -1627,7 +1691,6 @@ class SuperimposedTopology:
             if node_pair[0] is a1 and node_pair[1] is a2:
                 raise Exception("already exists")
         self.matched_pairs.append(node_pair)
-        self.matched_pairs.sort(key=lambda pair: pair[0].name)
         # update the list of unique nodes
         n1, n2 = node_pair
         assert n1 not in self.nodes and n2 not in self.nodes, (n1, n2)
@@ -3084,6 +3147,8 @@ def superimpose_topologies(
     redistribute_charges_over_unmatched=True,
     ligA_pmd=None,
     ligB_pmd=None,
+    ligA: Ligand | None = None,
+    ligB: Ligand | None = None,
     align_molecules=True,
     partial_rings_allowed=False,
     ignore_charges_completely=False,
@@ -3095,6 +3160,7 @@ def superimpose_topologies(
     starting_pair_seed=None,
     logging_key=None,
     config=None,
+    use_rdkit_mcs=False,
 ):
     """
     The main function that manages the entire process.
@@ -3116,27 +3182,41 @@ def superimpose_topologies(
     if config is None:
         weights = None
         align_add_removed_mcs = False
-        use_rdkit_mcs = False
+        use_rdkit_mcs = use_rdkit_mcs
+        dihedral_check_on_chiral_atoms = False
     else:
         # tmp solution
         weights = config.weights_ratio
         align_add_removed_mcs = config.align_add_removed_mcs
         use_rdkit_mcs = config.use_rdkit_mcs
+        dihedral_check_on_chiral_atoms = config.dihedral_check_on_chiral_atoms
 
-    # Get the superimposed topology(/ies).
-    suptops = _superimpose_topologies(
-        top1_nodes,
-        top2_nodes,
-        ligA_pmd,
-        ligB_pmd,
-        starting_node_pairs=starting_node_pairs,
-        use_rmsd=use_rmsd,
-        use_general_type=use_general_type,
-        starting_pairs_heuristics=starting_pairs_heuristics,
-        starting_pairs=starting_pair_seed,
-        weights=weights,
-        use_rdkit_mcs=use_rdkit_mcs,
-    )
+    if use_rdkit_mcs:
+        if ligA is None or ligB is None:
+            raise ValueError(
+                "Ligands (ties.Ligand) must be provided for RDKit MCS, as opposed to atoms"
+            )
+
+        suptops = [SuperimposedTopology.from_rdkit_mcs(ligA, ligB)]
+    else:
+        # Get the superimposed topology(/ies).
+        suptops = _superimpose_topologies(
+            top1_nodes,
+            top2_nodes,
+            ligA_pmd,
+            ligB_pmd,
+            ligA,
+            ligB,
+            starting_node_pairs=starting_node_pairs,
+            use_rmsd=use_rmsd,
+            use_general_type=use_general_type,
+            starting_pairs_heuristics=starting_pairs_heuristics,
+            starting_pairs=starting_pair_seed,
+            weights=weights,
+            use_rdkit_mcs=use_rdkit_mcs,
+            check_dihedral_on_chiral=dihedral_check_on_chiral_atoms,
+        )
+
     if not suptops:
         warnings.warn("Did not find a single superimposition state.")
         return None
@@ -3648,6 +3728,8 @@ def _superimpose_topologies(
     top2_nodes,
     parmed_structure_ligA=None,
     parmed_structure_ligB=None,
+    ligA: Ligand = None,
+    ligB: Ligand = None,
     rd_ligA=None,
     rd_ligB=None,
     starting_node_pairs=None,
@@ -3657,6 +3739,7 @@ def _superimpose_topologies(
     starting_pairs=None,
     weights=None,
     use_rdkit_mcs=False,
+    check_dihedral_on_chiral=False,
 ):
     """
     Superimpose two molecules.
@@ -3714,6 +3797,8 @@ def _superimpose_topologies(
             list(top2_nodes),
             parmed_structure_ligA,
             parmed_structure_ligB,
+            ligA=ligA,
+            ligB=ligB,
         )
         # fixme turn into a property
         candidate_suptop = _overlay(
@@ -3726,6 +3811,7 @@ def _superimpose_topologies(
             use_rmsd=use_rmsd,
             use_element_type=use_general_type,
             weights=weights,
+            stereochemistry=check_dihedral_on_chiral,
         )
         if candidate_suptop is None:
             # there is no overlap, ignore this case

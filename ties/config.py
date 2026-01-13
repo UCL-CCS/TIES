@@ -59,6 +59,9 @@ class Config:
         # weights in choosing the best MCS, the weighted sum of "(1 - MCS fraction) and RMSD".
         self.weights_ratio = None  # [1, 0]
 
+        self.assign_chiral_tags = True
+        self.dihedral_check_on_chiral_atoms = True
+
         # coordinates
         self._align_molecules_using_mcs = False
         self.align_add_removed_mcs = False
@@ -535,7 +538,7 @@ class Config:
         # ideally this would be moved out of here
         for lig_name in self.ligand_files:
             # if all atoms have q = 0 that means they're a placeholder
-            atoms, _, _ = get_atoms_bonds_and_parmed_structure(lig_name)
+            atoms, _, _, _ = get_atoms_bonds_and_parmed_structure(lig_name)
 
             all_q_0 = all(a.charge == 0 for a in atoms)
             if all_q_0:
@@ -552,7 +555,7 @@ class Config:
         # Improve: also use the preloaded ligands rather than reading from hard drive
         net_qs = set()
         for lig_filename in self.ligand_files:
-            atoms, _, _ = get_atoms_bonds_and_parmed_structure(lig_filename)
+            atoms, _, _, _ = get_atoms_bonds_and_parmed_structure(lig_filename)
             next_net_q = sum(a.charge == 0 for a in atoms)
             net_qs.add(next_net_q)
 

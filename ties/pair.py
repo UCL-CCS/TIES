@@ -167,6 +167,8 @@ class Pair:
             starting_node_pairs=starting_node_pairs,
             ligA_pmd=ligA_pmd,
             ligB_pmd=ligB_pmd,
+            ligA=self.ligA,
+            ligB=self.ligB,
             starting_pair_seed=self.config.superimposition_starting_pairs,
             logging_key=logging_key,
             config=self.config,

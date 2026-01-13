@@ -1,3 +1,4 @@
+import copy
 import os
 import subprocess
 import shutil
@@ -8,6 +9,8 @@ from pathlib import Path
 import parmed
 import rdkit.Chem
 
+from ties.bb.atom import Atom
+from ties.bb.bond import Bond
 from ties.config import Config
 from ties.helpers import get_new_atom_names
 from ties import parsing
@@ -34,9 +37,15 @@ class Ligand:
 
         self.save = save
         # save workplace root
-        self.config = Config() if config is None else config
+        self.config = config
+
+        if self.config is None:
+            logger.info("No config provided. Using defaults.")
+            self.config = Config()
 
         if isinstance(ligand, rdkit.Chem.Mol):
+            rd_mol = ligand
+
             pmd_structure = parsing.pmd_structure_from_rdmol(ligand)
             atoms, bonds = parsing.get_atoms_bonds_from_pmd_structure(pmd_structure)
 
@@ -48,15 +57,16 @@ class Ligand:
                 SD.write(ligand)
 
             ligand = lig_path
+
         else:
             # fixme - move use_general_type parameter to config for later
-            atoms, bonds, pmd_structure = parsing.get_atoms_bonds_and_parmed_structure(
-                ligand
+            atoms, bonds, pmd_structure, rd_mol = (
+                parsing.get_atoms_bonds_and_parmed_structure(ligand)
             )
 
         self.pmd_structure = pmd_structure
-        self.atoms = atoms
-        self.bonds = bonds
+        self.atoms: list[Atom] = atoms
+        self.bonds: list[Bond] = bonds
 
         self.config.ligand_files = ligand
 
@@ -72,6 +82,8 @@ class Ligand:
         self.ligand_with_uniq_atom_names = None
 
         self.index: int | None = None
+
+        self.initialise_rdmol(rd_mol=rd_mol)
 
     def set_index(self, index: int):
         self.index = index
@@ -302,22 +314,29 @@ class Ligand:
         return are_uniqe
 
     def to_rdkit(self) -> rdkit.Chem.Mol:
+        return self._rd_mol
+
+    def initialise_rdmol(self, rd_mol: rdkit.Chem.Mol) -> None:
         """
-        Convert specifically the parmed object into a RDKit molecule
+        Save an RDKit molecule.
         """
 
-        # convert
-        rd_mol = self.pmd_structure.rdkit_mol
+        rd_mol = copy.copy(rd_mol)
 
-        # validate: check if the atoms are in the same order
-        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
-            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+        self._assert_same_atom_order(rd_mol)
+        self._populate_data(rd_mol)
+        if self.config.assign_chiral_tags is not None:
+            self._assign_rd_chiral_tags(rd_mol)
 
         # copy pmd bond order to rdmol
-        for rd_bond, pmd_bond in zip(rd_mol.GetBonds(), self.pmd_structure.bonds):
-            # verify the bonds are the same
-            assert rd_bond.GetBeginAtomIdx() == pmd_bond.atom1.idx
-            assert rd_bond.GetEndAtomIdx() == pmd_bond.atom2.idx
+        for rd_bond in rd_mol.GetBonds():
+            # fetch the corresponding bond in pmd_structure
+            pmd_bond = [
+                b
+                for b in self.pmd_structure.bonds
+                if b.atom1.idx == rd_bond.GetBeginAtomIdx()
+                and b.atom2.idx == rd_bond.GetEndAtomIdx()
+            ].pop()
 
             # see https://parmed.github.io/ParmEd/html/topobj/parmed.topologyobjects.Bond.html
             if pmd_bond.order == 1:
@@ -331,7 +350,33 @@ class Ligand:
             else:
                 raise NotImplementedError("Missing bonds?")
 
-        # extract the props
+        rdkit.Chem.SanitizeMol(rd_mol)
+
+        self._rd_mol = rd_mol
+
+    def _assert_same_atom_order(self, rd_mol: rdkit.Chem.Mol):
+        """
+        Sanity check that the atom order in the RDKit molecule is the same as in the pmd_structure.
+        """
+
+        # check that the atoms are in the same order
+        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
+            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+
+    def _populate_data(self, rd_mol: rdkit.Chem.Mol):
+        """
+        Add the charges and the atom types from the pmd_structure
+        Args:
+            rd_mol:
+
+        Returns:
+
+        """
+
+        # check that the atoms are in the same order
+        for rdatom, pmdatom in zip(rd_mol.GetAtoms(), self.pmd_structure.atoms):
+            assert rdatom.GetAtomicNum() == pmdatom.atomic_number
+
         rd_mol.SetProp(
             "atom.dprop.GAFFAtomType",
             " ".join(a.type for a in self.pmd_structure.atoms),
@@ -343,4 +388,11 @@ class Ligand:
 
         rd_mol.SetProp("_Name", self.internal_name)
 
-        return rd_mol
+    def _assign_rd_chiral_tags(self, rd_mol):
+        rdkit.Chem.AssignStereochemistryFrom3D(rd_mol)
+        for atom in rd_mol.GetAtoms():
+            tag = atom.GetChiralTag()
+            if tag == rdkit.Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
+                continue
+
+            self.atoms[atom.GetIdx()].chiral = tag
