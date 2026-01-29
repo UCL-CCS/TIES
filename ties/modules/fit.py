@@ -127,6 +127,15 @@ parser.add_argument(
     help="Directory to which the output should be saved",
 )
 parser.add_argument(
+    "-conformers",
+    metavar="int",
+    dest="conformers",
+    type=int,
+    required=False,
+    default=1000,
+    help="Number of conformers to be generated",
+)
+parser.add_argument(
     "-cc",
     metavar="bool",
     dest="connected_component_mcs",
@@ -161,6 +170,7 @@ if __name__ == "__main__":
             confs = mcs_fit(
                 ref.to_rdkit(),
                 mol.to_rdkit(),
+                conformers=args.conformers,
                 connected_component_mcs=args.connected_component_mcs,
                 score_threshold_mcsheavy=args.score_threshold_mcsheavy,
             )
