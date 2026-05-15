@@ -2521,7 +2521,7 @@ class SuperimposedTopology:
         init_q_dis = sum(a.charge for a in l_unmatched)
         init_q_app = sum(a.charge for a in r_unmatched)
         logger.debug(
-            f"Initial cumulative charge of the appearing={init_q_app:.6f}, disappearing={init_q_dis:.6f} "
+            f"Initial charge of the appearing={init_q_app:.4f}, disappearing={init_q_dis:.4f} "
             f"alchemical regions"
         )
 
@@ -2537,7 +2537,7 @@ class SuperimposedTopology:
         # total_partial_charge_matched e.g. -0.9 (partial charges) - -1 (net molecule charge) = 0.1
         total_partial_charge_matched = total_charge_matched - net_charge
         logger.debug(
-            f"Total partial charge in the joint area = {total_partial_charge_matched:.6f}"
+            f"Total partial charge in the joint area = {total_partial_charge_matched:.4f}"
         )
 
         # calculate what the correction should be in the alchemical regions
@@ -2545,7 +2545,7 @@ class SuperimposedTopology:
         l_delta_charge_total = -(total_partial_charge_matched + init_q_dis)
         logger.debug(
             f"Total charge imbalance to be distributed in "
-            f"dis={l_delta_charge_total:.6f} and app={r_delta_charge_total:.6f}"
+            f"dis={l_delta_charge_total:.4f} and app={r_delta_charge_total:.4f}"
         )
 
         if len(l_unmatched) == 0 and l_delta_charge_total != 0:
@@ -3321,8 +3321,8 @@ def superimpose_topologies(
         # Furthermore, disjointed components has not yet been applied,
         # even though it might have an effect, fixme - should disjointed be applied first?
         # to account for this implement #251
-        logger.debug(f"Accounting for net charge limit of {net_charge_threshold:.3f}")
         for suptop in suptops[::-1]:
+            logger.debug(f"Net charge is {suptop.get_net_charge():.3f}, but the net charge limit is {net_charge_threshold:.3f}")
             suptop.apply_net_charge_filter(net_charge_threshold)
 
             # remove the suptop from the list if it's empty
