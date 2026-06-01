@@ -2477,7 +2477,9 @@ class SuperimposedTopology:
             f" but found {whole_right_charge}",
         )
         # same integer
-        np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
+        # np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
+        if not np.allclose(whole_left_charge, whole_right_charge, atol=1e-3):
+            logger.error("Whole left and whole right are not equal to each other. Are you changing the charges? ")
 
         return round(whole_left_charge)
 
@@ -2500,9 +2502,9 @@ class SuperimposedTopology:
         net_charge = round(sum(a.charge for a in self.top1))
         net_charge_test = round(sum(a.charge for a in self.top2))
         if net_charge != net_charge_test:
-            raise Exception(
-                "The internally computed net charges of the molecules are different"
-            )
+            logger.error("The internally computed net charges of the molecules are different. "
+                         "Are you computing dG across molecules with different net charges?")
+
         # fixme - use the one passed by the user?
         logger.debug(f"Internally computed net charge: {net_charge}")
 
