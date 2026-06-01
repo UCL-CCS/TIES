@@ -14,7 +14,7 @@ jobs:
         python-version: "3.10"
     - name: Install dependencies
       run: |
-        pip install ruff
+        pip install ruff==0.15.15
     - name: Check formatting with ruff
       run: ruff format --check
     - name: Run ruff
