@@ -3072,8 +3072,10 @@ def solve_one_combination(one_atom_species, ignore_coords):
         # filter out the ones that are impossible
         chosen = list(
             filter(
-                lambda s: len({pair[0] for pair in s}) == longest_match
-                and len({pair[1] for pair in s}) == longest_match,
+                lambda s: (
+                    len({pair[0] for pair in s}) == longest_match
+                    and len({pair[1] for pair in s}) == longest_match
+                ),
                 all_combinations,
             )
         )
