@@ -2479,7 +2479,9 @@ class SuperimposedTopology:
         # same integer
         # np.testing.assert_almost_equal(whole_left_charge, whole_right_charge, decimal=2)
         if not np.allclose(whole_left_charge, whole_right_charge, atol=1e-3):
-            logger.error("Whole left and whole right are not equal to each other. Are you changing the charges? ")
+            logger.error(
+                "Whole left and whole right are not equal to each other. Are you changing the charges? "
+            )
 
         return round(whole_left_charge)
 
@@ -2502,8 +2504,10 @@ class SuperimposedTopology:
         net_charge = round(sum(a.charge for a in self.top1))
         net_charge_test = round(sum(a.charge for a in self.top2))
         if net_charge != net_charge_test:
-            logger.error("The internally computed net charges of the molecules are different. "
-                         "Are you computing dG across molecules with different net charges?")
+            logger.error(
+                "The internally computed net charges of the molecules are different. "
+                "Are you computing dG across molecules with different net charges?"
+            )
 
         # fixme - use the one passed by the user?
         logger.debug(f"Internally computed net charge: {net_charge}")
@@ -3324,7 +3328,9 @@ def superimpose_topologies(
         # even though it might have an effect, fixme - should disjointed be applied first?
         # to account for this implement #251
         for suptop in suptops[::-1]:
-            logger.debug(f"Net charge is {suptop.get_net_charge():.3f}, but the net charge limit is {net_charge_threshold:.3f}")
+            logger.debug(
+                f"Net charge is {suptop.get_net_charge():.3f}, but the net charge limit is {net_charge_threshold:.3f}"
+            )
             suptop.apply_net_charge_filter(net_charge_threshold)
 
             # remove the suptop from the list if it's empty
